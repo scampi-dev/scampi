@@ -1,6 +1,7 @@
 # Dotfiles
 .*
 !.gitignore
+!.lazy.lua
 !.tmuxinator.yml
 
 # Build and debug artifacts
