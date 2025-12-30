@@ -1,8 +1,9 @@
 # Dotfiles
 .*
 !.gitignore
-!.lazy.lua
-!.tmuxinator.yml
+
+# Developer environments
+!.dev/
 
 # Build and debug artifacts
 /build/
