@@ -92,59 +92,63 @@ func executeTask(ctx context.Context, task spec.RtTask) error {
 	return nil
 }
 
+type scheduler struct {
+	mu      sync.Mutex
+	results []spec.Result
+	grp     *errgroup.Group
+	ctx     context.Context
+}
+
+func (s *scheduler) schedule(n *opNode) {
+	s.grp.Go(func() error {
+		fmt.Printf("Start op %s\n", n.op.Name())
+
+		res, err := n.op.Execute(s.ctx)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Finished op %s\n", n.op.Name())
+
+		{ // critical section start
+			s.mu.Lock()
+			s.results = append(s.results, res)
+
+			// NOW — and only now — unblock dependents
+			for _, d := range n.dependents {
+				d.pending--
+				if d.pending == 0 {
+					s.schedule(d)
+				}
+			}
+			s.mu.Unlock()
+		} // critical section end
+
+		return nil
+	})
+}
+
 func runTask(ctx context.Context, task spec.RtTask) (spec.Result, error) {
 	nodes, err := buildPlan(task.Ops())
 	if err != nil {
 		return spec.Result{}, err
 	}
 
-	var (
-		mu      sync.Mutex
-		results []spec.Result
-	)
-
-	grp, ctx := errgroup.WithContext(ctx)
-
-	var schedule func(*opNode)
-	schedule = func(n *opNode) {
-		grp.Go(func() error {
-			fmt.Printf("Start op %s\n", n.op.Name())
-
-			res, err := n.op.Execute(ctx)
-			if err != nil {
-				return err
-			}
-
-			fmt.Printf("Finished op %s\n", n.op.Name())
-
-			mu.Lock()
-			results = append(results, res)
-
-			// NOW — and only now — unblock dependents
-			for _, d := range n.dependents {
-				d.pending--
-				if d.pending == 0 {
-					schedule(d)
-				}
-			}
-			mu.Unlock()
-
-			return nil
-		})
-	}
+	s := &scheduler{}
+	s.grp, s.ctx = errgroup.WithContext(ctx)
 
 	for _, n := range nodes {
 		if n.pending == 0 {
-			schedule(n)
+			s.schedule(n)
 		}
 	}
 
-	if err := grp.Wait(); err != nil {
+	if err := s.grp.Wait(); err != nil {
 		return spec.Result{}, err
 	}
 
 	changed := false
-	for _, res := range results {
+	for _, res := range s.results {
 		if res.Changed {
 			changed = true
 			break
