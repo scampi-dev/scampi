@@ -1,0 +1,78 @@
+version: "2"
+
+run:
+  timeout: 30s
+  tests: true
+  go: "1.25"
+
+linters:
+  default: standard
+  enable:
+    # POLICY first: consistency, API discipline, readability
+    - revive #      [POLICY] style, API contracts, and consistency rules
+
+    # BUG prevention: correctness and safety
+    - errcheck #    [BUG]    ensure errors are checked and not silently ignored
+    - govet #       [BUG]    compiler-level correctness and suspicious constructs
+    - ineffassign # [BUG]    detect assignments whose values are never used
+    - staticcheck # [BUG]    deep static analysis (SA*, ST*, correctness issues)
+    - unused #      [BUG]    find unused vars, funcs, consts hiding logic errors
+
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 #                    [POLICY] require package-level docs
+        #                              --- disabled until project settles down
+    revive:
+      enable-all-rules: false
+      rules:
+        # POLICY rules (project conventions, API discipline)
+        - name: blank-imports #        [POLICY] restrict blank imports usage
+        - name: dot-imports #          [POLICY] discourage namespace pollution
+        - name: error-naming #         [POLICY] enforce idiomatic error variables
+        - name: error-strings #        [POLICY] enforce stable, user-facing errors
+        - name: errorf #               [POLICY] prefer fmt.Errorf for wrapping
+        - name: exported #             [POLICY] require comments on public APIs
+          disabled: true #             --- disabled until project settles down
+        - name: increment-decrement #  [POLICY] prefer i++ / i-- idioms
+        - name: package-comments #     [POLICY] require package-level docs
+          disabled: true #             --- disabled until project settles down
+        - name: receiver-naming #      [POLICY] enforce consistent receiver names
+        - name: superfluous-else #     [POLICY] reduce unnecessary branching
+        - name: time-naming #          [POLICY] enforce time.Duration naming
+        - name: unused-parameter #     [POLICY] flag unused function parameters
+        - name: var-declaration #      [POLICY] discourage redundant var blocks
+        - name: var-naming #           [POLICY] enforce idiomatic naming
+
+        # BUG prevention rules (logic errors, correctness, safety)
+        - name: context-as-argument #  [BUG]    enforce context.Context API contract
+        - name: context-keys-type #    [BUG]    prevent context key collisions
+        - name: defer #                [BUG]    flag ineffective or risky defer usage
+        - name: empty-block #          [BUG]    detect likely-incomplete code blocks
+        - name: error-return #         [BUG]    ensure error is last return value
+        - name: indent-error-flow #    [BUG]    reduce nesting to avoid logic errors
+        - name: range #                [BUG]    catch incorrect range variable usage
+        - name: redefines-builtin-id # [BUG]    prevent shadowing built-ins
+        - name: unexported-return #    [BUG]    prevent leaking unexported types
+        - name: unhandled-error #      [BUG]    enforce error handling on calls
+          arguments: ["fmt.Printf"]
+        - name: unreachable-code #     [BUG]    detect dead or impossible code paths
+
+formatters:
+  enable:
+    # POLICY: formatting and import hygiene
+    - gofmt #     [POLICY] canonical Go formatting
+    - goimports # [POLICY] import grouping, ordering, and pruning
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: true
+  fix: false
+
+output:
+  sort-order:
+    - linter
+    - severity
+    - file

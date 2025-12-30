@@ -1,6 +1,7 @@
 # Dotfiles
 .*
 !.gitignore
+!.golangci.yml
 
 # Developer environments
 !.dev/
