@@ -113,24 +113,43 @@ type (
 func (op *baseOp) DependsOn() []spec.Op      { return op.deps }
 func (op *baseOp) addDependency(dep spec.Op) { op.deps = append(op.deps, dep) }
 
-func (op *copyFileOp) Name() string                        { return "copyFileOp" }
-func (op *copyFileOp) Check(context.Context) (bool, error) { return true, nil }
+func (op *copyFileOp) Name() string { return "copyFileOp" }
+func (op *copyFileOp) Check(context.Context) (spec.CheckResult, error) {
+	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
+	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
+	time.Sleep(time.Second)
+	return spec.CheckSatisfied, nil
+}
+
 func (op *copyFileOp) Execute(context.Context) (spec.Result, error) {
 	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
 	time.Sleep(time.Second)
 	return spec.Result{}, nil
 }
-func (op *ensureOwnerOp) Name() string                        { return "ensureOwnerOp" }
-func (op *ensureOwnerOp) Check(context.Context) (bool, error) { return true, nil }
+func (op *ensureOwnerOp) Name() string { return "ensureOwnerOp" }
+func (op *ensureOwnerOp) Check(context.Context) (spec.CheckResult, error) {
+	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
+	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
+	time.Sleep(time.Second)
+	return spec.CheckSatisfied, nil
+}
+
 func (op *ensureOwnerOp) Execute(context.Context) (spec.Result, error) {
 	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
 	time.Sleep(time.Second)
 	return spec.Result{}, nil
 }
-func (op *ensureModeOp) Name() string                        { return "ensureModeOp" }
-func (op *ensureModeOp) Check(context.Context) (bool, error) { return true, nil }
+func (op *ensureModeOp) Name() string { return "ensureModeOp" }
+func (op *ensureModeOp) Check(context.Context) (spec.CheckResult, error) {
+	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
+	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
+	time.Sleep(time.Second)
+
+	return spec.CheckSatisfied, nil
+}
+
 func (op *ensureModeOp) Execute(context.Context) (spec.Result, error) {
 	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()

@@ -27,11 +27,18 @@ type (
 	}
 	Op interface {
 		Name() string
-		Check(ctx context.Context) (bool, error)
+		Check(ctx context.Context) (CheckResult, error)
 		Execute(ctx context.Context) (Result, error)
 		DependsOn() []Op
 	}
 	Result struct {
 		Changed bool
 	}
+	CheckResult uint8
+)
+
+const (
+	CheckUnknown CheckResult = iota
+	CheckSatisfied
+	CheckUnsatisfied
 )

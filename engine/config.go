@@ -151,8 +151,6 @@ func decodeConfig(configVal cue.Value, reg *Registry) (spec.Config, error) {
 }
 
 func decodeTask(taskVal cue.Value, kind string, out any) error {
-	// Convention: task-specific data lives under a field
-	// named after the kind (e.g. "copy", "http", ...)
 	specVal := taskVal.LookupPath(cue.ParsePath(kind))
 	if !specVal.Exists() {
 		return fmt.Errorf("task of kind %q is missing required %q block", kind, kind)

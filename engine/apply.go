@@ -22,6 +22,8 @@ type opNode struct {
 
 	indegree int // original dependency count
 	pending  int // runtime counter
+
+	satisfied bool
 }
 
 func Apply(ctx context.Context, cfgPath string) error {
@@ -100,6 +102,10 @@ type scheduler struct {
 }
 
 func (s *scheduler) schedule(n *opNode) {
+	if n.satisfied {
+		return
+	}
+
 	s.grp.Go(func() error {
 		fmt.Printf("Start op %s\n", n.op.Name())
 
@@ -114,8 +120,12 @@ func (s *scheduler) schedule(n *opNode) {
 			s.mu.Lock()
 			s.results = append(s.results, res)
 
-			// NOW — and only now — unblock dependents
+			// unblock unsatisfied dependents
 			for _, d := range n.dependents {
+				if d.satisfied {
+					continue
+				}
+
 				d.pending--
 				if d.pending == 0 {
 					s.schedule(d)
@@ -128,6 +138,42 @@ func (s *scheduler) schedule(n *opNode) {
 	})
 }
 
+func (s *scheduler) runChecks(nodes []*opNode) error {
+	g, ctx := errgroup.WithContext(s.ctx)
+
+	for _, n := range nodes {
+		n := n
+		g.Go(func() error {
+			res, err := n.op.Check(ctx)
+			if err != nil {
+				return err
+			}
+			n.satisfied = (res == spec.CheckSatisfied)
+			return nil
+		})
+	}
+
+	return g.Wait()
+}
+
+func (s *scheduler) initPending(nodes []*opNode) {
+	for _, n := range nodes {
+		n.pending = 0
+	}
+
+	for _, n := range nodes {
+		if n.satisfied {
+			continue
+		}
+
+		for _, d := range n.dependents {
+			if !d.satisfied {
+				d.pending++
+			}
+		}
+	}
+}
+
 func runTask(ctx context.Context, task spec.RtTask) (spec.Result, error) {
 	nodes, err := buildPlan(task.Ops())
 	if err != nil {
@@ -137,8 +183,14 @@ func runTask(ctx context.Context, task spec.RtTask) (spec.Result, error) {
 	s := &scheduler{}
 	s.grp, s.ctx = errgroup.WithContext(ctx)
 
+	if err := s.runChecks(nodes); err != nil {
+		return spec.Result{}, err
+	}
+
+	s.initPending(nodes)
+
 	for _, n := range nodes {
-		if n.pending == 0 {
+		if !n.satisfied && n.pending == 0 {
 			s.schedule(n)
 		}
 	}
