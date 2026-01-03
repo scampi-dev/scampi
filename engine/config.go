@@ -1,14 +1,40 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"reflect"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
+	"godoit.dev/doit"
 	"godoit.dev/doit/spec"
 )
+
+type overlayFS struct {
+	Embedded fs.FS
+	Host     fs.FS
+}
+
+func (o overlayFS) Open(name string) (fs.File, error) {
+	f, err := o.Embedded.Open(name)
+	if err == nil {
+		return f, nil
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		s, err := o.Host.Open(name)
+		if err == nil {
+			return s, err
+		}
+
+		return s, err
+	}
+
+	return nil, err
+}
 
 func loadAndValidate(cfgPath string, reg *Registry) (spec.Config, error) {
 	ctx := cuecontext.New()
@@ -22,9 +48,22 @@ func loadAndValidate(cfgPath string, reg *Registry) (spec.Config, error) {
 }
 
 func loadConfig(ctx *cue.Context, path string) (cue.Value, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return cue.Value{}, err
+	}
+
+	emb, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
+	if err != nil {
+		return cue.Value{}, err
+	}
+
 	cfg := &load.Config{
-		// CRITICAL: module root
-		Dir: ".", // repo root (where cue.mod lives)
+		FS: overlayFS{
+			Embedded: emb,
+			Host:     os.DirFS(cwd),
+		},
+		Dir: ".",
 	}
 
 	instances := load.Instances([]string{path}, cfg)

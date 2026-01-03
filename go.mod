@@ -3,17 +3,19 @@ module godoit.dev/doit
 go 1.25
 
 require (
-	cuelang.org/go v0.15.1
+	cuelang.org/go v0.15.3
 	github.com/golangci/golangci-lint/v2 v2.7.2
 	github.com/urfave/cli/v3 v3.6.1
 	golang.org/x/sync v0.18.0
 )
 
+replace cuelang.org/go => github.com/pskry/cue v0.0.0-20260103154650-0a3f5647eaf1
+
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect
 	4d63.com/gochecknoglobals v0.2.2 // indirect
 	codeberg.org/chavacava/garif v0.2.0 // indirect
-	cuelabs.dev/go/oci/ociregistry v0.0.0-20250722084951-074d06050084 // indirect
+	cuelabs.dev/go/oci/ociregistry v0.0.0-20251211171631-630db90f8c9d // indirect
 	dev.gaijin.team/go/exhaustruct/v4 v4.0.0 // indirect
 	dev.gaijin.team/go/golib v0.6.0 // indirect
 	github.com/4meepo/tagalign v1.4.3 // indirect
@@ -214,7 +216,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/oauth2 v0.32.0 // indirect
+	golang.org/x/oauth2 v0.33.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
