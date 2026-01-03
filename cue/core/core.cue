@@ -4,7 +4,4 @@ playbook: {
 	tasks: [...#Task]
 }
 
-#Task: {
-	kind: string
-	...
-}
+#Task: _
