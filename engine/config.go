@@ -36,26 +36,22 @@ func (o overlayFS) Open(name string) (fs.File, error) {
 	return nil, err
 }
 
-func loadAndValidate(cfgPath string, reg *Registry) (spec.Config, error) {
-	ctx := cuecontext.New()
-
-	cfg, err := loadConfig(ctx, cfgPath)
+func loadConfig(cfgPath string) (spec.Config, error) {
+	reg, err := NewRegistry()
 	if err != nil {
 		return spec.Config{}, err
 	}
 
-	return decodeConfig(cfg, reg)
-}
+	ctx := cuecontext.New()
 
-func loadConfig(ctx *cue.Context, path string) (cue.Value, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return cue.Value{}, err
+		return spec.Config{}, err
 	}
 
 	emb, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
 	if err != nil {
-		return cue.Value{}, err
+		return spec.Config{}, err
 	}
 
 	// One loader config for both schema and user config
@@ -68,43 +64,39 @@ func loadConfig(ctx *cue.Context, path string) (cue.Value, error) {
 	}
 
 	// --- load user config ---
-	userInstances := load.Instances([]string{path}, loaderCfg)
+	userInstances := load.Instances([]string{cfgPath}, loaderCfg)
 	if len(userInstances) == 0 {
-		return cue.Value{}, fmt.Errorf("no user config instances loaded")
+		return spec.Config{}, fmt.Errorf("no user config instances loaded")
 	}
 	if err := userInstances[0].Err; err != nil {
-		return cue.Value{}, err
+		return spec.Config{}, err
 	}
 
 	userVal := ctx.BuildInstance(userInstances[0])
 	if err := userVal.Err(); err != nil {
-		return cue.Value{}, err
+		return spec.Config{}, err
 	}
 
 	schemaInstances := load.Instances([]string{"godoit.dev/doit/core"}, loaderCfg)
 	if len(schemaInstances) == 0 {
-		return cue.Value{}, fmt.Errorf("no schema instances loaded")
+		return spec.Config{}, fmt.Errorf("no schema instances loaded")
 	}
 	if err := schemaInstances[0].Err; err != nil {
-		return cue.Value{}, err
+		return spec.Config{}, err
 	}
 
 	schemaPkg := ctx.BuildInstance(schemaInstances[0])
 	if err := schemaPkg.Err(); err != nil {
-		return cue.Value{}, err
+		return spec.Config{}, err
 	}
 
 	// --- apply schema ---
-	val := schemaPkg.Value().Unify(userVal)
-	if err := val.Err(); err != nil {
-		return cue.Value{}, err
+	cfgVal := schemaPkg.Value().Unify(userVal)
+	if err := cfgVal.Err(); err != nil {
+		return spec.Config{}, err
 	}
 
-	return val, nil
-}
-
-func decodeConfig(configVal cue.Value, reg *Registry) (spec.Config, error) {
-	tasksVal := configVal.LookupPath(cue.ParsePath("tasks"))
+	tasksVal := cfgVal.LookupPath(cue.ParsePath("tasks"))
 	if err := tasksVal.Err(); err != nil {
 		return spec.Config{}, err
 	}
@@ -139,7 +131,10 @@ func decodeConfig(configVal cue.Value, reg *Registry) (spec.Config, error) {
 			return spec.Config{}, fmt.Errorf("unknown task kind %q", kind)
 		}
 		c := s.NewConfig()
-		if !isPointer(c) {
+
+		// TODO: Check if config is pointer earlier than load-time
+		rv := reflect.ValueOf(c)
+		if rv.Kind() != reflect.Pointer {
 			return spec.Config{}, fmt.Errorf("spec['%s'].NewConfig must return a pointer. Got %T", s.Kind(), c)
 		}
 
@@ -155,9 +150,4 @@ func decodeConfig(configVal cue.Value, reg *Registry) (spec.Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func isPointer(i any) bool {
-	v := reflect.ValueOf(i)
-	return v.Kind() == reflect.Pointer
 }

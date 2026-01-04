@@ -27,12 +27,7 @@ type opNode struct {
 }
 
 func Apply(ctx context.Context, cfgPath string) error {
-	reg, err := NewRegistry()
-	if err != nil {
-		return err
-	}
-
-	cfg, err := loadAndValidate(cfgPath, reg)
+	cfg, err := loadConfig(cfgPath)
 	if err != nil {
 		errs := errors.Errors(err)
 		fmt.Printf("CUE error summary:\n%v\n", err)
