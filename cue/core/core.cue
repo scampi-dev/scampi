@@ -1,12 +1,5 @@
 package core
 
-tasks: [...close(#AnyTask)]
+import "godoit.dev/doit/builtin"
 
-#Task: {
-	meta: {
-		kind: string
-	}
-
-	name?: string
-	...
-}
+tasks: [...close(builtin.#BuiltinTask)]

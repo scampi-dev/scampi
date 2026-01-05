@@ -63,35 +63,35 @@ func loadConfig(cfgPath string) (spec.Config, error) {
 		Dir: ".",
 	}
 
-	// --- load user config ---
+	// user config
 	userInstances := load.Instances([]string{cfgPath}, loaderCfg)
 	if len(userInstances) == 0 {
-		return spec.Config{}, fmt.Errorf("no user config instances loaded")
+		return spec.Config{}, fmt.Errorf("no user instances loaded")
 	}
 	if err := userInstances[0].Err; err != nil {
 		return spec.Config{}, err
 	}
 
-	userVal := ctx.BuildInstance(userInstances[0])
-	if err := userVal.Err(); err != nil {
+	userInst := ctx.BuildInstance(userInstances[0])
+	if err := userInst.Err(); err != nil {
 		return spec.Config{}, err
 	}
 
-	schemaInstances := load.Instances([]string{"godoit.dev/doit/core"}, loaderCfg)
-	if len(schemaInstances) == 0 {
-		return spec.Config{}, fmt.Errorf("no schema instances loaded")
+	coreInstances := load.Instances([]string{"godoit.dev/doit/core"}, loaderCfg)
+	if len(coreInstances) == 0 {
+		return spec.Config{}, fmt.Errorf("no core instances loaded")
 	}
-	if err := schemaInstances[0].Err; err != nil {
+	if err := coreInstances[0].Err; err != nil {
 		return spec.Config{}, err
 	}
 
-	schemaPkg := ctx.BuildInstance(schemaInstances[0])
-	if err := schemaPkg.Err(); err != nil {
+	coreInst := ctx.BuildInstance(coreInstances[0])
+	if err := coreInst.Err(); err != nil {
 		return spec.Config{}, err
 	}
 
 	// --- apply schema ---
-	cfgVal := schemaPkg.Value().Unify(userVal)
+	cfgVal := coreInst.Value().Unify(userInst)
 	if err := cfgVal.Err(); err != nil {
 		return spec.Config{}, err
 	}
@@ -126,8 +126,7 @@ func loadConfig(cfgPath string) (spec.Config, error) {
 			return spec.Config{}, err
 		}
 
-		nameVal := taskVal.LookupPath(cue.ParsePath("name"))
-		name, err := nameVal.String()
+		name, err := taskVal.LookupPath(cue.ParsePath("name")).String()
 		if err != nil {
 			name = fmt.Sprintf("%s[%d]", kind, idx)
 		}
@@ -136,9 +135,9 @@ func loadConfig(cfgPath string) (spec.Config, error) {
 		if !ok {
 			return spec.Config{}, fmt.Errorf("unknown task kind %q", kind)
 		}
-		c := s.NewConfig()
 
-		// TODO: Check if config is pointer earlier than load-time
+		c := s.NewConfig()
+		// TODO: Check if config is pointer earlier than runtime
 		rv := reflect.ValueOf(c)
 		if rv.Kind() != reflect.Pointer {
 			return spec.Config{}, fmt.Errorf("spec['%s'].NewConfig must return a pointer. Got %T", s.Kind(), c)
