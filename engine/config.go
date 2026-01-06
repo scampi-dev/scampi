@@ -131,26 +131,26 @@ func loadConfig(cfgPath string) (spec.Config, error) {
 			name = fmt.Sprintf("%s[%d]", kind, idx)
 		}
 
-		impl, ok := reg.ImplForKind(kind)
+		typ, ok := reg.Type(kind)
 		if !ok {
 			return spec.Config{}, fmt.Errorf("unknown unit kind %q", kind)
 		}
 
-		c := impl.NewConfig()
+		tCfg := typ.NewConfig()
 		// TODO: Check if config is pointer earlier than runtime
-		rv := reflect.ValueOf(c)
+		rv := reflect.ValueOf(tCfg)
 		if rv.Kind() != reflect.Pointer {
-			return spec.Config{}, fmt.Errorf("impl['%s'].NewConfig must return a pointer. Got %T", impl.Kind(), c)
+			return spec.Config{}, fmt.Errorf("UnitType['%s'].NewConfig() must return a pointer. Got %T", typ.Kind(), tCfg)
 		}
 
-		if err := unitVal.Decode(c); err != nil {
+		if err := unitVal.Decode(tCfg); err != nil {
 			return spec.Config{}, err
 		}
 
-		cfg.Units = append(cfg.Units, spec.CfgUnit{
+		cfg.Units = append(cfg.Units, spec.UnitInstance{
 			Name:   name,
-			Impl:   impl,
-			Config: c,
+			Type:   typ,
+			Config: tCfg,
 		})
 	}
 

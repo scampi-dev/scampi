@@ -8,20 +8,19 @@ import (
 
 type (
 	Config struct {
-		Units []CfgUnit
+		Units []UnitInstance
 	}
-	CfgUnit struct {
-		Kind   string
+	UnitInstance struct {
 		Name   string
-		Impl   KindImpl
+		Type   UnitType
 		Config any
 	}
-
-	KindImpl interface {
+	UnitType interface {
 		Kind() string
 		NewConfig() any
 		Plan(idx int, cfg any) (Action, error)
 	}
+
 	Plan struct {
 		Actions []Action
 	}
