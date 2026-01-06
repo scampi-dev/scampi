@@ -10,6 +10,7 @@ import (
 
 	"cuelang.org/go/cue/errors"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/target"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -96,7 +97,7 @@ type scheduler struct {
 	ctx     context.Context
 }
 
-func (s *scheduler) schedule(n *opNode) {
+func (s *scheduler) schedule(n *opNode, tgt target.Target) {
 	if n.satisfied {
 		return
 	}
@@ -104,7 +105,7 @@ func (s *scheduler) schedule(n *opNode) {
 	s.grp.Go(func() error {
 		fmt.Printf("Start op %s\n", n.op.Name())
 
-		res, err := n.op.Execute(s.ctx)
+		res, err := n.op.Execute(s.ctx, tgt)
 		if err != nil {
 			return err
 		}
@@ -123,7 +124,7 @@ func (s *scheduler) schedule(n *opNode) {
 
 				d.pending--
 				if d.pending == 0 {
-					s.schedule(d)
+					s.schedule(d, tgt)
 				}
 			}
 			s.mu.Unlock()
@@ -133,13 +134,13 @@ func (s *scheduler) schedule(n *opNode) {
 	})
 }
 
-func (s *scheduler) runChecks(nodes []*opNode) error {
+func (s *scheduler) runChecks(nodes []*opNode, tgt target.Target) error {
 	g, ctx := errgroup.WithContext(s.ctx)
 
 	for _, n := range nodes {
 		n := n
 		g.Go(func() error {
-			res, err := n.op.Check(ctx)
+			res, err := n.op.Check(ctx, tgt)
 			if err != nil {
 				return err
 			}
@@ -171,6 +172,8 @@ func (s *scheduler) initPending(nodes []*opNode) {
 
 func runTask(ctx context.Context, task spec.RtTask) (spec.Result, error) {
 	nodes, err := buildPlan(task.Ops())
+	tgt := target.LocalPosixTarget{}
+
 	if err != nil {
 		return spec.Result{}, err
 	}
@@ -178,7 +181,7 @@ func runTask(ctx context.Context, task spec.RtTask) (spec.Result, error) {
 	s := &scheduler{}
 	s.grp, s.ctx = errgroup.WithContext(ctx)
 
-	if err := s.runChecks(nodes); err != nil {
+	if err := s.runChecks(nodes, tgt); err != nil {
 		return spec.Result{}, err
 	}
 
@@ -186,7 +189,7 @@ func runTask(ctx context.Context, task spec.RtTask) (spec.Result, error) {
 
 	for _, n := range nodes {
 		if !n.satisfied && n.pending == 0 {
-			s.schedule(n)
+			s.schedule(n, tgt)
 		}
 	}
 

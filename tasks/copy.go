@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/user"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/target"
 )
 
 type (
@@ -117,7 +117,7 @@ func (op *baseOp) DependsOn() []spec.Op      { return op.deps }
 func (op *baseOp) addDependency(dep spec.Op) { op.deps = append(op.deps, dep) }
 
 func (op *copyFileOp) Name() string { return "copyFileOp" }
-func (op *copyFileOp) Check(context.Context) (spec.CheckResult, error) {
+func (op *copyFileOp) Check(ctx context.Context, tgt target.Target) (spec.CheckResult, error) {
 	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
 
@@ -128,7 +128,7 @@ func (op *copyFileOp) Check(context.Context) (spec.CheckResult, error) {
 		return spec.CheckUnsatisfied, err
 	}
 
-	destData, err := os.ReadFile(op.dest)
+	destData, err := tgt.ReadFile(ctx, op.dest)
 	if err != nil || !bytes.Equal(srcData, destData) {
 		// we do not fail the playbook if dest doesn't exist, is unreadable, etc.
 		// we're just indicating that copyFileOp needs to run
@@ -138,7 +138,7 @@ func (op *copyFileOp) Check(context.Context) (spec.CheckResult, error) {
 	return spec.CheckSatisfied, nil
 }
 
-func (op *copyFileOp) Execute(context.Context) (spec.Result, error) {
+func (op *copyFileOp) Execute(ctx context.Context, tgt target.Target) (spec.Result, error) {
 	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
 
@@ -147,12 +147,12 @@ func (op *copyFileOp) Execute(context.Context) (spec.Result, error) {
 		return spec.Result{}, err
 	}
 
-	destData, err := os.ReadFile(op.dest)
+	destData, err := tgt.ReadFile(ctx, op.dest)
 	if err == nil && bytes.Equal(srcData, destData) {
 		return spec.Result{Changed: false}, nil
 	}
 
-	if err := os.WriteFile(op.dest, srcData, 0o644); err != nil {
+	if err := tgt.WriteFile(ctx, op.dest, srcData, 0o644); err != nil {
 		return spec.Result{}, err
 	}
 
@@ -160,84 +160,40 @@ func (op *copyFileOp) Execute(context.Context) (spec.Result, error) {
 }
 
 func (op *ensureOwnerOp) Name() string { return "ensureOwnerOp" }
-func (op *ensureOwnerOp) Check(context.Context) (spec.CheckResult, error) {
+func (op *ensureOwnerOp) Check(ctx context.Context, tgt target.Target) (spec.CheckResult, error) {
 	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
 
-	info, err := os.Stat(op.path)
-	if err != nil {
-		// file might not exist yet or whatever
-		// don't fail, just signal that we need to run
-		return spec.CheckUnsatisfied, nil
-	}
-
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok {
-		return spec.CheckUnknown, fmt.Errorf("expected %T got %T", &syscall.Stat_t{}, info.Sys())
-	}
-
-	haveUsr, err := user.LookupId(strconv.FormatUint(uint64(stat.Uid), 10))
-	if err != nil {
-		return spec.CheckUnknown, err
-	}
-	haveGrp, err := user.LookupGroupId(strconv.FormatUint(uint64(stat.Gid), 10))
+	haveOwner, err := tgt.GetOwner(ctx, op.path)
 	if err != nil {
 		return spec.CheckUnknown, err
 	}
 
-	wantUsr, err := lookupUser(op.owner)
-	if err != nil {
-		return spec.CheckUnknown, err
-	}
-
-	wantGrp, err := lookupGroup(op.group)
-	if err != nil {
-		return spec.CheckUnknown, err
-	}
-
-	if haveUsr.Uid != wantUsr.Uid || haveGrp.Gid != wantGrp.Gid {
+	wantOwner := target.Owner{User: op.owner, Group: op.group}
+	// TODO: this is probably a target concern
+	if !reflect.DeepEqual(haveOwner, wantOwner) {
 		return spec.CheckUnsatisfied, nil
 	}
 
 	return spec.CheckSatisfied, nil
 }
 
-func (op *ensureOwnerOp) Execute(context.Context) (spec.Result, error) {
+func (op *ensureOwnerOp) Execute(ctx context.Context, tgt target.Target) (spec.Result, error) {
 	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
 
-	usr, err := lookupUser(op.owner)
-	if err != nil {
-		return spec.Result{}, err
-	}
-
-	grp, err := lookupGroup(op.group)
-	if err != nil {
-		return spec.Result{}, err
-	}
-
-	uid, err := strconv.Atoi(usr.Uid)
-	if err != nil {
-		return spec.Result{}, err
-	}
-
-	gid, err := strconv.Atoi(grp.Gid)
-	if err != nil {
-		return spec.Result{}, err
-	}
-
-	if err := os.Chown(op.path, uid, gid); err != nil {
+	if err := tgt.Chown(ctx, op.path, target.Owner{User: op.owner, Group: op.group}); err != nil {
 		return spec.Result{}, err
 	}
 
 	return spec.Result{Changed: true}, nil
 }
 func (op *ensureModeOp) Name() string { return "ensureModeOp" }
-func (op *ensureModeOp) Check(context.Context) (spec.CheckResult, error) {
+func (op *ensureModeOp) Check(ctx context.Context, tgt target.Target) (spec.CheckResult, error) {
 	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
 
-	info, err := os.Stat(op.path)
+	info, err := tgt.Stat(ctx, op.path)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil
 	}
@@ -250,11 +206,11 @@ func (op *ensureModeOp) Check(context.Context) (spec.CheckResult, error) {
 	return spec.CheckSatisfied, nil
 }
 
-func (op *ensureModeOp) Execute(context.Context) (spec.Result, error) {
+func (op *ensureModeOp) Execute(ctx context.Context, tgt target.Target) (spec.Result, error) {
 	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
 	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
 
-	if err := os.Chmod(op.path, op.mode); err != nil {
+	if err := tgt.Chmod(ctx, op.path, op.mode); err != nil {
 		return spec.Result{}, err
 	}
 
@@ -374,23 +330,4 @@ func parsePosixAbsolute(s string) (fs.FileMode, error) {
 	}
 
 	return mode & fs.ModePerm, nil
-}
-
-func lookupUser(u string) (*user.User, error) {
-	if isLikelyID(u) {
-		return user.LookupId(u)
-	}
-	return user.Lookup(u)
-}
-
-func lookupGroup(g string) (*user.Group, error) {
-	if isLikelyID(g) {
-		return user.LookupGroupId(g)
-	}
-	return user.LookupGroup(g)
-}
-
-func isLikelyID(s string) bool {
-	_, err := strconv.Atoi(s)
-	return err == nil
 }

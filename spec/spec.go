@@ -1,6 +1,10 @@
 package spec
 
-import "context"
+import (
+	"context"
+
+	"godoit.dev/doit/target"
+)
 
 type (
 	Config struct {
@@ -27,8 +31,8 @@ type (
 	}
 	Op interface {
 		Name() string
-		Check(ctx context.Context) (CheckResult, error)
-		Execute(ctx context.Context) (Result, error)
+		Check(ctx context.Context, tgt target.Target) (CheckResult, error)
+		Execute(ctx context.Context, tgt target.Target) (Result, error)
 		DependsOn() []Op
 	}
 	Result struct {
