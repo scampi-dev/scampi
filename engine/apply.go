@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"cuelang.org/go/cue/errors"
+	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
 	"golang.org/x/sync/errgroup"
@@ -27,67 +28,94 @@ type opNode struct {
 	satisfied bool
 }
 
-func Apply(ctx context.Context, cfgPath string) error {
+func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
+	start := time.Now()
+	em.EngineStart()
+
 	cfg, err := loadConfig(cfgPath)
 	if err != nil {
 		errs := errors.Errors(err)
+		// FIXME: diagnostic
 		fmt.Printf("CUE error summary:\n%v\n", err)
 		fmt.Printf("CUE error details:\n%v\n", errors.Details(err, nil))
 		fmt.Printf("CUE: %d error(s)\n", len(errs))
 		return err
 	}
 
-	fmt.Printf("decoded config: %#v\n", cfg)
-	p, err := plan(cfg)
+	p, err := plan(cfg, em)
 	if err != nil {
 		return err
 	}
 
-	return executePlan(ctx, p)
+	// em.EngineFinish(changed bool, duration time.Duration)
+	results, err := executePlan(ctx, em, p)
+	if err != nil {
+		// FIXME: diagnostic
+	}
+
+	ttl := len(results)
+	changed := 0
+	for _, res := range results {
+		if res.Changed {
+			changed++
+		}
+	}
+	em.EngineFinish(changed, ttl, time.Since(start))
+
+	return err
 }
 
-func plan(cfg spec.Config) (spec.Plan, error) {
+func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
+	start := time.Now()
+	em.PlanStart()
 	p := spec.Plan{}
 
 	for i, unit := range cfg.Units {
 		act, err := unit.Type.Plan(i, unit.Config)
 		if err != nil {
+			// FIXME: diagnostic
 			return spec.Plan{}, err
 		}
 		p.Actions = append(p.Actions, act)
+		em.UnitPlanned(i, act.Name(), unit.Type.Kind())
 	}
 
+	em.PlanFinish(len(p.Actions), time.Since(start))
 	return p, nil
 }
 
-func executePlan(ctx context.Context, plan spec.Plan) error {
+func executePlan(ctx context.Context, em diagnostic.Emitter, plan spec.Plan) ([]spec.Result, error) {
+	var results []spec.Result
+
 	for _, act := range plan.Actions {
-		if err := executeAction(ctx, act); err != nil {
-			return err
+		res, err := executeAction(ctx, em, act)
+		if err != nil {
+			return []spec.Result{}, err
 		}
+
+		results = append(results, res)
 	}
 
-	return nil
+	return results, nil
 }
 
-func executeAction(ctx context.Context, act spec.Action) error {
-	fmt.Printf("Running action: %s\n", act.Name())
+func executeAction(ctx context.Context, em diagnostic.Emitter, act spec.Action) (spec.Result, error) {
+	start := time.Now()
+	name := act.Name()
+	em.ActionStart(name)
 
 	actCtx, cancel := context.WithTimeout(ctx, actionTimeout)
 	defer cancel()
 
-	res, err := runAction(actCtx, act)
+	res, err := runAction(actCtx, em, act)
 	if err != nil {
-		return fmt.Errorf("action %s failed: %w", act.Name(), err)
+		em.ActionError(name, err)
+		return spec.Result{}, fmt.Errorf("action %s failed: %w", name, err)
 	}
 
-	if res.Changed {
-		fmt.Printf("Action %s changed state\n", act.Name())
-	} else {
-		fmt.Printf("Action %s already in desired state\n", act.Name())
-	}
+	em.ActionFinish(name, res.Changed, time.Since(start))
 
-	return nil
+	return res, nil
 }
 
 type scheduler struct {
@@ -97,20 +125,25 @@ type scheduler struct {
 	ctx     context.Context
 }
 
-func (s *scheduler) schedule(n *opNode, tgt target.Target) {
+func (s *scheduler) schedule(n *opNode, em diagnostic.Emitter, tgt target.Target) {
 	if n.satisfied {
 		return
 	}
 
 	s.grp.Go(func() error {
-		fmt.Printf("Start op %s\n", n.op.Name())
+		start := time.Now()
+		actionName := n.op.Action()
+		opName := n.op.Name()
+
+		em.OpExecuteStart(actionName, opName)
 
 		res, err := n.op.Execute(s.ctx, tgt)
 		if err != nil {
+			em.OpExecuteError(actionName, opName, err)
 			return err
 		}
 
-		fmt.Printf("Finished op %s\n", n.op.Name())
+		em.OpExecuteFinish(actionName+"__DOIT", opName, res.Changed, time.Since(start))
 
 		{ // critical section start
 			s.mu.Lock()
@@ -124,7 +157,7 @@ func (s *scheduler) schedule(n *opNode, tgt target.Target) {
 
 				d.pending--
 				if d.pending == 0 {
-					s.schedule(d, tgt)
+					s.schedule(d, em, tgt)
 				}
 			}
 			s.mu.Unlock()
@@ -134,17 +167,28 @@ func (s *scheduler) schedule(n *opNode, tgt target.Target) {
 	})
 }
 
-func (s *scheduler) runChecks(nodes []*opNode, tgt target.Target) error {
+func (s *scheduler) runChecks(nodes []*opNode, em diagnostic.Emitter, tgt target.Target) error {
 	g, ctx := errgroup.WithContext(s.ctx)
 
 	for _, n := range nodes {
 		n := n
 		g.Go(func() error {
+			actionName := n.op.Action()
+			opName := n.op.Name()
+			em.OpCheckStart(actionName, opName)
+
 			res, err := n.op.Check(ctx, tgt)
 			if err != nil {
+				em.OpCheckUnknown(actionName, opName, err)
 				return err
 			}
+
 			n.satisfied = (res == spec.CheckSatisfied)
+			if n.satisfied {
+				em.OpCheckSatisfied(actionName, opName)
+			} else {
+				em.OpCheckUnsatisfied(actionName, opName)
+			}
 			return nil
 		})
 	}
@@ -170,7 +214,7 @@ func (s *scheduler) initPending(nodes []*opNode) {
 	}
 }
 
-func runAction(ctx context.Context, act spec.Action) (spec.Result, error) {
+func runAction(ctx context.Context, em diagnostic.Emitter, act spec.Action) (spec.Result, error) {
 	nodes, err := buildPlan(act.Ops())
 	tgt := target.LocalPosixTarget{}
 
@@ -181,7 +225,7 @@ func runAction(ctx context.Context, act spec.Action) (spec.Result, error) {
 	s := &scheduler{}
 	s.grp, s.ctx = errgroup.WithContext(ctx)
 
-	if err := s.runChecks(nodes, tgt); err != nil {
+	if err := s.runChecks(nodes, em, tgt); err != nil {
 		return spec.Result{}, err
 	}
 
@@ -189,7 +233,7 @@ func runAction(ctx context.Context, act spec.Action) (spec.Result, error) {
 
 	for _, n := range nodes {
 		if !n.satisfied && n.pending == 0 {
-			s.schedule(n, tgt)
+			s.schedule(n, em, tgt)
 		}
 	}
 

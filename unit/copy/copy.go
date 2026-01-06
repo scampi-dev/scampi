@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
@@ -81,6 +80,11 @@ func (c *copyAction) Ops() []spec.Op {
 		mode: c.mode,
 	}
 
+	action := c.Name()
+	cp.setAction(action)
+	chown.setAction(action)
+	chmod.setAction(action)
+
 	chown.addDependency(cp)
 	chmod.addDependency(cp)
 
@@ -93,7 +97,8 @@ func (c *copyAction) Ops() []spec.Op {
 
 type (
 	baseOp struct {
-		deps []spec.Op
+		action string
+		deps   []spec.Op
 	}
 	copyFileOp struct {
 		baseOp
@@ -113,14 +118,13 @@ type (
 	}
 )
 
+func (op *baseOp) Action() string            { return op.action }
 func (op *baseOp) DependsOn() []spec.Op      { return op.deps }
 func (op *baseOp) addDependency(dep spec.Op) { op.deps = append(op.deps, dep) }
+func (op *baseOp) setAction(action string)   { op.action = action }
 
 func (op *copyFileOp) Name() string { return "copyFileOp" }
 func (op *copyFileOp) Check(ctx context.Context, tgt target.Target) (spec.CheckResult, error) {
-	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
-	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
-
 	srcData, err := os.ReadFile(op.src)
 	if err != nil {
 		// fail if src file does not exist or is unreadable or whatever
@@ -139,9 +143,6 @@ func (op *copyFileOp) Check(ctx context.Context, tgt target.Target) (spec.CheckR
 }
 
 func (op *copyFileOp) Execute(ctx context.Context, tgt target.Target) (spec.Result, error) {
-	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
-	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
-
 	srcData, err := os.ReadFile(op.src)
 	if err != nil {
 		return spec.Result{}, err
@@ -161,9 +162,6 @@ func (op *copyFileOp) Execute(ctx context.Context, tgt target.Target) (spec.Resu
 
 func (op *ensureOwnerOp) Name() string { return "ensureOwnerOp" }
 func (op *ensureOwnerOp) Check(ctx context.Context, tgt target.Target) (spec.CheckResult, error) {
-	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
-	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
-
 	haveOwner, err := tgt.GetOwner(ctx, op.path)
 	if err != nil {
 		return spec.CheckUnknown, err
@@ -179,9 +177,6 @@ func (op *ensureOwnerOp) Check(ctx context.Context, tgt target.Target) (spec.Che
 }
 
 func (op *ensureOwnerOp) Execute(ctx context.Context, tgt target.Target) (spec.Result, error) {
-	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
-	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
-
 	if err := tgt.Chown(ctx, op.path, target.Owner{User: op.owner, Group: op.group}); err != nil {
 		return spec.Result{}, err
 	}
@@ -190,9 +185,6 @@ func (op *ensureOwnerOp) Execute(ctx context.Context, tgt target.Target) (spec.R
 }
 func (op *ensureModeOp) Name() string { return "ensureModeOp" }
 func (op *ensureModeOp) Check(ctx context.Context, tgt target.Target) (spec.CheckResult, error) {
-	fmt.Printf("[%s] enter(op): check %T\n", time.Now().Format(time.RFC3339), op)
-	defer func() { fmt.Printf("[%s] exit(op): check %T\n", time.Now().Format(time.RFC3339), op) }()
-
 	info, err := tgt.Stat(ctx, op.path)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil
@@ -207,9 +199,6 @@ func (op *ensureModeOp) Check(ctx context.Context, tgt target.Target) (spec.Chec
 }
 
 func (op *ensureModeOp) Execute(ctx context.Context, tgt target.Target) (spec.Result, error) {
-	fmt.Printf("[%s] enter(op): exec %T\n", time.Now().Format(time.RFC3339), op)
-	defer func() { fmt.Printf("[%s] exit(op): exec %T\n", time.Now().Format(time.RFC3339), op) }()
-
 	if err := tgt.Chmod(ctx, op.path, op.mode); err != nil {
 		return spec.Result{}, err
 	}
@@ -236,7 +225,6 @@ func isOctal(s string) bool {
 }
 
 func parseOctal(s string) (fs.FileMode, error) {
-	fmt.Printf("parse octal: %s\n", s)
 	v, err := strconv.ParseUint(s, 8, 32)
 	if err != nil {
 		return 0, err
@@ -250,8 +238,6 @@ func isLsStyle(s string) bool {
 }
 
 func parseLsStyle(s string) (fs.FileMode, error) {
-	fmt.Printf("parse ls: %s\n", s)
-
 	var mode fs.FileMode
 
 	triples := []struct {
@@ -288,8 +274,6 @@ func isPosixAbsolute(s string) bool {
 }
 
 func parsePosixAbsolute(s string) (fs.FileMode, error) {
-	fmt.Printf("parse POSIX: %s\n", s)
-
 	seen := map[byte]bool{}
 	var mode fs.FileMode
 

@@ -30,6 +30,7 @@ type (
 	}
 	Op interface {
 		Name() string
+		Action() string
 		Check(ctx context.Context, tgt target.Target) (CheckResult, error)
 		Execute(ctx context.Context, tgt target.Target) (Result, error)
 		DependsOn() []Op

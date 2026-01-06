@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli/v3"
 	"godoit.dev/doit/engine"
+	"godoit.dev/doit/render"
 )
 
 func main() {
@@ -27,10 +30,19 @@ func main() {
 
 func applyCmd() *cli.Command {
 	var cfg string
+	var colorFlag string
 
 	return &cli.Command{
 		Name:  "apply",
 		Usage: "Apply the desired state defined in a configuration file",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "color",
+				Value:       "auto",
+				Usage:       "colorize output: auto, always, never",
+				Destination: &colorFlag,
+			},
+		},
 		Arguments: []cli.Argument{
 			&cli.StringArg{
 				Name:        "config",
@@ -46,7 +58,14 @@ The command is idempotent: running it multiple times will only apply
 changes when the current state differs from the declared state.`,
 		Before: requireArgs(1),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			return engine.Apply(ctx, cfg)
+			colorMode, err := parseColorMode(colorFlag)
+			if err != nil {
+				return err
+			}
+			r := render.NewCLI(render.CLIOptions{
+				ColorMode: colorMode,
+			})
+			return engine.Apply(ctx, r, cfg)
 		},
 	}
 }
@@ -60,5 +79,18 @@ func requireArgs(n int) func(context.Context, *cli.Command) (context.Context, er
 			return ctx, cli.Exit("", 1)
 		}
 		return ctx, nil
+	}
+}
+
+func parseColorMode(s string) (render.ColorMode, error) {
+	switch strings.ToLower(s) {
+	case "auto":
+		return render.ColorAuto, nil
+	case "always":
+		return render.ColorAlways, nil
+	case "never":
+		return render.ColorNever, nil
+	default:
+		return 0, fmt.Errorf("invalid --color value %q (expected auto, always, or never)", s)
 	}
 }
