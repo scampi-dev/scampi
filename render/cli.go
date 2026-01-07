@@ -37,18 +37,16 @@ type (
 	}
 )
 
-// Nerdfont symbols
+// Nerdfont state glyphs
 // ===============================================
 
 const (
-	symStart  = "" // nf-fa-play
-	symFinish = "" // nf-fa-stop
-	symChange = "󰆓" // nf-md-pencil
-	symOK     = "󰄬" // nf-md-check
-	symNoop   = "󰄫" // nf-md-refresh
-	symExec   = "󰇚" // nf-md-cog
-	symWarn   = "󰀪" // nf-md-alert
-	symFail   = "󰅚" // nf-md-close
+	symChange = "󰆓 " // modified
+	symNoop   = "󰄫 " // up-to-date
+	symOK     = "󰄬 " // satisfied
+	symExec   = "󰇚 " // executed
+	symWarn   = "󰀪 " // warning / unknown
+	symFail   = "󰅚 " // failure
 )
 
 func NewCLI(opts CLIOptions) Displayer {
@@ -67,25 +65,22 @@ func (c *cli) EngineStart(_ signal.Severity) {
 	if c.v() >= signal.VV {
 		c.outln(
 			ansi.Green.Dim,
-			"%s [engine] starting",
-			symStart,
+			"[engine] starting",
 		)
 	}
 }
 
 func (c *cli) EngineFinish(_ signal.Severity, rs RunSummary, dur time.Duration) {
 	color := ansi.Green.Reg
-	if rs.ChangedCount > 0 {
-		color = ansi.Yellow.Reg
-	}
 	if rs.FailedCount > 0 {
 		color = ansi.Red.Reg
+	} else if rs.ChangedCount > 0 {
+		color = ansi.Yellow.Reg
 	}
 
 	c.outln(
 		color,
-		"%s [engine] finished (%d change%s, %d failure%s, %d unit%s, %s)",
-		symFinish,
+		"[engine] finished (%d change%s, %d failure%s, %d unit%s, %s)",
 		rs.ChangedCount, s(rs.ChangedCount),
 		rs.FailedCount, s(rs.FailedCount),
 		rs.TotalCount, s(rs.TotalCount),
@@ -100,8 +95,7 @@ func (c *cli) PlanStart(_ signal.Severity) {
 	if c.v() >= signal.VV {
 		c.outln(
 			ansi.Blue.Reg,
-			"%s [plan] start",
-			symStart,
+			"[plan] start",
 		)
 	}
 }
@@ -110,8 +104,8 @@ func (c *cli) UnitPlanned(_ signal.Severity, index int, name, kind string) {
 	if c.v() >= signal.VVV {
 		c.outln(
 			ansi.BrightBlack.Dim,
-			"  %s [unit] #%d %s (%s)",
-			symOK, index, name, kind,
+			"[plan.unit] #%d %s: %s",
+			index, kind, name,
 		)
 	}
 }
@@ -120,8 +114,8 @@ func (c *cli) PlanFinish(_ signal.Severity, unitCount int, dur time.Duration) {
 	if c.v() >= signal.VV {
 		c.outln(
 			ansi.Blue.Dim,
-			"%s [plan] %d unit%s (%s)",
-			symFinish, unitCount, s(unitCount), dur,
+			"[plan] done: %d unit%s planned (%s)",
+			unitCount, s(unitCount), dur,
 		)
 	}
 }
@@ -140,7 +134,7 @@ func (c *cli) ActionFinish(_ signal.Severity, name string, changed bool, dur tim
 	if changed {
 		c.outln(
 			ansi.Yellow.Reg,
-			"%s [%s] %s changed (%s)",
+			"%s %s %s changed (%s)",
 			symChange, st.id, name, dur,
 		)
 		return
@@ -149,7 +143,7 @@ func (c *cli) ActionFinish(_ signal.Severity, name string, changed bool, dur tim
 	if c.v() >= signal.V {
 		c.outln(
 			ansi.Green.Dim,
-			"%s [%s] %s up-to-date",
+			"%s %s %s up-to-date",
 			symNoop, st.id, name,
 		)
 	}
@@ -160,7 +154,7 @@ func (c *cli) ActionError(_ signal.Severity, name string, err error) {
 
 	c.errln(
 		ansi.Red.Reg,
-		"%s [%s] action %s failed: %v",
+		"%s %s %s failed: %v",
 		symFail, st.id, name, err,
 	)
 }
@@ -180,7 +174,7 @@ func (c *cli) OpCheckUnsatisfied(_ signal.Severity, action, op string) {
 	st := c.ensureAction(action)
 	c.outln(
 		ansi.BrightBlack.Dim,
-		"%s [%s] needs change: %s",
+		"%s %s needs change: %s",
 		symChange, st.id, op,
 	)
 }
@@ -193,7 +187,7 @@ func (c *cli) OpCheckSatisfied(_ signal.Severity, action, op string) {
 	st := c.ensureAction(action)
 	c.outln(
 		ansi.BrightBlack.Dim,
-		"%s [%s] %s",
+		"%s %s %s",
 		symOK, st.id, op,
 	)
 }
@@ -202,7 +196,7 @@ func (c *cli) OpCheckUnknown(_ signal.Severity, action, op string, err error) {
 	st := c.ensureAction(action)
 	c.errln(
 		ansi.Yellow.Reg,
-		"%s [%s] check %s unknown: %v",
+		"%s %s check %s unknown: %v",
 		symWarn, st.id, op, err,
 	)
 }
@@ -222,7 +216,7 @@ func (c *cli) OpExecuteFinish(_ signal.Severity, action, op string, changed bool
 	st := c.ensureAction(action)
 	c.outln(
 		ansi.BrightBlack.Reg,
-		"%s [%s] exec %s changed (%s)",
+		"%s %s exec %s changed (%s)",
 		symExec, st.id, op, dur,
 	)
 }
@@ -231,7 +225,7 @@ func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
 	st := c.ensureAction(action)
 	c.errln(
 		ansi.Red.Reg,
-		"%s [%s] exec %s failed: %v",
+		"%s %s exec %s failed: %v",
 		symFail, st.id, op, err,
 	)
 }
@@ -242,17 +236,17 @@ func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
 func (c *cli) UserError(_ signal.Severity, message string) {
 	c.errln(
 		ansi.Red.Reg,
-		"%s [error] %s",
+		"%s error %s",
 		symFail, message,
 	)
 }
 
 func (c *cli) InternalError(_ signal.Severity, message string, err error) {
 	if err != nil {
-		c.errln(ansi.BrightRed.Bold, "%s [fatal] %s: %v", symFail, message, err)
+		c.errln(ansi.BrightRed.Bold, "%s fatal %s: %v", symFail, message, err)
 		return
 	}
-	c.errln(ansi.BrightRed.Bold, "%s [fatal] %s", symFail, message)
+	c.errln(ansi.BrightRed.Bold, "%s fatal %s", symFail, message)
 }
 
 // Helpers
@@ -263,13 +257,13 @@ func (c *cli) v() signal.Verbosity {
 }
 
 func (c *cli) ensureAction(name string) *actionState {
-	stAny, _ := c.actions.LoadOrStore(name, &actionState{
+	st, _ := c.actions.LoadOrStore(name, &actionState{
 		id: makeID(name),
 	})
-	return stAny.(*actionState)
+	return st.(*actionState)
 }
 
-// makeID produces a short, stable, human-readable identifier
+// makeID produces a short, stable, human-friendly identifier
 func makeID(name string) string {
 	base := strings.ToLower(name)
 	base = strings.ReplaceAll(base, `"`, "")
@@ -282,7 +276,7 @@ func makeID(name string) string {
 	return fmt.Sprintf("%s:%02x", base, suffix)
 }
 
-// Output helpers
+// Output
 // ===============================================
 
 func (c *cli) outln(color ansi.Code, format string, args ...any) {
