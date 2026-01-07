@@ -73,172 +73,176 @@ func NewCLI(opts CLIOptions) Displayer {
 
 func (c *cli) EngineStart(_ signal.Severity) {
 	if c.v() >= signal.VV {
-		c.outln(ColorEngine.Normal, "[engine] starting")
+		c.outln(Green, "[engine] starting")
 	}
 }
 
-func (c *cli) EngineFinish(_ signal.Severity, changed, ttl int, d time.Duration) {
-	units := pluralS(ttl, "unit")
-
-	switch {
-	case changed > 0:
+func (c *cli) EngineFinish(_ signal.Severity, changed, units int, d time.Duration) {
+	if changed > 0 {
 		c.outln(
-			ColorChanged.Highlight,
-			"[engine] finished (%s, %d %s, %d %s)",
-			d, changed, pluralS(changed, "change"), ttl, units,
+			Green.Hl(),
+			"[engine] finished (%d change%s, %d unit%s, %s)",
+			changed, pluralS(changed, ""),
+			units, pluralS(units, ""),
+			d,
 		)
-
-	case c.v() > signal.Quiet:
+	} else {
 		c.outln(
-			ColorEngine.Dimmed,
-			"[engine] finished (%s, no changes, %d %s)",
-			d, ttl, units,
+			Green.Dim(),
+			"[engine] finished (no changes, %d unit%s, %s)",
+			units, pluralS(units, ""),
+			d,
 		)
 	}
 }
 
-// Config / planning phase
+// Planning
 // =============================================
 
 func (c *cli) PlanStart(_ signal.Severity) {
 	if c.v() >= signal.VV {
-		c.outln(ColorPlan.Normal, "[plan] start")
+		c.outln(Blue, "[plan] start")
 	}
 }
 
 func (c *cli) UnitPlanned(_ signal.Severity, index int, name, kind string) {
 	if c.v() >= signal.VVV {
 		c.outln(
-			ColorUpToDate.Dimmed,
+			BrightBlack.Dim(),
 			"  [unit] #%d %s (%s)",
 			index, name, kind,
 		)
 	}
 }
 
-func (c *cli) PlanFinish(_ signal.Severity, unitCount int, d time.Duration) {
+func (c *cli) PlanFinish(_ signal.Severity, units int, d time.Duration) {
 	if c.v() >= signal.VV {
 		c.outln(
-			ColorPlan.Dimmed,
-			"[plan] %d %s (%s)",
-			unitCount, pluralS(unitCount, "unit"), d,
+			Blue.Dim(),
+			"[plan] %d unit%s (%s)\n",
+			units, pluralS(units, ""),
+			d,
 		)
 	}
 }
 
-// Action lifecycle
+// Actions
 // =============================================
 
 func (c *cli) ActionStart(_ signal.Severity, name string) {
 	if c.v() >= signal.V {
-		c.outln(ColorAction.Normal, "[action] %s", name)
+		c.outln(Blue, "[action] %s", name)
 	}
 }
 
 func (c *cli) ActionFinish(_ signal.Severity, name string, changed bool, d time.Duration) {
-	switch {
-	case changed:
+	if changed {
 		c.outln(
-			ColorChanged.Highlight,
+			Green.Hl(),
 			"[action] %s changed (%s)",
 			name, d,
 		)
-
-	case c.v() >= signal.V:
+	} else {
 		c.outln(
-			ColorUpToDate.Dimmed,
+			Blue.Dim(),
 			"[action] %s up-to-date",
 			name,
 		)
+	}
+
+	if c.v() >= signal.V {
+		c.nl(c.out)
 	}
 }
 
 func (c *cli) ActionError(_ signal.Severity, name string, err error) {
 	c.errln(
-		ColorError.Highlight,
+		Red.Hl(),
 		"[action] %s failed: %v",
 		name, err,
 	)
 }
 
-// Ops checks
+// Checks (collapsed semantics)
 // =============================================
 
 func (c *cli) OpCheckStart(_ signal.Severity, action, op string) {
-	if c.v() >= signal.VVV {
-		c.outln(ColorCheckOK.Dimmed, "  [check] %s/%s", action, op)
-	}
+	// silent by design
 }
 
-func (c *cli) OpCheckSatisfied(_ signal.Severity, action, op string) {
-	if c.v() >= signal.VVV {
-		c.outln(ColorCheckOK.Dimmed, "  [check] %s/%s ✓", action, op)
-	}
-}
-
-func (c *cli) OpCheckUnsatisfied(_ signal.Severity, action, op string) {
+func (c *cli) OpCheckUnsatisfied(_ signal.Severity, _, op string) {
 	if c.v() >= signal.V {
-		c.outln(ColorCheckNeed.Normal, "  [check] %s/%s needs change", action, op)
+		c.outln(
+			Cyan,
+			"  needs change: %s",
+			op,
+		)
 	}
 }
 
-func (c *cli) OpCheckUnknown(_ signal.Severity, action, op string, err error) {
+func (c *cli) OpCheckSatisfied(_ signal.Severity, _, op string) {
+	if c.v() >= signal.VVV {
+		c.outln(
+			BrightBlack.Dim(),
+			"    ✓ %s",
+			op,
+		)
+	}
+}
+
+func (c *cli) OpCheckUnknown(_ signal.Severity, _, op string, err error) {
 	c.errln(
-		ColorWarning.Highlight,
-		"  [check] %s/%s unknown: %v",
-		action, op, err,
+		Yellow.Hl(),
+		"  check %s unknown: %v",
+		op, err,
 	)
 }
 
-// Ops execute
+// Execution
 // =============================================
 
 func (c *cli) OpExecuteStart(_ signal.Severity, action, op string) {
-	if c.v() >= signal.VV {
-		c.outln(ColorExecNoop.Dimmed, "  [exec] %s/%s", action, op)
-	}
+	// intentionally silent
 }
 
 func (c *cli) OpExecuteFinish(_ signal.Severity, action, op string, changed bool, d time.Duration) {
-	if changed {
+	if !changed {
+		return
+	}
+
+	if c.v() >= signal.VV {
 		c.outln(
-			ColorExecChange.Normal,
-			"  [exec] %s/%s changed (%s)",
-			action, op, d,
-		)
-	} else if c.v() >= signal.VVV {
-		c.outln(
-			ColorExecNoop.Dimmed,
-			"  [exec] %s/%s no-op",
-			action, op,
+			Cyan,
+			"  exec %s changed (%s)",
+			op, d,
 		)
 	}
 }
 
 func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
 	c.errln(
-		ColorError.Highlight,
-		"  [exec] %s/%s failed: %v",
-		action, op, err,
+		Red.Hl(),
+		"  exec %s failed: %v",
+		op, err,
 	)
 }
 
-// User-visible errors (expected, actionable)
+// User-facing errors
 // =============================================
 
 func (c *cli) UserError(_ signal.Severity, message string) {
-	c.errln(ColorError.Normal, "[error] %s", message)
+	c.errln(Red, "[error] %s", message)
 }
 
-// Internal errors (bugs, invariants violated)
+// Internal errors
 // =============================================
 
 func (c *cli) InternalError(_ signal.Severity, message string, err error) {
 	if err != nil {
-		c.errln(ColorFatal.Highlight, "[fatal] %s: %v", message, err)
-	} else {
-		c.errln(ColorFatal.Highlight, "[fatal] %s", message)
+		c.errln(BrightRed.Hl(), "[fatal] %s: %v", message, err)
+		return
 	}
+	c.errln(BrightRed.Hl(), "[fatal] %s", message)
 }
 
 // Internal helpers
@@ -248,19 +252,23 @@ func (c *cli) v() signal.Verbosity {
 	return c.opts.Verbosity
 }
 
-func (c *cli) outln(color Color, format string, args ...any) {
+func (c *cli) outln2(color Color, format string, args ...any) {
 	c.println(c.out, colToANSI(color), format, args...)
 }
 
-func (c *cli) outln2(color ANSI, format string, args ...any) {
+func (c *cli) nl(w io.Writer) {
+	_, _ = fmt.Fprintln(w)
+}
+
+func (c *cli) outln(color ANSI, format string, args ...any) {
 	c.println(c.out, color, format, args...)
 }
 
-func (c *cli) errln(color Color, format string, args ...any) {
+func (c *cli) errln2(color Color, format string, args ...any) {
 	c.println(c.err, colToANSI(color), format, args...)
 }
 
-func (c *cli) errln2(color ANSI, format string, args ...any) {
+func (c *cli) errln(color ANSI, format string, args ...any) {
 	c.println(c.err, color, format, args...)
 }
 
