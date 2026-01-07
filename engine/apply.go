@@ -143,7 +143,7 @@ func (s *scheduler) schedule(n *opNode, em diagnostic.Emitter, tgt target.Target
 			return err
 		}
 
-		em.OpExecuteFinish(actionName+"__DOIT", opName, res.Changed, time.Since(start))
+		em.OpExecuteFinish(actionName, opName, res.Changed, time.Since(start))
 
 		{ // critical section start
 			s.mu.Lock()

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v3"
+	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/engine"
 	"godoit.dev/doit/render"
 )
@@ -31,16 +32,25 @@ func main() {
 func applyCmd() *cli.Command {
 	var cfg string
 	var colorFlag string
+	var verbosity int
 
 	return &cli.Command{
-		Name:  "apply",
-		Usage: "Apply the desired state defined in a configuration file",
+		Name:                   "apply",
+		Usage:                  "Apply the desired state defined in a configuration file",
+		UseShortOptionHandling: true,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "color",
 				Value:       "auto",
 				Usage:       "colorize output: auto, always, never",
 				Destination: &colorFlag,
+			},
+			&cli.BoolFlag{
+				Name:  "v",
+				Usage: "increase verbosity (-v, -vv, -vvv, -vvvv)",
+				Config: cli.BoolConfig{
+					Count: &verbosity,
+				},
 			},
 		},
 		Arguments: []cli.Argument{
@@ -62,10 +72,19 @@ changes when the current state differs from the declared state.`,
 			if err != nil {
 				return err
 			}
-			r := render.NewCLI(render.CLIOptions{
+
+			pol := diagnostic.Policy{
+				WarningsAsErrors: false,
+				Verbosity:        mapVerbosity(verbosity),
+			}
+
+			displ := render.NewCLI(render.CLIOptions{
 				ColorMode: colorMode,
 			})
-			return engine.Apply(ctx, r, cfg)
+
+			em := diagnostic.NewEmitter(pol, displ)
+
+			return engine.Apply(ctx, em, cfg)
 		},
 	}
 }
@@ -92,5 +111,18 @@ func parseColorMode(s string) (render.ColorMode, error) {
 		return render.ColorNever, nil
 	default:
 		return 0, fmt.Errorf("invalid --color value %q (expected auto, always, or never)", s)
+	}
+}
+
+func mapVerbosity(v int) diagnostic.Verbosity {
+	switch {
+	case v >= 3:
+		return diagnostic.DebugVerbose
+	case v == 2:
+		return diagnostic.VeryVerbose
+	case v == 1:
+		return diagnostic.Verbose
+	default:
+		return diagnostic.Quiet
 	}
 }
