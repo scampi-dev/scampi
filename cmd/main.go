@@ -105,14 +105,14 @@ func requireArgs(n int) func(context.Context, *cli.Command) (context.Context, er
 	}
 }
 
-func parseColorMode(s string) (render.ColorMode, error) {
+func parseColorMode(s string) (signal.ColorMode, error) {
 	switch strings.ToLower(s) {
 	case "auto":
-		return render.ColorAuto, nil
+		return signal.ColorAuto, nil
 	case "always":
-		return render.ColorAlways, nil
+		return signal.ColorAlways, nil
 	case "never":
-		return render.ColorNever, nil
+		return signal.ColorNever, nil
 	default:
 		return 0, fmt.Errorf("invalid --color value %q (expected auto, always, or never)", s)
 	}

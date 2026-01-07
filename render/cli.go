@@ -14,7 +14,7 @@ import (
 
 type (
 	CLIOptions struct {
-		ColorMode ColorMode
+		ColorMode signal.ColorMode
 		Verbosity signal.Verbosity
 	}
 	cli struct {
@@ -305,11 +305,11 @@ func (c *cli) paint(color ansi.Code, format string, args ...any) string {
 
 func (c *cli) shouldUseColor() bool {
 	switch c.opts.ColorMode {
-	case ColorAlways:
+	case signal.ColorAlways:
 		return true
-	case ColorNever:
+	case signal.ColorNever:
 		return false
-	case ColorAuto:
+	case signal.ColorAuto:
 		return c.isTTY
 	default:
 		return false

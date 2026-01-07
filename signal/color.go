@@ -1,4 +1,4 @@
-package render
+package signal
 
 type ColorMode uint8
 
