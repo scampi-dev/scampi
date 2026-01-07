@@ -62,7 +62,7 @@ func (Copy) Plan(idx int, config any) (spec.Action, error) {
 }
 
 func (c *copyAction) Name() string {
-	return fmt.Sprintf(`"%s" (copy, idx=%d)`, c.name, c.idx)
+	return c.name
 }
 
 func (c *copyAction) Ops() []spec.Op {

@@ -41,12 +41,11 @@ type (
 // ===============================================
 
 const (
-	symChange = "󰆓 " // modified
-	symNoop   = "󰄫 " // up-to-date
-	symOK     = "󰄬 " // satisfied
-	symExec   = "󰇚 " // executed
-	symWarn   = "󰀪 " // warning / unknown
-	symFail   = "󰅚 " // failure
+	symChange = '󰏫' // nf-md-pencil  U+F0EB
+	symOK     = '󰄬' // nf-md-check   U+F12C
+	symExec   = '󰒓' // nf-md-cog     U+F355
+	symWarn   = '󰀦' // nf-md-alert   U+F02A
+	symFail   = '󰅖' // nf-md-close   U+F15A
 )
 
 func NewCLI(opts CLIOptions) Displayer {
@@ -95,7 +94,7 @@ func (c *cli) PlanStart(_ signal.Severity) {
 	if c.v() >= signal.VV {
 		c.outln(
 			ansi.Blue.Reg,
-			"[plan] start",
+			"[plan] starting",
 		)
 	}
 }
@@ -104,7 +103,7 @@ func (c *cli) UnitPlanned(_ signal.Severity, index int, name, kind string) {
 	if c.v() >= signal.VVV {
 		c.outln(
 			ansi.BrightBlack.Dim,
-			"[plan.unit] #%d %s: %s",
+			"[plan.unit] #%d %s '%s'",
 			index, kind, name,
 		)
 	}
@@ -114,7 +113,7 @@ func (c *cli) PlanFinish(_ signal.Severity, unitCount int, dur time.Duration) {
 	if c.v() >= signal.VV {
 		c.outln(
 			ansi.Blue.Dim,
-			"[plan] done: %d unit%s planned (%s)",
+			"[plan] finished: %d unit%s planned (%s)",
 			unitCount, s(unitCount), dur,
 		)
 	}
@@ -134,8 +133,8 @@ func (c *cli) ActionFinish(_ signal.Severity, name string, changed bool, dur tim
 	if changed {
 		c.outln(
 			ansi.Yellow.Reg,
-			"%s %s %s changed (%s)",
-			symChange, st.id, name, dur,
+			"[%s]%s '%s' changed (%s)",
+			st.id, c.glyph(symChange), name, dur,
 		)
 		return
 	}
@@ -143,8 +142,8 @@ func (c *cli) ActionFinish(_ signal.Severity, name string, changed bool, dur tim
 	if c.v() >= signal.V {
 		c.outln(
 			ansi.Green.Dim,
-			"%s %s %s up-to-date",
-			symNoop, st.id, name,
+			"[%s]%s '%s' up-to-date",
+			st.id, c.glyph(symOK), name,
 		)
 	}
 }
@@ -154,8 +153,8 @@ func (c *cli) ActionError(_ signal.Severity, name string, err error) {
 
 	c.errln(
 		ansi.Red.Reg,
-		"%s %s %s failed: %v",
-		symFail, st.id, name, err,
+		"[%s]%s '%s' failed: %v",
+		st.id, c.glyph(symFail), name, err,
 	)
 }
 
@@ -174,8 +173,8 @@ func (c *cli) OpCheckUnsatisfied(_ signal.Severity, action, op string) {
 	st := c.ensureAction(action)
 	c.outln(
 		ansi.BrightBlack.Dim,
-		"%s %s needs change: %s",
-		symChange, st.id, op,
+		"[%s]%s '%s' needs change",
+		st.id, c.glyph(symChange), op,
 	)
 }
 
@@ -187,8 +186,8 @@ func (c *cli) OpCheckSatisfied(_ signal.Severity, action, op string) {
 	st := c.ensureAction(action)
 	c.outln(
 		ansi.BrightBlack.Dim,
-		"%s %s %s",
-		symOK, st.id, op,
+		"[%s]%s '%s' up-to-date",
+		st.id, c.glyph(symOK), op,
 	)
 }
 
@@ -196,8 +195,8 @@ func (c *cli) OpCheckUnknown(_ signal.Severity, action, op string, err error) {
 	st := c.ensureAction(action)
 	c.errln(
 		ansi.Yellow.Reg,
-		"%s %s check %s unknown: %v",
-		symWarn, st.id, op, err,
+		"[%s]%s check %s unknown: %v",
+		st.id, c.glyph(symWarn), op, err,
 	)
 }
 
@@ -216,8 +215,8 @@ func (c *cli) OpExecuteFinish(_ signal.Severity, action, op string, changed bool
 	st := c.ensureAction(action)
 	c.outln(
 		ansi.BrightBlack.Reg,
-		"%s %s exec %s changed (%s)",
-		symExec, st.id, op, dur,
+		"[%s]%s '%s' changed (%s)",
+		st.id, c.glyph(symExec), op, dur,
 	)
 }
 
@@ -225,8 +224,8 @@ func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
 	st := c.ensureAction(action)
 	c.errln(
 		ansi.Red.Reg,
-		"%s %s exec %s failed: %v",
-		symFail, st.id, op, err,
+		"[%s]%s '%s' failed: %v",
+		st.id, c.glyph(symFail), op, err,
 	)
 }
 
@@ -236,17 +235,17 @@ func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
 func (c *cli) UserError(_ signal.Severity, message string) {
 	c.errln(
 		ansi.Red.Reg,
-		"%s error %s",
-		symFail, message,
+		"[error]%s %s",
+		c.glyph(symFail), message,
 	)
 }
 
 func (c *cli) InternalError(_ signal.Severity, message string, err error) {
 	if err != nil {
-		c.errln(ansi.BrightRed.Bold, "%s fatal %s: %v", symFail, message, err)
+		c.errln(ansi.BrightRed.Bold, "[fatal]%s %s: %v", c.glyph(symFail), message, err)
 		return
 	}
-	c.errln(ansi.BrightRed.Bold, "%s fatal %s", symFail, message)
+	c.errln(ansi.BrightRed.Bold, "[fatal]%s %s", c.glyph(symFail), message)
 }
 
 // Helpers
@@ -313,4 +312,8 @@ func (c *cli) shouldUseColor() bool {
 	default:
 		return false
 	}
+}
+
+func (c *cli) glyph(g rune) string {
+	return " " + string(g)
 }
