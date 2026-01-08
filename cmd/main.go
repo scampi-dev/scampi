@@ -7,6 +7,7 @@ import (
 	"os"
 	ossig "os/signal"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli/v3"
 	"godoit.dev/doit/diagnostic"
@@ -31,6 +32,8 @@ func main() {
 	)
 	defer stop()
 
+	// FIXME: no log.Fatal. Handle os.Exit yourself.
+	//        messes up single-writer CLI thingy.
 	if err := doit.Run(ctx, os.Args); err != nil {
 		log.Fatal(err)
 	}
@@ -94,7 +97,10 @@ changes when the current state differs from the declared state.`,
 
 			em := diagnostic.NewEmitter(pol, displ)
 
-			return engine.Apply(ctx, em, cfg)
+			err = engine.Apply(ctx, em, cfg)
+			// FIXME: only because CLI render loop closes too fast and we're missing some messages
+			time.Sleep(100 * time.Millisecond)
+			return err
 		},
 	}
 }

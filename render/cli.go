@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/charmbracelet/x/term"
@@ -42,17 +43,46 @@ type (
 		id       string
 		finished bool
 	}
+
+	templInst struct {
+		text string
+		hint string
+		help string
+	}
 )
 
 // Nerdfont state glyphs
 // ===============================================
 
 const (
-	symChange = '󰏫' // nf-md-pencil  U+F0EB
-	symOK     = '󰄬' // nf-md-check   U+F12C
-	symExec   = '󰒓' // nf-md-cog     U+F355
-	symWarn   = '󰀦' // nf-md-alert   U+F02A
-	symFail   = '󰅖' // nf-md-close   U+F15A
+	// '󰏫' nf-md-pencil
+	// '󰄬' nf-md-check
+	// '󰄭' nf-md-check_all
+	// '󰗠' nf-md-check_circle
+	// '󰒓' nf-md-cog
+	// '󰼛' nf-md-play_outline
+	// '󰀦' nf-md-alert
+	// '󰀪' nf-md-alert_outline
+	// '󰈅' nf-md-exclamation
+	// '󰚌' nf-md-skull
+	// '󰯈' nf-md-skull_outline
+	// '󰅖' nf-md-close
+	// '󰌵' nf-md-lightbulb
+	// '󰌶' nf-md-lightbulb_outline
+	// '󰋖' nf-md-help
+	// '󰋗' nf-md-help_circle
+	// '󰘥' nf-md-help_circle_outline
+	// '󰡾' nf-md-lifebuoy
+	// '󰂭' nf-md-block_helper
+
+	symChange = '󰏫'
+	symOK     = '󰄬'
+	symExec   = '󰼛'
+	symWarn   = '󰈅'
+	symErr    = '󰯈'
+	symFatal  = '󰚌'
+	symHint   = '󰌶'
+	symHelp   = '󰋖'
 )
 
 func NewCLI(opts CLIOptions) Displayer {
@@ -93,7 +123,6 @@ func (r *renderer) loop() {
 		_, _ = fmt.Fprintln(w, ev.line)
 	}
 
-	// signal renderer to exit
 	close(r.done)
 }
 
@@ -172,6 +201,11 @@ func (c *cli) PlanFinish(_ signal.Severity, unitCount int, dur time.Duration) {
 	}
 }
 
+func (c *cli) PlanError(_ signal.Severity, index int, name, kind string, tmpl Template) {
+	msg := fmt.Sprintf(`[%d|%s] '%s' - `, index, kind, name)
+	c.emitErrorTmplMsg(tmpl, "plan.error", msg)
+}
+
 // Action lifecycle
 // ===============================================
 
@@ -207,7 +241,7 @@ func (c *cli) ActionError(_ signal.Severity, name string, err error) {
 	c.errln(
 		ansi.Red.Reg,
 		"[%s]%s '%s' failed: %v",
-		st.id, c.glyph(symFail), name, err,
+		st.id, c.glyph(symFatal), name, err,
 	)
 }
 
@@ -278,35 +312,92 @@ func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
 	c.errln(
 		ansi.Red.Reg,
 		"[%s]%s '%s' failed: %v",
-		st.id, c.glyph(symFail), op, err,
+		st.id, c.glyph(symFatal), op, err,
 	)
 }
 
 // Errors
 // ===============================================
 
-func (c *cli) UserError(_ signal.Severity, msg Message) {
-	c.errln(
-		ansi.Red.Reg,
-		"[error]%s %s",
-		c.glyph(symFail), renderMessageCompat(msg),
-	)
+func (c *cli) UserError(_ signal.Severity, tmpl Template) {
+	c.emitErrorTmpl(tmpl)
 }
 
-func (c *cli) InternalError(_ signal.Severity, msg Message) {
-	c.errln(
-		ansi.BrightRed.Bold,
-		"[fatal]%s %s",
-		c.glyph(symFail), renderMessageCompat(msg),
-	)
+func (c *cli) InternalError(_ signal.Severity, tmpl Template) {
+	c.emitFatalTmpl(tmpl)
 }
 
-func renderMessageCompat(msg Message) string {
-	// TEMPORARY: until i18n / proper rendering exists
-	if len(msg.Args) == 0 {
-		return msg.Key
+func (c *cli) emitErrorTmplMsg(tmpl Template, prefix, msg string) {
+	c.emitTmpl(tmpl, prefix, msg, symErr, ansi.Red.Reg, ansi.Cyan.Reg)
+}
+
+func (c *cli) emitErrorTmplPrefix(tmpl Template, prefix string) {
+	c.emitTmpl(tmpl, prefix, "", symErr, ansi.Red.Reg, ansi.Cyan.Reg)
+}
+
+func (c *cli) emitErrorTmpl(tmpl Template) {
+	c.emitErrorTmplPrefix(tmpl, "error")
+}
+
+func (c *cli) emitFatalTmpl(tmpl Template) {
+	c.emitTmpl(tmpl, "fatal", "", symFatal, ansi.BrightRed.Bold, ansi.Cyan.Reg)
+}
+
+func (c *cli) emitTmpl(tmpl Template, prefix, msg string, glyph rune, txtCol, helpCol ansi.Code) {
+	inst := renderMessageCompat(tmpl)
+	text := c.paint(
+		txtCol,
+		"[%s]%s %s%s",
+		prefix, c.glyph(glyph), msg, inst.text,
+	)
+
+	var hint string
+	var help string
+	if inst.hint != "" {
+		hint = "\n    " + c.paint(
+			helpCol,
+			"%s hint: %s",
+			c.glyphl(symHint), inst.hint,
+		)
 	}
-	return fmt.Sprintf("%s %v", msg.Key, msg.Args)
+	if inst.help != "" {
+		help = "\n    " + c.paint(
+			helpCol,
+			"%s help: %s",
+			c.glyphl(symHelp), inst.help,
+		)
+	}
+
+	c.render.emit(true, text+hint+help)
+}
+
+func renderMessageCompat(tmpl Template) templInst {
+	// TEMPORARY: until i18n / proper rendering exists
+	return templInst{
+		text: renderTmpl(tmpl.Name+".Text", tmpl.Text, tmpl.Data),
+		hint: renderTmpl(tmpl.Name+".Hint", tmpl.Hint, tmpl.Data),
+		help: renderTmpl(tmpl.Name+".Help", tmpl.Help, tmpl.Data),
+	}
+}
+
+func join(sep string, s []string) string {
+	return strings.Join(s, sep)
+}
+
+func renderTmpl(name, tmpl string, data any) string {
+	// FIXME: parsing way too late
+	t, err := template.New(name).Funcs(template.FuncMap{"join": join}).Parse(tmpl)
+	if err != nil {
+		panic(err)
+	}
+
+	b := strings.Builder{}
+	// FIXME: at this point we MUST be able to trust that the template renders
+	if err := t.Execute(&b, data); err != nil {
+		panic(err)
+	}
+
+	return b.String()
 }
 
 // Helpers
@@ -365,6 +456,10 @@ func (c *cli) shouldUseColor() bool {
 	default:
 		return false
 	}
+}
+
+func (c *cli) glyphl(g rune) string {
+	return string(g) + " "
 }
 
 func (c *cli) glyph(g rune) string {

@@ -76,6 +76,10 @@ func (e *policyEmitter) PlanFinish(unitCount int, duration time.Duration) {
 	}
 }
 
+func (e *policyEmitter) PlanError(index int, name, kind string, diag Diagnostic) {
+	e.out.PlanError(e.pol.apply(signal.Error), index, name, kind, toRenderTempl(diag))
+}
+
 // Action lifecycle
 // ===============================================
 
@@ -154,27 +158,29 @@ func (e *policyEmitter) OpExecuteError(action, op string, err error) {
 // Errors
 // ===============================================
 
-func (e *policyEmitter) UserError(message string) {
+func (e *policyEmitter) UserError(diag Diagnostic) {
 	e.out.UserError(
 		e.pol.apply(signal.Error),
-		render.Message{
-			Key: "legacy.message",
-			Args: map[string]any{
-				"msg": message,
-			},
-		},
+		toRenderTempl(diag),
 	)
 }
 
 func (e *policyEmitter) InternalError(message string, err error) {
 	e.out.InternalError(
 		e.pol.apply(signal.Error),
-		render.Message{
-			Key: "legacy.message",
-			Args: map[string]any{
-				"msg": message,
-				"err": err,
-			},
+		render.Template{
+			Text: "legacy.message",
 		},
 	)
+}
+
+func toRenderTempl(diag Diagnostic) render.Template {
+	t := diag.Template()
+	return render.Template{
+		Name: t.Name,
+		Text: t.Text,
+		Hint: t.Hint,
+		Help: t.Help,
+		Data: diag,
+	}
 }

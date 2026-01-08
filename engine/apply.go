@@ -35,7 +35,6 @@ type (
 )
 
 func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
-	em.UserError("user error test")
 	em.InternalError("internal error test", fmt.Errorf("test-error cfgPath=%s", cfgPath))
 
 	start := time.Now()
@@ -60,6 +59,7 @@ func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
 	results, err := executePlan(ctx, em, p)
 	if err != nil {
 		// FIXME: diagnostic
+		return err
 	}
 
 	rs := diagnostic.RunSummary{
@@ -88,7 +88,12 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	for i, unit := range cfg.Units {
 		act, err := unit.Type.Plan(i, unit.Config)
 		if err != nil {
-			// FIXME: diagnostic
+			switch d := err.(type) {
+			case diagnostic.Diagnostic:
+				em.PlanError(i, "TODO: PLACEHOLDER", unit.Type.Kind(), d)
+			default:
+				em.InternalError("unhandled error in planning-phase", err)
+			}
 			return spec.Plan{}, err
 		}
 		p.Actions = append(p.Actions, act)

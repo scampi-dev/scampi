@@ -217,7 +217,7 @@ func (op *ensureModeOp) Execute(ctx context.Context, tgt target.Target) (spec.Re
 
 func parsePerm(s string) (fs.FileMode, error) {
 	switch {
-	case isOctal(s):
+	case isNumeric(s):
 		return parseOctal(s)
 	case isLsStyle(s):
 		return parseLsStyle(s)
@@ -228,15 +228,20 @@ func parsePerm(s string) (fs.FileMode, error) {
 	}
 }
 
-func isOctal(s string) bool {
-	octalRe := regexp.MustCompile(`^0[0-7]{3}$`)
-	return octalRe.MatchString(s)
+func isNumeric(s string) bool {
+	_, err := strconv.Atoi(s)
+	return err == nil
 }
 
 func parseOctal(s string) (fs.FileMode, error) {
 	v, err := strconv.ParseUint(s, 8, 32)
 	if err != nil {
-		return 0, err
+		return 0, InvalidOctal{
+			Value:    s,
+			Regex:    `^0[0-7]{3}$`,
+			Examples: []string{"0600", "0644", "0755"},
+			Err:      err,
+		}
 	}
 	return fs.FileMode(v) & fs.ModePerm, nil
 }
