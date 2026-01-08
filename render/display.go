@@ -6,6 +6,19 @@ import (
 	"godoit.dev/doit/signal"
 )
 
+// Message represents a structured, language-agnostic message.
+//
+// It is intentionally free of prose. Renderers decide how to
+// turn this into human-readable output.
+type Message struct {
+	Key  string
+	Args map[string]any
+
+	// Optional extras (ignored for now)
+	Hint string
+	Help string
+}
+
 type RunSummary struct {
 	ChangedCount int
 	FailedCount  int
@@ -51,8 +64,8 @@ type Displayer interface {
 	// Errors
 	// ===============================================
 
-	UserError(s signal.Severity, message string)
-	InternalError(s signal.Severity, message string, err error)
+	UserError(s signal.Severity, msg Message)
+	InternalError(s signal.Severity, msg Message)
 }
 
 func s(n int) string {

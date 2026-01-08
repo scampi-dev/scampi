@@ -35,6 +35,9 @@ type (
 )
 
 func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
+	em.UserError("user error test")
+	em.InternalError("internal error test", fmt.Errorf("test-error cfgPath=%s", cfgPath))
+
 	start := time.Now()
 	em.EngineStart()
 

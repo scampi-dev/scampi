@@ -38,7 +38,7 @@ func (p Policy) apply(s signal.Severity) signal.Severity {
 }
 
 // Engine lifecycle
-// =============================================
+// ===============================================
 
 func (e *policyEmitter) EngineStart() {
 	if e.pol.Verbosity >= signal.VV {
@@ -55,8 +55,8 @@ func (e *policyEmitter) EngineFinish(rs RunSummary, duration time.Duration) {
 	e.out.EngineFinish(e.pol.apply(signal.Important), drs, duration)
 }
 
-// Config / planning phase
-// =============================================
+// Planning lifecycle
+// ===============================================
 
 func (e *policyEmitter) PlanStart() {
 	if e.pol.Verbosity >= signal.VV {
@@ -77,7 +77,7 @@ func (e *policyEmitter) PlanFinish(unitCount int, duration time.Duration) {
 }
 
 // Action lifecycle
-// =============================================
+// ===============================================
 
 func (e *policyEmitter) ActionStart(name string) {
 	if e.pol.Verbosity >= signal.V {
@@ -100,8 +100,8 @@ func (e *policyEmitter) ActionError(name string, err error) {
 	e.out.ActionError(e.pol.apply(signal.Error), name, err)
 }
 
-// Ops diagnostics
-// =============================================
+// OpCheck lifecycle
+// ===============================================
 
 func (e *policyEmitter) OpCheckStart(action, op string) {
 	if e.pol.Verbosity >= signal.VV {
@@ -124,6 +124,9 @@ func (e *policyEmitter) OpCheckUnsatisfied(action, op string) {
 func (e *policyEmitter) OpCheckUnknown(action, op string, err error) {
 	e.out.OpCheckUnknown(e.pol.apply(signal.Warning), action, op, err)
 }
+
+// OpExecute lifecycle
+// ===============================================
 
 func (e *policyEmitter) OpExecuteStart(action, op string) {
 	if e.pol.Verbosity >= signal.VV {
@@ -148,16 +151,30 @@ func (e *policyEmitter) OpExecuteError(action, op string, err error) {
 	e.out.OpExecuteError(e.pol.apply(signal.Error), action, op, err)
 }
 
-// User-visible errors (expected, actionable)
-// =============================================
+// Errors
+// ===============================================
 
 func (e *policyEmitter) UserError(message string) {
-	e.out.UserError(e.pol.apply(signal.Error), message)
+	e.out.UserError(
+		e.pol.apply(signal.Error),
+		render.Message{
+			Key: "legacy.message",
+			Args: map[string]any{
+				"msg": message,
+			},
+		},
+	)
 }
 
-// Internal errors (bugs, invariants violated)
-// =============================================
-
 func (e *policyEmitter) InternalError(message string, err error) {
-	e.out.InternalError(e.pol.apply(signal.Fatal), message, err)
+	e.out.InternalError(
+		e.pol.apply(signal.Error),
+		render.Message{
+			Key: "legacy.message",
+			Args: map[string]any{
+				"msg": message,
+				"err": err,
+			},
+		},
+	)
 }

@@ -37,7 +37,7 @@ type (
 	}
 )
 
-const SleepEach = 2000 * time.Millisecond
+const SleepEach = 0 * time.Millisecond
 
 func (Copy) Kind() string   { return "copy" }
 func (Copy) NewConfig() any { return &CopyConfig{} }

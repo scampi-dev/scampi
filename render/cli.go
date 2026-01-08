@@ -285,20 +285,28 @@ func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
 // Errors
 // ===============================================
 
-func (c *cli) UserError(_ signal.Severity, message string) {
+func (c *cli) UserError(_ signal.Severity, msg Message) {
 	c.errln(
 		ansi.Red.Reg,
 		"[error]%s %s",
-		c.glyph(symFail), message,
+		c.glyph(symFail), renderMessageCompat(msg),
 	)
 }
 
-func (c *cli) InternalError(_ signal.Severity, message string, err error) {
-	if err != nil {
-		c.errln(ansi.BrightRed.Bold, "[fatal]%s %s: %v", c.glyph(symFail), message, err)
-		return
+func (c *cli) InternalError(_ signal.Severity, msg Message) {
+	c.errln(
+		ansi.BrightRed.Bold,
+		"[fatal]%s %s",
+		c.glyph(symFail), renderMessageCompat(msg),
+	)
+}
+
+func renderMessageCompat(msg Message) string {
+	// TEMPORARY: until i18n / proper rendering exists
+	if len(msg.Args) == 0 {
+		return msg.Key
 	}
-	c.errln(ansi.BrightRed.Bold, "[fatal]%s %s", c.glyph(symFail), message)
+	return fmt.Sprintf("%s %v", msg.Key, msg.Args)
 }
 
 // Helpers
