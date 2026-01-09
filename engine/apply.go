@@ -83,9 +83,11 @@ func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
 func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	start := time.Now()
 	em.Emit(diagnostic.PlanStarted())
-	p := spec.Plan{}
 
-	var problems []event.PlanProblem
+	var (
+		p        spec.Plan
+		problems []event.PlanProblem
+	)
 
 	for i, unit := range cfg.Units {
 		act, err := unit.Type.Plan(i, unit.Config)
@@ -96,26 +98,23 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 				Kind:  unit.Type.Kind(),
 				Err:   err,
 			})
-
-			switch d := err.(type) {
-			case diagnostic.Diagnostic:
-				em.Emit(diagnostic.DiagnosticRaised(
-					event.Subject{
-						Index: i,
-						Name:  unit.Name,
-						Kind:  unit.Type.Kind(),
-					},
-					d,
-				))
-			default:
-			}
-			return spec.Plan{}, err
+			continue
 		}
+
 		p.Actions = append(p.Actions, act)
 		em.Emit(diagnostic.UnitPlanned(i, act.Name(), unit.Type.Kind()))
 	}
 
-	em.Emit(diagnostic.PlanFinished(len(p.Actions), time.Since(start), problems))
+	em.Emit(diagnostic.PlanFinished(
+		len(p.Actions),
+		time.Since(start),
+		problems,
+	))
+
+	if len(problems) > 0 {
+		return spec.Plan{}, fmt.Errorf("planning failed with %d error(s)", len(problems))
+	}
+
 	return p, nil
 }
 
