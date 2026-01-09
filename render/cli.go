@@ -110,288 +110,325 @@ func (c *cli) Close() {
 }
 
 func (c *cli) toRenderEvents(e event.Event) []renderEvent {
-	sub := e.Subject
-
 	switch e.Kind {
 
 	// Engine lifecycle
 	// ===============================================
-
 	case event.EngineStarted:
+		return c.renderEngineStarted(e)
+	case event.EngineFinished:
+		return c.renderEngineFinished(e)
+
+	// Plan lifecycle
+	// ===============================================
+	case event.PlanStarted:
+		return c.renderPlanStarted(e)
+	case event.PlanFinished:
+		return c.renderPlanFinished(e)
+	case event.UnitPlanned:
+		return c.renderUnitPlanned(e)
+
+	// Action lifecycle
+	// ===============================================
+	case event.ActionStarted:
+		return nil // intentionally ignored
+	case event.ActionFinished:
+		return c.renderActionFinished(e)
+
+	// Op lifecycle
+	// ===============================================
+	case event.OpCheckStarted:
+		return nil // intentionally ignored
+	case event.OpChecked:
+		return c.renderOpChecked(e)
+	case event.OpExecuteStarted:
+		return nil // intentionally ignored
+	case event.OpExecuted:
+		return c.renderOpExecuted(e)
+
+	// Diagnostics
+	// ===============================================
+	case event.DiagnosticRaised:
+		return c.renderDiagnosticRaised(e)
+
+	default:
+		return c.renderUnknownEvent(e)
+	}
+}
+
+// Engine lifecycle
+// ===============================================
+
+func (c *cli) renderEngineStarted(_ event.Event) []renderEvent {
+	return []renderEvent{{
+		stream: streamOut,
+		line: c.fmtMsg(
+			ansi.Green.Dim,
+			"[engine] started",
+		),
+	}}
+}
+
+func (c *cli) renderEngineFinished(e event.Event) []renderEvent {
+	d := e.Detail.(event.EngineDetail)
+
+	if d.Err != nil {
+		return []renderEvent{{
+			stream: streamErr,
+			line: c.fmtMsg(
+				ansi.BrightRed.Bold,
+				"[engine]%s failed: %v",
+				glyphr(symFatal),
+				d.Err,
+			),
+		}}
+	}
+
+	color := ansi.Green.Reg
+	if d.FailedCount > 0 {
+		color = ansi.Red.Reg
+	} else if d.ChangedCount > 0 {
+		color = ansi.Yellow.Reg
+	}
+
+	return []renderEvent{{
+		stream: streamOut,
+		line: c.fmtMsg(
+			color,
+			"[engine] finished (%d change%s, %d failure%s, %d unit%s, %s)",
+			d.ChangedCount, s(d.ChangedCount),
+			d.FailedCount, s(d.FailedCount),
+			d.TotalCount, s(d.TotalCount),
+			d.Duration,
+		),
+	}}
+}
+
+// Plan lifecycle
+// ===============================================
+
+func (c *cli) renderPlanStarted(_ event.Event) []renderEvent {
+	return []renderEvent{{
+		stream: streamOut,
+		line: c.fmtMsg(
+			ansi.Blue.Reg,
+			"[plan] started",
+		),
+	}}
+}
+
+func (c *cli) renderPlanFinished(e event.Event) []renderEvent {
+	d := e.Detail.(event.PlanDetail)
+
+	var events []renderEvent
+
+	for _, p := range d.Problems {
+		events = append(events, renderEvent{
+			stream: streamErr,
+			line: c.fmtMsg(
+				ansi.Red.Reg,
+				"[plan.error]%s [%d|%s] '%s': %v",
+				glyphr(symFatal),
+				p.Index,
+				p.Kind,
+				p.Name,
+				p.Err,
+			),
+		})
+	}
+
+	events = append(events, renderEvent{
+		stream: streamOut,
+		line: c.fmtMsg(
+			ansi.Blue.Dim,
+			"[plan] finished: %d unit%s planned (%s)",
+			d.UnitCount,
+			s(d.UnitCount),
+			d.Duration,
+		),
+	})
+
+	return events
+}
+
+func (c *cli) renderUnitPlanned(e event.Event) []renderEvent {
+	return []renderEvent{{
+		stream: streamOut,
+		line: c.fmtMsg(
+			ansi.BrightBlack.Dim,
+			"[plan.unit] #%d %s '%s'",
+			e.Subject.Index,
+			e.Subject.Kind,
+			e.Subject.Name,
+		),
+	}}
+}
+
+// Action lifecycle
+// ===============================================
+
+func (c *cli) renderActionFinished(e event.Event) []renderEvent {
+	d := e.Detail.(event.ActionDetail)
+	st := c.ensureAction(e.Subject.Action)
+
+	switch {
+	case d.Err != nil:
+		return []renderEvent{{
+			stream: streamErr,
+			line: c.fmtMsg(
+				ansi.Red.Reg,
+				"[%s]%s '%s' failed: %v",
+				st.id,
+				glyphr(symFatal),
+				e.Subject.Action,
+				d.Err,
+			),
+		}}
+
+	case d.Changed:
+		return []renderEvent{{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.Yellow.Reg,
+				"[%s]%s '%s' changed (%s)",
+				st.id,
+				glyphr(symChange),
+				e.Subject.Action,
+				d.Duration,
+			),
+		}}
+
+	default:
 		return []renderEvent{{
 			stream: streamOut,
 			line: c.fmtMsg(
 				ansi.Green.Dim,
-				"[engine] started",
+				"[%s]%s '%s' up-to-date",
+				st.id,
+				glyphr(symOK),
+				e.Subject.Action,
 			),
 		}}
+	}
+}
 
-	case event.EngineFinished:
-		d := e.Detail.(event.EngineDetail)
+// Op lifecycle
+// ===============================================
 
-		switch {
-		case d.Err != nil:
-			return []renderEvent{{
-				stream: streamErr,
-				line: c.fmtMsg(
-					ansi.BrightRed.Bold,
-					"[engine]%s failed: %v",
-					glyphr(symFatal),
-					d.Err,
-				),
-			}}
+func (c *cli) renderOpChecked(e event.Event) []renderEvent {
+	d := e.Detail.(event.OpCheckDetail)
+	st := c.ensureAction(e.Subject.Action)
 
-		default:
-			color := ansi.Green.Reg
-
-			if d.FailedCount > 0 {
-				color = ansi.Red.Reg
-			} else if d.ChangedCount > 0 {
-				color = ansi.Yellow.Reg
-			}
-
-			return []renderEvent{{
-				stream: streamOut,
-				line: c.fmtMsg(
-					color,
-					"[engine] finished (%d change%s, %d failure%s, %d unit%s, %s)",
-					d.ChangedCount, s(d.ChangedCount),
-					d.FailedCount, s(d.FailedCount),
-					d.TotalCount, s(d.TotalCount),
-					d.Duration,
-				),
-			}}
-		}
-
-		// Plan lifecycle
-		// ===============================================
-
-	case event.PlanStarted:
-		return []renderEvent{{
-			stream: streamOut,
-			line: c.fmtMsg(
-				ansi.Blue.Reg,
-				"[plan] started",
-			),
-		}}
-
-	case event.PlanFinished:
-		var events []renderEvent
-		d := e.Detail.(event.PlanDetail)
-
-		for _, p := range d.Problems {
-			events = append(events, renderEvent{
-				stream: streamErr,
-				line: c.fmtMsg(
-					ansi.Red.Reg,
-					"[plan.error]%s [%d|%s] '%s': %v",
-					glyphr(symFatal),
-					p.Index,
-					p.Kind,
-					p.Name,
-					p.Err,
-				),
-			})
-		}
-
-		events = append(events, renderEvent{
-			stream: streamOut,
-			line: c.fmtMsg(
-				ansi.Blue.Dim,
-				"[plan] finished: %d unit%s planned (%s)",
-				d.UnitCount,
-				s(d.UnitCount),
-				d.Duration,
-			),
-		})
-
-		return events
-
-	case event.UnitPlanned:
+	switch d.Result {
+	case spec.CheckSatisfied:
 		return []renderEvent{{
 			stream: streamOut,
 			line: c.fmtMsg(
 				ansi.BrightBlack.Dim,
-				"[plan.unit] #%d %s '%s'",
-				e.Subject.Index,
-				e.Subject.Kind,
-				e.Subject.Name,
+				"[%s]%s '%s' up-to-date",
+				st.id, glyphr(symOK), e.Subject.Op,
 			),
 		}}
 
-	// Action lifecycle
-	// ===============================================
+	case spec.CheckUnsatisfied:
+		return []renderEvent{{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.BrightBlack.Dim,
+				"[%s]%s '%s' needs change",
+				st.id, glyphr(symChange), e.Subject.Op,
+			),
+		}}
 
-	case event.ActionStarted:
-		// intentionally ignored for now
+	case spec.CheckUnknown:
+		return []renderEvent{{
+			stream: streamErr,
+			line: c.fmtMsg(
+				ansi.Yellow.Reg,
+				"[%s]%s check %s unknown: %v",
+				st.id, glyphr(symWarn), e.Subject.Op, d.Err,
+			),
+		}}
+	}
 
-	case event.ActionFinished:
-		d := e.Detail.(event.ActionDetail)
-		st := c.ensureAction(e.Subject.Action)
+	return nil
+}
 
-		switch {
-		case d.Err != nil:
-			return []renderEvent{{
-				stream: streamErr,
-				line: c.fmtMsg(
-					ansi.Red.Reg,
-					"[%s]%s '%s' failed: %v",
-					st.id,
-					glyphr(symFatal),
-					e.Subject.Action,
-					d.Err,
-				),
-			}}
+func (c *cli) renderOpExecuted(e event.Event) []renderEvent {
+	d := e.Detail.(event.OpExecuteDetail)
+	st := c.ensureAction(e.Subject.Action)
 
-		case d.Changed:
-			return []renderEvent{{
-				stream: streamOut,
-				line: c.fmtMsg(
-					ansi.Yellow.Reg,
-					"[%s]%s '%s' changed (%s)",
-					st.id,
-					glyphr(symChange),
-					e.Subject.Action,
-					d.Duration,
-				),
-			}}
+	switch {
+	case d.Err != nil:
+		return []renderEvent{{
+			stream: streamErr,
+			line: c.fmtMsg(
+				ansi.Red.Reg,
+				"[%s]%s '%s' failed: %v",
+				st.id, glyphr(symFatal), e.Subject.Op, d.Err,
+			),
+		}}
 
-		default:
-			return []renderEvent{{
-				stream: streamOut,
-				line: c.fmtMsg(
-					ansi.Green.Dim,
-					"[%s]%s '%s' up-to-date",
-					st.id,
-					glyphr(symOK),
-					e.Subject.Action,
-				),
-			}}
-		}
+	case d.Changed:
+		return []renderEvent{{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.BrightBlack.Reg,
+				"[%s]%s '%s' changed (%s)",
+				st.id, glyphr(symExec), e.Subject.Op, d.Duration,
+			),
+		}}
 
-	// Op lifecycle
-	// ===============================================
+	default:
+		return nil
+	}
+}
 
-	case event.OpCheckStarted:
-		// intentionally ignored for now
+// Diagnostics
+// ===============================================
 
-	case event.OpChecked:
-		d := e.Detail.(event.OpCheckDetail)
-		st := c.ensureAction(sub.Action)
+func (c *cli) renderDiagnosticRaised(e event.Event) []renderEvent {
+	d := e.Detail.(event.DiagnosticDetail)
+	sub := e.Subject
 
-		switch d.Result {
-		case spec.CheckSatisfied:
-			return []renderEvent{{
-				stream: streamOut,
-				line: c.fmtMsg(
-					ansi.BrightBlack.Dim,
-					"[%s]%s '%s' up-to-date",
-					st.id, glyphr(symOK), sub.Op,
-				),
-			}}
-
-		case spec.CheckUnsatisfied:
-			return []renderEvent{{
-				stream: streamOut,
-				line: c.fmtMsg(
-					ansi.BrightBlack.Dim,
-					"[%s]%s '%s' needs change",
-					st.id, glyphr(symChange), sub.Op,
-				),
-			}}
-
-		case spec.CheckUnknown:
-			return []renderEvent{{
-				stream: streamErr,
-				line: c.fmtMsg(
-					ansi.Yellow.Reg,
-					"[%s]%s check %s unknown: %v",
-					st.id, glyphr(symWarn), sub.Op, d.Err,
-				),
-			}}
-		}
-	case event.OpExecuteStarted:
-		// intentionally ignored for now
-
-	case event.OpExecuted:
-		d := e.Detail.(event.OpExecuteDetail)
-		st := c.ensureAction(sub.Action)
-
-		switch {
-		case d.Err != nil:
-			return []renderEvent{{
-				stream: streamErr,
-				line: c.fmtMsg(
-					ansi.Red.Reg,
-					"[%s]%s '%s' failed: %v",
-					st.id, glyphr(symFatal), sub.Op, d.Err,
-				),
-			}}
-
-		case d.Changed:
-			return []renderEvent{{
-				stream: streamOut,
-				line: c.fmtMsg(
-					ansi.BrightBlack.Reg,
-					"[%s]%s '%s' changed (%s)",
-					st.id, glyphr(symExec), sub.Op, d.Duration,
-				),
-			}}
-
-		default:
-			// no-op execution; intentionally quiet for now
-		}
-
-	case event.DiagnosticRaised:
-		d := e.Detail.(event.DiagnosticDetail)
-		sub := e.Subject
-
-		var line string
-		switch e.Scope {
-		// case event.ScopeEngine:
-		case event.ScopePlan:
-			line = c.fmtTemplate(
+	switch e.Scope {
+	case event.ScopePlan:
+		return []renderEvent{{
+			stream: streamErr,
+			line: c.fmtTemplate(
 				d.Template,
 				"plan.error",
 				fmt.Sprintf(` in unit [%d|%s] '%s'`, sub.Index, sub.Kind, sub.Name),
 				symErr,
 				ansi.Red.Reg,
 				ansi.Cyan.Reg,
-			)
-			return []renderEvent{{
-				stream: streamErr,
-				line:   line,
-			}}
-		// case event.ScopeAction:
-		// case event.ScopeOp:
-		default:
-			line = c.fmtTemplate(
+			),
+		}}
+
+	default:
+		return []renderEvent{{
+			stream: streamErr,
+			line: c.fmtTemplate(
 				d.Template,
 				fmt.Sprintf("%s.error", e.Scope),
 				fmt.Sprintf("\n    -- DEFAULT SCOPE_BRANCH PROBABLY BUG --\n%#v\n\n", e),
 				symErr,
 				ansi.Red.Reg,
 				ansi.Cyan.Reg,
-			)
-		}
-
-		return []renderEvent{{
-			stream: streamErr,
-			line:   line,
-		}}
-
-	default:
-		return []renderEvent{{
-			stream: streamErr,
-			line: c.fmtMsg(
-				ansi.Red.Reg,
-				"[unknown]%s unknown event kind '%s': %+v",
-				glyphr(symWarn), e.Kind, e,
 			),
 		}}
 	}
+}
 
-	return []renderEvent{}
+func (c *cli) renderUnknownEvent(e event.Event) []renderEvent {
+	return []renderEvent{{
+		stream: streamErr,
+		line: c.fmtMsg(
+			ansi.Red.Reg,
+			"[unknown]%s unknown event kind '%s': %+v",
+			glyphr(symWarn), e.Kind, e,
+		),
+	}}
 }
 
 // Helpers
