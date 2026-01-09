@@ -99,7 +99,7 @@ func PlanFinished(unitCount int, dur time.Duration, problems []event.PlanProblem
 	switch {
 	case len(problems) > 0:
 		e.Severity = signal.Error
-		e.Chattiness = event.Normal
+		e.Chattiness = event.Reserved
 
 	case unitCount == 0:
 		e.Severity = signal.Warning

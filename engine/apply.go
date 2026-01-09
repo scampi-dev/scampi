@@ -49,13 +49,13 @@ func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
 		return err
 	}
 
-	p, err := plan(cfg, em)
+	plan, err := plan(cfg, em)
 	if err != nil {
 		return err
 	}
 
 	// em.EngineFinish(changed bool, duration time.Duration)
-	results, err := executePlan(ctx, em, p)
+	results, err := executePlan(ctx, em, plan)
 	if err != nil {
 		// FIXME: diagnostic
 		return err
@@ -85,37 +85,42 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	em.Emit(diagnostic.PlanStarted())
 
 	var (
-		p        spec.Plan
+		plan     spec.Plan
 		problems []event.PlanProblem
+		causes   []error
 	)
 
 	for i, unit := range cfg.Units {
 		act, err := unit.Type.Plan(i, unit.Config)
 		if err != nil {
+			causes = append(causes, err)
 			problems = append(problems, event.PlanProblem{
 				Index: i,
 				Name:  unit.Name,
 				Kind:  unit.Type.Kind(),
 				Err:   err,
 			})
+
 			continue
 		}
 
-		p.Actions = append(p.Actions, act)
+		plan.Actions = append(plan.Actions, act)
 		em.Emit(diagnostic.UnitPlanned(i, act.Name(), unit.Type.Kind()))
 	}
 
 	em.Emit(diagnostic.PlanFinished(
-		len(p.Actions),
+		len(plan.Actions),
 		time.Since(start),
 		problems,
 	))
 
 	if len(problems) > 0 {
-		return spec.Plan{}, fmt.Errorf("planning failed with %d error(s)", len(problems))
+		return spec.Plan{}, AbortError{
+			Causes: causes,
+		}
 	}
 
-	return p, nil
+	return plan, nil
 }
 
 func executePlan(ctx context.Context, em diagnostic.Emitter, plan spec.Plan) ([]execResult, error) {

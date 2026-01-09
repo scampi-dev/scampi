@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,6 +15,12 @@ import (
 	"godoit.dev/doit/osutil"
 	"godoit.dev/doit/render"
 	"godoit.dev/doit/signal"
+)
+
+const (
+	exitOK      = 0
+	exitAborted = 2
+	exitBug     = 1
 )
 
 func main() {
@@ -31,10 +38,10 @@ func main() {
 	)
 	defer stop()
 
-	// FIXME: no log.Fatal. Handle os.Exit yourself.
-	//        messes up single-writer CLI thingy.
 	if err := doit.Run(ctx, os.Args); err != nil {
-		log.Fatal(err)
+		// must never happen, since we either return cleanly
+		// or we handle abort and other errors ourselves with exit-codes
+		log.Fatalf("unhandled error: %#v\n", err)
 	}
 }
 
@@ -47,6 +54,8 @@ func applyCmd() *cli.Command {
 		Name:                   "apply",
 		Usage:                  "Apply the desired state defined in a configuration file",
 		UseShortOptionHandling: true,
+		Suggest:                true,
+		HideHelp:               false,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "color",
@@ -79,7 +88,7 @@ changes when the current state differs from the declared state.`,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			colorMode, err := parseColorMode(colorFlag)
 			if err != nil {
-				return err
+				return cli.Exit(err.Error(), exitAborted)
 			}
 
 			v := mapVerbosity(verbosity)
@@ -97,7 +106,17 @@ changes when the current state differs from the declared state.`,
 
 			em := diagnostic.NewEmitter(pol, displ)
 
-			return engine.Apply(ctx, em, cfg)
+			err = engine.Apply(ctx, em, cfg)
+			if err != nil {
+				var abort engine.AbortError
+				if errors.As(err, &abort) {
+					return cli.Exit("", exitAborted)
+				}
+
+				return cli.Exit(err.Error(), exitBug)
+			}
+
+			return nil
 		},
 	}
 }

@@ -228,7 +228,7 @@ func (c *cli) renderPlanFinished(e event.Event) []renderEvent {
 			line: c.fmtMsg(
 				ansi.Red.Reg,
 				"[plan.error]%s [%d|%s] '%s': %v",
-				glyphr(symFatal),
+				glyphr(symErr),
 				p.Index,
 				p.Kind,
 				p.Name,
@@ -237,16 +237,33 @@ func (c *cli) renderPlanFinished(e event.Event) []renderEvent {
 		})
 	}
 
-	events = append(events, renderEvent{
-		stream: streamOut,
-		line: c.fmtMsg(
-			ansi.Blue.Dim,
-			"[plan] finished: %d unit%s planned (%s)",
-			d.UnitCount,
-			s(d.UnitCount),
-			d.Duration,
-		),
-	})
+	nProblems := len(d.Problems)
+	if nProblems > 0 {
+		events = append(events, renderEvent{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.Red.Reg,
+				"[plan]%s aborted: %d unit%s planned, %d unit%s failed (%s)",
+				glyphr(symFatal),
+				d.UnitCount,
+				s(d.UnitCount),
+				nProblems,
+				s(nProblems),
+				d.Duration,
+			),
+		})
+	} else {
+		events = append(events, renderEvent{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.Blue.Dim,
+				"[plan] finished: %d unit%s planned (%s)",
+				d.UnitCount,
+				s(d.UnitCount),
+				d.Duration,
+			),
+		})
+	}
 
 	return events
 }
