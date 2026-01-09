@@ -60,7 +60,7 @@ func EngineFinished(rs RunSummary, dur time.Duration, err error) event.Event {
 		e.Chattiness = event.Normal
 
 	case rs.ChangedCount > 0:
-		e.Severity = signal.Important
+		e.Severity = signal.Notice
 		e.Chattiness = event.Subtle
 
 	default:
@@ -169,7 +169,7 @@ func ActionFinished(name string, changed bool, dur time.Duration, err error) eve
 		e.Chattiness = event.Normal
 
 	case changed:
-		e.Severity = signal.Important
+		e.Severity = signal.Notice
 		e.Chattiness = event.Normal
 
 	default:
@@ -265,7 +265,7 @@ func OpExecuted(action, op string, changed bool, dur time.Duration, err error) e
 		e.Chattiness = event.Normal
 
 	case changed:
-		e.Severity = signal.Important
+		e.Severity = signal.Notice
 		e.Chattiness = event.Normal
 
 	default:

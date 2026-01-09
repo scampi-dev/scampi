@@ -6,7 +6,6 @@ const (
 	Debug Severity = iota
 	Info
 	Notice
-	Important
 	Warning
 	Error
 	Fatal
