@@ -7,12 +7,11 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"text/template"
-	"time"
 
 	"github.com/charmbracelet/x/term"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/render/ansi"
+	"godoit.dev/doit/render/template"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/spec"
 )
@@ -44,12 +43,6 @@ type (
 	actionState struct {
 		id       string
 		finished bool
-	}
-
-	templInst struct {
-		text string
-		hint string
-		help string
 	}
 )
 
@@ -336,8 +329,8 @@ func (c *cli) Emit(e event.Event) {
 		switch e.Scope {
 		// case event.ScopeEngine:
 		case event.ScopePlan:
-			c.emitTmpl(
-				toRenderTempl(sub, d),
+			c.emitTemplate(
+				d.Template,
 				"plan.error",
 				fmt.Sprintf(` in unit [%d|%s] '%s'`, sub.Index, sub.Kind, sub.Name),
 				symErr,
@@ -347,8 +340,8 @@ func (c *cli) Emit(e event.Event) {
 		// case event.ScopeAction:
 		// case event.ScopeOp:
 		default:
-			c.emitTmpl(
-				toRenderTempl(sub, d),
+			c.emitTemplate(
+				d.Template,
 				fmt.Sprintf("%s.error", e.Scope),
 				fmt.Sprintf("\n    -- DEFAULT SCOPE_BRANCH PROBABLY BUG --\n%#v\n\n", e),
 				symErr,
@@ -363,17 +356,6 @@ func (c *cli) Emit(e event.Event) {
 			"[unknown]%s unknown event kind '%s': %+v",
 			c.glyph(symWarn), e.Kind, e,
 		)
-	}
-}
-
-func toRenderTempl(sub event.Subject, diag event.DiagnosticDetail) Template {
-	t := diag.Template
-	return Template{
-		Name: sub.Name,
-		Text: t.Text,
-		Hint: t.Hint,
-		Help: t.Help,
-		Data: t.Data,
 	}
 }
 
@@ -392,267 +374,35 @@ func (c *cli) shouldRender(e event.Event) bool {
 	}
 }
 
-// Engine lifecycle
-// ===============================================
+func (c *cli) emitTemplate(tmpl event.Template, prefix, msg string, glyph rune, txtCol, helpCol ansi.Code) {
+	tmplText := template.Render(tmpl.ID+".Text", tmpl.Text, tmpl.Data)
+	tmplHint := template.Render(tmpl.ID+".Hint", tmpl.Hint, tmpl.Data)
+	tmplHelp := template.Render(tmpl.ID+".Help", tmpl.Help, tmpl.Data)
 
-func (c *cli) EngineStart(_ signal.Severity) {
-	if c.v() >= signal.VV {
-		c.outln(
-			ansi.Green.Dim,
-			"[engine] starting",
-		)
-	}
-}
-
-func (c *cli) EngineFinish(_ signal.Severity, rs RunSummary, dur time.Duration) {
-	color := ansi.Green.Reg
-	if rs.FailedCount > 0 {
-		color = ansi.Red.Reg
-	} else if rs.ChangedCount > 0 {
-		color = ansi.Yellow.Reg
-	}
-
-	c.outln(
-		color,
-		"[engine] finished (%d change%s, %d failure%s, %d unit%s, %s)",
-		rs.ChangedCount, s(rs.ChangedCount),
-		rs.FailedCount, s(rs.FailedCount),
-		rs.TotalCount, s(rs.TotalCount),
-		dur,
-	)
-
-	c.render.stop()
-}
-
-// Planning lifecycle
-// ===============================================
-
-func (c *cli) PlanStart(_ signal.Severity) {
-	if c.v() >= signal.VV {
-		c.outln(
-			ansi.Blue.Reg,
-			"[plan] starting",
-		)
-	}
-}
-
-func (c *cli) UnitPlanned(_ signal.Severity, index int, name, kind string) {
-	if c.v() >= signal.VVV {
-		c.outln(
-			ansi.BrightBlack.Dim,
-			"[plan.unit] #%d %s '%s'",
-			index, kind, name,
-		)
-	}
-}
-
-func (c *cli) PlanFinish(_ signal.Severity, unitCount int, dur time.Duration) {
-	if c.v() >= signal.VV {
-		c.outln(
-			ansi.Blue.Dim,
-			"[plan] finished: %d unit%s planned (%s)",
-			unitCount, s(unitCount), dur,
-		)
-	}
-}
-
-func (c *cli) PlanError(_ signal.Severity, index int, name, kind string, tmpl Template) {
-	msg := fmt.Sprintf(`[%d|%s] '%s' - `, index, kind, name)
-	c.emitErrorTmplMsg(tmpl, "plan.error", msg)
-}
-
-// Action lifecycle
-// ===============================================
-
-func (c *cli) ActionStart(_ signal.Severity, name string) {
-	_ = c.ensureAction(name)
-}
-
-func (c *cli) ActionFinish(_ signal.Severity, name string, changed bool, dur time.Duration) {
-	st := c.ensureAction(name)
-	st.finished = true
-
-	if changed {
-		c.outln(
-			ansi.Yellow.Reg,
-			"[%s]%s '%s' changed (%s)",
-			st.id, c.glyph(symChange), name, dur,
-		)
-		return
-	}
-
-	if c.v() >= signal.V {
-		c.outln(
-			ansi.Green.Dim,
-			"[%s]%s '%s' up-to-date",
-			st.id, c.glyph(symOK), name,
-		)
-	}
-}
-
-func (c *cli) ActionError(_ signal.Severity, name string, err error) {
-	st := c.ensureAction(name)
-
-	c.errln(
-		ansi.Red.Reg,
-		"[%s]%s '%s' failed: %v",
-		st.id, c.glyph(symFatal), name, err,
-	)
-}
-
-// OpCheck lifecycle
-// ===============================================
-
-func (c *cli) OpCheckStart(_ signal.Severity, _, _ string) {
-	// intentionally silent
-}
-
-func (c *cli) OpCheckUnsatisfied(_ signal.Severity, action, op string) {
-	if c.v() < signal.V {
-		return
-	}
-
-	st := c.ensureAction(action)
-	c.outln(
-		ansi.BrightBlack.Dim,
-		"[%s]%s '%s' needs change",
-		st.id, c.glyph(symChange), op,
-	)
-}
-
-func (c *cli) OpCheckSatisfied(_ signal.Severity, action, op string) {
-	if c.v() < signal.VVV {
-		return
-	}
-
-	st := c.ensureAction(action)
-	c.outln(
-		ansi.BrightBlack.Dim,
-		"[%s]%s '%s' up-to-date",
-		st.id, c.glyph(symOK), op,
-	)
-}
-
-func (c *cli) OpCheckUnknown(_ signal.Severity, action, op string, err error) {
-	st := c.ensureAction(action)
-	c.errln(
-		ansi.Yellow.Reg,
-		"[%s]%s check %s unknown: %v",
-		st.id, c.glyph(symWarn), op, err,
-	)
-}
-
-// OpExecute lifecycle
-// ===============================================
-
-func (c *cli) OpExecuteStart(_ signal.Severity, _, _ string) {
-	// intentionally silent
-}
-
-func (c *cli) OpExecuteFinish(_ signal.Severity, action, op string, changed bool, dur time.Duration) {
-	if !changed || c.v() < signal.VV {
-		return
-	}
-
-	st := c.ensureAction(action)
-	c.outln(
-		ansi.BrightBlack.Reg,
-		"[%s]%s '%s' changed (%s)",
-		st.id, c.glyph(symExec), op, dur,
-	)
-}
-
-func (c *cli) OpExecuteError(_ signal.Severity, action, op string, err error) {
-	st := c.ensureAction(action)
-	c.errln(
-		ansi.Red.Reg,
-		"[%s]%s '%s' failed: %v",
-		st.id, c.glyph(symFatal), op, err,
-	)
-}
-
-// Errors
-// ===============================================
-
-func (c *cli) UserError(_ signal.Severity, tmpl Template) {
-	c.emitErrorTmpl(tmpl)
-}
-
-func (c *cli) InternalError(_ signal.Severity, tmpl Template) {
-	c.emitFatalTmpl(tmpl)
-}
-
-func (c *cli) emitErrorTmplMsg(tmpl Template, prefix, msg string) {
-	c.emitTmpl(tmpl, prefix, msg, symErr, ansi.Red.Reg, ansi.Cyan.Reg)
-}
-
-func (c *cli) emitErrorTmplPrefix(tmpl Template, prefix string) {
-	c.emitTmpl(tmpl, prefix, "", symErr, ansi.Red.Reg, ansi.Cyan.Reg)
-}
-
-func (c *cli) emitErrorTmpl(tmpl Template) {
-	c.emitErrorTmplPrefix(tmpl, "error")
-}
-
-func (c *cli) emitFatalTmpl(tmpl Template) {
-	c.emitTmpl(tmpl, "fatal", "", symFatal, ansi.BrightRed.Bold, ansi.Cyan.Reg)
-}
-
-func (c *cli) emitTmpl(tmpl Template, prefix, msg string, glyph rune, txtCol, helpCol ansi.Code) {
-	inst := renderMessageCompat(tmpl)
 	text := c.paint(
 		txtCol,
 		"[%s]%s %s%s",
-		prefix, c.glyph(glyph), inst.text, msg,
+		prefix, c.glyph(glyph), tmplText, msg,
 	)
 
 	var hint string
 	var help string
-	if inst.hint != "" {
+	if tmplHint != "" {
 		hint = "\n    " + c.paint(
 			helpCol,
 			"%s hint: %s",
-			c.glyphl(symHint), inst.hint,
+			c.glyphl(symHint), tmplHint,
 		)
 	}
-	if inst.help != "" {
+	if tmplHelp != "" {
 		help = "\n    " + c.paint(
 			helpCol,
 			"%s help: %s",
-			c.glyphl(symHelp), inst.help,
+			c.glyphl(symHelp), tmplHelp,
 		)
 	}
 
 	c.render.emit(true, text+hint+help)
-}
-
-func renderMessageCompat(tmpl Template) templInst {
-	// TEMPORARY: until i18n / proper rendering exists
-	return templInst{
-		text: renderTmpl(tmpl.Name+".Text", tmpl.Text, tmpl.Data),
-		hint: renderTmpl(tmpl.Name+".Hint", tmpl.Hint, tmpl.Data),
-		help: renderTmpl(tmpl.Name+".Help", tmpl.Help, tmpl.Data),
-	}
-}
-
-func join(sep string, s []string) string {
-	return strings.Join(s, sep)
-}
-
-func renderTmpl(name, tmpl string, data any) string {
-	// FIXME: parsing way too late
-	t, err := template.New(name).Funcs(template.FuncMap{"join": join}).Parse(tmpl)
-	if err != nil {
-		panic(err)
-	}
-
-	b := strings.Builder{}
-	// FIXME: at this point we MUST be able to trust that the template renders
-	if err := t.Execute(&b, data); err != nil {
-		panic(err)
-	}
-
-	return b.String()
 }
 
 // Helpers

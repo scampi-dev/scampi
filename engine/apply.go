@@ -36,10 +36,7 @@ type (
 )
 
 func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
-	em.InternalError("internal error test", fmt.Errorf("test-error cfgPath=%s", cfgPath))
-
 	start := time.Now()
-	em.EngineStart()
 	em.Emit(diagnostic.EngineStarted())
 
 	cfg, err := loadConfig(cfgPath)
@@ -79,14 +76,12 @@ func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string) error {
 	}
 
 	em.Emit(diagnostic.EngineFinished(rs, time.Since(start), err))
-	em.EngineFinish(rs, time.Since(start))
 
 	return err
 }
 
 func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	start := time.Now()
-	em.PlanStart()
 	em.Emit(diagnostic.PlanStarted())
 	p := spec.Plan{}
 
@@ -112,20 +107,15 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 					},
 					d,
 				))
-
-				em.PlanError(i, "TODO: PLACEHOLDER", unit.Type.Kind(), d)
 			default:
-				em.InternalError("unhandled error in planning-phase", err)
 			}
 			return spec.Plan{}, err
 		}
 		p.Actions = append(p.Actions, act)
-		em.UnitPlanned(i, act.Name(), unit.Type.Kind())
 		em.Emit(diagnostic.UnitPlanned(i, act.Name(), unit.Type.Kind()))
 	}
 
 	em.Emit(diagnostic.PlanFinished(len(p.Actions), time.Since(start), problems))
-	em.PlanFinish(len(p.Actions), time.Since(start))
 	return p, nil
 }
 
@@ -147,7 +137,6 @@ func executePlan(ctx context.Context, em diagnostic.Emitter, plan spec.Plan) ([]
 func executeAction(ctx context.Context, em diagnostic.Emitter, act spec.Action) (spec.Result, error) {
 	start := time.Now()
 	name := act.Name()
-	em.ActionStart(name)
 	em.Emit(diagnostic.ActionStarted(name))
 
 	actCtx, cancel := context.WithTimeout(ctx, actionTimeout)
@@ -156,11 +145,8 @@ func executeAction(ctx context.Context, em diagnostic.Emitter, act spec.Action) 
 	res, err := runAction(actCtx, em, act)
 	em.Emit(diagnostic.ActionFinished(name, res.Changed, time.Since(start), err))
 	if err != nil {
-		em.ActionError(name, err)
 		return spec.Result{}, fmt.Errorf("action %s failed: %w", name, err)
 	}
-
-	em.ActionFinish(name, res.Changed, time.Since(start))
 
 	return res, nil
 }
@@ -182,18 +168,14 @@ func (s *scheduler) schedule(n *opNode, em diagnostic.Emitter, tgt target.Target
 		actionName := n.op.Action()
 		opName := n.op.Name()
 
-		em.OpExecuteStart(actionName, opName)
 		em.Emit(diagnostic.OpExecuteStarted(actionName, opName))
 
 		res, err := n.op.Execute(s.ctx, tgt)
 
 		em.Emit(diagnostic.OpExecuted(actionName, opName, res.Changed, time.Since(start), err))
 		if err != nil {
-			em.OpExecuteError(actionName, opName, err)
 			return err
 		}
-
-		em.OpExecuteFinish(actionName, opName, res.Changed, time.Since(start))
 
 		{ // critical section start
 			s.mu.Lock()
@@ -225,22 +207,15 @@ func (s *scheduler) runChecks(nodes []*opNode, em diagnostic.Emitter, tgt target
 		g.Go(func() error {
 			actionName := n.op.Action()
 			opName := n.op.Name()
-			em.OpCheckStart(actionName, opName)
 			em.Emit(diagnostic.OpCheckStarted(actionName, opName))
 
 			res, err := n.op.Check(ctx, tgt)
 			em.Emit(diagnostic.OpChecked(actionName, opName, res, err))
 			if err != nil {
-				em.OpCheckUnknown(actionName, opName, err)
 				return err
 			}
 
 			n.satisfied = (res == spec.CheckSatisfied)
-			if n.satisfied {
-				em.OpCheckSatisfied(actionName, opName)
-			} else {
-				em.OpCheckUnsatisfied(actionName, opName)
-			}
 			return nil
 		})
 	}
