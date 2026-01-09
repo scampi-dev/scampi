@@ -21,6 +21,7 @@ type RunSummary struct {
 
 type Displayer interface {
 	Emit(e event.Event)
+	Close()
 }
 
 func s(n int) string {

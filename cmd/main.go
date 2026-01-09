@@ -7,7 +7,6 @@ import (
 	"os"
 	ossig "os/signal"
 	"strings"
-	"time"
 
 	"github.com/urfave/cli/v3"
 	"godoit.dev/doit/diagnostic"
@@ -94,13 +93,11 @@ changes when the current state differs from the declared state.`,
 				ColorMode: colorMode,
 				Verbosity: v,
 			})
+			defer displ.Close()
 
 			em := diagnostic.NewEmitter(pol, displ)
 
-			err = engine.Apply(ctx, em, cfg)
-			// FIXME: only because CLI render loop closes too fast and we're missing some messages
-			time.Sleep(100 * time.Millisecond)
-			return err
+			return engine.Apply(ctx, em, cfg)
 		},
 	}
 }

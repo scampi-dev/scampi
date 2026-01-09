@@ -27,19 +27,6 @@ type (
 		render  *renderer
 		actions sync.Map // map[string]*actionState
 	}
-	renderEvent struct {
-		toErr bool
-		line  string
-	}
-	renderer struct {
-		out   io.Writer
-		err   io.Writer
-		isTTY bool
-
-		ch   chan renderEvent
-		done chan struct{}
-	}
-
 	actionState struct {
 		id       string
 		finished bool
@@ -92,52 +79,37 @@ func NewCLI(opts CLIOptions) Displayer {
 	}
 }
 
-func newRenderer(out, err io.Writer, isTTY bool) *renderer {
-	r := &renderer{
-		out:   out,
-		err:   err,
-		isTTY: isTTY,
-		ch:    make(chan renderEvent, 256),
-		done:  make(chan struct{}),
-	}
-
-	go r.loop()
-	return r
-}
-
-func (r *renderer) stop() {
-	close(r.ch)
-	<-r.done
-}
-
-func (r *renderer) loop() {
-	for ev := range r.ch {
-		w := r.out
-		if ev.toErr {
-			w = r.err
-		}
-		_, _ = fmt.Fprintln(w, ev.line)
-	}
-
-	close(r.done)
-}
-
-func (r *renderer) emit(toErr bool, line string) {
-	select {
-	case r.ch <- renderEvent{
-		toErr: toErr,
-		line:  line,
-	}:
-	case <-r.done:
-		// renderer is shutting down, drop message
-	}
-}
-
 func (c *cli) Emit(e event.Event) {
-	if !c.shouldRender(e) {
+	shouldRender := func() bool {
+		v := c.opts.Verbosity
+
+		switch e.Chattiness {
+		case event.Yappy:
+			return v >= signal.VVV
+		case event.Chatty:
+			return v >= signal.VV
+		case event.Normal:
+			return v >= signal.V
+		case event.Reserved, event.Subtle:
+			return true
+		default:
+			return true
+		}
+	}
+
+	if !shouldRender() {
 		return
 	}
 
+	events := c.toRenderEvents(e)
+	c.render.emitEvents(events)
+}
+
+func (c *cli) Close() {
+	c.render.close()
+}
+
+func (c *cli) toRenderEvents(e event.Event) []renderEvent {
 	sub := e.Subject
 
 	switch e.Kind {
@@ -146,22 +118,28 @@ func (c *cli) Emit(e event.Event) {
 	// ===============================================
 
 	case event.EngineStarted:
-		c.outln(
-			ansi.Green.Dim,
-			"[engine] started (NEW)",
-		)
+		return []renderEvent{{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.Green.Dim,
+				"[engine] started",
+			),
+		}}
 
 	case event.EngineFinished:
 		d := e.Detail.(event.EngineDetail)
 
 		switch {
 		case d.Err != nil:
-			c.errln(
-				ansi.BrightRed.Bold,
-				"[engine]%s failed: %v (NEW)",
-				c.glyph(symFatal),
-				d.Err,
-			)
+			return []renderEvent{{
+				stream: streamErr,
+				line: c.fmtMsg(
+					ansi.BrightRed.Bold,
+					"[engine]%s failed: %v",
+					glyphr(symFatal),
+					d.Err,
+				),
+			}}
 
 		default:
 			color := ansi.Green.Reg
@@ -172,56 +150,74 @@ func (c *cli) Emit(e event.Event) {
 				color = ansi.Yellow.Reg
 			}
 
-			c.outln(
-				color,
-				"[engine] finished (%d change%s, %d failure%s, %d unit%s, %s) (NEW)",
-				d.ChangedCount, s(d.ChangedCount),
-				d.FailedCount, s(d.FailedCount),
-				d.TotalCount, s(d.TotalCount),
-				d.Duration,
-			)
+			return []renderEvent{{
+				stream: streamOut,
+				line: c.fmtMsg(
+					color,
+					"[engine] finished (%d change%s, %d failure%s, %d unit%s, %s)",
+					d.ChangedCount, s(d.ChangedCount),
+					d.FailedCount, s(d.FailedCount),
+					d.TotalCount, s(d.TotalCount),
+					d.Duration,
+				),
+			}}
 		}
 
 		// Plan lifecycle
 		// ===============================================
 
 	case event.PlanStarted:
-		c.outln(
-			ansi.Blue.Reg,
-			"[plan] started (NEW)",
-		)
+		return []renderEvent{{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.Blue.Reg,
+				"[plan] started",
+			),
+		}}
 
 	case event.PlanFinished:
+		var events []renderEvent
 		d := e.Detail.(event.PlanDetail)
 
 		for _, p := range d.Problems {
-			c.errln(
-				ansi.Red.Reg,
-				"[plan]%s [%d|%s] '%s': %v (NEW)",
-				c.glyph(symFatal),
-				p.Index,
-				p.Kind,
-				p.Name,
-				p.Err,
-			)
+			events = append(events, renderEvent{
+				stream: streamErr,
+				line: c.fmtMsg(
+					ansi.Red.Reg,
+					"[plan.error]%s [%d|%s] '%s': %v",
+					glyphr(symFatal),
+					p.Index,
+					p.Kind,
+					p.Name,
+					p.Err,
+				),
+			})
 		}
 
-		c.outln(
-			ansi.Blue.Dim,
-			"[plan] finished: %d unit%s planned (%s) (NEW)",
-			d.UnitCount,
-			s(d.UnitCount),
-			d.Duration,
-		)
+		events = append(events, renderEvent{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.Blue.Dim,
+				"[plan] finished: %d unit%s planned (%s)",
+				d.UnitCount,
+				s(d.UnitCount),
+				d.Duration,
+			),
+		})
+
+		return events
 
 	case event.UnitPlanned:
-		c.outln(
-			ansi.BrightBlack.Dim,
-			"[plan.unit] #%d %s '%s' (NEW)",
-			e.Subject.Index,
-			e.Subject.Kind,
-			e.Subject.Name,
-		)
+		return []renderEvent{{
+			stream: streamOut,
+			line: c.fmtMsg(
+				ansi.BrightBlack.Dim,
+				"[plan.unit] #%d %s '%s'",
+				e.Subject.Index,
+				e.Subject.Kind,
+				e.Subject.Name,
+			),
+		}}
 
 	// Action lifecycle
 	// ===============================================
@@ -235,33 +231,42 @@ func (c *cli) Emit(e event.Event) {
 
 		switch {
 		case d.Err != nil:
-			c.errln(
-				ansi.Red.Reg,
-				"[%s]%s '%s' failed: %v (NEW)",
-				st.id,
-				c.glyph(symFatal),
-				e.Subject.Action,
-				d.Err,
-			)
+			return []renderEvent{{
+				stream: streamErr,
+				line: c.fmtMsg(
+					ansi.Red.Reg,
+					"[%s]%s '%s' failed: %v",
+					st.id,
+					glyphr(symFatal),
+					e.Subject.Action,
+					d.Err,
+				),
+			}}
 
 		case d.Changed:
-			c.outln(
-				ansi.Yellow.Reg,
-				"[%s]%s '%s' changed (%s) (NEW)",
-				st.id,
-				c.glyph(symChange),
-				e.Subject.Action,
-				d.Duration,
-			)
+			return []renderEvent{{
+				stream: streamOut,
+				line: c.fmtMsg(
+					ansi.Yellow.Reg,
+					"[%s]%s '%s' changed (%s)",
+					st.id,
+					glyphr(symChange),
+					e.Subject.Action,
+					d.Duration,
+				),
+			}}
 
 		default:
-			c.outln(
-				ansi.Green.Dim,
-				"[%s]%s '%s' up-to-date (NEW)",
-				st.id,
-				c.glyph(symOK),
-				e.Subject.Action,
-			)
+			return []renderEvent{{
+				stream: streamOut,
+				line: c.fmtMsg(
+					ansi.Green.Dim,
+					"[%s]%s '%s' up-to-date",
+					st.id,
+					glyphr(symOK),
+					e.Subject.Action,
+				),
+			}}
 		}
 
 	// Op lifecycle
@@ -276,25 +281,34 @@ func (c *cli) Emit(e event.Event) {
 
 		switch d.Result {
 		case spec.CheckSatisfied:
-			c.outln(
-				ansi.BrightBlack.Dim,
-				"[%s]%s '%s' up-to-date (NEW)",
-				st.id, c.glyph(symOK), sub.Op,
-			)
+			return []renderEvent{{
+				stream: streamOut,
+				line: c.fmtMsg(
+					ansi.BrightBlack.Dim,
+					"[%s]%s '%s' up-to-date",
+					st.id, glyphr(symOK), sub.Op,
+				),
+			}}
 
 		case spec.CheckUnsatisfied:
-			c.outln(
-				ansi.BrightBlack.Dim,
-				"[%s]%s '%s' needs change (NEW)",
-				st.id, c.glyph(symChange), sub.Op,
-			)
+			return []renderEvent{{
+				stream: streamOut,
+				line: c.fmtMsg(
+					ansi.BrightBlack.Dim,
+					"[%s]%s '%s' needs change",
+					st.id, glyphr(symChange), sub.Op,
+				),
+			}}
 
 		case spec.CheckUnknown:
-			c.errln(
-				ansi.Yellow.Reg,
-				"[%s]%s check %s unknown: %v (NEW)",
-				st.id, c.glyph(symWarn), sub.Op, d.Err,
-			)
+			return []renderEvent{{
+				stream: streamErr,
+				line: c.fmtMsg(
+					ansi.Yellow.Reg,
+					"[%s]%s check %s unknown: %v",
+					st.id, glyphr(symWarn), sub.Op, d.Err,
+				),
+			}}
 		}
 	case event.OpExecuteStarted:
 		// intentionally ignored for now
@@ -305,18 +319,24 @@ func (c *cli) Emit(e event.Event) {
 
 		switch {
 		case d.Err != nil:
-			c.errln(
-				ansi.Red.Reg,
-				"[%s]%s '%s' failed: %v (NEW)",
-				st.id, c.glyph(symFatal), sub.Op, d.Err,
-			)
+			return []renderEvent{{
+				stream: streamErr,
+				line: c.fmtMsg(
+					ansi.Red.Reg,
+					"[%s]%s '%s' failed: %v",
+					st.id, glyphr(symFatal), sub.Op, d.Err,
+				),
+			}}
 
 		case d.Changed:
-			c.outln(
-				ansi.BrightBlack.Reg,
-				"[%s]%s '%s' changed (%s) (NEW)",
-				st.id, c.glyph(symExec), sub.Op, d.Duration,
-			)
+			return []renderEvent{{
+				stream: streamOut,
+				line: c.fmtMsg(
+					ansi.BrightBlack.Reg,
+					"[%s]%s '%s' changed (%s)",
+					st.id, glyphr(symExec), sub.Op, d.Duration,
+				),
+			}}
 
 		default:
 			// no-op execution; intentionally quiet for now
@@ -326,10 +346,11 @@ func (c *cli) Emit(e event.Event) {
 		d := e.Detail.(event.DiagnosticDetail)
 		sub := e.Subject
 
+		var line string
 		switch e.Scope {
 		// case event.ScopeEngine:
 		case event.ScopePlan:
-			c.emitTemplate(
+			line = c.fmtTemplate(
 				d.Template,
 				"plan.error",
 				fmt.Sprintf(` in unit [%d|%s] '%s'`, sub.Index, sub.Kind, sub.Name),
@@ -337,10 +358,14 @@ func (c *cli) Emit(e event.Event) {
 				ansi.Red.Reg,
 				ansi.Cyan.Reg,
 			)
+			return []renderEvent{{
+				stream: streamErr,
+				line:   line,
+			}}
 		// case event.ScopeAction:
 		// case event.ScopeOp:
 		default:
-			c.emitTemplate(
+			line = c.fmtTemplate(
 				d.Template,
 				fmt.Sprintf("%s.error", e.Scope),
 				fmt.Sprintf("\n    -- DEFAULT SCOPE_BRANCH PROBABLY BUG --\n%#v\n\n", e),
@@ -350,67 +375,27 @@ func (c *cli) Emit(e event.Event) {
 			)
 		}
 
+		return []renderEvent{{
+			stream: streamErr,
+			line:   line,
+		}}
+
 	default:
-		c.errln(
-			ansi.Red.Reg,
-			"[unknown]%s unknown event kind '%s': %+v",
-			c.glyph(symWarn), e.Kind, e,
-		)
-	}
-}
-
-func (c *cli) shouldRender(e event.Event) bool {
-	switch e.Chattiness {
-	case event.Yappy:
-		return c.v() >= signal.VVV
-	case event.Chatty:
-		return c.v() >= signal.VV
-	case event.Normal:
-		return c.v() >= signal.V
-	case event.Reserved, event.Subtle:
-		return true
-	default:
-		return true
-	}
-}
-
-func (c *cli) emitTemplate(tmpl event.Template, prefix, msg string, glyph rune, txtCol, helpCol ansi.Code) {
-	tmplText := template.Render(tmpl.ID+".Text", tmpl.Text, tmpl.Data)
-	tmplHint := template.Render(tmpl.ID+".Hint", tmpl.Hint, tmpl.Data)
-	tmplHelp := template.Render(tmpl.ID+".Help", tmpl.Help, tmpl.Data)
-
-	text := c.paint(
-		txtCol,
-		"[%s]%s %s%s",
-		prefix, c.glyph(glyph), tmplText, msg,
-	)
-
-	var hint string
-	var help string
-	if tmplHint != "" {
-		hint = "\n    " + c.paint(
-			helpCol,
-			"%s hint: %s",
-			c.glyphl(symHint), tmplHint,
-		)
-	}
-	if tmplHelp != "" {
-		help = "\n    " + c.paint(
-			helpCol,
-			"%s help: %s",
-			c.glyphl(symHelp), tmplHelp,
-		)
+		return []renderEvent{{
+			stream: streamErr,
+			line: c.fmtMsg(
+				ansi.Red.Reg,
+				"[unknown]%s unknown event kind '%s': %+v",
+				glyphr(symWarn), e.Kind, e,
+			),
+		}}
 	}
 
-	c.render.emit(true, text+hint+help)
+	return []renderEvent{}
 }
 
 // Helpers
 // ===============================================
-
-func (c *cli) v() signal.Verbosity {
-	return c.opts.Verbosity
-}
 
 func (c *cli) ensureAction(name string) *actionState {
 	st, _ := c.actions.LoadOrStore(name, &actionState{
@@ -432,22 +417,45 @@ func makeID(name string) string {
 	return fmt.Sprintf("%s:%02x", base, suffix)
 }
 
-// Output
+// Message formatting
 // ===============================================
 
-func (c *cli) outln(color ansi.Code, format string, args ...any) {
-	c.render.emit(false, c.paint(color, format, args...))
-}
-
-func (c *cli) errln(color ansi.Code, format string, args ...any) {
-	c.render.emit(true, c.paint(color, format, args...))
-}
-
-func (c *cli) paint(color ansi.Code, format string, args ...any) string {
+func (c *cli) fmtMsg(color ansi.Code, format string, args ...any) string {
 	if !c.shouldUseColor() {
 		return fmt.Sprintf(format, args...)
 	}
 	return string(color) + fmt.Sprintf(format, args...) + string(ansi.Reset)
+}
+
+func (c *cli) fmtTemplate(tmpl event.Template, prefix, msg string, glyph rune, txtCol, helpCol ansi.Code) string {
+	tmplText := template.Render(tmpl.ID+".Text", tmpl.Text, tmpl.Data)
+	tmplHint := template.Render(tmpl.ID+".Hint", tmpl.Hint, tmpl.Data)
+	tmplHelp := template.Render(tmpl.ID+".Help", tmpl.Help, tmpl.Data)
+
+	text := c.fmtMsg(
+		txtCol,
+		"[%s]%s %s%s",
+		prefix, glyphr(glyph), tmplText, msg,
+	)
+
+	var hint string
+	var help string
+	if tmplHint != "" {
+		hint = "\n    " + c.fmtMsg(
+			helpCol,
+			"%s hint: %s",
+			glyphl(symHint), tmplHint,
+		)
+	}
+	if tmplHelp != "" {
+		help = "\n    " + c.fmtMsg(
+			helpCol,
+			"%s help: %s",
+			glyphl(symHelp), tmplHelp,
+		)
+	}
+
+	return text + hint + help
 }
 
 func (c *cli) shouldUseColor() bool {
@@ -463,10 +471,74 @@ func (c *cli) shouldUseColor() bool {
 	}
 }
 
-func (c *cli) glyphl(g rune) string {
+func glyphr(g rune) string {
+	return " " + string(g)
+}
+
+func glyphl(g rune) string {
 	return string(g) + " "
 }
 
-func (c *cli) glyph(g rune) string {
-	return " " + string(g)
+// Renderer
+// ===============================================
+
+type stream uint8
+
+const (
+	streamOut stream = iota
+	streamErr
+)
+
+type (
+	renderEvent struct {
+		line   string
+		stream stream
+	}
+	renderer struct {
+		out   io.Writer
+		err   io.Writer
+		isTTY bool
+
+		ch   chan renderEvent
+		done chan struct{}
+	}
+)
+
+func newRenderer(out, err io.Writer, isTTY bool) *renderer {
+	r := &renderer{
+		out:   out,
+		err:   err,
+		isTTY: isTTY,
+		ch:    make(chan renderEvent, 256),
+		done:  make(chan struct{}),
+	}
+
+	// render loop
+	go func() {
+		for e := range r.ch {
+			w := r.out
+			if e.stream == streamErr {
+				w = r.err
+			}
+			_, _ = fmt.Fprintln(w, e.line)
+		}
+
+		close(r.done)
+	}()
+	return r
+}
+
+func (r *renderer) close() {
+	close(r.ch)
+	<-r.done
+}
+
+func (r *renderer) emitEvents(events []renderEvent) {
+	for _, e := range events {
+		select {
+		case r.ch <- e:
+		case <-r.done:
+			// renderer is shutting down, drop message
+		}
+	}
 }
