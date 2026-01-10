@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/charmbracelet/x/term"
 	"godoit.dev/doit/diagnostic/event"
@@ -32,6 +33,13 @@ type (
 	actionState struct {
 		id       string
 		finished bool
+	}
+	sourceLine struct {
+		filename string
+		line     int
+		column   int
+		text     string
+		ok       bool
 	}
 )
 
@@ -466,84 +474,178 @@ func makeID(name string) string {
 // ===============================================
 
 func (c *cli) fmtMsg(color ansi.Code, format string, args ...any) string {
+	var buf strings.Builder
+	c.fmtMsgTo(&buf, color, format, args...)
+	return buf.String()
+}
+
+func (c *cli) fmtMsgTo(buf *strings.Builder, color ansi.Code, format string, args ...any) {
 	if !c.shouldUseColor() {
-		return fmt.Sprintf(format, args...)
+		fprintf(buf, format, args...)
+		return
 	}
-	return string(color) + fmt.Sprintf(format, args...) + string(ansi.Reset)
+
+	buf.WriteString(string(color))
+	fprintf(buf, format, args...)
+	buf.WriteString(string(ansi.Reset))
 }
 
 func (c *cli) fmtTemplate(tmpl event.Template, prefix, msg string, glyph rune, txtCol, helpCol ansi.Code) string {
-	tmplText := template.Render(tmpl.ID+".Text", tmpl.Text, tmpl.Data)
-	tmplHint := template.Render(tmpl.ID+".Hint", tmpl.Hint, tmpl.Data)
-	tmplHelp := template.Render(tmpl.ID+".Help", tmpl.Help, tmpl.Data)
+	// tmplText := template.Render(tmpl.ID+".Text", tmpl.Text, tmpl.Data)
+	// tmplHint := template.Render(tmpl.ID+".Hint", tmpl.Hint, tmpl.Data)
+	// tmplHelp := template.Render(tmpl.ID+".Help", tmpl.Help, tmpl.Data)
 
-	text := c.fmtMsg(
-		txtCol,
-		"[%s]%s %s%s",
-		prefix, glyphr(glyph), tmplText, msg,
-	)
+	var buf strings.Builder
 
-	var hint string
-	var help string
-	if tmplHint != "" {
-		hint = "\n    " + c.fmtMsg(
+	if text, ok := template.Render(tmpl.ID+".Text", tmpl.Text, tmpl.Data); ok {
+		c.fmtMsgTo(
+			&buf,
+			txtCol,
+			"[%s]%s %s%s",
+			prefix, glyphr(glyph), text, msg,
+		)
+	}
+
+	if snippet, ok := c.renderSnippet(tmpl.Source); ok {
+		buf.WriteString("\n")
+		buf.WriteString(snippet)
+	}
+
+	if hint, ok := template.Render(tmpl.ID+".Hint", tmpl.Hint, tmpl.Data); ok {
+		buf.WriteString("\n    ")
+		c.fmtMsgTo(
+			&buf,
 			helpCol,
 			"%s hint: %s",
-			glyphl(symHint), tmplHint,
+			glyphl(symHint), hint,
 		)
 	}
-	if tmplHelp != "" {
-		help = "\n    " + c.fmtMsg(
+
+	if help, ok := template.Render(tmpl.ID+".Help", tmpl.Help, tmpl.Data); ok {
+		buf.WriteString("\n    ")
+		c.fmtMsgTo(
+			&buf,
 			helpCol,
 			"%s help: %s",
-			glyphl(symHelp), tmplHelp,
+			glyphl(symHelp), help,
 		)
 	}
 
-	snippet := renderSnippet(tmpl.Source, c.store)
-	if snippet != "" {
-		snippet = "\n" + snippet
-	}
-
-	return text + snippet + hint + help
+	return buf.String()
 }
 
-func renderSnippet(src *spec.SourceSpan, store *spec.SourceStore) string {
+func (c *cli) renderSnippet(src *spec.SourceSpan) (string, bool) {
 	if src == nil {
+		return "", false
+	}
+
+	v := c.loadSourceLine(src)
+
+	var b strings.Builder
+	b.WriteString(c.renderSourceHeader(v))
+	b.WriteString("\n")
+	b.WriteString(c.renderSourceBody(v))
+
+	return b.String(), true
+}
+
+func (c *cli) loadSourceLine(src *spec.SourceSpan) sourceLine {
+	text, ok := c.store.Line(src.Filename, src.Line)
+	return sourceLine{
+		filename: src.Filename,
+		line:     src.Line,
+		column:   src.Column,
+		text:     text,
+		ok:       ok,
+	}
+}
+
+func (c *cli) renderSourceHeader(v sourceLine) string {
+	return fmt.Sprintf(
+		"  --> %s:%d:%d",
+		v.filename,
+		v.line,
+		v.column,
+	)
+}
+
+func (c *cli) renderSourceBody(v sourceLine) string {
+	if !v.ok {
+		return "   | <source unavailable>"
+	}
+
+	lineNo := strconv.Itoa(v.line)
+	pad := strings.Repeat(" ", len(lineNo))
+
+	var b strings.Builder
+
+	// empty gutter line
+	fmt.Fprintf(&b, "  %s |\n", pad)
+
+	// source line
+	fmt.Fprintf(&b, "  %s | %s\n", lineNo, v.text)
+
+	// caret line
+	if v.column > 0 {
+		fmt.Fprintf(
+			&b,
+			"  %s | %s^\n",
+			pad,
+			caretPadding(v.text, v.column),
+		)
+	}
+
+	return strings.TrimRightFunc(b.String(), unicode.IsSpace)
+}
+
+func caretPadding(line string, col int) string {
+	if col <= 1 {
 		return ""
 	}
 
-	buf := strings.Builder{}
+	var b strings.Builder
+	i := 1
 
-	// Header
-	fmt.Fprintf(&buf, "  --> %s:%d:%d\n", src.Filename, src.Line, src.Column)
-
-	if line, ok := store.Line(src.Filename, src.Line); ok {
-		indent := 2
-		indent += len(fmt.Sprintf("%d", src.Line))
-		// strIndentFmt := fmt.Sprintf("%%%ds |", indent)
-		// intIndentFmt := fmt.Sprintf("%%%dd |", indent)
-
-		// Source line
-		fmt.Fprintln(&buf, strings.Repeat(" ", indent)+" |")
-		fmt.Fprintf(&buf, "%"+strconv.Itoa(indent)+"d |", src.Line)
-		fmt.Fprintln(&buf, line+"<<LINE")
-
-		// Caret line
-		if src.Column > 0 {
-			fmt.Fprint(&buf, strings.Repeat(" ", indent)+" |")
-			fmt.Fprintf(
-				&buf,
-				"%s^\n",
-				strings.Repeat(" ", src.Column),
-			)
+	for _, r := range line {
+		if i >= col {
+			break
 		}
-	} else {
-		fmt.Fprintln(&buf, "   | <source unavailable>")
+
+		switch r {
+		case '\t':
+			b.WriteRune('\t') // preserve tab exactly
+		default:
+			// replace any other rune with a single space
+			// (including wide Unicode)
+			b.WriteRune(' ')
+		}
+
+		i++
 	}
 
-	// return strings.TrimRightFunc(buf.String(), unicode.IsSpace)
-	return buf.String()
+	return b.String()
+}
+
+func visualColumn(line string, srcCol int) int {
+	const tabWidth = 8
+
+	col := 0
+
+	for i, r := range line {
+		if i >= srcCol {
+			break
+		}
+
+		switch r {
+		case '\t':
+			// advance to next tab stop
+			col += tabWidth - (col % tabWidth)
+		default:
+			col++
+		}
+	}
+
+	return col
 }
 
 func (c *cli) shouldUseColor() bool {
@@ -608,7 +710,7 @@ func newRenderer(out, err io.Writer, isTTY bool) *renderer {
 			if e.stream == streamErr {
 				w = r.err
 			}
-			_, _ = fmt.Fprintln(w, e.line)
+			fprintln(w, e.line)
 		}
 
 		close(r.done)
@@ -630,3 +732,6 @@ func (r *renderer) emitEvents(events []renderEvent) {
 		}
 	}
 }
+
+func fprintln(w io.Writer, args ...any)               { _, _ = fmt.Fprintln(w, args...) }
+func fprintf(w io.Writer, format string, args ...any) { _, _ = fmt.Fprintf(w, format, args...) }

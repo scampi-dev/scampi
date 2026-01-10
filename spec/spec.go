@@ -16,12 +16,16 @@ type (
 		Type   UnitType
 		Config any
 		Source SourceSpan
-		Fields map[string]SourceSpan
+		Fields map[string]FieldSpan
 	}
 	UnitType interface {
 		Kind() string
 		NewConfig() any
 		Plan(idx int, unit UnitInstance) (Action, error)
+	}
+	FieldSpan struct {
+		Field SourceSpan
+		Value SourceSpan
 	}
 	SourceSpan struct {
 		Filename string

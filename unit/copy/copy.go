@@ -48,7 +48,7 @@ func (Copy) Plan(idx int, unit spec.UnitInstance) (spec.Action, error) {
 		return nil, fmt.Errorf("expected %T got %T", &CopyConfig{}, unit.Config)
 	}
 
-	mode, err := parsePerm(cfg.Perm, unit.Fields["perm"])
+	mode, err := parsePerm(cfg.Perm, unit.Fields["perm"].Value)
 	if err != nil {
 		return nil, err
 	}

@@ -5,9 +5,7 @@ import (
 	"text/template"
 )
 
-func Render(name, tmpl string, data any) string {
-	template.New("")
-
+func Render(name, tmpl string, data any) (string, bool) {
 	// TODO: parsing way too late
 	t, err := template.
 		New(name).
@@ -27,7 +25,8 @@ func Render(name, tmpl string, data any) string {
 		panic(err)
 	}
 
-	return b.String()
+	res := b.String()
+	return res, strings.TrimSpace(res) != ""
 }
 
 // Template funcs

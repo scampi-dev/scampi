@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"cuelang.org/go/cue"
+	"cuelang.org/go/cue/ast"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 	"cuelang.org/go/cue/token"
@@ -109,6 +110,8 @@ func loadConfig(cfgPath string, store *spec.SourceStore) (spec.Config, error) {
 		return spec.Config{}, err
 	}
 
+	userFile := userInstances[0].Files[0]
+
 	coreInstances := load.Instances([]string{"godoit.dev/doit/core"}, loaderCfg)
 	if len(coreInstances) == 0 {
 		return spec.Config{}, fmt.Errorf("no core instances loaded")
@@ -184,12 +187,7 @@ func loadConfig(cfgPath string, store *spec.SourceStore) (spec.Config, error) {
 			Type:   typ,
 			Config: tCfg,
 			Source: spanFromPos(unitVal.Pos()),
-			Fields: map[string]spec.SourceSpan{},
-		}
-
-		it, _ := unitVal.Fields()
-		for it.Next() {
-			ui.Fields[it.Label()] = spanFromPos(it.Value().Pos())
+			Fields: extractFieldSpansFromFile(userFile, idx),
 		}
 
 		cfg.Units = append(cfg.Units, ui)
@@ -199,7 +197,7 @@ func loadConfig(cfgPath string, store *spec.SourceStore) (spec.Config, error) {
 }
 
 func spanFromPos(pos token.Pos) spec.SourceSpan {
-	if pos == token.NoPos {
+	if !pos.IsValid() {
 		return spec.SourceSpan{}
 	}
 
@@ -215,6 +213,90 @@ func spanFromPos(pos token.Pos) spec.SourceSpan {
 		Line:     p.Line,
 		Column:   p.Column,
 	}
+}
+
+func extractFieldSpansFromFile(
+	f *ast.File,
+	unitIndex int,
+) map[string]spec.FieldSpan {
+	fields := make(map[string]spec.FieldSpan)
+
+	// 1. Find the `units: [...]` field at top level
+	var unitsList *ast.ListLit
+
+	for _, decl := range f.Decls {
+		fd, ok := decl.(*ast.Field)
+		if !ok {
+			continue
+		}
+
+		label, ok := fd.Label.(*ast.Ident)
+		if !ok || label.Name != "units" {
+			continue
+		}
+
+		list, ok := fd.Value.(*ast.ListLit)
+		if !ok {
+			return fields
+		}
+
+		unitsList = list
+		break
+	}
+
+	if unitsList == nil {
+		return fields
+	}
+
+	// 2. Select the unit by index
+	if unitIndex < 0 || unitIndex >= len(unitsList.Elts) {
+		return fields
+	}
+
+	unitExpr := unitsList.Elts[unitIndex]
+
+	// 3. We expect either:
+	//    - a struct literal
+	//    - or a binary expr like `builtin.copy & { ... }`
+	var structLit *ast.StructLit
+
+	switch e := unitExpr.(type) {
+	case *ast.StructLit:
+		structLit = e
+
+	case *ast.BinaryExpr:
+		// match `X & { ... }`
+		if rhs, ok := e.Y.(*ast.StructLit); ok {
+			structLit = rhs
+		}
+
+	default:
+		return fields
+	}
+
+	if structLit == nil {
+		return fields
+	}
+
+	// 4. Extract field + value spans from the struct
+	for _, elt := range structLit.Elts {
+		fd, ok := elt.(*ast.Field)
+		if !ok {
+			continue
+		}
+
+		label, ok := fd.Label.(*ast.Ident)
+		if !ok {
+			continue
+		}
+
+		fields[label.Name] = spec.FieldSpan{
+			Field: spanFromPos(label.Pos()),
+			Value: spanFromPos(fd.Value.Pos()),
+		}
+	}
+
+	return fields
 }
 
 func normalizeVirtualPath(path string) string {
