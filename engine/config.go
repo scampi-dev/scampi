@@ -10,6 +10,7 @@ import (
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
+	"cuelang.org/go/cue/token"
 	"godoit.dev/doit"
 	"godoit.dev/doit/spec"
 )
@@ -147,12 +148,40 @@ func loadConfig(cfgPath string) (spec.Config, error) {
 			return spec.Config{}, err
 		}
 
-		cfg.Units = append(cfg.Units, spec.UnitInstance{
+		ui := spec.UnitInstance{
 			Name:   name,
 			Type:   typ,
 			Config: tCfg,
-		})
+			Source: spanFromPos(unitVal.Pos()),
+			Fields: map[string]spec.SourceSpan{},
+		}
+
+		it, _ := unitVal.Fields()
+		for it.Next() {
+			ui.Fields[it.Label()] = spanFromPos(it.Value().Pos())
+		}
+
+		cfg.Units = append(cfg.Units, ui)
 	}
 
 	return cfg, nil
+}
+
+func spanFromPos(pos token.Pos) spec.SourceSpan {
+	if pos == token.NoPos {
+		return spec.SourceSpan{}
+	}
+
+	tf := pos.File()
+	if tf == nil {
+		return spec.SourceSpan{}
+	}
+
+	p := tf.Position(pos)
+
+	return spec.SourceSpan{
+		Filename: p.Filename,
+		Line:     p.Line,
+		Column:   p.Column,
+	}
 }

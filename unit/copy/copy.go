@@ -42,13 +42,13 @@ const SleepEach = 0 * time.Millisecond
 func (Copy) Kind() string   { return "copy" }
 func (Copy) NewConfig() any { return &CopyConfig{} }
 
-func (Copy) Plan(idx int, config any) (spec.Action, error) {
-	cfg, ok := config.(*CopyConfig)
+func (Copy) Plan(idx int, unit spec.UnitInstance) (spec.Action, error) {
+	cfg, ok := unit.Config.(*CopyConfig)
 	if !ok {
-		return nil, fmt.Errorf("expected %T got %T", &CopyConfig{}, config)
+		return nil, fmt.Errorf("expected %T got %T", &CopyConfig{}, unit.Config)
 	}
 
-	mode, err := parsePerm(cfg.Perm)
+	mode, err := parsePerm(cfg.Perm, unit.Fields["perm"])
 	if err != nil {
 		return nil, err
 	}
@@ -215,10 +215,10 @@ func (op *ensureModeOp) Execute(ctx context.Context, tgt target.Target) (spec.Re
 	return spec.Result{Changed: true}, nil
 }
 
-func parsePerm(s string) (fs.FileMode, error) {
+func parsePerm(s string, src spec.SourceSpan) (fs.FileMode, error) {
 	switch {
 	case isNumeric(s):
-		return parseOctal(s)
+		return parseOctal(s, src)
 	case isLsStyle(s):
 		return parseLsStyle(s)
 	case isPosixAbsolute(s):
@@ -233,13 +233,14 @@ func isNumeric(s string) bool {
 	return err == nil
 }
 
-func parseOctal(s string) (fs.FileMode, error) {
+func parseOctal(s string, src spec.SourceSpan) (fs.FileMode, error) {
 	v, err := strconv.ParseUint(s, 8, 32)
 	if err != nil {
 		return 0, InvalidOctal{
 			Value:    s,
 			Regex:    `^0[0-7]{3}$`,
 			Examples: []string{"0600", "0644", "0755"},
+			Source:   src,
 			Err:      err,
 		}
 	}

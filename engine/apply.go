@@ -91,8 +91,14 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	)
 
 	for i, unit := range cfg.Units {
-		act, err := unit.Type.Plan(i, unit.Config)
+		act, err := unit.Type.Plan(i, unit)
 		if err != nil {
+			emitDiagnostics(em, err, event.Subject{
+				Index: i,
+				Name:  unit.Name,
+				Kind:  unit.Type.Kind(),
+			})
+
 			causes = append(causes, err)
 			problems = append(problems, event.PlanProblem{
 				Index: i,
@@ -100,7 +106,6 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 				Kind:  unit.Type.Kind(),
 				Err:   err,
 			})
-
 			continue
 		}
 
@@ -341,4 +346,13 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 	}
 
 	return slices.Collect(maps.Values(nodes)), nil
+}
+
+func emitDiagnostics(em diagnostic.Emitter, err error, subject event.Subject) {
+	var dp diagnostic.DiagnosticProvider
+	if errors.As(err, &dp) {
+		for _, ev := range dp.Diagnostics(subject) {
+			em.Emit(ev)
+		}
+	}
 }

@@ -16,6 +16,10 @@ type (
 		EventTemplate() event.Template
 		Severity() signal.Severity
 	}
+	DiagnosticProvider interface {
+		Diagnostics(subject event.Subject) []event.Event
+	}
+
 	RunSummary struct {
 		ChangedCount int
 		FailedCount  int

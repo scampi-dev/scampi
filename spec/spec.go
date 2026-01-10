@@ -14,11 +14,18 @@ type (
 		Name   string
 		Type   UnitType
 		Config any
+		Source SourceSpan
+		Fields map[string]SourceSpan
 	}
 	UnitType interface {
 		Kind() string
 		NewConfig() any
-		Plan(idx int, cfg any) (Action, error)
+		Plan(idx int, unit UnitInstance) (Action, error)
+	}
+	SourceSpan struct {
+		Filename string
+		Line     int
+		Column   int
 	}
 
 	Plan struct {
