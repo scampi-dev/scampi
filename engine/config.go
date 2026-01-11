@@ -16,6 +16,8 @@ import (
 	"cuelang.org/go/cue/load"
 	"cuelang.org/go/cue/token"
 	"godoit.dev/doit"
+	"godoit.dev/doit/diagnostic"
+	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/spec"
 )
 
@@ -66,7 +68,7 @@ func (s sourceCapturingFS) Open(name string) (fs.File, error) {
 	return s.fs.Open(name)
 }
 
-func loadConfig(cfgPath string, store *spec.SourceStore) (spec.Config, error) {
+func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) (spec.Config, error) {
 	reg := NewRegistry()
 	ctx := cuecontext.New()
 
@@ -146,6 +148,7 @@ func loadConfig(cfgPath string, store *spec.SourceStore) (spec.Config, error) {
 	}
 
 	cfg := spec.Config{}
+	var diagResults diagnosticResults
 	for iter.Next() {
 		idx := iter.Selector().Index()
 		unitVal := iter.Value()
@@ -188,9 +191,15 @@ func loadConfig(cfgPath string, store *spec.SourceStore) (spec.Config, error) {
 			if errors.As(err, &ce) {
 				missing := missingRequiredFieldErrors(ce, unitVal, idx, unitSpan, kind, name)
 				if len(missing) > 0 {
-					return spec.Config{}, MissingFieldsDiagnostic{
-						Missing: missing,
-					}
+					dr := emitDiagnostics(
+						em,
+						event.Subject{},
+						MissingFieldsDiagnostic{
+							Missing: missing,
+						},
+					)
+					diagResults.Append(dr)
+					continue
 				}
 				return spec.Config{}, CueDiagnostic{
 					Err:   ce,
@@ -219,6 +228,12 @@ func loadConfig(cfgPath string, store *spec.SourceStore) (spec.Config, error) {
 		}
 
 		cfg.Units = append(cfg.Units, ui)
+	}
+
+	if diagResults.ShouldAbort() {
+		return spec.Config{}, AbortError{
+			Causes: diagResults.Errs(),
+		}
 	}
 
 	return cfg, nil

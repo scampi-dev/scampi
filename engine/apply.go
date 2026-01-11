@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"cuelang.org/go/cue/errors"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/spec"
@@ -39,10 +38,12 @@ func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *sp
 	start := time.Now()
 	em.Emit(diagnostic.EngineStarted())
 
-	cfg, err := loadConfig(cfgPath, store)
+	cfg, err := loadConfig(em, cfgPath, store)
 	if err != nil {
-		emitDiagnostics(em, err, event.Subject{})
-		// // FIXME: diagnostic - what do with stinky raw err?
+		dr := emitDiagnostics(em, event.Subject{}, err)
+		if dr.ShouldAbort() {
+			return AbortError{Causes: []error{err}}
+		}
 		return err
 	}
 
@@ -82,19 +83,25 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	em.Emit(diagnostic.PlanStarted())
 
 	var (
-		plan   spec.Plan
-		causes []error
+		plan        spec.Plan
+		causes      []error
+		diagResults []diagnosticResult
 	)
 
 	for i, unit := range cfg.Units {
 		act, err := unit.Type.Plan(i, unit)
 		if err != nil {
-			emitDiagnostics(em, err, event.Subject{
-				Index: i,
-				Name:  unit.Name,
-				Kind:  unit.Type.Kind(),
-			})
+			dr := emitDiagnostics(
+				em,
+				event.Subject{
+					Index: i,
+					Name:  unit.Name,
+					Kind:  unit.Type.Kind(),
+				},
+				err,
+			)
 
+			diagResults = append(diagResults, dr)
 			causes = append(causes, err)
 			continue
 		}
@@ -109,9 +116,11 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 		time.Since(start),
 	))
 
-	if len(causes) > 0 {
-		return spec.Plan{}, AbortError{
-			Causes: causes,
+	for _, dr := range diagResults {
+		if dr.ShouldAbort() {
+			return spec.Plan{}, AbortError{
+				Causes: causes,
+			}
 		}
 	}
 
@@ -336,13 +345,4 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 	}
 
 	return slices.Collect(maps.Values(nodes)), nil
-}
-
-func emitDiagnostics(em diagnostic.Emitter, err error, subject event.Subject) {
-	var dp diagnostic.DiagnosticProvider
-	if errors.As(err, &dp) {
-		for _, ev := range dp.Diagnostics(subject) {
-			em.Emit(ev)
-		}
-	}
 }

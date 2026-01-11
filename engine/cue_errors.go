@@ -119,6 +119,5 @@ func (d MissingFieldDiagnostic) EventTemplate() event.Template {
 	}
 }
 
-func (d MissingFieldDiagnostic) Severity() signal.Severity {
-	return signal.Error
-}
+func (MissingFieldDiagnostic) Severity() signal.Severity { return signal.Error }
+func (MissingFieldDiagnostic) Effect() diagnostic.Effect { return diagnostic.EffectAbort }
