@@ -150,110 +150,16 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 	cfg := spec.Config{}
 	var sawAbort bool
 	for iter.Next() {
-		var skipUnit bool
 		idx := iter.Selector().Index()
 		unitVal := iter.Value()
 		unitSpan, fields := extractFieldSpansFromFile(userFile, idx)
 
-		// subject context
-		// =============================================
-		kind, name, err := resolveUnitIdentity(unitVal, idx)
-		if err != nil {
-			// FIXME: raw error
-			return spec.Config{}, err
-		}
-		subject := event.Subject{
-			Index: idx,
-			Kind:  kind,
-			Name:  name,
+		ui, decRes := decodeUnit(unitVal, idx, reg, em, unitSpan, fields)
+		if decRes.abort {
+			sawAbort = true
 		}
 
-		ut, ok := reg.Type(kind)
-		if !ok {
-			dr := emitDiagnostics(
-				em,
-				subject,
-				// FIXME: stringy error
-				fmt.Errorf("unknown unit kind %q", kind),
-			)
-			if dr.ShouldAbort() {
-				sawAbort = true
-			}
-			continue
-		}
-
-		tCfg := ut.NewConfig()
-		// TODO: Check if config is pointer earlier than runtime
-		rv := reflect.ValueOf(tCfg)
-		if rv.Kind() != reflect.Pointer {
-			return spec.Config{}, fmt.Errorf("UnitType['%s'].NewConfig() must return a pointer. Got %T", ut.Kind(), tCfg)
-		}
-
-		if err := unitVal.Validate(cue.Concrete(true), cue.All()); err != nil {
-			var ce cueerr.Error
-			if errors.As(err, &ce) {
-				missing := missingRequiredFieldErrors(ce, unitVal, idx, unitSpan, kind, name)
-				if len(missing) > 0 {
-					for _, m := range missing {
-						dr := emitDiagnostics(
-							em,
-							event.Subject{
-								Index: idx,
-								Kind:  kind,
-								Name:  name,
-							},
-							MissingFieldDiagnostic{Missing: m},
-						)
-						if dr.ShouldAbort() {
-							sawAbort = true
-						}
-						if dr.ShouldSkipUnit() {
-							skipUnit = true
-						}
-					}
-				} else {
-					// generic cue error
-					dr := emitDiagnostics(
-						em,
-						subject,
-						CueDiagnostic{
-							Err:   ce,
-							Phase: "decode",
-						},
-					)
-					if dr.ShouldAbort() {
-						sawAbort = true
-					}
-					if dr.ShouldSkipUnit() {
-						skipUnit = true
-					}
-				}
-			}
-		}
-
-		if skipUnit {
-			continue
-		}
-
-		if err := unitVal.Decode(tCfg); err != nil {
-			var ce cueerr.Error
-			if errors.As(err, &ce) {
-				return spec.Config{}, CueDiagnostic{
-					Err:   ce,
-					Phase: "load.decode-config",
-				}
-			}
-		}
-
-		ui := spec.UnitInstance{
-			Name:   name,
-			Type:   ut,
-			Config: tCfg,
-			Source: spanFromPos(unitVal.Pos()),
-			Fields: fields,
-		}
-
-		if skipUnit {
+		if !decRes.ok {
 			continue
 		}
 
@@ -265,6 +171,127 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 	}
 
 	return cfg, nil
+}
+
+type decodeResult struct {
+	abort bool
+	ok    bool
+}
+
+func decodeUnit(unitVal cue.Value, unitIdx int, reg *Registry, em diagnostic.Emitter, unitSpan spec.SourceSpan, fields map[string]spec.FieldSpan) (spec.UnitInstance, decodeResult) {
+	// subject context
+	// =============================================
+	kind, name, err := resolveUnitIdentity(unitVal, unitIdx)
+	if err != nil {
+		// TODO: diagnostic
+		return spec.UnitInstance{}, decodeResult{}
+	}
+	subject := event.Subject{
+		Index: unitIdx,
+		Kind:  kind,
+		Name:  name,
+	}
+
+	ut, ok := reg.Type(kind)
+	if !ok {
+		dr := emitDiagnostics(
+			em,
+			subject,
+			// TODO: stringy error
+			fmt.Errorf("unknown unit kind %q", kind),
+		)
+		return spec.UnitInstance{}, decodeResult{
+			abort: dr.ShouldAbort(),
+			ok:    false,
+		}
+	}
+
+	tCfg := ut.NewConfig()
+	// TODO: Check if config is pointer earlier than runtime
+	rv := reflect.ValueOf(tCfg)
+	if rv.Kind() != reflect.Pointer {
+		dr := emitDiagnostics(
+			em,
+			subject,
+			// TODO: stringy error
+			fmt.Errorf("UnitType['%s'].NewConfig() must return a pointer. Got %T", ut.Kind(), tCfg),
+		)
+		return spec.UnitInstance{}, decodeResult{
+			abort: dr.ShouldAbort(),
+			ok:    false,
+		}
+	}
+
+	if err := unitVal.Validate(cue.Concrete(true), cue.All()); err != nil {
+		var ce cueerr.Error
+		if errors.As(err, &ce) {
+			missing := missingRequiredFieldErrors(ce, unitVal, unitIdx, unitSpan, kind, name)
+			if len(missing) > 0 {
+				var abort bool
+				for _, m := range missing {
+					dr := emitDiagnostics(
+						em,
+						event.Subject{
+							Index: unitIdx,
+							Kind:  kind,
+							Name:  name,
+						},
+						MissingFieldDiagnostic{Missing: m},
+					)
+					if dr.ShouldAbort() {
+						abort = true
+					}
+				}
+				return spec.UnitInstance{}, decodeResult{
+					abort: abort,
+					ok:    false,
+				}
+			} else {
+				// generic cue error
+				dr := emitDiagnostics(
+					em,
+					subject,
+					CueDiagnostic{
+						Err:   ce,
+						Phase: "decode",
+					},
+				)
+				return spec.UnitInstance{}, decodeResult{
+					abort: dr.ShouldAbort(),
+					ok:    false,
+				}
+			}
+		}
+	}
+
+	if err := unitVal.Decode(tCfg); err != nil {
+		var ce cueerr.Error
+		if errors.As(err, &ce) {
+			dr := emitDiagnostics(
+				em,
+				subject,
+				CueDiagnostic{
+					Err:   ce,
+					Phase: "unitVal.Decode",
+				},
+			)
+
+			return spec.UnitInstance{}, decodeResult{
+				abort: dr.ShouldAbort(),
+				ok:    false,
+			}
+		}
+	}
+
+	ui := spec.UnitInstance{
+		Name:   name,
+		Type:   ut,
+		Config: tCfg,
+		Source: spanFromPos(unitVal.Pos()),
+		Fields: fields,
+	}
+
+	return ui, decodeResult{abort: false, ok: true}
 }
 
 func resolveUnitIdentity(unitVal cue.Value, idx int) (string, string, error) {
