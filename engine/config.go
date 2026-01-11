@@ -150,6 +150,7 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 	cfg := spec.Config{}
 	var sawAbort bool
 	for iter.Next() {
+		var skipUnit bool
 		idx := iter.Selector().Index()
 		unitVal := iter.Value()
 		unitSpan, fields := extractFieldSpansFromFile(userFile, idx)
@@ -206,24 +207,32 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 						if dr.ShouldAbort() {
 							sawAbort = true
 						}
+						if dr.ShouldSkipUnit() {
+							skipUnit = true
+						}
 					}
-					continue
+				} else {
+					// generic cue error
+					dr := emitDiagnostics(
+						em,
+						subject,
+						CueDiagnostic{
+							Err:   ce,
+							Phase: "decode",
+						},
+					)
+					if dr.ShouldAbort() {
+						sawAbort = true
+					}
+					if dr.ShouldSkipUnit() {
+						skipUnit = true
+					}
 				}
-
-				// generic cue error
-				dr := emitDiagnostics(
-					em,
-					subject,
-					CueDiagnostic{
-						Err:   ce,
-						Phase: "decode",
-					},
-				)
-				if dr.ShouldAbort() {
-					sawAbort = true
-				}
-				continue
 			}
+		}
+
+		if skipUnit {
+			continue
 		}
 
 		if err := unitVal.Decode(tCfg); err != nil {
@@ -242,6 +251,10 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 			Config: tCfg,
 			Source: spanFromPos(unitVal.Pos()),
 			Fields: fields,
+		}
+
+		if skipUnit {
+			continue
 		}
 
 		cfg.Units = append(cfg.Units, ui)
