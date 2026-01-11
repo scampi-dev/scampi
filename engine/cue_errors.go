@@ -102,4 +102,6 @@ func (d MissingFieldDiagnostic) Diagnostics(subject event.Subject) []event.Event
 }
 
 func (MissingFieldDiagnostic) Severity() signal.Severity { return signal.Error }
-func (MissingFieldDiagnostic) Effect() diagnostic.Effect { return diagnostic.EffectAbort }
+func (MissingFieldDiagnostic) Impact() diagnostic.Impact {
+	return diagnostic.ImpactSkipUnit | diagnostic.ImpactAbort
+}

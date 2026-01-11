@@ -154,36 +154,38 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 		unitVal := iter.Value()
 		unitSpan, fields := extractFieldSpansFromFile(userFile, idx)
 
-		metaVal := unitVal.LookupPath(cue.ParsePath("meta"))
-		if err := metaVal.Err(); err != nil {
-			return spec.Config{}, err
-		}
-
-		kindVal := metaVal.LookupPath(cue.ParsePath("kind"))
-		if err := kindVal.Err(); err != nil {
-			return spec.Config{}, err
-		}
-
-		kind, err := kindVal.String()
+		// subject context
+		// =============================================
+		kind, name, err := resolveUnitIdentity(unitVal, idx)
 		if err != nil {
+			// FIXME: raw error
 			return spec.Config{}, err
 		}
-
-		name, err := unitVal.LookupPath(cue.ParsePath("name")).String()
-		if err != nil {
-			name = fmt.Sprintf("%s[%d]", kind, idx)
+		subject := event.Subject{
+			Index: idx,
+			Kind:  kind,
+			Name:  name,
 		}
 
-		typ, ok := reg.Type(kind)
+		ut, ok := reg.Type(kind)
 		if !ok {
-			return spec.Config{}, fmt.Errorf("unknown unit kind %q", kind)
+			dr := emitDiagnostics(
+				em,
+				subject,
+				// FIXME: stringy error
+				fmt.Errorf("unknown unit kind %q", kind),
+			)
+			if dr.ShouldAbort() {
+				sawAbort = true
+			}
+			continue
 		}
 
-		tCfg := typ.NewConfig()
+		tCfg := ut.NewConfig()
 		// TODO: Check if config is pointer earlier than runtime
 		rv := reflect.ValueOf(tCfg)
 		if rv.Kind() != reflect.Pointer {
-			return spec.Config{}, fmt.Errorf("UnitType['%s'].NewConfig() must return a pointer. Got %T", typ.Kind(), tCfg)
+			return spec.Config{}, fmt.Errorf("UnitType['%s'].NewConfig() must return a pointer. Got %T", ut.Kind(), tCfg)
 		}
 
 		if err := unitVal.Validate(cue.Concrete(true), cue.All()); err != nil {
@@ -207,12 +209,21 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 					}
 					continue
 				}
-				return spec.Config{}, CueDiagnostic{
-					Err:   ce,
-					Phase: "validate.unit",
+
+				// generic cue error
+				dr := emitDiagnostics(
+					em,
+					subject,
+					CueDiagnostic{
+						Err:   ce,
+						Phase: "decode",
+					},
+				)
+				if dr.ShouldAbort() {
+					sawAbort = true
 				}
+				continue
 			}
-			return spec.Config{}, err
 		}
 
 		if err := unitVal.Decode(tCfg); err != nil {
@@ -227,7 +238,7 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 
 		ui := spec.UnitInstance{
 			Name:   name,
-			Type:   typ,
+			Type:   ut,
 			Config: tCfg,
 			Source: spanFromPos(unitVal.Pos()),
 			Fields: fields,
@@ -241,6 +252,30 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 	}
 
 	return cfg, nil
+}
+
+func resolveUnitIdentity(unitVal cue.Value, idx int) (string, string, error) {
+	metaVal := unitVal.LookupPath(cue.ParsePath("meta"))
+	if err := metaVal.Err(); err != nil {
+		return "", "", err
+	}
+
+	kindVal := metaVal.LookupPath(cue.ParsePath("kind"))
+	if err := kindVal.Err(); err != nil {
+		return "", "", err
+	}
+
+	kind, err := kindVal.String()
+	if err != nil {
+		return "", "", err
+	}
+
+	name, err := unitVal.LookupPath(cue.ParsePath("name")).String()
+	if err != nil {
+		name = fmt.Sprintf("%s[%d]", kind, idx)
+	}
+
+	return kind, name, nil
 }
 
 func missingRequiredFieldErrors(

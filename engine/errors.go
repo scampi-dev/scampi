@@ -2,7 +2,6 @@ package engine
 
 import (
 	"errors"
-	"slices"
 
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
@@ -18,16 +17,30 @@ func (AbortError) Error() string {
 
 type (
 	diagnosticResult struct {
-		Effects []diagnostic.Effect
+		Impacts []diagnostic.Impact
 	}
 )
 
-func (r *diagnosticResult) add(effect diagnostic.Effect) {
-	r.Effects = append(r.Effects, effect)
+func (r *diagnosticResult) add(impact diagnostic.Impact) {
+	r.Impacts = append(r.Impacts, impact)
 }
 
 func (r diagnosticResult) ShouldAbort() bool {
-	return slices.Contains(r.Effects, diagnostic.EffectAbort)
+	for _, i := range r.Impacts {
+		if i&diagnostic.ImpactAbort != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (r diagnosticResult) ShouldSkipUnit() bool {
+	for _, i := range r.Impacts {
+		if i&diagnostic.ImpactSkipUnit != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func emitDiagnostics(
@@ -49,13 +62,12 @@ func emitDiagnostics(
 	for _, ev := range dp.Diagnostics(subject) {
 		em.Emit(ev)
 
-		// determine effect
-		effect := diagnostic.EffectAbort // default (safe)
-		if ep, ok := err.(diagnostic.EffectProvider); ok {
-			effect = ep.Effect()
+		// determine impact
+		impact := diagnostic.ImpactAbort // safe default
+		if ip, ok := err.(diagnostic.ImpactProvider); ok {
+			impact = ip.Impact()
 		}
-
-		res.add(effect)
+		res.add(impact)
 	}
 
 	return res
