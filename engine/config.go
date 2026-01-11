@@ -178,26 +178,37 @@ type decodeResult struct {
 	ok    bool
 }
 
-func decodeUnit(unitVal cue.Value, unitIdx int, reg *Registry, em diagnostic.Emitter, unitSpan spec.SourceSpan, fields map[string]spec.FieldSpan) (spec.UnitInstance, decodeResult) {
-	// subject context
-	// =============================================
+func decodeUnit(
+	unitVal cue.Value,
+	unitIdx int,
+	reg *Registry,
+	em diagnostic.Emitter,
+	unitSpan spec.SourceSpan,
+	fields map[string]spec.FieldSpan,
+) (spec.UnitInstance, decodeResult) {
+	// ------------------------------------------------------------
+	// Resolve identity (non-diagnostic for now)
+	// ------------------------------------------------------------
 	kind, name, err := resolveUnitIdentity(unitVal, unitIdx)
 	if err != nil {
-		// TODO: diagnostic
-		return spec.UnitInstance{}, decodeResult{}
+		// engine/schema error – cannot continue safely
+		return spec.UnitInstance{}, decodeResult{abort: true}
 	}
+
 	subject := event.Subject{
 		Index: unitIdx,
 		Kind:  kind,
 		Name:  name,
 	}
 
+	// ------------------------------------------------------------
+	// Resolve unit type
+	// ------------------------------------------------------------
 	ut, ok := reg.Type(kind)
 	if !ok {
 		dr := emitDiagnostics(
 			em,
 			subject,
-			// TODO: stringy error
 			fmt.Errorf("unknown unit kind %q", kind),
 		)
 		return spec.UnitInstance{}, decodeResult{
@@ -206,83 +217,90 @@ func decodeUnit(unitVal cue.Value, unitIdx int, reg *Registry, em diagnostic.Emi
 		}
 	}
 
+	// ------------------------------------------------------------
+	// Instantiate config
+	// ------------------------------------------------------------
 	tCfg := ut.NewConfig()
-	// TODO: Check if config is pointer earlier than runtime
 	rv := reflect.ValueOf(tCfg)
 	if rv.Kind() != reflect.Pointer {
+		// internal error
+		panic(fmt.Errorf(
+			"UnitType['%s'].NewConfig() must return a pointer (got %T)",
+			ut.Kind(),
+			tCfg,
+		))
+	}
+
+	// ------------------------------------------------------------
+	// VALIDATION PHASE (user fault, rich diagnostics)
+	// ------------------------------------------------------------
+	if err := unitVal.Validate(cue.Concrete(true), cue.All()); err != nil {
+		var ce cueerr.Error
+		if !errors.As(err, &ce) {
+			// unexpected validation failure → engine error
+			return spec.UnitInstance{}, decodeResult{abort: true}
+		}
+
+		missing := missingRequiredFieldErrors(
+			ce,
+			unitVal,
+			unitIdx,
+			unitSpan,
+			kind,
+			name,
+		)
+
+		if len(missing) > 0 {
+			var abort bool
+			for _, m := range missing {
+				dr := emitDiagnostics(
+					em,
+					subject,
+					MissingFieldDiagnostic{Missing: m},
+				)
+				if dr.ShouldAbort() {
+					abort = true
+				}
+			}
+			return spec.UnitInstance{}, decodeResult{
+				abort: abort,
+				ok:    false,
+			}
+		}
+
+		// generic cue validation error, still user-facing
 		dr := emitDiagnostics(
 			em,
 			subject,
-			// TODO: stringy error
-			fmt.Errorf("UnitType['%s'].NewConfig() must return a pointer. Got %T", ut.Kind(), tCfg),
+			CueDiagnostic{
+				Err:   ce,
+				Phase: "decode",
+			},
 		)
+
 		return spec.UnitInstance{}, decodeResult{
 			abort: dr.ShouldAbort(),
 			ok:    false,
 		}
 	}
 
-	if err := unitVal.Validate(cue.Concrete(true), cue.All()); err != nil {
-		var ce cueerr.Error
-		if errors.As(err, &ce) {
-			missing := missingRequiredFieldErrors(ce, unitVal, unitIdx, unitSpan, kind, name)
-			if len(missing) > 0 {
-				var abort bool
-				for _, m := range missing {
-					dr := emitDiagnostics(
-						em,
-						event.Subject{
-							Index: unitIdx,
-							Kind:  kind,
-							Name:  name,
-						},
-						MissingFieldDiagnostic{Missing: m},
-					)
-					if dr.ShouldAbort() {
-						abort = true
-					}
-				}
-				return spec.UnitInstance{}, decodeResult{
-					abort: abort,
-					ok:    false,
-				}
-			} else {
-				// generic cue error
-				dr := emitDiagnostics(
-					em,
-					subject,
-					CueDiagnostic{
-						Err:   ce,
-						Phase: "decode",
-					},
-				)
-				return spec.UnitInstance{}, decodeResult{
-					abort: dr.ShouldAbort(),
-					ok:    false,
-				}
-			}
-		}
-	}
-
+	// ------------------------------------------------------------
+	// DECODE PHASE (engine/schema invariant)
+	// ------------------------------------------------------------
 	if err := unitVal.Decode(tCfg); err != nil {
-		var ce cueerr.Error
-		if errors.As(err, &ce) {
-			dr := emitDiagnostics(
-				em,
-				subject,
-				CueDiagnostic{
-					Err:   ce,
-					Phase: "unitVal.Decode",
-				},
-			)
-
-			return spec.UnitInstance{}, decodeResult{
-				abort: dr.ShouldAbort(),
-				ok:    false,
-			}
-		}
+		// If Validate passed, Decode MUST NOT fail.
+		// This is a hard invariant violation.
+		panic(fmt.Errorf(
+			"BUG: unitVal.Decode failed after successful validation for unit %q (%s): %w",
+			name,
+			kind,
+			err,
+		))
 	}
 
+	// ------------------------------------------------------------
+	// Success
+	// ------------------------------------------------------------
 	ui := spec.UnitInstance{
 		Name:   name,
 		Type:   ut,
@@ -291,7 +309,10 @@ func decodeUnit(unitVal cue.Value, unitIdx int, reg *Registry, em diagnostic.Emi
 		Fields: fields,
 	}
 
-	return ui, decodeResult{abort: false, ok: true}
+	return ui, decodeResult{
+		abort: false,
+		ok:    true,
+	}
 }
 
 func resolveUnitIdentity(unitVal cue.Value, idx int) (string, string, error) {

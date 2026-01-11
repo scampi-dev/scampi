@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	ossig "os/signal"
+	"runtime/debug"
 	"strings"
 
 	"github.com/urfave/cli/v3"
@@ -19,9 +20,9 @@ import (
 )
 
 const (
-	exitOK      = 0
-	exitAborted = 2
-	exitBug     = 1
+	exitOK        = 0 // success
+	exitUserError = 1 // invalid config, failed plan, validation errors
+	exitBug       = 2 // internal error / panic
 )
 
 func main() {
@@ -89,7 +90,7 @@ changes when the current state differs from the declared state.`,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			colorMode, err := parseColorMode(colorFlag)
 			if err != nil {
-				return cli.Exit(err.Error(), exitAborted)
+				return cli.Exit(err.Error(), exitUserError)
 			}
 
 			v := mapVerbosity(verbosity)
@@ -107,18 +108,22 @@ changes when the current state differs from the declared state.`,
 					Verbosity: v,
 				},
 				store)
-			defer displ.Close()
+
+			defer func() {
+				displ.Close()
+				recoverAndReport(recover())
+			}()
 
 			em := diagnostic.NewEmitter(pol, displ)
-
 			err = engine.Apply(ctx, em, cfg, store)
 			if err != nil {
 				var abort engine.AbortError
 				if errors.As(err, &abort) {
-					return cli.Exit("", exitAborted)
+					return cli.Exit("", exitUserError)
 				}
 
-				return cli.Exit(err.Error(), exitBug)
+				// Engine violated its contract: unexpected error
+				panic(fmt.Errorf("BUG: engine.Apply returned unexpected error: %w", err))
 			}
 
 			return nil
@@ -162,4 +167,41 @@ func mapVerbosity(v int) signal.Verbosity {
 	default:
 		return signal.Quiet
 	}
+}
+
+func recoverAndReport(r any) {
+	if r == nil {
+		return
+	}
+
+	// Always write to stderr, ignore all errors.
+	// what should we do in a panic handler? die again? please.
+	_println := func(a ...any) {
+		_, _ = fmt.Fprintln(os.Stderr, a...)
+	}
+
+	_println()
+	_println("[doit] fatal internal error")
+	_println()
+	_println("This is a BUG in doit, not in your configuration.")
+	_println()
+	_println("Please report this issue and include the information below:")
+	_println("  https://godoit.dev/issues/new")
+	_println()
+	_println()
+	_println("======  internal error  ======")
+
+	switch v := r.(type) {
+	case error:
+		_println(v.Error())
+	default:
+		_println(v)
+	}
+
+	_println()
+	_println("======    stack trace   ======")
+	_println(string(debug.Stack()))
+
+	// Hard exit with a distinct code for internal bugs
+	os.Exit(exitBug)
 }
