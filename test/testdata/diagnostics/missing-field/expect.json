@@ -1,0 +1,15 @@
+{
+  "abort": true,
+  "diagnostics": [
+    {
+      "id": "config.MissingField",
+      "scope": "ScopePlan",
+      "severity": "Error",
+      "kind": "DiagnosticRaised",
+      "unit": {
+        "index": 0,
+        "kind": "copy"
+      }
+    }
+  ]
+}

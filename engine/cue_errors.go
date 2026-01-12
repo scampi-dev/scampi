@@ -86,7 +86,7 @@ func (d MissingFieldDiagnostic) Error() string {
 func (d MissingFieldDiagnostic) EventTemplate() event.Template {
 	m := d.Missing
 	return event.Template{
-		ID:   "cue.missing-field",
+		ID:   "config.MissingField",
 		Text: d.Error(),
 		Source: &spec.SourceSpan{
 			Filename: m.UnitSource.Filename,

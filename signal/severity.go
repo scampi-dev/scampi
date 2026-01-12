@@ -1,3 +1,4 @@
+//go:generate stringer -type=Severity
 package signal
 
 type Severity uint8

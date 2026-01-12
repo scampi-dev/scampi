@@ -92,7 +92,7 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 			Embedded: embFS,
 			Host: sourceCapturingFS{
 				cwd:   cwd,
-				fs:    os.DirFS(cwd),
+				fs:    os.DirFS("/"),
 				store: store,
 			},
 		},
@@ -100,6 +100,11 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 	}
 
 	// user config
+	// absCfgPath, err := filepath.Abs(cfgPath)
+	// if err != nil {
+	// 	panic(fmt.Errorf("BUG: failed to create absolute config-file path: %w", err))
+	// }
+
 	userInstances := load.Instances([]string{cfgPath}, loaderCfg)
 	if len(userInstances) == 0 {
 		panic("BUG: load.Instances returned zero instances")
@@ -605,5 +610,5 @@ func normalizeVirtualPath(path string) string {
 		out = append(out, p)
 	}
 
-	return strings.Join(out, "/")
+	return "/" + strings.Join(out, "/")
 }

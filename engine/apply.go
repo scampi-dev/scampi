@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"path/filepath"
 	"slices"
 	"sync"
 	"time"
@@ -37,6 +38,11 @@ type (
 func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
 	start := time.Now()
 	em.Emit(diagnostic.EngineStarted())
+
+	cfgPath, err := filepath.Abs(cfgPath)
+	if err != nil {
+		panic(fmt.Errorf("BUG: filepath.Abs() failed: %w", err))
+	}
 
 	cfg, err := loadConfig(em, cfgPath, store)
 	if err != nil {
