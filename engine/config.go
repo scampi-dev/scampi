@@ -166,11 +166,10 @@ func loadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 		}
 
 		if isUnitsShapeError(ce) {
-			unitsVal := cfgVal.LookupPath(cue.ParsePath("units"))
-
 			return spec.Config{}, InvalidUnitsShape{
 				Source: getUnifyErrorSpan(ce, userInst),
-				Have:   describeCueValueShape(unitsVal),
+				Have:   describeCueValueShape(userInst, "units"),
+				Want:   describeCueValueShape(coreInst, "units"),
 			}
 		}
 
@@ -403,7 +402,8 @@ func isUnitsShapeError(ce cueerr.Error) bool {
 	return false
 }
 
-func describeCueValueShape(v cue.Value) string {
+func describeCueValueShape(base cue.Value, path string) string {
+	v := base.LookupPath(cue.ParsePath(path))
 	switch v.Kind() {
 	case cue.ListKind:
 		return "list"

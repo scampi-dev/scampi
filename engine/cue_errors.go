@@ -130,8 +130,8 @@ func (e InvalidUnitsShape) Diagnostics(subject event.Subject) []event.Event {
 func (e InvalidUnitsShape) EventTemplate() event.Template {
 	return event.Template{
 		ID:     "core.InvalidUnitsShape",
-		Text:   "invalid 'units' declaration",
-		Hint:   "expected a list of units, have {{.Have}}",
+		Text:   "invalid 'units' declaration, expected {{.Want}}",
+		Hint:   "expected {{.Want}}, have {{.Have}}",
 		Help:   "the 'units' field must be a list, e.g. units: [ {...}, {...} ]",
 		Source: &e.Source,
 		Data:   e,
