@@ -3,10 +3,10 @@ package test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/user"
 	"path/filepath"
-	"testing"
 
 	"godoit.dev/doit/diagnostic/event"
 )
@@ -52,9 +52,8 @@ func (r *recordingDisplayer) String() string {
 	return r.events.String()
 }
 
-func (r *recordingDisplayer) dump(t *testing.T) {
-	t.Helper()
-	_, _ = fmt.Fprintln(t.Output(), r)
+func (r *recordingDisplayer) dump(w io.Writer) {
+	_, _ = fmt.Fprintln(w, r)
 }
 
 func (e events) String() string {

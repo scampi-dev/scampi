@@ -2,25 +2,17 @@ package test
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
 	"testing"
 
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/engine"
+	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/target"
 )
 
 func TestCopyEndToEnd(t *testing.T) {
-	tmp := t.TempDir()
-
-	src := filepath.Join(tmp, "src.txt")
-	dst := filepath.Join(tmp, "dst.txt")
-
-	writeOrDie(src, []byte("hello"), 0o644)
-
-	usr := currentUsr()
-	cfg := fmt.Sprintf(`
+	cfg := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -28,26 +20,29 @@ import "godoit.dev/doit/builtin"
 units: [
 	builtin.copy & {
 		name:  "builtin.copy action"
-		src:   %q
-		dest:  %q
+		src:   "/src.txt"
+		dest:  "/dest.txt"
 		perm:  "0644"
-		owner: %q
-		group: %q
+		owner: "e2e_owner"
+		group: "e2e_group"
 	}
 ]
-`, src, dst, usr.Uid, usr.Gid)
+`
 
-	cfgPath := filepath.Join(tmp, "config.cue")
-	writeOrDie(cfgPath, []byte(cfg), 0o644)
+	src := source.NewMemSource()
+	tgt := target.NewMemTarget()
+
+	src.Files["/src.txt"] = []byte("hello")
+	src.Files["/config.cue"] = []byte(cfg)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	if err := engine.Apply(context.Background(), em, cfgPath, spec.NewSourceStore()); err != nil {
+	if err := engine.ApplyWithEnv(context.Background(), em, "/config.cue", spec.NewSourceStore(), src, tgt); err != nil {
 		t.Fatalf("expected successful call to engine.Apply, got err: %q\n%s", err, rec)
 	}
 
-	data := readOrDie(dst)
+	data := tgt.Files["/dest.txt"]
 	if string(data) != "hello" {
 		t.Fatalf("unexpected dest contents: %q", data)
 	}

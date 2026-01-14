@@ -37,6 +37,17 @@ type (
 )
 
 func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
+	return ApplyWithEnv(
+		ctx,
+		em,
+		cfgPath,
+		store,
+		source.LocalPosixSource{},
+		target.LocalPosixTarget{},
+	)
+}
+
+func ApplyWithEnv(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore, src source.Source, tgt target.Target) error {
 	start := time.Now()
 	em.Emit(diagnostic.EngineStarted())
 
@@ -45,7 +56,7 @@ func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *sp
 		panic(fmt.Errorf("BUG: filepath.Abs() failed: %w", err))
 	}
 
-	cfg, err := LoadConfig(em, cfgPath, store)
+	cfg, err := LoadConfigWithSource(em, cfgPath, store, src)
 	if err != nil {
 		dr := emitDiagnostics(
 			em,
@@ -66,7 +77,7 @@ func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *sp
 	}
 
 	// em.EngineFinish(changed bool, duration time.Duration)
-	results, err := executePlan(ctx, em, plan)
+	results, err := executePlan(ctx, em, src, tgt, plan)
 	if err != nil {
 		// FIXME: diagnostic
 		return err
@@ -140,11 +151,11 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	return plan, nil
 }
 
-func executePlan(ctx context.Context, em diagnostic.Emitter, plan spec.Plan) ([]execResult, error) {
+func executePlan(ctx context.Context, em diagnostic.Emitter, src source.Source, tgt target.Target, plan spec.Plan) ([]execResult, error) {
 	var results []execResult
 
 	for _, act := range plan.Actions {
-		res, err := executeAction(ctx, em, act)
+		res, err := executeAction(ctx, em, src, tgt, act)
 		if err != nil {
 			return []execResult{}, err
 		}
@@ -155,7 +166,7 @@ func executePlan(ctx context.Context, em diagnostic.Emitter, plan spec.Plan) ([]
 	return results, nil
 }
 
-func executeAction(ctx context.Context, em diagnostic.Emitter, act spec.Action) (spec.Result, error) {
+func executeAction(ctx context.Context, em diagnostic.Emitter, src source.Source, tgt target.Target, act spec.Action) (spec.Result, error) {
 	start := time.Now()
 	name := act.Name()
 	em.Emit(diagnostic.ActionStarted(name))
@@ -163,7 +174,7 @@ func executeAction(ctx context.Context, em diagnostic.Emitter, act spec.Action) 
 	actCtx, cancel := context.WithTimeout(ctx, actionTimeout)
 	defer cancel()
 
-	res, err := runAction(actCtx, em, act)
+	res, err := runAction(actCtx, em, src, tgt, act)
 	em.Emit(diagnostic.ActionFinished(name, res.Changed, time.Since(start), err))
 	if err != nil {
 		return spec.Result{}, fmt.Errorf("action %s failed: %w", name, err)
@@ -262,11 +273,8 @@ func (s *scheduler) initPending(nodes []*opNode) {
 	}
 }
 
-func runAction(ctx context.Context, em diagnostic.Emitter, act spec.Action) (spec.Result, error) {
+func runAction(ctx context.Context, em diagnostic.Emitter, src source.Source, tgt target.Target, act spec.Action) (spec.Result, error) {
 	nodes, err := buildPlan(act.Ops())
-	tgt := target.LocalPosixTarget{}
-	src := source.LocalPosixSource{}
-
 	if err != nil {
 		return spec.Result{}, err
 	}

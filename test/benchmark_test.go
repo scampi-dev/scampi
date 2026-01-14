@@ -10,7 +10,9 @@ import (
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/engine"
 	"godoit.dev/doit/signal"
+	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/target"
 )
 
 /*
@@ -122,49 +124,44 @@ func (fakeDiagnostic) Severity() signal.Severity {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp(b *testing.B) {
-	usr := currentUsr()
-
 	sizes := []int{1, 10, 100, 1000, 10000}
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			tmp := b.TempDir()
-			src := filepath.Join(tmp, "src.txt")
-			dst := filepath.Join(tmp, "dst.txt")
-
-			writeOrDie(src, []byte("hello"), 0o644)
-			writeOrDie(dst, []byte("hello"), 0o644)
-
 			cfg := fmt.Sprintf(`
 package bench
 
 import (
-  "list"
+	"list"
 	"godoit.dev/doit/builtin"
 )
 
 units: [
-  for i in list.Range(0, %d, 1) {
-    builtin.copy & {
-      name:  "unit-\(i)"
-    	src:   %q
-    	dest:  %q
-    	perm:  "0644"
-    	owner: %q
-    	group: %q
-    }
-  }
+	for i in list.Range(0, %d, 1) {
+		builtin.copy & {
+			name:  "unit-\(i)"
+			src:   "/src.txt"
+			dest:  "/dest.txt"
+			perm:  "0644"
+			owner: "perf-owner"
+			group: "perf-group"
+		}
+	}
 ]
-`, size, src, dst, usr.Uid, usr.Gid)
+`, size)
 
-			cfgPath := filepath.Join(tmp, "config.cue")
-			writeOrDie(cfgPath, []byte(cfg), 0o644)
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/src.txt"] = []byte("hello")
+			tgt.Files["/dest.txt"] = []byte("hello")
+			src.Files["/config.cue"] = []byte(cfg)
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				if err := engine.Apply(context.Background(), em, cfgPath, store); err != nil {
+				if err := engine.ApplyWithEnv(context.Background(), em, "/config.cue", store, src, tgt); err != nil {
 					b.Fatal(err)
 				}
 			}

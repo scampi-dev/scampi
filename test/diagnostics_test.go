@@ -10,7 +10,9 @@ import (
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/engine"
+	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/target"
 )
 
 func TestDiagnostics(t *testing.T) {
@@ -36,12 +38,13 @@ func runDiagnosticsCase(t *testing.T, dir string) {
 
 	expect := loadExpected(t, expectPath)
 
+	recTgt := &target.Recorder{Inner: target.LocalPosixTarget{}}
 	rec := &recordingDisplayer{}
 	pol := diagnostic.Policy{}
 	em := diagnostic.NewEmitter(pol, rec)
 	store := spec.NewSourceStore()
 
-	err := engine.Apply(context.Background(), em, cfgPath, store)
+	err := engine.ApplyWithEnv(context.Background(), em, cfgPath, store, source.LocalPosixSource{}, recTgt)
 
 	if expect.Abort {
 		var abort engine.AbortError
@@ -52,8 +55,10 @@ func runDiagnosticsCase(t *testing.T, dir string) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	defer rec.dump(t)
+	defer rec.dump(t.Output())
 	assertDiagnostics(t, rec.events, expect.Diagnostics, cfgPath)
+
+	AssertTargetUntouched(t, recTgt)
 }
 
 func loadExpected(t *testing.T, path string) ExpectedDiagnostics {

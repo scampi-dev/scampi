@@ -1,14 +1,16 @@
 package engine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
+	"path"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/ast"
@@ -19,6 +21,7 @@ import (
 	"godoit.dev/doit"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 )
 
@@ -69,17 +72,94 @@ func (s sourceCapturingFS) Open(name string) (fs.File, error) {
 	return s.fs.Open(name)
 }
 
+type memFile struct {
+	name string
+	data []byte
+	pos  int
+}
+
+func newMemFile(name string, data []byte) *memFile {
+	// defensive copy so callers can't mutate through the slice
+	cp := make([]byte, len(data))
+	copy(cp, data)
+
+	return &memFile{
+		name: name,
+		data: cp,
+	}
+}
+
+func (f *memFile) Read(p []byte) (int, error) {
+	if f.pos >= len(f.data) {
+		return 0, io.EOF
+	}
+
+	n := copy(p, f.data[f.pos:])
+	f.pos += n
+	return n, nil
+}
+
+func (f *memFile) Close() error {
+	return nil
+}
+
+func (f *memFile) Stat() (fs.FileInfo, error) {
+	return memFileInfo{
+		name: f.name,
+		size: int64(len(f.data)),
+	}, nil
+}
+
+type memFileInfo struct {
+	name string
+	size int64
+}
+
+func (i memFileInfo) Name() string       { return path.Base(i.name) }
+func (i memFileInfo) Size() int64        { return i.size }
+func (i memFileInfo) Mode() fs.FileMode  { return 0o644 }
+func (i memFileInfo) ModTime() time.Time { return time.Time{} }
+func (i memFileInfo) IsDir() bool        { return false }
+func (i memFileInfo) Sys() any           { return nil }
+
+type sourceFS struct {
+	src source.Source
+}
+
+func (s sourceFS) Open(name string) (fs.File, error) {
+	if strings.HasPrefix(name, "/") {
+		return nil, fmt.Errorf("BUG: fs.FS received absolute path %q", name)
+	}
+
+	p := "/" + name
+	data, err := s.src.ReadFile(context.Background(), p)
+	if err != nil {
+		return nil, err
+	}
+
+	return newMemFile(name, data), nil
+}
+
 // LoadConfig decodes and validates user configuration.
 // It returns ONLY user-facing configuration errors.
 // All other failures are engine or environment bugs and will panic.
 func LoadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) (spec.Config, error) {
+	return LoadConfigWithSource(
+		em,
+		cfgPath,
+		store,
+		source.LocalPosixSource{},
+	)
+}
+
+func LoadConfigWithSource(
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *spec.SourceStore,
+	src source.Source,
+) (spec.Config, error) {
 	reg := NewRegistry()
 	ctx := cuecontext.New()
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		panic(fmt.Errorf("BUG: os.Getwd failed: %w", err))
-	}
 
 	embFS, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
 	if err != nil {
@@ -91,8 +171,9 @@ func LoadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 		FS: overlayFS{
 			Embedded: embFS,
 			Host: sourceCapturingFS{
-				cwd:   cwd,
-				fs:    os.DirFS("/"),
+				fs: sourceFS{
+					src: src,
+				},
 				store: store,
 			},
 		},

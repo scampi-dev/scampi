@@ -42,10 +42,6 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
-			pattern:        "engine/config.go",
-			allowedImports: "os",
-		},
-		{
 			pattern:        "render/cli.go",
 			allowedImports: "os",
 		},

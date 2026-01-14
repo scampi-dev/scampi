@@ -3,13 +3,14 @@ package test
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"testing"
 
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/engine"
+	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/target"
 )
 
 func FuzzDiagnostics(f *testing.F) {
@@ -41,10 +42,10 @@ units: [builtin.copy & { src: "a", dest: "b" }]`,
 	}
 
 	f.Fuzz(func(t *testing.T, input string) {
-		tmp := t.TempDir()
-		cfgPath := filepath.Join(tmp, "config.cue")
+		src := source.NewMemSource()
+		tgt := target.NewMemTarget()
 
-		writeOrDie(cfgPath, []byte(input), 0o644)
+		src.Files["/config.cue"] = []byte(input)
 
 		rec := &recordingDisplayer{}
 		em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -57,7 +58,7 @@ units: [builtin.copy & { src: "a", dest: "b" }]`,
 			}
 		}()
 
-		err := engine.Apply(context.Background(), em, cfgPath, store)
+		err := engine.ApplyWithEnv(context.Background(), em, "/config.cue", store, src, tgt)
 		// ---- Error classification invariant ----
 		if err != nil {
 			var abort engine.AbortError
