@@ -83,8 +83,7 @@ const (
 )
 
 const (
-	minTemplateCols = 20  // below this, templates are useless
-	minWidePlanCols = 100 // below this, fancy, wide plan rendering adds more noise than clarity
+	minWidePlanCols = 70 // below this, fancy, wide plan rendering adds more noise than clarity
 )
 
 func NewCLI(opts CLIOptions, store *spec.SourceStore) Displayer {
@@ -143,6 +142,9 @@ func (c *cli) Emit(e event.Event) {
 			panic("BUG: renderEvent.line must neither contain '\\n' nor '\\r'")
 		}
 		events[i].line = fitLine(events[i].line, c.width)
+		if c.shouldUseColor() {
+			events[i].line += ansi.Reset
+		}
 	}
 	c.render.emitEvents(events)
 }
@@ -317,133 +319,51 @@ func (c *cli) renderPlan(e event.Event) []renderEvent {
 	d := e.Detail.(event.PlanDetail)
 
 	if c.width < minWidePlanCols {
-		return c.renderPlanNarrow(d)
-	}
-	return c.renderPlanWide(d)
-}
-
-func (c *cli) renderPlanNarrow(d event.PlanDetail) []renderEvent {
-	var out []renderEvent
-
-	out = append(out, renderEvent{
-		stream: streamOut,
-		line: c.fmtfMsg(
-			ansi.Magenta.Bold,
-			"---[ PLAN NARROW | COLS: %d | isTTY: %t ]---",
-			c.width, c.isTTY,
-		),
-	})
-
-	v := c.opts.Verbosity
-	dag := buildPlanDAG(d)
-
-	for _, a := range dag.Actions {
-		out = append(out, renderEvent{
-			stream: streamOut,
-			line: c.fmtfMsg(
-				ansi.Cyan.Bold,
-				"┌─ [%d] %s (%s)",
-				a.Index,
-				a.Name,
-				a.Kind,
-			),
-		})
-
-		nodes := linearizeWithDepth(a.Layers)
-
-		for i, n := range nodes {
-			conn := "└─"
-			if i < len(nodes)-1 {
-				conn = "├─"
+		for i := range d.Actions {
+			for j := range d.Actions[i].Ops {
+				if tmpl := d.Actions[i].Ops[j].Template; tmpl != nil {
+					tmpl.Text = ""
+				}
 			}
-
-			indent := strings.Repeat("  ", n.Depth)
-			line := c.renderNarrowOpLine("│  "+indent+conn, n.Op, v)
-
-			out = append(out, renderEvent{
-				stream: streamOut,
-				line:   c.fmtMsg(ansi.BrightBlack.Reg, line),
-			})
 		}
-
-		out = append(out, renderEvent{
-			stream: streamOut,
-			line:   c.fmtMsg(ansi.Cyan.Bold, "└─"),
-		})
 	}
 
-	return out
-}
-
-func (c *cli) renderNarrowOpLine(prefix string, op event.PlannedOp, v signal.Verbosity) string {
-	// Mandatory structure
-	base := prefix + op.Name
-	baseLen := visibleLen(base)
-
-	// If width unknown or too small → structure only
-	if c.width <= 0 || baseLen >= c.width {
-		return base
-	}
-
-	// Templates only at -vv
-	if v <= signal.V || op.Template == nil {
-		return base
-	}
-
-	// Remaining space on this line
-	remaining := c.width - baseLen
-
-	// Need room for " (x…)"
-	const overhead = 3 // space + parens
-	if remaining <= overhead {
-		return base
-	}
-
-	// Require a minimum usefulness threshold
-	if remaining < minTemplateCols {
-		return base
-	}
-
-	text, ok := template.Render(
-		op.Template.ID,
-		op.Template.Text,
-		op.Template.Data,
-	)
-	if !ok || text == "" {
-		return base
-	}
-
-	return base + " (" + text + ")"
-}
-
-func (c *cli) renderPlanWide(d event.PlanDetail) []renderEvent {
 	var out []renderEvent
 	v := c.opts.Verbosity
 
 	out = append(out, renderEvent{
 		stream: streamOut,
-		line:   c.fmtfMsg(ansi.Magenta.Bold, "---[ PLAN ]---"),
+		line: c.fmtMsg(
+			ansi.Magenta.Bold,
+			"---[ PLAN ]---",
+		),
 	})
 
 	dag := buildPlanDAG(d)
 
 	for _, act := range dag.Actions {
+		kind := ""
+		if act.Kind != "" {
+			kind = fmt.Sprintf(" %s ›", act.Kind)
+		}
+		gutter := " •"
+		// gutter := " ▸"
+		if v > signal.Quiet {
+			gutter = "┌─"
+		}
 		out = append(out, renderEvent{
 			stream: streamOut,
 			line: c.fmtfMsg(
 				ansi.Cyan.Bold,
-				"┌─ [%d] %s (%s)",
+				"%s [%d]%s %s",
+				gutter,
 				act.Index,
+				kind,
 				act.Name,
-				act.Kind,
 			),
 		})
 
 		if v == signal.Quiet {
-			out = append(out, renderEvent{
-				stream: streamOut,
-				line:   c.fmtMsg(ansi.Cyan.Bold, "└─"),
-			})
 			continue
 		}
 
@@ -467,9 +387,14 @@ func (c *cli) renderPlanWide(d event.PlanDetail) []renderEvent {
 
 			indent := strings.Repeat("  ", depth)
 
-			line := c.fmtfMsg(
-				ansi.BrightBlack.Reg,
-				"│  %s%s %s",
+			line := c.fmtMsg(
+				ansi.Cyan.Bold,
+				"│",
+			)
+			line += "  "
+			line += c.fmtfMsg(
+				ansi.BrightBlack.Bold,
+				"%s%s %s",
 				indent,
 				prefix,
 				op.Name,
@@ -497,7 +422,7 @@ func (c *cli) renderPlanWide(d event.PlanDetail) []renderEvent {
 
 		out = append(out, renderEvent{
 			stream: streamOut,
-			line:   c.fmtMsg(ansi.Cyan.Bold, "└─"),
+			line:   c.fmtMsg(ansi.Cyan.Bold, "└─>"),
 		})
 	}
 

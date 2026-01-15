@@ -2,6 +2,8 @@ package render
 
 import (
 	"regexp"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
 	"godoit.dev/doit/diagnostic/event"
@@ -44,25 +46,60 @@ func visibleLen(s string) int {
 	return runewidth.StringWidth(ansiRe.ReplaceAllString(s, ""))
 }
 
-func elide(s string, maxLen int) string {
-	if maxLen <= 0 {
-		return ""
+func getANSI(s string) (seq string, ok bool) {
+	if len(s) < 2 || s[0] != '\x1b' || s[1] != '[' {
+		return "", false
 	}
+	for i := 2; i < len(s); i++ {
+		if s[i] >= '@' && s[i] <= '~' {
+			return s[:i+1], true
+		}
+	}
+	return "", false
+}
+
+func fitLine(s string, maxLen int) string {
+	if maxLen <= 0 {
+		return s
+	}
+
+	// Fast path
 	if visibleLen(s) <= maxLen {
 		return s
 	}
-	if maxLen <= 1 {
+
+	if maxLen == 1 {
 		return "…"
 	}
-	return s[:maxLen-1] + "…"
-}
 
-func fitLine(s string, width int) string {
-	if width <= 0 {
-		return s
+	var out strings.Builder
+	width := 0
+
+	for len(s) > 0 {
+		// ANSI sequence has zero width -> copy verbatim
+		if seq, ok := getANSI(s); ok {
+			out.WriteString(seq)
+			s = s[len(seq):]
+			continue
+		}
+
+		// Next rune
+		r, size := utf8.DecodeRuneInString(s)
+		if r == utf8.RuneError && size == 1 {
+			break
+		}
+
+		rw := runewidth.RuneWidth(r)
+		if width+rw >= maxLen {
+			break
+		}
+
+		out.WriteRune(r)
+		width += rw
+		s = s[size:]
 	}
-	if visibleLen(s) <= width {
-		return s
-	}
-	return elide(s, width)
+
+	out.WriteString("…")
+
+	return out.String()
 }
