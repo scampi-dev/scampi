@@ -45,7 +45,7 @@ type (
 	}
 	Op interface {
 		Name() string
-		Action() string
+		Action() Action
 		Check(ctx context.Context, src source.Source, tgt target.Target) (CheckResult, error)
 		Execute(ctx context.Context, src source.Source, tgt target.Target) (Result, error)
 		DependsOn() []Op

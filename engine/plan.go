@@ -94,5 +94,9 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 		}
 	}
 
+	if err := DetectPlanCycles(em, plan); err != nil {
+		return spec.Plan{}, err
+	}
+
 	return plan, nil
 }

@@ -40,8 +40,7 @@ func runDiagnosticsCase(t *testing.T, dir string) {
 
 	recTgt := &target.Recorder{Inner: target.LocalPosixTarget{}}
 	rec := &recordingDisplayer{}
-	pol := diagnostic.Policy{}
-	em := diagnostic.NewEmitter(pol, rec)
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	e := engine.New(source.LocalPosixSource{}, recTgt, em)

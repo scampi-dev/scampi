@@ -84,10 +84,9 @@ func (c *copyAction) Ops() []spec.Op {
 		mode: c.mode,
 	}
 
-	action := c.Name()
-	cp.setAction(action)
-	chown.setAction(action)
-	chmod.setAction(action)
+	cp.setAction(c)
+	chown.setAction(c)
+	chmod.setAction(c)
 
 	chown.addDependency(cp)
 	chmod.addDependency(cp)
@@ -101,7 +100,7 @@ func (c *copyAction) Ops() []spec.Op {
 
 type (
 	baseOp struct {
-		action string
+		action spec.Action
 		deps   []spec.Op
 	}
 	copyFileOp struct {
@@ -122,10 +121,10 @@ type (
 	}
 )
 
-func (op *baseOp) Action() string            { return op.action }
-func (op *baseOp) DependsOn() []spec.Op      { return op.deps }
-func (op *baseOp) addDependency(dep spec.Op) { op.deps = append(op.deps, dep) }
-func (op *baseOp) setAction(action string)   { op.action = action }
+func (op *baseOp) Action() spec.Action          { return op.action }
+func (op *baseOp) DependsOn() []spec.Op         { return op.deps }
+func (op *baseOp) addDependency(dep spec.Op)    { op.deps = append(op.deps, dep) }
+func (op *baseOp) setAction(action spec.Action) { op.action = action }
 
 func (op *copyFileOp) Name() string { return "copyFileOp" }
 func (op *copyFileOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {

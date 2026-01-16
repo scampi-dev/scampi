@@ -49,7 +49,7 @@ func (s *scheduler) schedule(n *opNode) {
 
 	s.grp.Go(func() error {
 		start := time.Now()
-		actionName := n.op.Action()
+		actionName := n.op.Action().Name()
 		opName := n.op.Name()
 
 		s.em.Emit(diagnostic.OpExecuteStarted(actionName, opName))
@@ -89,7 +89,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 	for _, n := range nodes {
 		n := n
 		g.Go(func() error {
-			actionName := n.op.Action()
+			actionName := n.op.Action().Name()
 			opName := n.op.Name()
 			s.em.Emit(diagnostic.OpCheckStarted(actionName, opName))
 
