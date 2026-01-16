@@ -25,13 +25,61 @@ const (
 	exitBug       = 2 // internal error / panic
 )
 
+type (
+	ctxKey     string
+	globalOpts struct {
+		ascii     bool
+		colorMode signal.ColorMode
+		verbosity signal.Verbosity
+	}
+)
+
+const (
+	flagASCII     = "ascii"
+	flagColor     = "color"
+	flagVerbosity = "v"
+
+	ctxGlobalOpts = ctxKey("globalOpts")
+)
+
 func main() {
 	doit := &cli.Command{
 		Name:  "doit",
 		Usage: "Declarative task execution for local and remote systems",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  flagASCII,
+				Usage: "force ASCII output (disable fancy glyphs)",
+			},
+			&cli.StringFlag{
+				Name:  flagColor,
+				Value: "auto",
+				Usage: "colorize output: auto, always, never",
+			},
+			&cli.BoolFlag{
+				Name:  flagVerbosity,
+				Usage: "increase verbosity (-v, -vv, -vvv, -vvvv)",
+			},
+		},
 		Commands: []*cli.Command{
 			applyCmd(),
 			planCmd(),
+		},
+		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+			ascii := cmd.Bool(flagASCII)
+			verbosity := parseVerbosity(cmd)
+			colorMode, err := parseColorMode(cmd)
+			if err != nil {
+				return nil, cli.Exit(err.Error(), exitUserError)
+			}
+
+			opts := globalOpts{
+				ascii:     ascii,
+				colorMode: colorMode,
+				verbosity: verbosity,
+			}
+
+			return context.WithValue(ctx, ctxGlobalOpts, opts), nil
 		},
 	}
 
@@ -50,8 +98,6 @@ func main() {
 
 func applyCmd() *cli.Command {
 	var cfg string
-	var colorFlag string
-	var verbosity int
 
 	return &cli.Command{
 		Name:                   "apply",
@@ -59,21 +105,6 @@ func applyCmd() *cli.Command {
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "color",
-				Value:       "auto",
-				Usage:       "colorize output: auto, always, never",
-				Destination: &colorFlag,
-			},
-			&cli.BoolFlag{
-				Name:  "v",
-				Usage: "increase verbosity (-v, -vv, -vvv, -vvvv)",
-				Config: cli.BoolConfig{
-					Count: &verbosity,
-				},
-			},
-		},
 		Arguments: []cli.Argument{
 			&cli.StringArg{
 				Name:        "config",
@@ -89,24 +120,20 @@ The command is idempotent: running it multiple times will only apply
 changes when the current state differs from the declared state.`,
 		Before: requireArgs(1),
 		Action: func(ctx context.Context, _ *cli.Command) error {
-			colorMode, err := parseColorMode(colorFlag)
-			if err != nil {
-				return cli.Exit(err.Error(), exitUserError)
-			}
-
-			v := mapVerbosity(verbosity)
+			opts := mustGlobalOpts(ctx)
 
 			pol := diagnostic.Policy{
 				WarningsAsErrors: false,
-				Verbosity:        v,
+				Verbosity:        opts.verbosity,
 			}
 
 			store := spec.NewSourceStore()
 
 			displ := render.NewCLI(
 				render.CLIOptions{
-					ColorMode: colorMode,
-					Verbosity: v,
+					ColorMode:  opts.colorMode,
+					Verbosity:  opts.verbosity,
+					ForceASCII: opts.ascii,
 				},
 				store,
 			)
@@ -117,7 +144,7 @@ changes when the current state differs from the declared state.`,
 			}()
 
 			em := diagnostic.NewEmitter(pol, displ)
-			err = engine.Apply(ctx, em, cfg, store)
+			err := engine.Apply(ctx, em, cfg, store)
 			if err != nil {
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
@@ -135,8 +162,6 @@ changes when the current state differs from the declared state.`,
 
 func planCmd() *cli.Command {
 	var cfg string
-	var colorFlag string
-	var verbosity int
 
 	return &cli.Command{
 		Name:                   "plan",
@@ -144,21 +169,6 @@ func planCmd() *cli.Command {
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "color",
-				Value:       "auto",
-				Usage:       "colorize output: auto, always, never",
-				Destination: &colorFlag,
-			},
-			&cli.BoolFlag{
-				Name:  "v",
-				Usage: "increase verbosity (-v, -vv, -vvv, -vvvv)",
-				Config: cli.BoolConfig{
-					Count: &verbosity,
-				},
-			},
-		},
 		Arguments: []cli.Argument{
 			&cli.StringArg{
 				Name:        "config",
@@ -174,24 +184,20 @@ The plan shows the actions and operations that would be executed by
 the apply command, but does not modify the system.`,
 		Before: requireArgs(1),
 		Action: func(ctx context.Context, _ *cli.Command) error {
-			colorMode, err := parseColorMode(colorFlag)
-			if err != nil {
-				return cli.Exit(err.Error(), exitUserError)
-			}
-
-			v := mapVerbosity(verbosity)
+			opts := mustGlobalOpts(ctx)
 
 			pol := diagnostic.Policy{
 				WarningsAsErrors: false,
-				Verbosity:        v,
+				Verbosity:        opts.verbosity,
 			}
 
 			store := spec.NewSourceStore()
 
 			displ := render.NewCLI(
 				render.CLIOptions{
-					ColorMode: colorMode,
-					Verbosity: v,
+					ColorMode:  opts.colorMode,
+					Verbosity:  opts.verbosity,
+					ForceASCII: opts.ascii,
 				},
 				store,
 			)
@@ -203,7 +209,7 @@ the apply command, but does not modify the system.`,
 
 			em := diagnostic.NewEmitter(pol, displ)
 
-			err = engine.Plan(ctx, em, cfg, store)
+			err := engine.Plan(ctx, em, cfg, store)
 			if err != nil {
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
@@ -231,7 +237,9 @@ func requireArgs(n int) func(context.Context, *cli.Command) (context.Context, er
 	}
 }
 
-func parseColorMode(s string) (signal.ColorMode, error) {
+func parseColorMode(cmd *cli.Command) (signal.ColorMode, error) {
+	s := cmd.String(flagColor)
+
 	switch strings.ToLower(s) {
 	case "auto":
 		return signal.ColorAuto, nil
@@ -244,7 +252,9 @@ func parseColorMode(s string) (signal.ColorMode, error) {
 	}
 }
 
-func mapVerbosity(v int) signal.Verbosity {
+func parseVerbosity(cmd *cli.Command) signal.Verbosity {
+	v := cmd.Count(flagVerbosity)
+
 	switch {
 	case v >= 3:
 		return signal.VVV
@@ -255,6 +265,10 @@ func mapVerbosity(v int) signal.Verbosity {
 	default:
 		return signal.Quiet
 	}
+}
+
+func mustGlobalOpts(ctx context.Context) globalOpts {
+	return ctx.Value(ctxGlobalOpts).(globalOpts)
 }
 
 func recoverAndReport(r any) {

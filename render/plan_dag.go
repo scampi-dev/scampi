@@ -120,9 +120,8 @@ func buildDepTree(ops []event.PlannedOp) map[int][]event.PlannedOp {
 func findRoots(ops []event.PlannedOp) []event.PlannedOp {
 	hasParent := make(map[int]bool)
 	for _, op := range ops {
-		for _, dep := range op.DependsOn {
+		if len(op.DependsOn) > 0 {
 			hasParent[op.Index] = true
-			_ = dep
 		}
 	}
 
@@ -133,70 +132,4 @@ func findRoots(ops []event.PlannedOp) []event.PlannedOp {
 		}
 	}
 	return roots
-}
-
-func linearizeWithGutters(layers [][]event.PlannedOp) []renderNode {
-	ops := flattenLayers(layers)
-
-	// Index ops by ID
-	index := make(map[int]event.PlannedOp)
-	for _, op := range ops {
-		index[op.Index] = op
-	}
-
-	// Compute dependency depth (unchanged logic)
-	memo := make(map[int]int)
-	var depthOf func(op event.PlannedOp) int
-	depthOf = func(op event.PlannedOp) int {
-		if d, ok := memo[op.Index]; ok {
-			return d
-		}
-		max := 0
-		for _, dep := range op.DependsOn {
-			if depOp, ok := index[dep]; ok {
-				if v := depthOf(depOp) + 1; v > max {
-					max = v
-				}
-			}
-		}
-		memo[op.Index] = max
-		return max
-	}
-
-	// Count remaining nodes per depth
-	remaining := make(map[int]int)
-	for _, op := range ops {
-		d := depthOf(op)
-		remaining[d]++
-	}
-
-	var (
-		out     []renderNode
-		parents []bool // active vertical bars per depth
-	)
-
-	for _, op := range ops {
-		d := depthOf(op)
-
-		// Ensure parents slice is deep enough
-		for len(parents) <= d {
-			parents = append(parents, false)
-		}
-
-		remaining[d]--
-		isLast := remaining[d] == 0
-
-		node := renderNode{
-			Op:      op,
-			Depth:   d,
-			IsLast:  isLast,
-			Parents: append([]bool{}, parents[:d]...),
-		}
-		out = append(out, node)
-
-		// Update continuation for this depth
-		parents[d] = !isLast
-	}
-
-	return out
 }
