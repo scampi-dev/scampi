@@ -129,15 +129,7 @@ changes when the current state differs from the declared state.`,
 
 			store := spec.NewSourceStore()
 
-			displ := render.NewCLI(
-				render.CLIOptions{
-					ColorMode:  opts.colorMode,
-					Verbosity:  opts.verbosity,
-					ForceASCII: opts.ascii,
-				},
-				store,
-			)
-
+			displ := newDisplayer(opts, store)
 			defer func() {
 				displ.Close()
 				recoverAndReport(recover())
@@ -193,15 +185,7 @@ the apply command, but does not modify the system.`,
 
 			store := spec.NewSourceStore()
 
-			displ := render.NewCLI(
-				render.CLIOptions{
-					ColorMode:  opts.colorMode,
-					Verbosity:  opts.verbosity,
-					ForceASCII: opts.ascii,
-				},
-				store,
-			)
-
+			displ := newDisplayer(opts, store)
 			defer func() {
 				displ.Close()
 				recoverAndReport(recover())
@@ -269,6 +253,17 @@ func parseVerbosity(cmd *cli.Command) signal.Verbosity {
 
 func mustGlobalOpts(ctx context.Context) globalOpts {
 	return ctx.Value(ctxGlobalOpts).(globalOpts)
+}
+
+func newDisplayer(opts globalOpts, store *spec.SourceStore) render.Displayer {
+	return render.NewCLI(
+		render.CLIOptions{
+			ColorMode:  opts.colorMode,
+			Verbosity:  opts.verbosity,
+			ForceASCII: opts.ascii,
+		},
+		store,
+	)
 }
 
 func recoverAndReport(r any) {
