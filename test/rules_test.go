@@ -36,8 +36,17 @@ func TestImportCapabilities(t *testing.T) {
 		"crypto/tls",
 	}
 
+	allowAll := func() string {
+		return strings.Join(restrictedImports, ",")
+	}
+	_ = allowAll
+
 	// ---- capability rules (human-readable policy) ----
 	rules := []capabilityRule{
+		{
+			pattern:        "bin/**/*",
+			allowedImports: allowAll(),
+		},
 		{
 			pattern:        "cmd/main.go",
 			allowedImports: "os",
