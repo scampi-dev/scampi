@@ -888,26 +888,54 @@ func (c *cli) fmtTemplate(tmpl event.Template, prefix, msg string, glyph string,
 	}
 
 	if hint, ok := template.Render(tmpl.ID+".Hint", tmpl.Hint, tmpl.Data); ok {
-		fprint(&buf, "\n    ")
-		c.fmtfMsgTo(
-			&buf,
-			helpCol,
-			"%s hint: %s",
-			glyphl(c.glyphs.hint), hint,
-		)
+		hint = strings.TrimSpace(hint)
+		if hint != "" {
+			fprint(&buf, "\n    ")
+			c.fmtfMsgTo(
+				&buf,
+				helpCol,
+				"%s hint:",
+				glyphl(c.glyphs.hint),
+			)
+
+			lines := strings.SplitSeq(hint, "\n")
+			for l := range lines {
+				fprint(&buf, "\n    ")
+				c.fmtfMsgTo(
+					&buf,
+					helpCol,
+					"     %s",
+					l,
+				)
+			}
+		}
 	}
 
 	if help, ok := template.Render(tmpl.ID+".Help", tmpl.Help, tmpl.Data); ok {
-		fprint(&buf, "\n    ")
-		c.fmtfMsgTo(
-			&buf,
-			helpCol,
-			"%s help: %s",
-			glyphl(c.glyphs.help), help,
-		)
+		help = strings.TrimSpace(help)
+		if help != "" {
+			fprint(&buf, "\n    ")
+			c.fmtfMsgTo(
+				&buf,
+				helpCol,
+				"%s help:",
+				glyphl(c.glyphs.help),
+			)
+
+			lines := strings.SplitSeq(help, "\n")
+			for l := range lines {
+				fprint(&buf, "\n    ")
+				c.fmtfMsgTo(
+					&buf,
+					helpCol,
+					"     %s",
+					l,
+				)
+			}
+		}
 	}
 
-	return strings.Split(buf.String(), "\n")
+	return strings.Split(strings.TrimSpace(buf.String()), "\n")
 }
 
 func (c *cli) renderSnippet(src *spec.SourceSpan) (string, bool) {

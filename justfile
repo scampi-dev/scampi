@@ -36,7 +36,7 @@ doit *args:
 
 [doc("Run tests")]
 test:
-  go test ./test
+  go test ./...
 
 [doc("Run fuzz tests")]
 fuzz time='30s':
@@ -51,7 +51,7 @@ bench save_as='' count='10':
       f'''
       mkdir -p "{{bench_dir}}"
       echo 'Warmup run...'
-      go test ./test -bench=. -benchmem -count={{count}}
+      go test ./test -bench=. -benchmem -count=2
       echo 'Recorded run...'
       go test ./test -bench=. -benchmem -count={{count}} \
         | tee "{{bench_dir}}/$(date '+%Y-%m-%dT%H%M')-{{save_as}}.txt"
