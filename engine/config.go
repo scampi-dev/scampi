@@ -23,6 +23,7 @@ import (
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/util"
 )
 
 type overlayFS struct {
@@ -122,7 +123,7 @@ type sourceFS struct {
 
 func (s sourceFS) Open(name string) (fs.File, error) {
 	if strings.HasPrefix(name, "/") {
-		return nil, fmt.Errorf("BUG: fs.FS received absolute path %q", name)
+		return nil, util.BUG("fs.FS received absolute path %q", name)
 	}
 
 	p := "/" + name
@@ -181,7 +182,7 @@ func loadConfigWithSource(
 
 	embFS, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
 	if err != nil {
-		panic(fmt.Errorf("BUG: embedded schema FS corrupted: %w", err))
+		panic(util.BUG("embedded schema FS corrupted: %w", err))
 	}
 
 	// One loader config for both schema and user config
@@ -200,13 +201,13 @@ func loadConfigWithSource(
 
 	userInstances := load.Instances([]string{cfgPath}, loaderCfg)
 	if len(userInstances) == 0 {
-		panic("BUG: load.Instances returned zero instances")
+		panic("util.BUG: load.Instances returned zero instances")
 	}
 	if err := userInstances[0].Err; err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(fmt.Errorf(
-				"BUG: load.Instances returned an unexpected error for cfgPath %q: %w",
+			panic(util.BUG(
+				"load.Instances returned an unexpected error for cfgPath %q: %w",
 				cfgPath,
 				err,
 			))
@@ -222,8 +223,8 @@ func loadConfigWithSource(
 	if err := userInst.Err(); err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(fmt.Errorf(
-				"BUG: load.BuildInstance returned an unexpected error for cfgPath %q: %w",
+			panic(util.BUG(
+				"load.BuildInstance returned an unexpected error for cfgPath %q: %w",
 				cfgPath,
 				err,
 			))
@@ -239,7 +240,7 @@ func loadConfigWithSource(
 
 	coreInstances := load.Instances([]string{"godoit.dev/doit/core"}, loaderCfg)
 	if len(coreInstances) == 0 {
-		panic("BUG: load.Instances returned zero core-instances")
+		panic("util.BUG: load.Instances returned zero core-instances")
 	}
 	if err := coreInstances[0].Err; err != nil {
 		return spec.Config{}, err
@@ -256,8 +257,8 @@ func loadConfigWithSource(
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
 			// unexpected validation failure → engine error
-			panic(fmt.Errorf(
-				"BUG: coreInst.Value().Unify(userInst) failed with an unaccounted-for error-type %T: %w",
+			panic(util.BUG(
+				"coreInst.Value().Unify(userInst) failed with an unaccounted-for error-type %T: %w",
 				err,
 				err,
 			))
@@ -284,7 +285,7 @@ func loadConfigWithSource(
 
 	iter, err := unitsVal.List()
 	if err != nil {
-		panic(fmt.Errorf("BUG: units is not a list after schema unification: %w", err))
+		panic(util.BUG("units is not a list after schema unification: %w", err))
 	}
 
 	cfg := spec.Config{}
@@ -332,8 +333,8 @@ func decodeUnit(
 	kind, name, err := resolveUnitIdentity(unitVal, unitIdx)
 	if err != nil {
 		// engine/schema error – cannot continue safely
-		panic(fmt.Errorf(
-			"BUG: resolveUnitIdentity returned an unexpected error for unit %q (%s): %w",
+		panic(util.BUG(
+			"resolveUnitIdentity returned an unexpected error for unit %q (%s): %w",
 			name,
 			kind,
 			err,
@@ -354,6 +355,7 @@ func decodeUnit(
 		dr, _ := emitDiagnostics(
 			em,
 			subject,
+			// FIXME: error
 			fmt.Errorf("unknown unit kind %q", kind),
 		)
 		return spec.UnitInstance{}, decodeResult{
@@ -369,7 +371,7 @@ func decodeUnit(
 	rv := reflect.ValueOf(tCfg)
 	if rv.Kind() != reflect.Pointer {
 		// internal error
-		panic(fmt.Errorf(
+		panic(util.BUG(
 			"UnitType['%s'].NewConfig() must return a pointer (got %T)",
 			ut.Kind(),
 			tCfg,
@@ -383,8 +385,8 @@ func decodeUnit(
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
 			// unexpected validation failure → engine error
-			panic(fmt.Errorf(
-				"BUG: unitVal.Validate failed with an unaccounted-for error-type %T for unit %q (%s): %w",
+			panic(util.BUG(
+				"unitVal.Validate failed with an unaccounted-for error-type %T for unit %q (%s): %w",
 				err,
 				name,
 				kind,
@@ -441,8 +443,8 @@ func decodeUnit(
 	if err := unitVal.Decode(tCfg); err != nil {
 		// If Validate passed, Decode MUST NOT fail.
 		// This is a hard invariant violation.
-		panic(fmt.Errorf(
-			"BUG: unitVal.Decode failed after successful validation for unit %q (%s): %w",
+		panic(util.BUG(
+			"unitVal.Decode failed after successful validation for unit %q (%s): %w",
 			name,
 			kind,
 			err,

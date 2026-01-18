@@ -15,6 +15,7 @@ import (
 	"godoit.dev/doit/render/template"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/util"
 )
 
 type (
@@ -227,7 +228,7 @@ func (c *cli) Emit(e event.Event) {
 	// fit lines before committing to draw loop
 	for i := range events {
 		if strings.ContainsAny(events[i].line, "\n\r") {
-			panic("BUG: renderEvent.line must neither contain '\\n' nor '\\r'")
+			panic("util.BUG: renderEvent.line must neither contain '\\n' nor '\\r'")
 		}
 		events[i].line = fitLine(events[i].line, c.width)
 		if c.shouldUseColor() {
@@ -805,8 +806,8 @@ func (c *cli) renderDiagnosticRaised(e event.Event) []renderEvent {
 		return events
 
 	default:
-		panic(fmt.Errorf(
-			"BUG: renderer encountered unsupported event scope %q for event %#v",
+		panic(util.BUG(
+			"renderer encountered unsupported event scope %q for event %#v",
 			e.Scope,
 			e,
 		))

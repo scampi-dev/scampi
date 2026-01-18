@@ -253,6 +253,7 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 		for _, dep := range n.op.DependsOn() {
 			dn, ok := nodes[dep]
 			if !ok {
+				// FIXME: error
 				return nil, fmt.Errorf(
 					"op %q depends on unknown op %q",
 					n.op.Name(), dep.Name(),
@@ -292,6 +293,7 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 	}
 
 	if visited != len(nodes) {
+		// FIXME: error
 		return nil, fmt.Errorf("cycle detected in op graph")
 	}
 

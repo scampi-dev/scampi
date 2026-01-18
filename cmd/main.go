@@ -17,6 +17,7 @@ import (
 	"godoit.dev/doit/render"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/util"
 )
 
 const (
@@ -141,7 +142,7 @@ changes when the current state differs from the declared state.`,
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
-					panic(fmt.Errorf("BUG: engine.Apply returned unexpected error: %w", err))
+					panic(util.BUG("engine.Apply returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)
@@ -198,7 +199,7 @@ the apply command, but does not modify the system.`,
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
-					panic(fmt.Errorf("BUG: engine.Apply returned unexpected error: %w", err))
+					panic(util.BUG("engine.Apply returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)

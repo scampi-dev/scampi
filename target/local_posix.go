@@ -8,6 +8,8 @@ import (
 	"os/user"
 	"strconv"
 	"syscall"
+
+	"godoit.dev/doit/util"
 )
 
 type LocalPosixTarget struct{}
@@ -70,7 +72,7 @@ func (LocalPosixTarget) GetOwner(_ context.Context, path string) (Owner, error) 
 
 	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
-		return Owner{}, fmt.Errorf("expected %T got %T", &syscall.Stat_t{}, info.Sys())
+		return Owner{}, util.BUG("expected %T got %T", &syscall.Stat_t{}, info.Sys())
 	}
 
 	usr, err := user.LookupId(strconv.FormatUint(uint64(stat.Uid), 10))

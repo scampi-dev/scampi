@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
+	"godoit.dev/doit/util"
 )
 
 func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
@@ -28,7 +28,7 @@ func (e *Engine) Apply(ctx context.Context, cfgPath string, store *spec.SourceSt
 
 	cfgPath, err := filepath.Abs(cfgPath)
 	if err != nil {
-		panic(fmt.Errorf("BUG: filepath.Abs() failed: %w", err))
+		panic(util.BUG("filepath.Abs() failed: %w", err))
 	}
 
 	cfg, err := LoadConfigWithSource(e.em, cfgPath, store, e.src)

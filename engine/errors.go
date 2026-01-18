@@ -2,11 +2,11 @@ package engine
 
 import (
 	"errors"
-	"fmt"
 	"runtime"
 
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/util"
 )
 
 type AbortError struct {
@@ -40,12 +40,12 @@ func panicIfNotAbortError(err error) error {
 		return abort
 	}
 	// very cold codepath
-	wrap := fmt.Errorf("BUG: Engine failed with non-signal error: %w", err)
+	wrap := util.BUG("Engine failed with non-signal error: %w", err)
 	if pc, file, line, ok := runtime.Caller(1); ok {
 		_ = file
 		_ = line
 		details := runtime.FuncForPC(pc)
-		wrap = fmt.Errorf("BUG: %s failed with non-signal error: %w", details.Name(), err)
+		wrap = util.BUG("%s failed with non-signal error: %w", details.Name(), err)
 	}
 	panic(wrap)
 }
