@@ -17,11 +17,9 @@ func (AbortError) Error() string {
 	return "execution aborted"
 }
 
-type (
-	diagnosticResult struct {
-		Impacts []diagnostic.Impact
-	}
-)
+type diagnosticResult struct {
+	Impacts []diagnostic.Impact
+}
 
 func (r *diagnosticResult) add(impact diagnostic.Impact) {
 	r.Impacts = append(r.Impacts, impact)
@@ -30,15 +28,6 @@ func (r *diagnosticResult) add(impact diagnostic.Impact) {
 func (r diagnosticResult) ShouldAbort() bool {
 	for _, i := range r.Impacts {
 		if i&diagnostic.ImpactAbort != 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func (r diagnosticResult) ShouldSkipUnit() bool {
-	for _, i := range r.Impacts {
-		if i&diagnostic.ImpactSkipUnit != 0 {
 			return true
 		}
 	}
@@ -65,16 +54,16 @@ func emitDiagnostics(
 	em diagnostic.Emitter,
 	subject event.Subject,
 	err error,
-) diagnosticResult {
+) (diagnosticResult, bool) {
 	var res diagnosticResult
 
 	if err == nil {
-		return res
+		return res, false
 	}
 
 	var dp diagnostic.DiagnosticProvider
 	if !errors.As(err, &dp) {
-		return res
+		return res, false
 	}
 
 	for _, ev := range dp.Diagnostics(subject) {
@@ -88,5 +77,5 @@ func emitDiagnostics(
 		res.add(impact)
 	}
 
-	return res
+	return res, true
 }

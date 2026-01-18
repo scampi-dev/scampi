@@ -19,8 +19,8 @@ import (
 const actionTimeout = 5 * time.Second
 
 type ExecResult struct {
-	res spec.Result
-	err error
+	Res spec.Result
+	Err error
 }
 type opNode struct {
 	op         spec.Op
@@ -96,7 +96,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 
 			res, err := n.op.Check(ctx, s.src, s.tgt)
 			if err != nil {
-				dr := emitDiagnostics(
+				dr, consumed := emitDiagnostics(
 					s.em,
 					event.Subject{
 						Action: actionName,
@@ -110,6 +110,10 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 				s.em.Emit(diagnostic.OpChecked(actionName, opName, res, err))
 				if dr.ShouldAbort() {
 					return AbortError{Causes: []error{err}}
+				}
+
+				if consumed {
+					return nil
 				}
 
 				return err

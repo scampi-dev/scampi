@@ -1,7 +1,6 @@
 package test
 
 import (
-	"context"
 	"errors"
 	"reflect"
 	"sort"
@@ -11,37 +10,18 @@ import (
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/engine"
-	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/target"
 )
 
-type fakeOp struct {
-	name   string
-	action spec.Action
-	deps   []spec.Op
-}
-
-func (o fakeOp) Name() string         { return o.name }
-func (o fakeOp) Action() spec.Action  { return o.action }
-func (o fakeOp) DependsOn() []spec.Op { return o.deps }
-func (fakeOp) Check(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-	panic("Check must not be called for cycle detection")
-}
-
-func (fakeOp) Execute(context.Context, source.Source, target.Target) (spec.Result, error) {
-	panic("Execute must not be called for cycle detection")
-}
-
-type fakeAction struct {
-	ops []spec.Op
-}
-
-func (fakeAction) Kind() string     { return "fakeActionKind" }
-func (fakeAction) Name() string     { return "fakeAction" }
-func (a fakeAction) Ops() []spec.Op { return a.ops }
-
 func TestPlan_CyclicDependencies(t *testing.T) {
+	mkFakeOp := func(name string) *fakeOp {
+		return &fakeOp{
+			name:    name,
+			checkFn: panicCheckFn("Check must not be called for cycle detection"),
+			execFn:  panicExecFn("Execute must not be called for cycle detection"),
+		}
+	}
+
 	mkAction := func(ops ...*fakeOp) spec.Action {
 		act := &fakeAction{}
 
@@ -61,8 +41,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "two node cycle",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
-				b := &fakeOp{name: "B"}
+				a := mkFakeOp("A")
+				b := mkFakeOp("B")
 
 				a.deps = []spec.Op{b}
 				b.deps = []spec.Op{a}
@@ -80,9 +60,9 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "three node cycle",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
-				b := &fakeOp{name: "B"}
-				c := &fakeOp{name: "C"}
+				a := mkFakeOp("A")
+				b := mkFakeOp("B")
+				c := mkFakeOp("C")
 
 				a.deps = []spec.Op{b}
 				b.deps = []spec.Op{c}
@@ -101,10 +81,10 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "two independent cycles",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
-				b := &fakeOp{name: "B"}
-				c := &fakeOp{name: "C"}
-				d := &fakeOp{name: "D"}
+				a := mkFakeOp("A")
+				b := mkFakeOp("B")
+				c := mkFakeOp("C")
+				d := mkFakeOp("D")
 
 				a.deps = []spec.Op{b}
 				b.deps = []spec.Op{a}
@@ -126,7 +106,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "self cycle",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
+				a := mkFakeOp("A")
 				a.deps = []spec.Op{a}
 
 				return spec.Plan{
@@ -142,10 +122,10 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "overlapping cycles sharing nodes",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
-				b := &fakeOp{name: "B"}
-				c := &fakeOp{name: "C"}
-				d := &fakeOp{name: "D"}
+				a := mkFakeOp("A")
+				b := mkFakeOp("B")
+				c := mkFakeOp("C")
+				d := mkFakeOp("D")
 
 				a.deps = []spec.Op{b}
 				b.deps = []spec.Op{c}
@@ -166,11 +146,11 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "cycle plus acyclic tail",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
-				b := &fakeOp{name: "B"}
-				c := &fakeOp{name: "C"}
-				e := &fakeOp{name: "E"}
-				f := &fakeOp{name: "F"}
+				a := mkFakeOp("A")
+				b := mkFakeOp("B")
+				c := mkFakeOp("C")
+				e := mkFakeOp("E")
+				f := mkFakeOp("F")
 
 				a.deps = []spec.Op{b}
 				b.deps = []spec.Op{c}
@@ -192,10 +172,10 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "diamond dependency with back edge",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
-				b := &fakeOp{name: "B"}
-				c := &fakeOp{name: "C"}
-				d := &fakeOp{name: "D"}
+				a := mkFakeOp("A")
+				b := mkFakeOp("B")
+				c := mkFakeOp("C")
+				d := mkFakeOp("D")
 
 				a.deps = []spec.Op{b, c}
 				b.deps = []spec.Op{d}
@@ -215,9 +195,9 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 		{
 			name: "cycle across actions",
 			build: func() spec.Plan {
-				a := &fakeOp{name: "A"}
-				b := &fakeOp{name: "B"}
-				c := &fakeOp{name: "C"}
+				a := mkFakeOp("A")
+				b := mkFakeOp("B")
+				c := mkFakeOp("C")
 
 				a.deps = []spec.Op{b}
 				b.deps = []spec.Op{c}

@@ -61,7 +61,7 @@ func plan(cfg spec.Config, em diagnostic.Emitter) (spec.Plan, error) {
 	for i, unit := range cfg.Units {
 		act, err := unit.Type.Plan(i, unit)
 		if err != nil {
-			dr := emitDiagnostics(
+			dr, _ := emitDiagnostics(
 				em,
 				event.Subject{
 					Index: i,

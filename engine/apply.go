@@ -52,10 +52,10 @@ func (e *Engine) Apply(ctx context.Context, cfgPath string, store *spec.SourceSt
 		TotalCount:   len(results),
 	}
 	for _, res := range results {
-		if res.res.Changed {
+		if res.Res.Changed {
 			rs.ChangedCount++
 		}
-		if res.err != nil {
+		if res.Err != nil {
 			rs.FailedCount++
 		}
 	}

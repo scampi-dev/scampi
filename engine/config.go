@@ -154,7 +154,7 @@ func LoadConfigWithSource(
 ) (spec.Config, error) {
 	cfg, err := loadConfigWithSource(em, cfgPath, store, src)
 	if err != nil {
-		dr := emitDiagnostics(
+		dr, _ := emitDiagnostics(
 			em,
 			event.Subject{
 				CfgPath: cfgPath,
@@ -351,7 +351,7 @@ func decodeUnit(
 	// ------------------------------------------------------------
 	ut, ok := reg.Type(kind)
 	if !ok {
-		dr := emitDiagnostics(
+		dr, _ := emitDiagnostics(
 			em,
 			subject,
 			fmt.Errorf("unknown unit kind %q", kind),
@@ -404,7 +404,7 @@ func decodeUnit(
 		if len(missing) > 0 {
 			var abort bool
 			for _, m := range missing {
-				dr := emitDiagnostics(
+				dr, _ := emitDiagnostics(
 					em,
 					subject,
 					MissingFieldDiagnostic{Missing: m},
@@ -420,7 +420,7 @@ func decodeUnit(
 		}
 
 		// generic cue validation error, still user-facing
-		dr := emitDiagnostics(
+		dr, _ := emitDiagnostics(
 			em,
 			subject,
 			CueDiagnostic{

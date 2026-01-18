@@ -91,32 +91,14 @@ func BenchmarkDiagnosticEmission(b *testing.B) {
 		Name:  "bench",
 	}
 
-	diag := fakeDiagnostic{}
+	diag := fakeDiagnostic{
+		severity: signal.Error,
+		impact:   diagnostic.ImpactAbort,
+	}
 
 	for b.Loop() {
 		em.Emit(diagnostic.DiagnosticRaised(sub, diag))
 	}
-}
-
-type fakeDiagnostic struct{}
-
-func (fakeDiagnostic) Error() string { return "fake diagnostic" }
-
-func (fakeDiagnostic) Diagnostics(subject event.Subject) []event.Event {
-	return []event.Event{
-		diagnostic.DiagnosticRaised(subject, fakeDiagnostic{}),
-	}
-}
-
-func (fakeDiagnostic) EventTemplate() event.Template {
-	return event.Template{
-		ID:   "bench.FakeDiagnostic",
-		Text: "benchmark diagnostic",
-	}
-}
-
-func (fakeDiagnostic) Severity() signal.Severity {
-	return signal.Error
 }
 
 // -----------------------------------------------------------------------------

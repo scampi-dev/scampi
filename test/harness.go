@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,7 +10,12 @@ import (
 	"path/filepath"
 	"sync"
 
+	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/signal"
+	"godoit.dev/doit/source"
+	"godoit.dev/doit/spec"
+	"godoit.dev/doit/target"
 )
 
 type ExpectedDiagnostics struct {
@@ -67,6 +73,78 @@ func (e events) String() string {
 	}
 	return "----- DIAGNOSTICS -----\n" +
 		string(j)
+}
+
+type (
+	checkFn func(context.Context, source.Source, target.Target) (spec.CheckResult, error)
+	execFn  func(context.Context, source.Source, target.Target) (spec.Result, error)
+	fakeOp  struct {
+		name   string
+		action spec.Action
+		deps   []spec.Op
+
+		checkFn checkFn
+		execFn  execFn
+	}
+)
+
+func panicCheckFn(msg string) checkFn {
+	return func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
+		panic(msg)
+	}
+}
+
+func panicExecFn(msg string) execFn {
+	return func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		panic(msg)
+	}
+}
+
+func (o fakeOp) Name() string         { return o.name }
+func (o fakeOp) Action() spec.Action  { return o.action }
+func (o fakeOp) DependsOn() []spec.Op { return o.deps }
+func (o fakeOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {
+	return o.checkFn(ctx, src, tgt)
+}
+
+func (o fakeOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
+	return o.execFn(ctx, src, tgt)
+}
+
+type fakeAction struct {
+	ops []spec.Op
+}
+
+func (fakeAction) Kind() string     { return "fakeActionKind" }
+func (fakeAction) Name() string     { return "fakeAction" }
+func (a fakeAction) Ops() []spec.Op { return a.ops }
+
+type fakeDiagnostic struct {
+	severity signal.Severity
+	impact   diagnostic.Impact
+}
+
+func (fakeDiagnostic) Error() string { return "fake diagnostic" }
+
+func (fakeDiagnostic) Diagnostics(subject event.Subject) []event.Event {
+	return []event.Event{
+		diagnostic.DiagnosticRaised(subject, fakeDiagnostic{}),
+	}
+}
+
+func (fakeDiagnostic) EventTemplate() event.Template {
+	return event.Template{
+		ID:   "test.FakeDiagnostic",
+		Text: "test diagnostic",
+	}
+}
+
+func (d fakeDiagnostic) Severity() signal.Severity {
+	return d.severity
+}
+
+func (d fakeDiagnostic) Impact() diagnostic.Impact {
+	return d.impact
 }
 
 func absPath(p string) string {
