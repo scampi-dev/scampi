@@ -54,13 +54,13 @@ var (
 )
 
 func parsePerm(s string, src spec.SourceSpan) (fs.FileMode, error) {
-	if m, err := tryOctal(s); err == nil {
+	if m, ok := tryOctal(s); ok {
 		return m, nil
 	}
-	if m, err := tryLs(s); err == nil {
+	if m, ok := tryLs(s); ok {
 		return m, nil
 	}
-	if m, err := tryPosix(s); err == nil {
+	if m, ok := tryPosix(s); ok {
 		return m, nil
 	}
 
@@ -70,22 +70,22 @@ func parsePerm(s string, src spec.SourceSpan) (fs.FileMode, error) {
 	}
 }
 
-func tryOctal(s string) (fs.FileMode, error) {
+func tryOctal(s string) (fs.FileMode, bool) {
 	if !octalRe.MatchString(s) {
-		return 0, fmt.Errorf("invalid octal permission")
+		return 0, false
 	}
 
 	v, err := strconv.ParseUint(s, 8, 32)
 	if err != nil {
-		return 0, err
+		return 0, false
 	}
 
-	return fs.FileMode(v) & fs.ModePerm, nil
+	return fs.FileMode(v) & fs.ModePerm, true
 }
 
-func tryLs(s string) (fs.FileMode, error) {
+func tryLs(s string) (fs.FileMode, bool) {
 	if !lsRe.MatchString(s) {
-		return 0, fmt.Errorf("invalid ls-style permission")
+		return 0, false
 	}
 
 	var mode fs.FileMode
@@ -115,21 +115,21 @@ func tryLs(s string) (fs.FileMode, error) {
 		mode |= bits << t.shift
 	}
 
-	return mode & fs.ModePerm, nil
+	return mode & fs.ModePerm, true
 }
 
-func tryPosix(s string) (fs.FileMode, error) {
+func tryPosix(s string) (fs.FileMode, bool) {
 	if !posixRe.MatchString(s) {
-		return 0, fmt.Errorf("invalid posix permission")
+		return 0, false
 	}
 
 	seen := map[byte]bool{}
 	var mode fs.FileMode
 
-	for _, c := range strings.Split(s, ",") {
+	for c := range strings.SplitSeq(s, ",") {
 		who := c[0]
 		if seen[who] {
-			return 0, fmt.Errorf("duplicate target %q", who)
+			return 0, false
 		}
 		seen[who] = true
 
@@ -143,7 +143,7 @@ func tryPosix(s string) (fs.FileMode, error) {
 			case 'x':
 				bits |= 1
 			default:
-				return 0, fmt.Errorf("invalid permission %q", r)
+				return 0, false
 			}
 		}
 
@@ -152,8 +152,8 @@ func tryPosix(s string) (fs.FileMode, error) {
 	}
 
 	if len(seen) != 3 {
-		return 0, fmt.Errorf("u, g, and o must all be specified")
+		return 0, false
 	}
 
-	return mode & fs.ModePerm, nil
+	return mode & fs.ModePerm, true
 }
