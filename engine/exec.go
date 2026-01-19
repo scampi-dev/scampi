@@ -221,7 +221,7 @@ func (e *Engine) executeAction(ctx context.Context, idx int, act spec.Action) (m
 	e.em.Emit(
 		diagnostic.ActionFinished(
 			name,
-			res.Summary.Changed > 0,
+			res.Summary,
 			time.Since(start),
 			err,
 		),

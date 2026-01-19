@@ -3,6 +3,7 @@ package event
 import (
 	"time"
 
+	"godoit.dev/doit/model"
 	"godoit.dev/doit/spec"
 )
 
@@ -42,7 +43,7 @@ type PlanProblem struct {
 }
 
 type ActionDetail struct {
-	Changed  bool
+	Summary  model.ActionSummary
 	Duration time.Duration
 	Err      error
 }

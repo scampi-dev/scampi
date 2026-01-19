@@ -11,6 +11,7 @@ import (
 
 	"github.com/charmbracelet/x/term"
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/model"
 	"godoit.dev/doit/render/ansi"
 	"godoit.dev/doit/render/template"
 	"godoit.dev/doit/signal"
@@ -639,48 +640,64 @@ func (c *cli) renderOpTree(
 // ===============================================
 
 func (c *cli) renderActionFinished(e event.Event) []renderEvent {
+	fmtActionSummary := func(s model.ActionSummary) string {
+		switch {
+		case s.Failed > 0 || s.Aborted > 0:
+			return fmt.Sprintf(
+				"failed after %d/%d ops (%d failed, %d aborted)",
+				s.Succeeded+s.Failed,
+				s.Total,
+				s.Failed,
+				s.Aborted,
+			)
+
+		case s.Changed > 0:
+			return fmt.Sprintf(
+				"%d/%d ops changed",
+				s.Changed,
+				s.Total,
+			)
+
+		default:
+			return "up-to-date"
+		}
+	}
+
 	d := e.Detail.(event.ActionDetail)
+	s := d.Summary
 	st := c.ensureAction(e.Subject.Action)
 
-	switch {
-	case d.Err != nil:
-		return []renderEvent{{
-			stream: streamErr,
-			line: c.fmtfMsg(
-				ansi.Red.Reg,
-				"[%s]%s '%s' failed: %v",
-				st.id,
-				glyphr(c.glyphs.fatal),
-				e.Subject.Action,
-				d.Err,
-			),
-		}}
+	var (
+		color ansi.Code
+		glyph string
+	)
 
-	case d.Changed:
-		return []renderEvent{{
-			stream: streamOut,
-			line: c.fmtfMsg(
-				ansi.Yellow.Reg,
-				"[%s]%s '%s' changed (%s)",
-				st.id,
-				glyphr(c.glyphs.change),
-				e.Subject.Action,
-				d.Duration,
-			),
-		}}
+	switch {
+	case s.Failed > 0 || s.Aborted > 0:
+		color = ansi.Red.Reg
+		glyph = c.glyphs.fatal
+
+	case s.Changed > 0:
+		color = ansi.Yellow.Reg
+		glyph = c.glyphs.change
 
 	default:
-		return []renderEvent{{
-			stream: streamOut,
-			line: c.fmtfMsg(
-				ansi.Green.Dim,
-				"[%s]%s '%s' up-to-date",
-				st.id,
-				glyphr(c.glyphs.ok),
-				e.Subject.Action,
-			),
-		}}
+		color = ansi.Green.Dim
+		glyph = c.glyphs.ok
 	}
+
+	return []renderEvent{{
+		stream: streamOut,
+		line: c.fmtfMsg(
+			color,
+			"[%s]%s %s — %s (%s)",
+			st.id,
+			glyphr(glyph),
+			e.Subject.Action,
+			fmtActionSummary(s),
+			d.Duration,
+		),
+	}}
 }
 
 // Op lifecycle

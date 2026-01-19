@@ -7,6 +7,7 @@ import (
 
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/model"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/util"
@@ -43,7 +44,7 @@ func (e *Engine) Plan(ctx context.Context, cfgPath string, store *spec.SourceSto
 
 	e.em.Emit(diagnostic.PlanProduced(plan))
 
-	e.em.Emit(diagnostic.EngineFinished(diagnostic.RunSummary{}, time.Since(start), err))
+	e.em.Emit(diagnostic.EngineFinished(model.ExecutionReport{}, time.Since(start), err))
 
 	return err
 }

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/model"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/spec"
 )
@@ -18,12 +19,6 @@ type (
 	}
 	DiagnosticProvider interface {
 		Diagnostics(subject event.Subject) []event.Event
-	}
-
-	RunSummary struct {
-		ChangedCount int
-		FailedCount  int
-		TotalCount   int
 	}
 )
 
@@ -40,15 +35,23 @@ func EngineStarted() event.Event {
 	}
 }
 
-func EngineFinished(rs RunSummary, dur time.Duration, err error) event.Event {
+func EngineFinished(rep model.ExecutionReport, dur time.Duration, err error) event.Event {
+	var total, changed, failed int
+
+	for _, ar := range rep.Actions {
+		total += ar.Summary.Total
+		changed += ar.Summary.Changed
+		failed += ar.Summary.Failed
+	}
+
 	e := event.Event{
 		Time:  time.Now(),
 		Kind:  event.EngineFinished,
 		Scope: event.ScopeEngine,
 		Detail: event.EngineDetail{
-			ChangedCount: rs.ChangedCount,
-			FailedCount:  rs.FailedCount,
-			TotalCount:   rs.TotalCount,
+			TotalCount:   total,
+			ChangedCount: changed,
+			FailedCount:  failed,
 			Duration:     dur,
 			Err:          err,
 		},
@@ -59,11 +62,11 @@ func EngineFinished(rs RunSummary, dur time.Duration, err error) event.Event {
 		e.Severity = signal.Fatal
 		e.Chattiness = event.Normal
 
-	case rs.FailedCount > 0:
+	case failed > 0:
 		e.Severity = signal.Error
 		e.Chattiness = event.Normal
 
-	case rs.ChangedCount > 0:
+	case changed > 0:
 		e.Severity = signal.Notice
 		e.Chattiness = event.Subtle
 
@@ -220,7 +223,7 @@ func ActionStarted(name string) event.Event {
 	}
 }
 
-func ActionFinished(name string, changed bool, dur time.Duration, err error) event.Event {
+func ActionFinished(name string, summary model.ActionSummary, dur time.Duration, err error) event.Event {
 	e := event.Event{
 		Time:  time.Now(),
 		Kind:  event.ActionFinished,
@@ -229,18 +232,20 @@ func ActionFinished(name string, changed bool, dur time.Duration, err error) eve
 			Action: name,
 		},
 		Detail: event.ActionDetail{
-			Changed:  changed,
+			Summary:  summary,
 			Duration: dur,
 			Err:      err,
 		},
 	}
 
+	s := summary
 	switch {
-	case err != nil:
+
+	case s.Failed > 0 || s.Aborted > 0 || err != nil:
 		e.Severity = signal.Error
 		e.Chattiness = event.Normal
 
-	case changed:
+	case s.Changed > 0:
 		e.Severity = signal.Notice
 		e.Chattiness = event.Normal
 

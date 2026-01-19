@@ -47,16 +47,7 @@ func (e *Engine) Apply(ctx context.Context, cfgPath string, store *spec.SourceSt
 		return err
 	}
 
-	// Derive RunSummary truthfully from execution report
-	var rs diagnostic.RunSummary
-
-	for _, ar := range rep.Actions {
-		rs.TotalCount += ar.Summary.Total
-		rs.ChangedCount += ar.Summary.Changed
-		rs.FailedCount += ar.Summary.Failed
-	}
-
-	e.em.Emit(diagnostic.EngineFinished(rs, time.Since(start), err))
+	e.em.Emit(diagnostic.EngineFinished(rep, time.Since(start), err))
 
 	return nil
 }
