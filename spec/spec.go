@@ -21,6 +21,8 @@ type (
 	}
 	UnitType interface {
 		Kind() string
+		// NewConfig MUST return a pointer to a freshly allocated config struct.
+		// Returning a value will cause undefined behavior.
 		NewConfig() any
 		Plan(idx int, unit UnitInstance) (Action, error)
 	}

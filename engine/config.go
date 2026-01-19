@@ -371,7 +371,6 @@ func decodeUnit(
 	tCfg := ut.NewConfig()
 	rv := reflect.ValueOf(tCfg)
 	if rv.Kind() != reflect.Pointer {
-		// internal error
 		panic(util.BUG(
 			"UnitType['%s'].NewConfig() must return a pointer (got %T)",
 			ut.Kind(),
