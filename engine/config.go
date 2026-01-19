@@ -43,7 +43,6 @@ func (o overlayFS) Open(name string) (fs.File, error) {
 }
 
 type sourceCapturingFS struct {
-	cwd   string
 	fs    fs.FS
 	store *spec.SourceStore
 }

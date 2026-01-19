@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/user"
 	"path/filepath"
 	"sync"
 
@@ -124,12 +123,14 @@ func diagExecFn(severity signal.Severity, impact diagnostic.Impact) execFn {
 	}
 }
 
+//lint:ignore U1000
 func errCheckFn(err error) checkFn {
 	return func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
 		return spec.CheckUnknown, err
 	}
 }
 
+//lint:ignore U1000
 func errExecFn(err error) execFn {
 	return func(context.Context, source.Source, target.Target) (spec.Result, error) {
 		return spec.Result{}, err
@@ -215,15 +216,6 @@ func absPath(p string) string {
 	}
 
 	return r
-}
-
-func currentUsr() *user.User {
-	usr, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-
-	return usr
 }
 
 func readDirOrDie(name string) []os.DirEntry {

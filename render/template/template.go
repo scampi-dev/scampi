@@ -3,6 +3,8 @@ package template
 import (
 	"strings"
 	"text/template"
+
+	"godoit.dev/doit/util"
 )
 
 func Render(name, tmpl string, data any) (string, bool) {
@@ -14,15 +16,13 @@ func Render(name, tmpl string, data any) (string, bool) {
 		}).
 		Parse(tmpl)
 	if err != nil {
-		// FIXME: panic
-		panic(err)
+		panic(util.BUG("template '%s' failed parsing: %w", tmpl, err))
 	}
 
 	b := strings.Builder{}
-	// FIXME: at this point we MUST be able to trust that the template renders
+	// NOTE: at this point we MUST be able to trust that the template renders
 	if err := t.Execute(&b, data); err != nil {
-		// FIXME: panic
-		panic(err)
+		panic(util.BUG("template '%s' failed to render: %w", tmpl, err))
 	}
 
 	res := b.String()

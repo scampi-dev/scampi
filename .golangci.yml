@@ -22,8 +22,6 @@ linters:
     staticcheck:
       checks:
         - all
-        - -ST1000 #                    [POLICY] require package-level docs
-        #                              --- disabled until project settles down
     revive:
       enable-all-rules: false
       rules:
@@ -37,7 +35,6 @@ linters:
           disabled: true #             --- disabled until project settles down
         - name: increment-decrement #  [POLICY] prefer i++ / i-- idioms
         - name: package-comments #     [POLICY] require package-level docs
-          disabled: true #             --- disabled until project settles down
         - name: receiver-naming #      [POLICY] enforce consistent receiver names
         - name: superfluous-else #     [POLICY] reduce unnecessary branching
         - name: time-naming #          [POLICY] enforce time.Duration naming
@@ -68,7 +65,7 @@ formatters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  new: true
+  new: false
   fix: false
 
 output:

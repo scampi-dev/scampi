@@ -38,8 +38,7 @@ type (
 		width int
 	}
 	actionState struct {
-		id       string
-		finished bool
+		id string
 	}
 	sourceLine struct {
 		filename string

@@ -141,18 +141,18 @@ func cycleKey(cycle []spec.Op) string {
 	n := len(cycle) - 1
 
 	// find rotation with minimal pointer string
-	min := 0
+	minIdx := 0
 	for i := 1; i < n; i++ {
-		if ptr(cycle[i]) < ptr(cycle[min]) {
-			min = i
+		if ptr(cycle[i]) < ptr(cycle[minIdx]) {
+			minIdx = i
 		}
 	}
 
-	key := ""
-	for i := 0; i < n; i++ {
-		key += ptr(cycle[(min+i)%n]) + ">"
+	var key strings.Builder
+	for i := range n {
+		key.WriteString(ptr(cycle[(minIdx+i)%n]) + ">")
 	}
-	return key
+	return key.String()
 }
 
 func ptr(op spec.Op) string {

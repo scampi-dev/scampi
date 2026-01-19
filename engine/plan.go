@@ -23,7 +23,7 @@ func Plan(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spe
 	return e.Plan(ctx, cfgPath, store)
 }
 
-func (e *Engine) Plan(ctx context.Context, cfgPath string, store *spec.SourceStore) error {
+func (e *Engine) Plan(_ context.Context, cfgPath string, store *spec.SourceStore) error {
 	start := time.Now()
 	e.em.Emit(diagnostic.EngineStarted())
 

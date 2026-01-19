@@ -182,7 +182,7 @@ func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target
 }
 
 func (op *ensureOwnerOp) Name() string { return "ensureOwnerOp" }
-func (op *ensureOwnerOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *ensureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
 	have, err := tgt.GetOwner(ctx, op.path)
 	if err != nil {
 		// file missing -> expected drift
@@ -201,7 +201,7 @@ func (op *ensureOwnerOp) Check(ctx context.Context, src source.Source, tgt targe
 	return spec.CheckSatisfied, nil
 }
 
-func (op *ensureOwnerOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
+func (op *ensureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
 	if err := tgt.Chown(ctx, op.path, target.Owner{User: op.owner, Group: op.group}); err != nil {
 		return spec.Result{}, err
 	}
@@ -210,7 +210,7 @@ func (op *ensureOwnerOp) Execute(ctx context.Context, src source.Source, tgt tar
 }
 
 func (op *ensureModeOp) Name() string { return "ensureModeOp" }
-func (op *ensureModeOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *ensureModeOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
 	info, err := tgt.Stat(ctx, op.path)
 	if err != nil {
 		// file missing -> expected drift
@@ -230,7 +230,7 @@ func (op *ensureModeOp) Check(ctx context.Context, src source.Source, tgt target
 	return spec.CheckSatisfied, nil
 }
 
-func (op *ensureModeOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
+func (op *ensureModeOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
 	if err := tgt.Chmod(ctx, op.path, op.mode); err != nil {
 		return spec.Result{}, err
 	}

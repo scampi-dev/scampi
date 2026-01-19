@@ -14,13 +14,6 @@ type dagAction struct {
 	Layers [][]event.PlannedOp // topologically layered ops
 }
 
-type renderNode struct {
-	Op      event.PlannedOp
-	Depth   int
-	IsLast  bool   // last sibling at this depth
-	Parents []bool // per depth: should a vertical bar continue?
-}
-
 func buildPlanDAG(detail event.PlanDetail) planDAG {
 	var dag planDAG
 

@@ -1,3 +1,8 @@
+// Package main defines the CLI surface of doit.
+//
+// It wires user-facing commands to engine execution, diagnostics, and rendering.
+// This package contains no execution semantics; it is responsible only for
+// argument parsing, command dispatch, and process exit behavior.
 package main
 
 import (
