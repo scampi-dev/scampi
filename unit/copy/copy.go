@@ -76,11 +76,17 @@ func (c *copyAction) Ops() []spec.Op {
 		dest: c.dest,
 	}
 	chown := &ensureOwnerOp{
+		baseOp: baseOp{
+			destSpan: c.unit.Fields["dest"].Value,
+		},
 		path:  c.dest,
 		owner: c.owner,
 		group: c.group,
 	}
 	chmod := &ensureModeOp{
+		baseOp: baseOp{
+			destSpan: c.unit.Fields["dest"].Value,
+		},
 		path: c.dest,
 		mode: c.mode,
 	}
@@ -185,13 +191,17 @@ func (op *ensureOwnerOp) Name() string { return "ensureOwnerOp" }
 func (op *ensureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
 	have, err := tgt.GetOwner(ctx, op.path)
 	if err != nil {
-		// file missing -> expected drift
 		if target.IsNotExist(err) {
+			// file missing -> expected drift, copyFileOp will create it
 			return spec.CheckUnsatisfied, nil
 		}
 
-		// FIXME: runtime error (perm, IO, etc.), what do we do here?
-		return spec.CheckUnknown, err
+		// non-transient error (perm, IO, etc.) -> abort
+		return spec.CheckUnsatisfied, OwnerReadError{
+			Path:   op.path,
+			Err:    err,
+			Source: op.destSpan,
+		}
 	}
 
 	if have.User != op.owner || have.Group != op.group {
@@ -202,28 +212,47 @@ func (op *ensureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.
 }
 
 func (op *ensureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
+	have, err := tgt.GetOwner(ctx, op.path)
+	if err != nil {
+		if target.IsNotExist(err) {
+			// file should exist - copyFileOp is a dependency and should have created it
+			panic(util.BUG("ensureOwnerOp.Execute: file %q does not exist after copyFileOp", op.path))
+		}
+
+		return spec.Result{}, OwnerReadError{
+			Path:   op.path,
+			Err:    err,
+			Source: op.destSpan,
+		}
+	}
+
+	changed := have.User != op.owner || have.Group != op.group
+
 	if err := tgt.Chown(ctx, op.path, target.Owner{User: op.owner, Group: op.group}); err != nil {
 		return spec.Result{}, err
 	}
 
-	return spec.Result{Changed: true}, nil
+	return spec.Result{Changed: changed}, nil
 }
 
 func (op *ensureModeOp) Name() string { return "ensureModeOp" }
 func (op *ensureModeOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
 	info, err := tgt.Stat(ctx, op.path)
 	if err != nil {
-		// file missing -> expected drift
 		if target.IsNotExist(err) {
+			// file missing -> expected drift, copyFileOp will create it
 			return spec.CheckUnsatisfied, nil
 		}
 
-		// FIXME: runtime error (perm, IO, etc.), what do we do here?
-		return spec.CheckUnknown, nil
+		// non-transient error (perm, IO, etc.) -> abort
+		return spec.CheckUnsatisfied, ModeReadError{
+			Path:   op.path,
+			Err:    err,
+			Source: op.destSpan,
+		}
 	}
 
-	have := info.Mode()
-	if have != op.mode {
+	if info.Mode() != op.mode {
 		return spec.CheckUnsatisfied, nil
 	}
 
@@ -231,9 +260,25 @@ func (op *ensureModeOp) Check(ctx context.Context, _ source.Source, tgt target.T
 }
 
 func (op *ensureModeOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
+	info, err := tgt.Stat(ctx, op.path)
+	if err != nil {
+		if target.IsNotExist(err) {
+			// file should exist - copyFileOp is a dependency and should have created it
+			panic(util.BUG("ensureModeOp.Execute: file %q does not exist after copyFileOp", op.path))
+		}
+
+		return spec.Result{}, ModeReadError{
+			Path:   op.path,
+			Err:    err,
+			Source: op.destSpan,
+		}
+	}
+
+	changed := info.Mode() != op.mode
+
 	if err := tgt.Chmod(ctx, op.path, op.mode); err != nil {
 		return spec.Result{}, err
 	}
 
-	return spec.Result{Changed: true}, nil
+	return spec.Result{Changed: changed}, nil
 }

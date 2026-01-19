@@ -2,4 +2,6 @@
 //
 // Utilities are low-level, non-semantic helpers shared across packages.
 // This package must not introduce domain logic or execution semantics.
-package util //revive:disable:var-naming
+//
+//revive:disable:var-naming
+package util

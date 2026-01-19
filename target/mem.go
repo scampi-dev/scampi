@@ -33,7 +33,7 @@ func (m *MemTarget) ReadFile(_ context.Context, path string) ([]byte, error) {
 
 	data, ok := m.Files[path]
 	if !ok {
-		return nil, fs.ErrNotExist
+		return nil, util.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	cp := make([]byte, len(data))
@@ -69,7 +69,7 @@ func (m *MemTarget) Stat(_ context.Context, path string) (fs.FileInfo, error) {
 
 	data, ok := m.Files[path]
 	if !ok {
-		return nil, fs.ErrNotExist
+		return nil, util.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	mode := m.Modes[path]
@@ -88,7 +88,7 @@ func (m *MemTarget) Chmod(_ context.Context, path string, mode fs.FileMode) erro
 	defer m.mu.Unlock()
 
 	if _, ok := m.Files[path]; !ok {
-		return fs.ErrNotExist
+		return util.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	m.Modes[path] = mode
@@ -101,7 +101,7 @@ func (m *MemTarget) Chown(_ context.Context, path string, owner Owner) error {
 	defer m.mu.Unlock()
 
 	if _, ok := m.Files[path]; !ok {
-		return fs.ErrNotExist
+		return util.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	m.Owners[path] = owner

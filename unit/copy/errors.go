@@ -130,3 +130,71 @@ func (e GroupNotFound) EventTemplate() event.Template {
 func (GroupNotFound) Severity() signal.Severity {
 	return signal.Error
 }
+
+type OwnerReadError struct {
+	Path   string
+	Source spec.SourceSpan
+	Err    error
+}
+
+func (e OwnerReadError) Error() string {
+	return fmt.Sprintf("cannot read ownership of %q: %v", e.Path, e.Err)
+}
+
+func (e OwnerReadError) Unwrap() error {
+	return e.Err
+}
+
+func (e OwnerReadError) Diagnostics(subject event.Subject) []event.Event {
+	return []event.Event{
+		diagnostic.DiagnosticRaised(subject, e),
+	}
+}
+
+func (e OwnerReadError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "builtin.copy.OwnerReadError",
+		Text:   `cannot read ownership of "{{.Path}}"`,
+		Hint:   "check file permissions and ensure the path is accessible",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (OwnerReadError) Severity() signal.Severity {
+	return signal.Error
+}
+
+type ModeReadError struct {
+	Path   string
+	Source spec.SourceSpan
+	Err    error
+}
+
+func (e ModeReadError) Error() string {
+	return fmt.Sprintf("cannot read mode of %q: %v", e.Path, e.Err)
+}
+
+func (e ModeReadError) Unwrap() error {
+	return e.Err
+}
+
+func (e ModeReadError) Diagnostics(subject event.Subject) []event.Event {
+	return []event.Event{
+		diagnostic.DiagnosticRaised(subject, e),
+	}
+}
+
+func (e ModeReadError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "builtin.copy.ModeReadError",
+		Text:   `cannot read mode of "{{.Path}}"`,
+		Hint:   "check file permissions and ensure the path is accessible",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (ModeReadError) Severity() signal.Severity {
+	return signal.Error
+}
