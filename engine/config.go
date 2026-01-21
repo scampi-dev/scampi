@@ -60,6 +60,11 @@ func (s sourceCapturingFS) Open(name string) (fs.File, error) {
 	}
 	_ = f.Close()
 
+	// Reject inputs that would cause CUE to hang or exhaust resources.
+	if err := validateCueInput(data); err != nil {
+		return nil, err
+	}
+
 	s.store.AddFile(name, string(data))
 
 	// Give CUE a fresh file
@@ -151,8 +156,24 @@ func LoadConfigWithSource(
 	cfgPath string,
 	store *spec.SourceStore,
 	src source.Source,
-) (spec.Config, error) {
-	cfg, err := loadConfigWithSource(em, cfgPath, store, src)
+) (cfg spec.Config, err error) {
+	// Guard against panics in the CUE library (known upstream bugs).
+	// Convert to a user-facing diagnostic rather than crashing.
+	defer func() {
+		if r := recover(); r != nil {
+			panicErr := CuePanic{Recovered: r}
+			_, _ = emitDiagnostics(
+				em,
+				event.Subject{
+					CfgPath: cfgPath,
+				},
+				panicErr,
+			)
+			err = AbortError{Causes: []error{panicErr}}
+		}
+	}()
+
+	cfg, err = loadConfigWithSource(em, cfgPath, store, src)
 	if err != nil {
 		dr, _ := emitDiagnostics(
 			em,
@@ -202,7 +223,8 @@ func loadConfigWithSource(
 	if len(userInstances) == 0 {
 		panic(util.BUG("load.Instances returned zero instances for '%s'", cfgPath))
 	}
-	if err := userInstances[0].Err; err != nil {
+	userInstance := userInstances[0]
+	if err := userInstance.Err; err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
 			panic(util.BUG(
@@ -218,7 +240,7 @@ func loadConfigWithSource(
 		}
 	}
 
-	userInst := ctx.BuildInstance(userInstances[0])
+	userInst := ctx.BuildInstance(userInstance)
 	if err := userInst.Err(); err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
@@ -234,8 +256,6 @@ func loadConfigWithSource(
 			Phase: "load.BuildInstance",
 		}
 	}
-
-	userFile := userInstances[0].Files[0]
 
 	coreInstances := load.Instances([]string{"godoit.dev/doit/core"}, loaderCfg)
 	if len(coreInstances) == 0 {
@@ -290,6 +310,7 @@ func loadConfigWithSource(
 	cfg := spec.Config{}
 	var sawAbort bool
 	for iter.Next() {
+		userFile := userInstance.Files[0]
 		idx := iter.Selector().Index()
 		unitVal := iter.Value()
 		unitSpan, fields := extractFieldSpansFromFile(userFile, idx)

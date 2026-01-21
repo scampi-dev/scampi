@@ -52,14 +52,17 @@ units: [builtin.copy & { src: "a", dest: "b" }]`,
 		store := spec.NewSourceStore()
 
 		// ---- Hard invariant: user input must not panic ----
+		// CUE panics are caught by the engine and converted to CuePanic errors.
+		// Any panic here indicates a bug in doit, not CUE.
 		defer func() {
 			if r := recover(); r != nil {
-				t.Fatalf("PANIC on user input:\n%q\npanic: %v", input, r)
+				t.Fatalf("PANIC on user input:\n%q\npanic: (%T) %v", input, r, r)
 			}
 		}()
 
 		e := engine.New(src, tgt, em)
 		err := e.Apply(context.Background(), "/config.cue", store)
+
 		// ---- Error classification invariant ----
 		if err != nil {
 			var abort engine.AbortError

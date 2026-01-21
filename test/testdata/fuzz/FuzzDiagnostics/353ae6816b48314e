@@ -1,0 +1,2 @@
+go test fuzz v1
+string("A0:A,A,AAA:A0:A?:A,A:A0:A0:\r\r\r\r\r\r\r\rA")
