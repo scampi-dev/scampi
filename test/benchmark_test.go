@@ -68,7 +68,7 @@ units: [
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				_, err := engine.LoadConfig(em, cfgPath, store)
+				_, err := engine.LoadConfig(context.Background(), em, cfgPath, store)
 				if err != nil {
 					b.Fatal(err)
 				}

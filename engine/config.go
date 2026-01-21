@@ -122,6 +122,7 @@ func (i memFileInfo) IsDir() bool        { return false }
 func (i memFileInfo) Sys() any           { return nil }
 
 type sourceFS struct {
+	ctx context.Context
 	src source.Source
 }
 
@@ -131,7 +132,7 @@ func (s sourceFS) Open(name string) (fs.File, error) {
 	}
 
 	p := "/" + name
-	data, err := s.src.ReadFile(context.Background(), p)
+	data, err := s.src.ReadFile(s.ctx, p)
 	if err != nil {
 		return nil, err
 	}
@@ -142,8 +143,14 @@ func (s sourceFS) Open(name string) (fs.File, error) {
 // LoadConfig decodes and validates user configuration.
 // It returns ONLY user-facing configuration errors.
 // All other failures are engine or environment bugs and will panic.
-func LoadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) (spec.Config, error) {
+func LoadConfig(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *spec.SourceStore,
+) (spec.Config, error) {
 	return LoadConfigWithSource(
+		ctx,
 		em,
 		cfgPath,
 		store,
@@ -152,6 +159,7 @@ func LoadConfig(em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) 
 }
 
 func LoadConfigWithSource(
+	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *spec.SourceStore,
@@ -173,7 +181,7 @@ func LoadConfigWithSource(
 		}
 	}()
 
-	cfg, err = loadConfigWithSource(em, cfgPath, store, src)
+	cfg, err = loadConfigWithSource(ctx, em, cfgPath, store, src)
 	if err != nil {
 		dr, _ := emitDiagnostics(
 			em,
@@ -192,13 +200,14 @@ func LoadConfigWithSource(
 }
 
 func loadConfigWithSource(
+	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *spec.SourceStore,
 	src source.Source,
 ) (spec.Config, error) {
 	reg := NewRegistry()
-	ctx := cuecontext.New()
+	cueCtx := cuecontext.New()
 
 	embFS, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
 	if err != nil {
@@ -211,6 +220,7 @@ func loadConfigWithSource(
 			Embedded: embFS,
 			Host: sourceCapturingFS{
 				fs: sourceFS{
+					ctx: ctx,
 					src: src,
 				},
 				store: store,
@@ -240,7 +250,7 @@ func loadConfigWithSource(
 		}
 	}
 
-	userInst := ctx.BuildInstance(userInstance)
+	userInst := cueCtx.BuildInstance(userInstance)
 	if err := userInst.Err(); err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
@@ -265,7 +275,7 @@ func loadConfigWithSource(
 		return spec.Config{}, err
 	}
 
-	coreInst := ctx.BuildInstance(coreInstances[0])
+	coreInst := cueCtx.BuildInstance(coreInstances[0])
 	if err := coreInst.Err(); err != nil {
 		return spec.Config{}, err
 	}

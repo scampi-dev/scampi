@@ -31,7 +31,7 @@ func (e *Engine) Apply(ctx context.Context, cfgPath string, store *spec.SourceSt
 		panic(util.BUG("filepath.Abs() failed: %w", err))
 	}
 
-	cfg, err := LoadConfigWithSource(e.em, cfgPath, store, e.src)
+	cfg, err := LoadConfigWithSource(ctx, e.em, cfgPath, store, e.src)
 	if err != nil {
 		return err
 	}
