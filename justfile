@@ -36,7 +36,7 @@ doit *args:
 
 [doc("Run tests")]
 test:
-  go test ./...
+  go test -race ./...
 
 [doc("Run fuzz tests")]
 fuzz time='30s':
