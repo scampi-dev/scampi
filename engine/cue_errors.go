@@ -30,7 +30,7 @@ var (
 	whitespaceRe = regexp.MustCompile(`\s+`)
 )
 
-func validateCueInput(data []byte) error {
+func ValidateCueInput(data []byte) error {
 	// Reject invalid UTF-8 - CUE hangs on certain malformed byte sequences
 	if !utf8.Valid(data) {
 		return MalformedInput{Reason: "invalid UTF-8 encoding"}

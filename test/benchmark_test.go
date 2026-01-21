@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"godoit.dev/doit/diagnostic"
@@ -147,6 +148,46 @@ units: [
 				if err := e.Apply(context.Background(), "/config.cue", store); err != nil {
 					b.Fatal(err)
 				}
+			}
+		})
+	}
+}
+
+func BenchmarkValidateCueInput(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			units := make([]string, 0)
+			for i := range size {
+				unit := fmt.Sprintf(`
+builtin.copy & {
+  name:  "unit-%d"
+	src:   "/src.txt"
+	dest:  "/dest.txt"
+	perm:  "0644"
+	owner: "perf-owner"
+	group: "perf-group"
+}
+`, i)
+				units = append(units, unit)
+			}
+
+			cfg := fmt.Sprintf(`
+package bench
+
+import (
+	"list"
+	"godoit.dev/doit/builtin"
+)
+
+units: [
+%s
+]
+`, strings.Join(units, "\n\n"))
+
+			data := []byte(cfg)
+			for i := 0; i < b.N; i++ {
+				_ = engine.ValidateCueInput(data)
 			}
 		})
 	}

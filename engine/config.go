@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"cuelang.org/go/cue"
@@ -18,6 +19,7 @@ import (
 	cueerr "cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/load"
 	"cuelang.org/go/cue/token"
+	"github.com/cespare/xxhash/v2"
 	"godoit.dev/doit"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
@@ -43,11 +45,12 @@ func (o overlayFS) Open(name string) (fs.File, error) {
 }
 
 type sourceCapturingFS struct {
-	fs    fs.FS
-	store *spec.SourceStore
+	fs          fs.FS
+	validSource sync.Map // hash -> error (nil OK)
+	store       *spec.SourceStore
 }
 
-func (s sourceCapturingFS) Open(name string) (fs.File, error) {
+func (s *sourceCapturingFS) Open(name string) (fs.File, error) {
 	f, err := s.fs.Open(name)
 	if err != nil {
 		return nil, err
@@ -60,12 +63,22 @@ func (s sourceCapturingFS) Open(name string) (fs.File, error) {
 	}
 	_ = f.Close()
 
-	// Reject inputs that would cause CUE to hang or exhaust resources.
-	if err := validateCueInput(data); err != nil {
-		return nil, err
+	hash := xxhash.Sum64(data)
+	if v, ok := s.validSource.Load(hash); ok {
+		if v != nil {
+			if err := v.(error); err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		// Reject inputs that would cause CUE to hang or exhaust resources.
+		err := ValidateCueInput(data)
+		s.validSource.Store(hash, err)
+		s.store.AddFile(name, string(data))
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	s.store.AddFile(name, string(data))
 
 	// Give CUE a fresh file
 	return s.fs.Open(name)
@@ -218,7 +231,7 @@ func loadConfigWithSource(
 	loaderCfg := &load.Config{
 		FS: overlayFS{
 			Embedded: embFS,
-			Host: sourceCapturingFS{
+			Host: &sourceCapturingFS{
 				fs: sourceFS{
 					ctx: ctx,
 					src: src,
