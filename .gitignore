@@ -10,3 +10,5 @@
 /build/
 __debug*
 *.zip
+*.out
+*.test
