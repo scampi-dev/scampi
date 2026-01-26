@@ -71,19 +71,21 @@ func EngineStarted() event.EngineEvent {
 	}
 }
 
-func EngineFinished(rep model.ExecutionReport, dur time.Duration, err error) event.EngineEvent {
+func EngineFinished(rep model.ExecutionReport, dur time.Duration, err error, checkOnly bool) event.EngineEvent {
 	e := event.EngineEvent{
 		Time: time.Now(),
 		Kind: event.EngineFinished,
 		Detail: &event.EngineFinishedDetail{
-			Duration: dur,
-			Err:      err,
+			CheckOnly: checkOnly,
+			Duration:  dur,
+			Err:       err,
 		},
 	}
 
 	for _, ar := range rep.Actions {
 		e.Detail.TotalCount += ar.Summary.Total
 		e.Detail.ChangedCount += ar.Summary.Changed
+		e.Detail.WouldChangeCount += ar.Summary.WouldChange
 		e.Detail.FailedCount += ar.Summary.Failed
 	}
 
@@ -96,7 +98,7 @@ func EngineFinished(rep model.ExecutionReport, dur time.Duration, err error) eve
 		e.Severity = signal.Error
 		e.Chattiness = event.Normal
 
-	case e.Detail.ChangedCount > 0:
+	case e.Detail.ChangedCount > 0 || e.Detail.WouldChangeCount > 0:
 		e.Severity = signal.Notice
 		e.Chattiness = event.Subtle
 
@@ -278,15 +280,15 @@ func ActionFinished(
 
 	case s.Failed > 0 || s.Aborted > 0 || err != nil:
 		e.Severity = signal.Error
-		e.Chattiness = event.Normal
+		e.Chattiness = event.Subtle
 
-	case s.Changed > 0:
+	case s.Changed > 0 || s.WouldChange > 0:
 		e.Severity = signal.Notice
-		e.Chattiness = event.Normal
+		e.Chattiness = event.Subtle
 
 	default:
 		e.Severity = signal.Info
-		e.Chattiness = event.Reserved
+		e.Chattiness = event.Normal
 	}
 
 	return e
@@ -310,7 +312,7 @@ func OpCheckStarted(stepIdx int, stepKind, stepDesc, displayID string) event.OpE
 	}
 }
 
-func OpChecked(stepIdx int, stepKind, stepDesc, displayID string, res spec.CheckResult, err error) event.OpEvent {
+func OpChecked(stepIdx int, stepKind, stepDesc, displayID string, res spec.CheckResult, err error, checkOnly bool) event.OpEvent {
 	e := event.OpEvent{
 		Time: time.Now(),
 		Kind: event.OpChecked,
@@ -329,11 +331,17 @@ func OpChecked(stepIdx int, stepKind, stepDesc, displayID string, res spec.Check
 	switch res {
 	case spec.CheckSatisfied:
 		e.Severity = signal.Info
-		e.Chattiness = event.Subtle
+		e.Chattiness = event.Chatty
 
 	case spec.CheckUnsatisfied:
 		e.Severity = signal.Notice
-		e.Chattiness = event.Normal
+		// In check-only mode, show "needs change" at -v level
+		// In apply mode, show at -vv level (execution results are more important)
+		if checkOnly {
+			e.Chattiness = event.Normal
+		} else {
+			e.Chattiness = event.Chatty
+		}
 
 	case spec.CheckUnknown:
 		e.Severity = signal.Warning

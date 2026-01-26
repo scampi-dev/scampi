@@ -43,7 +43,7 @@ func (e *Engine) Plan(ctx context.Context, cfgPath string, store *spec.SourceSto
 
 	e.em.EmitPlanLifecycle(diagnostic.PlanProduced(plan))
 
-	e.em.EmitEngineLifecycle(diagnostic.EngineFinished(model.ExecutionReport{}, time.Since(start), err))
+	e.em.EmitEngineLifecycle(diagnostic.EngineFinished(model.ExecutionReport{}, time.Since(start), err, false))
 
 	return err
 }

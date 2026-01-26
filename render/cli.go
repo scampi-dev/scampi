@@ -359,19 +359,29 @@ func (c *cli) renderEngineFinished(e event.EngineEvent) []renderEvent {
 	color := colEngineFinishedUnchanged
 	if d.FailedCount > 0 {
 		color = colEngineFinishedFailed
-	} else if d.ChangedCount > 0 {
+	} else if d.ChangedCount > 0 || d.WouldChangeCount > 0 {
 		color = colEngineFinishedChanged
 	}
+
+	// Build summary parts
+	var parts []string
+	if d.CheckOnly {
+		// Check mode: always report "would change" count
+		parts = append(parts, fmt.Sprintf("%d would change", d.WouldChangeCount))
+	} else {
+		// Apply mode: report actual changes
+		parts = append(parts, fmt.Sprintf("%d change%s", d.ChangedCount, s(d.ChangedCount)))
+	}
+	parts = append(parts, fmt.Sprintf("%d failure%s", d.FailedCount, s(d.FailedCount)))
+	parts = append(parts, fmt.Sprintf("%d step%s", d.TotalCount, s(d.TotalCount)))
+	parts = append(parts, d.Duration.String())
 
 	return []renderEvent{{
 		stream: streamOut,
 		line: c.fmtfMsg(
 			color,
-			"[engine] finished (%d change%s, %d failure%s, %d step%s, %s)",
-			d.ChangedCount, s(d.ChangedCount),
-			d.FailedCount, s(d.FailedCount),
-			d.TotalCount, s(d.TotalCount),
-			d.Duration,
+			"[engine] finished (%s)",
+			strings.Join(parts, ", "),
 		),
 	}}
 }
@@ -755,6 +765,13 @@ func (c *cli) renderActionFinished(e event.ActionEvent) []renderEvent {
 				s.Total,
 			)
 
+		case s.WouldChange > 0:
+			return fmt.Sprintf(
+				"%d/%d ops would change",
+				s.WouldChange,
+				s.Total,
+			)
+
 		default:
 			return "up-to-date"
 		}
@@ -774,7 +791,7 @@ func (c *cli) renderActionFinished(e event.ActionEvent) []renderEvent {
 		color = colActionFinishedFailed
 		glyph = c.glyphs.fatal
 
-	case s.Changed > 0:
+	case s.Changed > 0 || s.WouldChange > 0:
 		color = colActionFinishedChanged
 		glyph = c.glyphs.change
 

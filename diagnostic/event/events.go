@@ -8,11 +8,13 @@ import (
 )
 
 type EngineFinishedDetail struct {
-	ChangedCount int
-	FailedCount  int
-	TotalCount   int
-	Duration     time.Duration
-	Err          error
+	CheckOnly        bool // true for check command, false for apply
+	ChangedCount     int
+	WouldChangeCount int
+	FailedCount      int
+	TotalCount       int
+	Duration         time.Duration
+	Err              error
 }
 
 type PlanStartedDetail struct {

@@ -10,6 +10,7 @@ const (
 	OpFailed
 	OpAborted
 	OpSkipped
+	OpWouldChange // Check passed, would execute if applied
 )
 
 type ExecutionReport struct {
@@ -31,10 +32,11 @@ type OpReport struct {
 	Err    error
 }
 type ActionSummary struct {
-	Total     int
-	Succeeded int
-	Failed    int
-	Aborted   int
-	Skipped   int
-	Changed   int
+	Total       int
+	Succeeded   int
+	Failed      int
+	Aborted     int
+	Skipped     int
+	Changed     int
+	WouldChange int
 }

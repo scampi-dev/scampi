@@ -12,17 +12,17 @@ import (
 	"godoit.dev/doit/util"
 )
 
-func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
+func Check(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
 	e := New(
 		source.LocalPosixSource{},
-		target.LocalPosixTarget{},
+		target.LocalPosixTarget{}, // Need target for Check reads
 		em,
 	)
 
-	return e.Apply(ctx, cfgPath, store)
+	return e.Check(ctx, cfgPath, store)
 }
 
-func (e *Engine) Apply(ctx context.Context, cfgPath string, store *spec.SourceStore) error {
+func (e *Engine) Check(ctx context.Context, cfgPath string, store *spec.SourceStore) error {
 	start := time.Now()
 	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
 
@@ -41,13 +41,13 @@ func (e *Engine) Apply(ctx context.Context, cfgPath string, store *spec.SourceSt
 		return err
 	}
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.CheckPlan(ctx, plan)
 	if err != nil {
 		// fail-fast preserved
 		return err
 	}
 
-	e.em.EmitEngineLifecycle(diagnostic.EngineFinished(rep, time.Since(start), err, false))
+	e.em.EmitEngineLifecycle(diagnostic.EngineFinished(rep, time.Since(start), err, true))
 
 	return nil
 }

@@ -31,9 +31,9 @@ func validateOpReport(r model.OpReport) {
 		if r.Err == nil || r.Result != nil {
 			panic(util.BUG("failed/aborted op must have err only, had result: %+v", r.Result))
 		}
-	case model.OpSkipped:
+	case model.OpSkipped, model.OpWouldChange:
 		if r.Result != nil || r.Err != nil {
-			panic(util.BUG("skipped op must have no result or err"))
+			panic(util.BUG("skipped/would-change op must have no result or err"))
 		}
 	default:
 		panic(util.BUG("unknown op outcome"))
@@ -61,9 +61,10 @@ type scheduler struct {
 	em  diagnostic.Emitter
 
 	// action context
-	actIdx  int
-	actKind string
-	actDesc string
+	actIdx    int
+	actKind   string
+	actDesc   string
+	checkOnly bool // true for check command (affects op event chattiness)
 
 	mu      sync.Mutex
 	results []spec.Result
@@ -139,7 +140,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 
 				s.em.EmitOpLifecycle(diagnostic.OpChecked(
 					s.actIdx, s.actKind, s.actDesc, displayID,
-					res, err,
+					res, err, s.checkOnly,
 				))
 				if impact.Is(diagnostic.ImpactAbort) {
 					s.mu.Lock()
@@ -158,7 +159,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 
 			s.em.EmitOpLifecycle(diagnostic.OpChecked(
 				s.actIdx, s.actKind, s.actDesc, displayID,
-				res, nil,
+				res, nil, s.checkOnly,
 			))
 
 			s.mu.Lock()
@@ -200,6 +201,144 @@ func (e *Engine) ExecutePlan(ctx context.Context, plan spec.Plan) (model.Executi
 		return res, panicIfNotAbortError(err)
 	}
 	return res, nil
+}
+
+func (e *Engine) CheckPlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {
+	res, err := e.checkPlan(ctx, plan)
+	if err != nil {
+		return res, panicIfNotAbortError(err)
+	}
+	return res, nil
+}
+
+func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {
+	var rep model.ExecutionReport
+
+	for i, act := range plan.Unit.Actions {
+		res, err := e.checkAction(ctx, i, act)
+		rep.Actions = append(rep.Actions, res)
+		if err != nil {
+			rep.Err = err
+			return rep, err
+		}
+
+	}
+
+	return rep, nil
+}
+
+func (e *Engine) checkAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {
+	start := time.Now()
+	kind := act.Kind()
+	desc := act.Desc()
+	e.em.EmitActionLifecycle(diagnostic.ActionStarted(idx, kind, desc))
+
+	actCtx, cancel := context.WithTimeout(ctx, actionTimeout)
+	defer cancel()
+
+	res, err := e.runCheckAction(actCtx, idx, act)
+
+	e.em.EmitActionLifecycle(
+		diagnostic.ActionFinished(
+			idx,
+			kind,
+			desc,
+			res.Summary,
+			time.Since(start),
+			err,
+		),
+	)
+
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+func (e *Engine) runCheckAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {
+	nodes, planErr := buildPlan(act.Ops())
+	if planErr != nil {
+		return model.ActionReport{}, planErr
+	}
+
+	s := &scheduler{
+		src:       e.src,
+		tgt:       e.tgt,
+		em:        e.em,
+		actIdx:    idx,
+		actKind:   act.Kind(),
+		actDesc:   act.Desc(),
+		checkOnly: true,
+	}
+	s.grp, s.ctx = errgroup.WithContext(ctx)
+
+	checkErr := s.runChecks(nodes)
+
+	// Unlike executeAction, we do NOT run the execution phase
+	// Mark unsatisfied ops as OpWouldChange
+	for _, n := range nodes {
+		if n.outcome == opOutcomeUnknown {
+			if checkErr != nil {
+				n.outcome = model.OpAborted
+				n.err = checkErr
+			} else if !n.satisfied {
+				n.outcome = model.OpWouldChange
+			}
+		}
+	}
+
+	// Enforce invariant: every op MUST have an outcome
+	for _, n := range nodes {
+		if n.outcome == opOutcomeUnknown {
+			panic(util.BUG("op left without outcome"))
+		}
+	}
+
+	var err error
+	if checkErr != nil {
+		impact, consumed := emitActionDiagnostic(e.em, idx, act.Kind(), act.Desc(), checkErr)
+		if impact.Is(diagnostic.ImpactAbort) {
+			err = AbortError{Causes: []error{checkErr}}
+		} else if !consumed {
+			err = checkErr
+		}
+	}
+
+	// Build ActionReport
+	var rep model.ActionReport
+	rep.Action = act
+
+	for _, n := range nodes {
+		or := model.OpReport{
+			Op:      n.op,
+			Outcome: n.outcome,
+			Result:  n.result,
+			Err:     n.err,
+		}
+		validateOpReport(or)
+		rep.Ops = append(rep.Ops, or)
+
+		rep.Summary.Total++
+
+		switch n.outcome {
+		case model.OpSucceeded:
+			rep.Summary.Succeeded++
+			if n.result != nil && n.result.Changed {
+				rep.Summary.Changed++
+			}
+		case model.OpFailed:
+			rep.Summary.Failed++
+		case model.OpAborted:
+			rep.Summary.Aborted++
+		case model.OpSkipped:
+			rep.Summary.Skipped++
+		case model.OpWouldChange:
+			rep.Summary.WouldChange++
+		}
+	}
+
+	return rep, err
 }
 
 func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {

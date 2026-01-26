@@ -69,6 +69,7 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			applyCmd(),
+			checkCmd(),
 			planCmd(),
 		},
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
@@ -148,6 +149,63 @@ changes when the current state differs from the declared state.`,
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
 					panic(util.BUG("engine.Apply returned unexpected error: %w", err))
+				}
+
+				return cli.Exit("", exitUserError)
+			}
+
+			return nil
+		},
+	}
+}
+
+func checkCmd() *cli.Command {
+	var cfg string
+
+	return &cli.Command{
+		Name:                   "check",
+		Usage:                  "Check what would change without applying",
+		UseShortOptionHandling: true,
+		Suggest:                true,
+		HideHelp:               false,
+		Arguments: []cli.Argument{
+			&cli.StringArg{
+				Name:        "config",
+				Config:      cli.StringConfig{TrimSpace: true},
+				Destination: &cfg,
+			},
+		},
+		ArgsUsage: "<config>",
+		Description: `Reads a declarative configuration file and checks what
+would need to change to converge the system into the desired state.
+
+Unlike 'plan', this command inspects the target system to determine
+which operations are already satisfied and which would need to execute.
+No changes are made to the system.`,
+		Before: requireArgs(1),
+		Action: func(ctx context.Context, _ *cli.Command) error {
+			opts := mustGlobalOpts(ctx)
+
+			pol := diagnostic.Policy{
+				WarningsAsErrors: false,
+				Verbosity:        opts.verbosity,
+			}
+
+			store := spec.NewSourceStore()
+
+			displ := newDisplayer(opts, store)
+			defer func() {
+				displ.Close()
+				recoverAndReport(recover())
+			}()
+
+			em := diagnostic.NewEmitter(pol, displ)
+			err := engine.Check(ctx, em, cfg, store)
+			if err != nil {
+				var abort engine.AbortError
+				if !errors.As(err, &abort) {
+					// Engine violated its contract: unexpected error
+					panic(util.BUG("engine.Check returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)

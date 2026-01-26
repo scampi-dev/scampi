@@ -12,11 +12,12 @@ func _() {
 	_ = x[OpFailed-1]
 	_ = x[OpAborted-2]
 	_ = x[OpSkipped-3]
+	_ = x[OpWouldChange-4]
 }
 
-const _OpOutcome_name = "OpSucceededOpFailedOpAbortedOpSkipped"
+const _OpOutcome_name = "OpSucceededOpFailedOpAbortedOpSkippedOpWouldChange"
 
-var _OpOutcome_index = [...]uint8{0, 11, 19, 28, 37}
+var _OpOutcome_index = [...]uint8{0, 11, 19, 28, 37, 50}
 
 func (i OpOutcome) String() string {
 	if i >= OpOutcome(len(_OpOutcome_index)-1) {
