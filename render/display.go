@@ -35,6 +35,9 @@ type Displayer interface {
 	EmitActionLifecycle(e event.ActionEvent)
 	EmitOpLifecycle(e event.OpEvent)
 
+	EmitIndexAll(e event.IndexAllEvent)
+	EmitIndexStep(e event.IndexStepEvent)
+
 	EmitEngineDiagnostic(e event.EngineDiagnostic)
 	EmitPlanDiagnostic(e event.PlanDiagnostic)
 	EmitActionDiagnostic(e event.ActionDiagnostic)

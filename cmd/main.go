@@ -71,6 +71,7 @@ func main() {
 			applyCmd(),
 			checkCmd(),
 			planCmd(),
+			indexCmd(),
 		},
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 			ascii := cmd.Bool(flagASCII)
@@ -270,6 +271,68 @@ does not inspect or modify the target system.`,
 
 			return nil
 		},
+	}
+}
+
+func indexCmd() *cli.Command {
+	return &cli.Command{
+		Name:                   "index",
+		Usage:                  "List available steps and their documentation",
+		UseShortOptionHandling: true,
+		Suggest:                true,
+		HideHelp:               false,
+		ArgsUsage:              "[step]",
+		Description: `Prints the index of steps supported by the engine.
+
+Without arguments, the command lists all available steps with a short
+description. When a step name is provided, detailed documentation is
+shown, including fields, behavior, and examples.`,
+		Before: requireMaxArgs(1),
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			opts := mustGlobalOpts(ctx)
+
+			pol := diagnostic.Policy{
+				WarningsAsErrors: false,
+				Verbosity:        opts.verbosity,
+			}
+
+			displ := newDisplayer(opts, nil)
+			defer func() {
+				displ.Close()
+				recoverAndReport(recover())
+			}()
+
+			em := diagnostic.NewEmitter(pol, displ)
+			args := cmd.Args()
+
+			var err error
+			if args.Len() == 0 {
+				err = engine.IndexAll(ctx, em)
+			} else {
+				err = engine.IndexStep(ctx, args.First(), em)
+			}
+
+			if err != nil {
+				var abort engine.AbortError
+				if !errors.As(err, &abort) {
+					// Engine violated its contract: unexpected error
+					panic(util.BUG("engine.Index returned unexpected error: %w", err))
+				}
+
+				return cli.Exit("", exitUserError)
+			}
+
+			return nil
+		},
+	}
+}
+
+func requireMaxArgs(n int) func(context.Context, *cli.Command) (context.Context, error) {
+	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		if cmd.Args().Len() > n {
+			cli.ShowSubcommandHelpAndExit(cmd, exitUserError)
+		}
+		return ctx, nil
 	}
 }
 

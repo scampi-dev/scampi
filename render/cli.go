@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/x/term"
 	"godoit.dev/doit/diagnostic/event"
@@ -57,6 +59,7 @@ type (
 		fatal  string
 		hint   string
 		help   string
+		bullet string
 
 		// plan rails
 		planStart            string
@@ -149,6 +152,7 @@ var (
 		fatal:  "󰚌",
 		hint:   "󰌵",
 		help:   "󰋖",
+		bullet: "•",
 
 		// plan rails
 		planStart:            "┌─┬",
@@ -175,6 +179,7 @@ var (
 		fatal:  "X",
 		hint:   "?",
 		help:   "i",
+		bullet: "*",
 
 		// Plan rails
 		planStart:            "+--",
@@ -323,6 +328,182 @@ func (c *cli) EmitOpLifecycle(e event.OpEvent) {
 		panic(util.BUG("OP LC %q", e.Kind))
 
 	}
+}
+
+func (c *cli) EmitIndexAll(e event.IndexAllEvent) {
+	if !c.shouldRender(e.Chattiness) {
+		return
+	}
+
+	maxKindWidth := func(steps []event.StepIndexDetail) int {
+		maxLen := 0
+		for _, s := range steps {
+			if w := utf8.RuneCountInString(s.Kind); w > maxLen {
+				maxLen = w
+			}
+		}
+		return maxLen
+	}
+	ansiRE := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+	visibleLen := func(s string) int {
+		return utf8.RuneCountInString(ansiRE.ReplaceAllString(s, ""))
+	}
+
+	padRight := func(s string, width int) string {
+		n := width - visibleLen(s)
+		if n <= 0 {
+			return s
+		}
+		return s + strings.Repeat(" ", n)
+	}
+
+	kindWidth := maxKindWidth(e.Steps)
+
+	var events []renderEvent
+
+	// Header
+	events = append(events, renderEvent{
+		line:   c.fmtMsg(ansi.BrightBlack(), "AVAILABLE STEPS"),
+		stream: streamOut,
+	})
+	events = append(events, renderEvent{
+		line:   "",
+		stream: streamOut,
+	})
+
+	// Step list with indentation
+	for _, step := range e.Steps {
+		kind := c.fmtMsg(ansi.BrightCyan().Bold(), step.Kind)
+		desc := c.fmtMsg(ansi.White(), step.Desc)
+
+		line := fmt.Sprintf("  %s  %s", padRight(kind, kindWidth), desc)
+
+		events = append(events, renderEvent{
+			line:   line,
+			stream: streamOut,
+		})
+	}
+
+	// Footer hint
+	events = append(events, renderEvent{
+		line:   "",
+		stream: streamOut,
+	})
+	events = append(events, renderEvent{
+		line:   c.fmtMsg(ansi.BrightBlack(), "Use 'doit index <step>' for details."),
+		stream: streamOut,
+	})
+
+	c.commitRenderEvents(events)
+}
+
+func (c *cli) EmitIndexStep(e event.IndexStepEvent) {
+	if !c.shouldRender(e.Chattiness) {
+		return
+	}
+
+	doc := e.Doc
+	var events []renderEvent
+
+	// Header: step name
+	events = append(events, renderEvent{
+		line:   c.fmtMsg(ansi.BrightCyan().Bold(), strings.ToUpper(doc.Kind)),
+		stream: streamOut,
+	})
+
+	// Summary
+	if doc.Summary != "" {
+		events = append(events, renderEvent{
+			line:   "",
+			stream: streamOut,
+		})
+		events = append(events, renderEvent{
+			line:   c.fmtMsg(ansi.White(), "  "+doc.Summary),
+			stream: streamOut,
+		})
+	}
+
+	// Fields section
+	if len(doc.Fields) > 0 {
+		events = append(events, renderEvent{
+			line:   "",
+			stream: streamOut,
+		})
+		events = append(events, renderEvent{
+			line:   c.fmtMsg(ansi.BrightBlack(), "FIELDS"),
+			stream: streamOut,
+		})
+		events = append(events, renderEvent{
+			line:   "",
+			stream: streamOut,
+		})
+
+		// Calculate column widths for alignment
+		nameW, typeW, reqW := 0, 0, 8 // "required" or "optional"
+		for _, f := range doc.Fields {
+			if len(f.Name) > nameW {
+				nameW = len(f.Name)
+			}
+			if len(f.Type) > typeW {
+				typeW = len(f.Type)
+			}
+		}
+
+		for _, f := range doc.Fields {
+			reqStr := "optional"
+			if f.Required {
+				reqStr = "required"
+			}
+
+			line := fmt.Sprintf("  %-*s   %-*s   %-*s   %s",
+				nameW, f.Name,
+				typeW, f.Type,
+				reqW, reqStr,
+				f.Desc,
+			)
+			events = append(events, renderEvent{
+				line:   c.fmtMsg(ansi.White(), line),
+				stream: streamOut,
+			})
+		}
+	}
+
+	// Examples (only with -v, for now we always show if present)
+	if len(doc.Examples) > 0 && c.opts.Verbosity >= signal.V {
+		events = append(events, renderEvent{
+			line:   "",
+			stream: streamOut,
+		})
+		events = append(events, renderEvent{
+			line:   c.fmtMsg(ansi.BrightBlack(), "EXAMPLE"),
+			stream: streamOut,
+		})
+		events = append(events, renderEvent{
+			line:   "",
+			stream: streamOut,
+		})
+
+		for _, example := range doc.Examples {
+			for l := range strings.SplitSeq(example, "\n") {
+				events = append(events, renderEvent{
+					line:   c.fmtMsg(ansi.BrightBlue(), "  "+l),
+					stream: streamOut,
+				})
+			}
+		}
+	} else if len(doc.Examples) > 0 {
+		events = append(events, renderEvent{
+			line:   "",
+			stream: streamOut,
+		})
+		events = append(events, renderEvent{
+			line:   c.fmtMsg(ansi.BrightBlack(), "Use -v to see examples."),
+			stream: streamOut,
+		})
+	}
+
+	c.commitRenderEvents(events)
 }
 
 func (c *cli) Close() {
@@ -906,9 +1087,14 @@ func (c *cli) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 		return
 	}
 
+	context := ""
+	if e.CfgPath != "" {
+		context = fmt.Sprintf(` in file %q`, e.CfgPath)
+	}
+
 	c.renderDiagnostic(
 		"engine.error",
-		fmt.Sprintf(` in file %q`, e.CfgPath),
+		context,
 		e.Detail.Template,
 	)
 }
@@ -1091,7 +1277,7 @@ func (c *cli) fmtTemplate(tmpl event.Template, prefix, msg string, glyph string,
 }
 
 func (c *cli) renderSnippet(src *spec.SourceSpan) (string, bool) {
-	if src == nil {
+	if src == nil || c.store == nil {
 		return "", false
 	}
 

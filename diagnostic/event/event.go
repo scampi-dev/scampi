@@ -57,6 +57,20 @@ type OpEvent struct {
 	Chattiness    Chattiness
 }
 
+type IndexAllEvent struct {
+	Time       time.Time
+	Steps      []StepIndexDetail
+	Severity   signal.Severity
+	Chattiness Chattiness
+}
+
+type IndexStepEvent struct {
+	Time       time.Time
+	Doc        spec.StepDoc
+	Severity   signal.Severity
+	Chattiness Chattiness
+}
+
 type EngineDiagnostic struct {
 	Time       time.Time
 	CfgPath    string

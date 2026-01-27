@@ -67,6 +67,11 @@ type OpExecuteDetail struct {
 	Err      error
 }
 
+type StepIndexDetail struct {
+	Kind string
+	Desc string
+}
+
 type DiagnosticDetail struct {
 	Template Template
 }

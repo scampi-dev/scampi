@@ -327,3 +327,24 @@ func (e CuePanic) EventTemplate() event.Template {
 
 func (CuePanic) Severity() signal.Severity { return signal.Error }
 func (CuePanic) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
+// UnknownIndexKind is emitted when a user requests documentation for an unknown step kind.
+type UnknownIndexKind struct {
+	Kind string
+}
+
+func (e UnknownIndexKind) Error() string {
+	return fmt.Sprintf("unknown step kind %q", e.Kind)
+}
+
+func (e UnknownIndexKind) EventTemplate() event.Template {
+	return event.Template{
+		ID:   "index.UnknownKind",
+		Text: `unknown step kind "{{.Kind}}"`,
+		Hint: "use 'doit index' to list available step types",
+		Data: e,
+	}
+}
+
+func (UnknownIndexKind) Severity() signal.Severity { return signal.Error }
+func (UnknownIndexKind) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }

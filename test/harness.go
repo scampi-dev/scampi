@@ -47,10 +47,12 @@ type (
 	planEvents         []event.PlanEvent
 	actionEvents       []event.ActionEvent
 	opEvents           []event.OpEvent
+	indexAllEvents     []event.IndexAllEvent
 	engineDiagnostics  []event.EngineDiagnostic
 	planDiagnostics    []event.PlanDiagnostic
 	actionDiagnostics  []event.ActionDiagnostic
 	opDiagnostics      []event.OpDiagnostic
+	indexStepEvents    []event.IndexStepEvent
 	recordingDisplayer struct {
 		mu                sync.Mutex
 		engineEvents      engineEvents
@@ -61,6 +63,8 @@ type (
 		planDiagnostics   planDiagnostics
 		actionDiagnostics actionDiagnostics
 		opDiagnostics     opDiagnostics
+		indexAllEvents    indexAllEvents
+		indexStepEvents   indexStepEvents
 	}
 	noopEmitter struct{}
 )
@@ -113,6 +117,18 @@ func (r *recordingDisplayer) EmitOpDiagnostic(e event.OpDiagnostic) {
 	r.opDiagnostics = append(r.opDiagnostics, e)
 }
 
+func (r *recordingDisplayer) EmitIndexAll(e event.IndexAllEvent) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.indexAllEvents = append(r.indexAllEvents, e)
+}
+
+func (r *recordingDisplayer) EmitIndexStep(e event.IndexStepEvent) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.indexStepEvents = append(r.indexStepEvents, e)
+}
+
 func (r *recordingDisplayer) Close() {}
 
 func (r *recordingDisplayer) String() string {
@@ -120,6 +136,8 @@ func (r *recordingDisplayer) String() string {
 		r.planEvents.String() + "\n" +
 		r.actionEvents.String() + "\n" +
 		r.opEvents.String() + "\n" +
+		r.indexAllEvents.String() + "\n" +
+		r.indexStepEvents.String() + "\n" +
 		r.engineDiagnostics.String() + "\n" +
 		r.planDiagnostics.String() + "\n" +
 		r.actionDiagnostics.String() + "\n" +
@@ -163,6 +181,24 @@ func (e opEvents) String() string {
 		panic(err)
 	}
 	return "----- OP EVENTS -----\n" +
+		string(j)
+}
+
+func (e indexAllEvents) String() string {
+	j, err := json.MarshalIndent(e, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return "----- INDEX_ALL EVENTS -----\n" +
+		string(j)
+}
+
+func (e indexStepEvents) String() string {
+	j, err := json.MarshalIndent(e, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	return "----- INDEX_STEP EVENTS -----\n" +
 		string(j)
 }
 
@@ -210,6 +246,8 @@ func (noopEmitter) EmitEngineDiagnostic(event.EngineDiagnostic) {}
 func (noopEmitter) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
 func (noopEmitter) EmitActionDiagnostic(event.ActionDiagnostic) {}
 func (noopEmitter) EmitOpDiagnostic(event.OpDiagnostic)         {}
+func (noopEmitter) EmitIndexAll(event.IndexAllEvent)            {}
+func (noopEmitter) EmitIndexStep(event.IndexStepEvent)          {}
 
 type (
 	checkFn func(context.Context, source.Source, target.Target) (spec.CheckResult, error)

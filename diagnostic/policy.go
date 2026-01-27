@@ -52,6 +52,16 @@ func (p *policyEmitter) EmitOpLifecycle(ev event.OpEvent) {
 	p.out.EmitOpLifecycle(ev)
 }
 
+func (p *policyEmitter) EmitIndexAll(ev event.IndexAllEvent) {
+	ev.Severity = p.pol.apply(ev.Severity)
+	p.out.EmitIndexAll(ev)
+}
+
+func (p *policyEmitter) EmitIndexStep(ev event.IndexStepEvent) {
+	ev.Severity = p.pol.apply(ev.Severity)
+	p.out.EmitIndexStep(ev)
+}
+
 func (p *policyEmitter) EmitEngineDiagnostic(ev event.EngineDiagnostic) {
 	ev.Severity = p.pol.apply(ev.Severity)
 	p.out.EmitEngineDiagnostic(ev)

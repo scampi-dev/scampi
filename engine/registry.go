@@ -32,3 +32,12 @@ func (r *Registry) StepType(kind string) (spec.StepType, bool) {
 	step, ok := r.types[kind]
 	return step, ok
 }
+
+// StepTypes returns all registered step types.
+func (r *Registry) StepTypes() []spec.StepType {
+	stepTypes := make([]spec.StepType, 0, len(r.types))
+	for _, stepType := range r.types {
+		stepTypes = append(stepTypes, stepType)
+	}
+	return stepTypes
+}
