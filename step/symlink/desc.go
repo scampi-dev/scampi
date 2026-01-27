@@ -11,7 +11,7 @@ type ensureSymlinkDesc struct {
 
 func (d ensureSymlinkDesc) PlanTemplate() spec.PlanTemplate {
 	return spec.PlanTemplate{
-		ID:   "plan.symlink.ensure",
+		ID:   "builtin.symlink",
 		Text: `symlink "{{.Link}}" -> "{{.Target}}"`,
 		Data: d,
 	}
