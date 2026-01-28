@@ -3,10 +3,10 @@ package copy
 import (
 	"io/fs"
 
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/step/sharedops"
 	"godoit.dev/doit/step/sharedops/fileops"
-	"godoit.dev/doit/util"
 )
 
 type (
@@ -38,7 +38,7 @@ func (Copy) NewConfig() any { return &CopyConfig{} }
 func (c Copy) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*CopyConfig)
 	if !ok {
-		return nil, util.BUG("expected %T got %T", &CopyConfig{}, step.Config)
+		return nil, errs.BUG("expected %T got %T", &CopyConfig{}, step.Config)
 	}
 
 	mode, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)

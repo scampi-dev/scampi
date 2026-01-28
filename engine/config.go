@@ -22,9 +22,9 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"godoit.dev/doit"
 	"godoit.dev/doit/diagnostic"
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/util"
 )
 
 type overlayFS struct {
@@ -140,7 +140,7 @@ type sourceFS struct {
 
 func (s sourceFS) Open(name string) (fs.File, error) {
 	if strings.HasPrefix(name, "/") {
-		return nil, util.BUG("fs.FS received absolute path %q", name)
+		return nil, errs.BUG("fs.FS received absolute path %q", name)
 	}
 
 	p := "/" + name
@@ -228,7 +228,7 @@ func loadConfigWithSourceUnsafe(
 
 	embFS, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
 	if err != nil {
-		panic(util.BUG("embedded schema FS corrupted: %w", err))
+		panic(errs.BUG("embedded schema FS corrupted: %w", err))
 	}
 
 	// One loader config for both schema and user config
@@ -248,13 +248,13 @@ func loadConfigWithSourceUnsafe(
 
 	userInstances := load.Instances([]string{cfgPath}, loaderCfg)
 	if len(userInstances) == 0 {
-		panic(util.BUG("load.Instances returned zero instances for '%s'", cfgPath))
+		panic(errs.BUG("load.Instances returned zero instances for '%s'", cfgPath))
 	}
 	userInstance := userInstances[0]
 	if err := userInstance.Err; err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.Instances returned an unexpected error for cfgPath %q: %w",
 				cfgPath,
 				err,
@@ -271,7 +271,7 @@ func loadConfigWithSourceUnsafe(
 	if err := userInst.Err(); err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.BuildUserInstance returned an unexpected error for cfgPath %q: %w",
 				cfgPath,
 				err,
@@ -286,12 +286,12 @@ func loadConfigWithSourceUnsafe(
 
 	coreInstances := load.Instances([]string{"godoit.dev/doit/core"}, loaderCfg)
 	if len(coreInstances) == 0 {
-		panic(util.BUG("load.Instances returned zero core-instances"))
+		panic(errs.BUG("load.Instances returned zero core-instances"))
 	}
 	if err := coreInstances[0].Err; err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.CoreInstances returned an unexpected error for cfgPath %q: %w",
 				cfgPath,
 				err,
@@ -308,7 +308,7 @@ func loadConfigWithSourceUnsafe(
 	if err := coreInst.Err(); err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.BuildCoreInstance returned an unexpected error for cfgPath %q: %w",
 				cfgPath,
 				err,
@@ -327,7 +327,7 @@ func loadConfigWithSourceUnsafe(
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
 			// unexpected validation failure → engine error
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.Unify failed with an unaccounted-for error-type %T: %w",
 				err,
 				err,
@@ -373,7 +373,7 @@ func loadConfigWithSourceUnsafe(
 	if err := stepsVal.Err(); err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.LookupStepsPath failed with an unaccounted-for error-type %T: %w",
 				err,
 				err,
@@ -388,7 +388,7 @@ func loadConfigWithSourceUnsafe(
 
 	iter, err := stepsVal.List()
 	if err != nil {
-		panic(util.BUG("steps is not a list after schema unification: %w", err))
+		panic(errs.BUG("steps is not a list after schema unification: %w", err))
 	}
 
 	cfg := spec.Config{
@@ -430,7 +430,7 @@ func decodeUnit(
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
 			// unexpected validation failure → engine error
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.LookupUnitPath failed with an unaccounted-for error-type %T: %w",
 				err,
 				err,
@@ -457,7 +457,7 @@ func decodeUnit(
 	if err := unitVal.Validate(cue.Concrete(true), cue.All()); err != nil {
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
-			panic(util.BUG(
+			panic(errs.BUG(
 				"load.ValidateUnit failed with an unaccounted-for error-type %T: %w",
 				err,
 				err,
@@ -505,7 +505,7 @@ func decodeUnit(
 	if err := unitVal.Decode(&unitInst); err != nil {
 		// If Validate passed, Decode MUST NOT fail.
 		// This is a hard invariant violation.
-		panic(util.BUG(
+		panic(errs.BUG(
 			"unitVal.Decode failed after successful validation: %w",
 			err,
 		))
@@ -530,7 +530,7 @@ func decodeStep(
 	kind, desc, err := resolveStepKind(stepVal, stepIdx)
 	if err != nil {
 		// engine/schema error – cannot continue safely
-		panic(util.BUG(
+		panic(errs.BUG(
 			"resolveStepKind returned an unexpected error for step %q (%s): %w",
 			desc,
 			kind,
@@ -557,7 +557,7 @@ func decodeStep(
 	tCfg := st.NewConfig()
 	rv := reflect.ValueOf(tCfg)
 	if rv.Kind() != reflect.Pointer {
-		panic(util.BUG(
+		panic(errs.BUG(
 			"StepType['%s'].NewConfig() must return a pointer (got %T)",
 			st.Kind(),
 			tCfg,
@@ -570,7 +570,7 @@ func decodeStep(
 		var ce cueerr.Error
 		if !errors.As(err, &ce) {
 			// unexpected validation failure → engine error
-			panic(util.BUG(
+			panic(errs.BUG(
 				"stepVal.Validate failed with an unaccounted-for error-type %T for step %q (%s): %w",
 				err,
 				desc,
@@ -616,7 +616,7 @@ func decodeStep(
 	if err := stepVal.Decode(tCfg); err != nil {
 		// If Validate passed, Decode MUST NOT fail.
 		// This is a hard invariant violation.
-		panic(util.BUG(
+		panic(errs.BUG(
 			"stepVal.Decode failed after successful validation for step %q (%s): %w",
 			desc,
 			kind,

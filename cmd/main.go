@@ -18,11 +18,11 @@ import (
 	"github.com/urfave/cli/v3"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/engine"
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/osutil"
 	"godoit.dev/doit/render"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/util"
 )
 
 const (
@@ -149,7 +149,7 @@ changes when the current state differs from the declared state.`,
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
-					panic(util.BUG("engine.Apply returned unexpected error: %w", err))
+					panic(errs.BUG("engine.Apply returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)
@@ -206,7 +206,7 @@ the actual system state.`,
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
-					panic(util.BUG("engine.Check returned unexpected error: %w", err))
+					panic(errs.BUG("engine.Check returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)
@@ -263,7 +263,7 @@ does not inspect or modify the target system.`,
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
-					panic(util.BUG("engine.Apply returned unexpected error: %w", err))
+					panic(errs.BUG("engine.Apply returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)
@@ -316,7 +316,7 @@ shown, including fields, behavior, and examples.`,
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
-					panic(util.BUG("engine.Index returned unexpected error: %w", err))
+					panic(errs.BUG("engine.Index returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)
@@ -356,7 +356,7 @@ func parseColorMode(cmd *cli.Command) (signal.ColorMode, error) {
 	case "never":
 		return signal.ColorNever, nil
 	default:
-		return 0, util.Errorf("invalid --color value %q (expected auto, always, or never)", s)
+		return 0, errs.Errorf("invalid --color value %q (expected auto, always, or never)", s)
 	}
 }
 

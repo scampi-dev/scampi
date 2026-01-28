@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"godoit.dev/doit/diagnostic"
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/model"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/util"
 )
 
 func Plan(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
@@ -28,7 +28,7 @@ func (e *Engine) Plan(ctx context.Context, cfgPath string, store *spec.SourceSto
 
 	cfgPath, err := filepath.Abs(cfgPath)
 	if err != nil {
-		panic(util.BUG("filepath.Abs() failed: %w", err))
+		panic(errs.BUG("filepath.Abs() failed: %w", err))
 	}
 
 	cfg, err := LoadConfigWithSource(ctx, e.em, cfgPath, store, e.src)

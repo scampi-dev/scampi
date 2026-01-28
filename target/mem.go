@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"godoit.dev/doit/util"
+	"godoit.dev/doit/errs"
 )
 
 type MemTarget struct {
@@ -35,7 +35,7 @@ func (m *MemTarget) ReadFile(_ context.Context, path string) ([]byte, error) {
 
 	data, ok := m.Files[path]
 	if !ok {
-		return nil, util.WrapErrf(ErrNotExist, "%q", path)
+		return nil, errs.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	cp := make([]byte, len(data))
@@ -71,7 +71,7 @@ func (m *MemTarget) Stat(_ context.Context, path string) (fs.FileInfo, error) {
 
 	data, ok := m.Files[path]
 	if !ok {
-		return nil, util.WrapErrf(ErrNotExist, "%q", path)
+		return nil, errs.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	mode := m.Modes[path]
@@ -90,7 +90,7 @@ func (m *MemTarget) Chmod(_ context.Context, path string, mode fs.FileMode) erro
 	defer m.mu.Unlock()
 
 	if _, ok := m.Files[path]; !ok {
-		return util.WrapErrf(ErrNotExist, "%q", path)
+		return errs.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	m.Modes[path] = mode
@@ -103,7 +103,7 @@ func (m *MemTarget) Chown(_ context.Context, path string, owner Owner) error {
 	defer m.mu.Unlock()
 
 	if _, ok := m.Files[path]; !ok {
-		return util.WrapErrf(ErrNotExist, "%q", path)
+		return errs.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	m.Owners[path] = owner
@@ -123,7 +123,7 @@ func (m *MemTarget) GetOwner(_ context.Context, path string) (Owner, error) {
 	defer m.mu.RUnlock()
 
 	if _, ok := m.Files[path]; !ok {
-		return Owner{}, util.WrapErrf(ErrNotExist, "%q", path)
+		return Owner{}, errs.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	return m.Owners[path], nil
@@ -153,7 +153,7 @@ func (m *MemTarget) Lstat(_ context.Context, path string) (fs.FileInfo, error) {
 	// Fall back to regular file
 	data, ok := m.Files[path]
 	if !ok {
-		return nil, util.WrapErrf(ErrNotExist, "%q", path)
+		return nil, errs.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	mode := m.Modes[path]
@@ -173,7 +173,7 @@ func (m *MemTarget) Readlink(_ context.Context, path string) (string, error) {
 
 	target, ok := m.Symlinks[path]
 	if !ok {
-		return "", util.WrapErrf(ErrNotExist, "%q", path)
+		return "", errs.WrapErrf(ErrNotExist, "%q", path)
 	}
 
 	return target, nil
@@ -206,7 +206,7 @@ func (m *MemTarget) Remove(_ context.Context, path string) error {
 		return nil
 	}
 
-	return util.WrapErrf(ErrNotExist, "%q", path)
+	return errs.WrapErrf(ErrNotExist, "%q", path)
 }
 
 type memFileInfo struct {

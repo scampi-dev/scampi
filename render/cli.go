@@ -13,12 +13,12 @@ import (
 
 	"github.com/charmbracelet/x/term"
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/model"
 	"godoit.dev/doit/render/ansi"
 	"godoit.dev/doit/render/template"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/util"
 )
 
 type (
@@ -251,7 +251,7 @@ func (c *cli) commitRenderEvents(events []renderEvent) {
 	// fit lines before committing to draw loop
 	for i := range events {
 		if strings.ContainsAny(events[i].line, "\n\r") {
-			panic(util.BUG("renderEvent.line must neither contain '\\n' nor '\\r'"))
+			panic(errs.BUG("renderEvent.line must neither contain '\\n' nor '\\r'"))
 		}
 		events[i].line = fitLine(events[i].line, c.width)
 		if c.shouldUseColor() {
@@ -272,7 +272,7 @@ func (c *cli) EmitEngineLifecycle(e event.EngineEvent) {
 	case event.EngineFinished:
 		c.commitRenderEvents(c.renderEngineFinished(e))
 	default:
-		panic(util.BUG("unknown engine event kind %q (0x%02x)", e.Kind, uint8(e.Kind)))
+		panic(errs.BUG("unknown engine event kind %q (0x%02x)", e.Kind, uint8(e.Kind)))
 	}
 }
 
@@ -291,7 +291,7 @@ func (c *cli) EmitPlanLifecycle(e event.PlanEvent) {
 	case event.PlanProduced:
 		c.commitRenderEvents(c.renderPlan(e))
 	default:
-		panic(util.BUG("unknown plan event kind %q (0x%02x)", e.Kind, uint8(e.Kind)))
+		panic(errs.BUG("unknown plan event kind %q (0x%02x)", e.Kind, uint8(e.Kind)))
 	}
 }
 
@@ -306,7 +306,7 @@ func (c *cli) EmitActionLifecycle(e event.ActionEvent) {
 	case event.ActionFinished:
 		c.commitRenderEvents(c.renderActionFinished(e))
 	default:
-		panic(util.BUG("unknown action event kind %q (0x%02x)", e.Kind, uint8(e.Kind)))
+		panic(errs.BUG("unknown action event kind %q (0x%02x)", e.Kind, uint8(e.Kind)))
 	}
 }
 
@@ -325,7 +325,7 @@ func (c *cli) EmitOpLifecycle(e event.OpEvent) {
 	case event.OpExecuted:
 		c.commitRenderEvents(c.renderOpExecuted(e))
 	default:
-		panic(util.BUG("OP LC %q", e.Kind))
+		panic(errs.BUG("OP LC %q", e.Kind))
 
 	}
 }

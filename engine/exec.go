@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"godoit.dev/doit/diagnostic"
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/model"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
-	"godoit.dev/doit/util"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,18 +25,18 @@ func validateOpReport(r model.OpReport) {
 	switch r.Outcome {
 	case model.OpSucceeded:
 		if r.Result == nil || r.Err != nil {
-			panic(util.BUG("succeeded op must have result only, had error: %w", r.Err))
+			panic(errs.BUG("succeeded op must have result only, had error: %w", r.Err))
 		}
 	case model.OpFailed, model.OpAborted:
 		if r.Err == nil || r.Result != nil {
-			panic(util.BUG("failed/aborted op must have err only, had result: %+v", r.Result))
+			panic(errs.BUG("failed/aborted op must have err only, had result: %+v", r.Result))
 		}
 	case model.OpSkipped, model.OpWouldChange:
 		if r.Result != nil || r.Err != nil {
-			panic(util.BUG("skipped/would-change op must have no result or err"))
+			panic(errs.BUG("skipped/would-change op must have no result or err"))
 		}
 	default:
-		panic(util.BUG("unknown op outcome"))
+		panic(errs.BUG("unknown op outcome"))
 	}
 }
 
@@ -291,7 +291,7 @@ func (e *Engine) runCheckAction(ctx context.Context, idx int, act spec.Action) (
 	// Enforce invariant: every op MUST have an outcome
 	for _, n := range nodes {
 		if n.outcome == opOutcomeUnknown {
-			panic(util.BUG("op left without outcome"))
+			panic(errs.BUG("op left without outcome"))
 		}
 	}
 
@@ -435,7 +435,7 @@ func (e *Engine) runAction(ctx context.Context, idx int, act spec.Action) (model
 	// Enforce invariant: every op MUST have an outcome
 	for _, n := range nodes {
 		if n.outcome == opOutcomeUnknown {
-			panic(util.BUG("op left without outcome"))
+			panic(errs.BUG("op left without outcome"))
 		}
 	}
 
@@ -499,7 +499,7 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 		for _, dep := range n.op.DependsOn() {
 			dn, ok := nodes[dep]
 			if !ok {
-				panic(util.BUG(
+				panic(errs.BUG(
 					"op %p depends on unknown op %p (StepType implementation error)",
 					n.op, dep,
 				))
@@ -538,7 +538,7 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 	}
 
 	if visited != len(nodes) {
-		panic(util.BUG("cycle detected in op graph (StepType implementation error)"))
+		panic(errs.BUG("cycle detected in op graph (StepType implementation error)"))
 	}
 
 	for _, n := range nodes {

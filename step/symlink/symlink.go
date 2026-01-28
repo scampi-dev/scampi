@@ -5,10 +5,10 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
-	"godoit.dev/doit/util"
 )
 
 type (
@@ -34,7 +34,7 @@ func (Symlink) NewConfig() any { return &SymlinkConfig{} }
 func (s Symlink) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*SymlinkConfig)
 	if !ok {
-		return nil, util.BUG("expected %T got %T", &SymlinkConfig{}, step.Config)
+		return nil, errs.BUG("expected %T got %T", &SymlinkConfig{}, step.Config)
 	}
 
 	return &symlinkAction{

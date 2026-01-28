@@ -9,8 +9,8 @@ import (
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 	"godoit.dev/doit"
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/util"
 )
 
 // LoadStepDoc extracts documentation from the CUE schema for a step type.
@@ -20,7 +20,7 @@ func LoadStepDoc(kind string) spec.StepDoc {
 
 	embFS, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
 	if err != nil {
-		panic(util.BUG("embedded schema FS corrupted: %w", err))
+		panic(errs.BUG("embedded schema FS corrupted: %w", err))
 	}
 
 	loaderCfg := &load.Config{
@@ -33,23 +33,23 @@ func LoadStepDoc(kind string) spec.StepDoc {
 	pkgPath := "godoit.dev/doit/kinds/" + kind
 	instances := load.Instances([]string{pkgPath}, loaderCfg)
 	if len(instances) == 0 {
-		panic(util.BUG("no CUE instance for registered kind %q", kind))
+		panic(errs.BUG("no CUE instance for registered kind %q", kind))
 	}
 
 	inst := instances[0]
 	if inst.Err != nil {
-		panic(util.BUG("embedded schema for %q failed to load: %w", kind, inst.Err))
+		panic(errs.BUG("embedded schema for %q failed to load: %w", kind, inst.Err))
 	}
 
 	val := cueCtx.BuildInstance(inst)
 	if err := val.Err(); err != nil {
-		panic(util.BUG("embedded schema for %q failed to build: %w", kind, err))
+		panic(errs.BUG("embedded schema for %q failed to build: %w", kind, err))
 	}
 
 	// Look up #Step definition
 	stepDef := val.LookupPath(cue.ParsePath("#Step"))
 	if !stepDef.Exists() {
-		panic(util.BUG("embedded schema for %q missing #Step definition", kind))
+		panic(errs.BUG("embedded schema for %q missing #Step definition", kind))
 	}
 
 	doc := spec.StepDoc{

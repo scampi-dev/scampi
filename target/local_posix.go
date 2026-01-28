@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"godoit.dev/doit/util"
+	"godoit.dev/doit/errs"
 )
 
 type LocalPosixTarget struct{}
@@ -26,7 +26,7 @@ func (LocalPosixTarget) Stat(_ context.Context, path string) (fs.FileInfo, error
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, util.WrapErrf(ErrNotExist, "%q", path)
+			return nil, errs.WrapErrf(ErrNotExist, "%q", path)
 		}
 
 		return nil, err
@@ -39,7 +39,7 @@ func (LocalPosixTarget) Lstat(_ context.Context, path string) (fs.FileInfo, erro
 	info, err := os.Lstat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, util.WrapErrf(ErrNotExist, "%q", path)
+			return nil, errs.WrapErrf(ErrNotExist, "%q", path)
 		}
 
 		return nil, err
@@ -99,7 +99,7 @@ func (LocalPosixTarget) GetOwner(_ context.Context, path string) (Owner, error) 
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return Owner{}, util.WrapErrf(ErrNotExist, "%q", path)
+			return Owner{}, errs.WrapErrf(ErrNotExist, "%q", path)
 		}
 
 		return Owner{}, err
@@ -107,7 +107,7 @@ func (LocalPosixTarget) GetOwner(_ context.Context, path string) (Owner, error) 
 
 	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
-		return Owner{}, util.BUG("expected %T got %T", &syscall.Stat_t{}, info.Sys())
+		return Owner{}, errs.BUG("expected %T got %T", &syscall.Stat_t{}, info.Sys())
 	}
 
 	usr, err := user.LookupId(strconv.FormatUint(uint64(stat.Uid), 10))
@@ -126,14 +126,14 @@ func lookupUser(u string) (*user.User, error) {
 	if id, ok := isLikelyID(u); ok {
 		usr, err := user.LookupId(u)
 		if errors.Is(err, user.UnknownUserIdError(id)) {
-			return nil, util.WrapErrf(ErrUnknownUser, "%q", u)
+			return nil, errs.WrapErrf(ErrUnknownUser, "%q", u)
 		}
 		return usr, err
 	}
 	usr, err := user.Lookup(u)
 
 	if errors.Is(err, user.UnknownUserError(u)) {
-		return nil, util.WrapErrf(ErrUnknownUser, "%q", u)
+		return nil, errs.WrapErrf(ErrUnknownUser, "%q", u)
 	}
 	return usr, err
 }
@@ -142,13 +142,13 @@ func lookupGroup(g string) (*user.Group, error) {
 	if _, ok := isLikelyID(g); ok {
 		grp, err := user.LookupGroupId(g)
 		if errors.Is(err, user.UnknownGroupIdError(g)) {
-			return nil, util.WrapErrf(ErrUnknownGroup, "%q", g)
+			return nil, errs.WrapErrf(ErrUnknownGroup, "%q", g)
 		}
 		return grp, err
 	}
 	grp, err := user.LookupGroup(g)
 	if errors.Is(err, user.UnknownGroupError(g)) {
-		return nil, util.WrapErrf(ErrUnknownGroup, "%q", g)
+		return nil, errs.WrapErrf(ErrUnknownGroup, "%q", g)
 	}
 	return grp, err
 }

@@ -3,10 +3,10 @@ package template
 import (
 	"io/fs"
 
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/step/sharedops"
 	"godoit.dev/doit/step/sharedops/fileops"
-	"godoit.dev/doit/util"
 )
 
 type (
@@ -46,7 +46,7 @@ func (Template) NewConfig() any { return &TemplateConfig{} }
 func (t Template) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*TemplateConfig)
 	if !ok {
-		return nil, util.BUG("expected %T got %T", &TemplateConfig{}, step.Config)
+		return nil, errs.BUG("expected %T got %T", &TemplateConfig{}, step.Config)
 	}
 
 	mode, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)

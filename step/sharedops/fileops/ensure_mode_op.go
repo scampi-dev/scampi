@@ -7,12 +7,12 @@ import (
 
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
+	"godoit.dev/doit/errs"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/step/sharedops"
 	"godoit.dev/doit/target"
-	"godoit.dev/doit/util"
 )
 
 type EnsureModeOp struct {
@@ -49,7 +49,7 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 	if err != nil {
 		if target.IsNotExist(err) {
 			// file should exist - copyFileOp is a dependency and should have created it
-			panic(util.BUG("ensureModeOp.Execute: file %q does not exist after copyFileOp", op.Path))
+			panic(errs.BUG("ensureModeOp.Execute: file %q does not exist after copyFileOp", op.Path))
 		}
 
 		return spec.Result{}, modeReadError{
