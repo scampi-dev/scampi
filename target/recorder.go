@@ -3,6 +3,8 @@ package target
 import (
 	"context"
 	"io/fs"
+
+	"godoit.dev/doit/capability"
 )
 
 type Recorder struct {
@@ -66,4 +68,8 @@ func (r *Recorder) Symlink(ctx context.Context, target, link string) error {
 
 func (r *Recorder) Remove(ctx context.Context, path string) error {
 	return r.Inner.Remove(ctx, path)
+}
+
+func (r *Recorder) Capabilities() capability.Capability {
+	return r.Inner.Capabilities()
 }

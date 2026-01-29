@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/errs"
@@ -66,6 +67,10 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 	}
 
 	return spec.Result{Changed: changed}, nil
+}
+
+func (EnsureModeOp) RequiredCapabilities() capability.Capability {
+	return capability.FileMode
 }
 
 type ensureModeDesc struct {

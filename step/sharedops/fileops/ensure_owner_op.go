@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/errs"
@@ -90,6 +91,10 @@ func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt targe
 	}
 
 	return spec.Result{Changed: changed}, nil
+}
+
+func (EnsureOwnerOp) RequiredCapabilities() capability.Capability {
+	return capability.Ownership
 }
 
 type ensureOwnerDesc struct {

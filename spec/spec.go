@@ -4,6 +4,7 @@ package spec
 import (
 	"context"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/target"
 )
@@ -37,10 +38,11 @@ type (
 		Value SourceSpan
 	}
 	SourceSpan struct {
-		Filename string
-		Line     int
-		StartCol int
-		EndCol   int
+		Filename  string
+		StartLine int
+		EndLine   int
+		StartCol  int
+		EndCol    int
 	}
 
 	Plan struct {
@@ -62,6 +64,7 @@ type (
 		Check(ctx context.Context, src source.Source, tgt target.Target) (CheckResult, error)
 		Execute(ctx context.Context, src source.Source, tgt target.Target) (Result, error)
 		DependsOn() []Op
+		RequiredCapabilities() capability.Capability
 	}
 	OpDescriber interface {
 		OpDescription() OpDescription

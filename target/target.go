@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+
+	"godoit.dev/doit/capability"
 )
 
 var (
@@ -19,6 +21,8 @@ type (
 	Target interface {
 		Filesystem
 		Ownership
+
+		Capabilities() capability.Capability
 	}
 	Owner struct {
 		User  string

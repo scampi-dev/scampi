@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/signal"
@@ -70,6 +71,10 @@ func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target
 	}
 
 	return spec.Result{Changed: true}, nil
+}
+
+func (copyFileOp) RequiredCapabilities() capability.Capability {
+	return capability.Filesystem
 }
 
 type copyFileDesc struct {

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/signal"
@@ -146,6 +147,33 @@ func (r *recordingDisplayer) String() string {
 
 func (r *recordingDisplayer) dump(w io.Writer) {
 	_, _ = fmt.Fprintln(w, r)
+}
+
+func (r *recordingDisplayer) countChangedOps() int {
+	count := 0
+	for _, ev := range r.opEvents {
+		if ev.ExecuteDetail != nil && ev.ExecuteDetail.Changed {
+			count++
+		}
+	}
+	return count
+}
+
+func (r *recordingDisplayer) collectDiagnosticIDs() []string {
+	var ids []string
+	for _, d := range r.engineDiagnostics {
+		ids = append(ids, d.Detail.Template.ID)
+	}
+	for _, d := range r.planDiagnostics {
+		ids = append(ids, d.Detail.Template.ID)
+	}
+	for _, d := range r.actionDiagnostics {
+		ids = append(ids, d.Detail.Template.ID)
+	}
+	for _, d := range r.opDiagnostics {
+		ids = append(ids, d.Detail.Template.ID)
+	}
+	return ids
 }
 
 func (e engineEvents) String() string {
@@ -324,19 +352,6 @@ func panicExecFn(msg string) execFn {
 func (o fakeOp) Action() spec.Action  { return o.action }
 func (o fakeOp) DependsOn() []spec.Op { return o.deps }
 
-// OpDescriber implementation for cycle detection tests
-type fakeOpDescription struct {
-	name string
-}
-
-func (d fakeOpDescription) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{ID: d.name}
-}
-
-func (o fakeOp) OpDescription() spec.OpDescription {
-	return fakeOpDescription{name: o.name}
-}
-
 func (o *fakeOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {
 	o.checkCalls++
 	return o.checkFn(ctx, src, tgt)
@@ -345,6 +360,18 @@ func (o *fakeOp) Check(ctx context.Context, src source.Source, tgt target.Target
 func (o *fakeOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
 	o.execCalls++
 	return o.execFn(ctx, src, tgt)
+}
+
+func (o fakeOp) OpDescription() spec.OpDescription {
+	return o
+}
+
+func (d fakeOp) PlanTemplate() spec.PlanTemplate {
+	return spec.PlanTemplate{ID: d.name}
+}
+
+func (fakeOp) RequiredCapabilities() capability.Capability {
+	return capability.POSIX
 }
 
 type fakeAction struct {
@@ -569,4 +596,28 @@ func (f *faultyTarget) GetOwner(ctx context.Context, path string) (target.Owner,
 		return target.Owner{}, err
 	}
 	return f.Target.GetOwner(ctx, path)
+}
+
+type minimalTarget struct {
+	*target.MemTarget
+}
+
+func newMinimalTarget() *minimalTarget {
+	return &minimalTarget{MemTarget: target.NewMemTarget()}
+}
+
+func (m *minimalTarget) Capabilities() capability.Capability {
+	return capability.Filesystem
+}
+
+func (m *minimalTarget) HasUser(_ context.Context, _ string) bool {
+	panic("MinimalTarget.HasUser called - capability check failed")
+}
+
+func (m *minimalTarget) HasGroup(_ context.Context, _ string) bool {
+	panic("MinimalTarget.HasUser called - capability check failed")
+}
+
+func (m *minimalTarget) GetOwner(_ context.Context, _ string) (target.Owner, error) {
+	panic("MinimalTarget.HasUser called - capability check failed")
 }

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/errs"
 )
 
@@ -207,6 +208,10 @@ func (m *MemTarget) Remove(_ context.Context, path string) error {
 	}
 
 	return errs.WrapErrf(ErrNotExist, "%q", path)
+}
+
+func (m *MemTarget) Capabilities() capability.Capability {
+	return capability.POSIX
 }
 
 type memFileInfo struct {

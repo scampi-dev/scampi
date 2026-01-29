@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/step/sharedops"
@@ -109,6 +110,10 @@ func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt 
 	}
 
 	return spec.Result{Changed: true}, nil
+}
+
+func (renderTemplateOp) RequiredCapabilities() capability.Capability {
+	return capability.Filesystem
 }
 
 func (op *renderTemplateOp) getTemplateContent(ctx context.Context, src source.Source) ([]byte, error) {

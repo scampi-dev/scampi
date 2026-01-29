@@ -179,14 +179,14 @@ func runE2EScenario(t *testing.T, dir string) {
 	}
 
 	// Assert changed count
-	gotChanged := countChanged(rec)
+	gotChanged := rec.countChangedOps()
 	if gotChanged != expect.Changed {
 		t.Errorf("changed count: got %d, want %d", gotChanged, expect.Changed)
 	}
 
 	// Assert diagnostics (if specified)
 	if len(expect.Diagnostics) > 0 {
-		gotDiags := collectDiagnosticIDs(rec)
+		gotDiags := rec.collectDiagnosticIDs()
 		if !stringSlicesEqual(gotDiags, expect.Diagnostics) {
 			t.Errorf("diagnostics: got %v, want %v", gotDiags, expect.Diagnostics)
 		}
@@ -238,33 +238,6 @@ func parseOctal(s string, out *uint32) (bool, error) {
 	}
 	*out = v
 	return true, nil
-}
-
-func countChanged(rec *recordingDisplayer) int {
-	count := 0
-	for _, ev := range rec.opEvents {
-		if ev.ExecuteDetail != nil && ev.ExecuteDetail.Changed {
-			count++
-		}
-	}
-	return count
-}
-
-func collectDiagnosticIDs(rec *recordingDisplayer) []string {
-	var ids []string
-	for _, d := range rec.engineDiagnostics {
-		ids = append(ids, d.Detail.Template.ID)
-	}
-	for _, d := range rec.planDiagnostics {
-		ids = append(ids, d.Detail.Template.ID)
-	}
-	for _, d := range rec.actionDiagnostics {
-		ids = append(ids, d.Detail.Template.ID)
-	}
-	for _, d := range rec.opDiagnostics {
-		ids = append(ids, d.Detail.Template.ID)
-	}
-	return ids
 }
 
 func stringSlicesEqual(a, b []string) bool {

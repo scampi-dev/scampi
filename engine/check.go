@@ -36,7 +36,7 @@ func (e *Engine) Check(ctx context.Context, cfgPath string, store *spec.SourceSt
 		return err
 	}
 
-	plan, err := plan(cfg, e.em)
+	plan, err := plan(cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return err
 	}

@@ -158,7 +158,7 @@ func (d CueDiagnostic) EventTemplate() event.Template {
 
 	if d.Source != nil {
 		src = d.Source
-	} else if sp := spanFromPos(d.Err.Position()); sp.Line != 0 {
+	} else if sp := spanFromPos(d.Err.Position()); sp.StartLine != 0 {
 		src = &sp
 	}
 
@@ -199,10 +199,10 @@ func (d MissingFieldDiagnostic) EventTemplate() event.Template {
 		ID:   "config.MissingField",
 		Text: d.Error(),
 		Source: &spec.SourceSpan{
-			Filename: m.Source.Filename,
-			Line:     m.Source.Line,
-			StartCol: m.Source.StartCol,
-			EndCol:   m.Source.EndCol,
+			Filename:  m.Source.Filename,
+			StartLine: m.Source.StartLine,
+			StartCol:  m.Source.StartCol,
+			EndCol:    m.Source.EndCol,
 		},
 	}
 }

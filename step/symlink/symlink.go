@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/errs"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
@@ -47,41 +48,34 @@ func (s Symlink) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *symlinkAction) Desc() string { return a.desc }
-func (a *symlinkAction) Kind() string { return a.kind }
+func (a *symlinkAction) Desc() string            { return a.desc }
+func (a *symlinkAction) Kind() string            { return a.kind }
+func (op *ensureSymlinkOp) Action() spec.Action  { return op.action }
+func (op *ensureSymlinkOp) DependsOn() []spec.Op { return op.deps }
 
 func (a *symlinkAction) Ops() []spec.Op {
 	op := &ensureSymlinkOp{
-		baseOp: baseOp{
-			targetSpan: a.step.Fields["target"].Value,
-			linkSpan:   a.step.Fields["link"].Value,
-		},
-		target: a.target,
-		link:   a.link,
+		targetSpan: a.step.Fields["target"].Value,
+		linkSpan:   a.step.Fields["link"].Value,
+		target:     a.target,
+		link:       a.link,
 	}
 
-	op.setAction(a)
+	op.action = a
 
 	return []spec.Op{op}
 }
 
 type (
-	baseOp struct {
+	ensureSymlinkOp struct {
+		target     string
+		link       string
 		action     spec.Action
 		deps       []spec.Op
 		targetSpan spec.SourceSpan
 		linkSpan   spec.SourceSpan
 	}
-	ensureSymlinkOp struct {
-		baseOp
-		target string
-		link   string
-	}
 )
-
-func (op *baseOp) Action() spec.Action          { return op.action }
-func (op *baseOp) DependsOn() []spec.Op         { return op.deps }
-func (op *baseOp) setAction(action spec.Action) { op.action = action }
 
 // resolveTarget computes the symlink target path.
 // If target is absolute, it's used as-is.
@@ -197,4 +191,8 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 	}
 
 	return spec.Result{Changed: true}, nil
+}
+
+func (ensureSymlinkOp) RequiredCapabilities() capability.Capability {
+	return capability.Symlink
 }

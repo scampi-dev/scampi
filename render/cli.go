@@ -1291,12 +1291,17 @@ func (c *cli) renderSnippet(src *spec.SourceSpan) (string, bool) {
 }
 
 func (c *cli) loadSourceLine(src *spec.SourceSpan) sourceLine {
-	text, ok := c.store.Line(src.Filename, src.Line)
+	text, ok := c.store.Line(src.Filename, src.StartLine)
+	endCol := src.EndCol
+	if src.StartLine < src.EndLine {
+		// underline full line
+		endCol = len(text) + 1
+	}
 	return sourceLine{
 		filename: src.Filename,
-		line:     src.Line,
+		line:     src.StartLine,
 		startCol: src.StartCol,
-		endCol:   src.EndCol,
+		endCol:   endCol,
 		text:     text,
 		ok:       ok,
 	}

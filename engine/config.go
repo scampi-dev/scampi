@@ -630,7 +630,7 @@ func decodeStep(
 		Desc:   desc,
 		Type:   st,
 		Config: tCfg,
-		Source: spanFromPos(stepVal.Pos()),
+		Source: stepSpan,
 		Fields: fields,
 	}
 
@@ -809,10 +809,10 @@ func spanFromPos(pos token.Pos) spec.SourceSpan {
 	p := tf.Position(pos)
 
 	return spec.SourceSpan{
-		Filename: normalizeVirtualPath(p.Filename),
-		Line:     p.Line,
-		StartCol: p.Column,
-		EndCol:   p.Column,
+		Filename:  normalizeVirtualPath(p.Filename),
+		StartLine: p.Line,
+		StartCol:  p.Column,
+		EndCol:    p.Column,
 	}
 }
 
@@ -837,10 +837,11 @@ func spanFromPosRange(start, end token.Pos) spec.SourceSpan {
 	ep := tf.Position(end)
 
 	return spec.SourceSpan{
-		Filename: normalizeVirtualPath(sp.Filename),
-		Line:     sp.Line,
-		StartCol: sp.Column,
-		EndCol:   ep.Column,
+		Filename:  normalizeVirtualPath(sp.Filename),
+		StartLine: sp.Line,
+		EndLine:   ep.Line,
+		StartCol:  sp.Column,
+		EndCol:    ep.Column,
 	}
 }
 

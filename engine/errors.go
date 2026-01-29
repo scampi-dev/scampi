@@ -2,10 +2,15 @@ package engine
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/diagnostic"
+	"godoit.dev/doit/diagnostic/event"
 	"godoit.dev/doit/errs"
+	"godoit.dev/doit/signal"
+	"godoit.dev/doit/spec"
 )
 
 type AbortError struct {
@@ -14,6 +19,44 @@ type AbortError struct {
 
 func (AbortError) Error() string {
 	return "execution aborted"
+}
+
+type CapabilityMismatch struct {
+	StepIndex    int
+	StepKind     string
+	RequiredCaps capability.Capability
+	MissingCaps  capability.Capability
+	ProvidedCaps capability.Capability
+	Source       spec.SourceSpan
+}
+
+func (e CapabilityMismatch) Error() string {
+	return fmt.Sprintf(
+		"step %q requires %s, but target only provides %s (missing: %s)",
+		e.StepKind, e.RequiredCaps, e.ProvidedCaps, e.MissingCaps,
+	)
+}
+
+func (e CapabilityMismatch) EventTemplate() event.Template {
+	return event.Template{
+		ID:   "engine.CapabilityMismatch",
+		Text: `step "{{.StepKind}}" requires capabilities not provided by target`,
+		Hint: "use a different target or remove incompatible steps",
+		Help: fmt.Sprintf(
+			"missing:  %s\nrequired: %s\nprovided: %s",
+			e.MissingCaps, e.RequiredCaps, e.ProvidedCaps,
+		),
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (e CapabilityMismatch) Severity() signal.Severity {
+	return signal.Error
+}
+
+func (e CapabilityMismatch) Impact() diagnostic.Impact {
+	return diagnostic.ImpactAbort
 }
 
 func panicIfNotAbortError(err error) error {

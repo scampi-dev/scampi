@@ -170,8 +170,8 @@ func assertDiagnostics(
 			if tmpl.Source.Filename != cfgPath {
 				t.Fatalf("[%d] expected source file %q, got %q", i, cfgPath, tmpl.Source.Filename)
 			}
-			if tmpl.Source.Line != exp.Source.Line {
-				t.Fatalf("[%d] expected line %d, got %d", i, exp.Source.Line, tmpl.Source.Line)
+			if tmpl.Source.StartLine != exp.Source.Line {
+				t.Fatalf("[%d] expected line %d, got %d", i, exp.Source.Line, tmpl.Source.StartLine)
 			}
 		}
 

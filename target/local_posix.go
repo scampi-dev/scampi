@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"godoit.dev/doit/capability"
 	"godoit.dev/doit/errs"
 )
 
@@ -120,6 +121,10 @@ func (LocalPosixTarget) GetOwner(_ context.Context, path string) (Owner, error) 
 	}
 
 	return Owner{User: usr.Name, Group: grp.Name}, nil
+}
+
+func (LocalPosixTarget) Capabilities() capability.Capability {
+	return capability.POSIX
 }
 
 func lookupUser(u string) (*user.User, error) {
