@@ -642,3 +642,19 @@ type allCapNoImplTarget struct{}
 func (allCapNoImplTarget) Capabilities() capability.Capability {
 	return capability.All
 }
+
+type mockTargetType struct {
+	tgt target.Target
+}
+
+func (mockTargetType) Kind() string                          { return "mem" }
+func (mockTargetType) NewConfig() any                        { return nil }
+func (t mockTargetType) Create(_ any) (target.Target, error) { return t.tgt, nil }
+
+func mockTargetInstance(tgt target.Target) spec.TargetInstance {
+	return spec.TargetInstance{
+		Type: mockTargetType{
+			tgt: tgt,
+		},
+	}
+}

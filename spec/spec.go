@@ -11,10 +11,24 @@ import (
 
 type (
 	Config struct {
+		Path    string
 		Unit    UnitInstance
+		Target  TargetInstance
 		Steps   []StepInstance
 		Sources SourceStore
 	}
+
+	TargetType interface {
+		Kind() string
+		NewConfig() any
+		Create(cfg any) (target.Target, error)
+	}
+	TargetInstance struct {
+		Type   TargetType
+		Config any
+		Source SourceSpan
+	}
+
 	UnitInstance struct {
 		ID   UnitID
 		Desc string
@@ -52,6 +66,7 @@ type (
 	Unit   struct {
 		ID      UnitID
 		Desc    string
+		Target  target.Target
 		Actions []Action
 	}
 	Action interface {

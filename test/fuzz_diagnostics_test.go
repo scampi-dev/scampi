@@ -60,9 +60,24 @@ steps: [builtin.copy & { src: "a", dest: "b" }]`,
 			}
 		}()
 
-		e := engine.New(src, tgt, em)
-		err := e.Apply(context.Background(), "/config.cue", store)
+		apply := func() error {
+			ctx := context.Background()
+			cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+			if err != nil {
+				return err
+			}
 
+			cfg.Target = mockTargetInstance(tgt)
+
+			e, err := engine.New(src, cfg, em)
+			if err != nil {
+				return err
+			}
+
+			return e.Apply(ctx)
+		}
+
+		err := apply()
 		// ---- Error classification invariant ----
 		if err != nil {
 			var abort engine.AbortError

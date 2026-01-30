@@ -296,7 +296,7 @@ func (e UnknownStepKind) EventTemplate() event.Template {
 		ID:     "config.UnknownStepKind",
 		Text:   `unknown step kind "{{.Kind}}"`,
 		Hint:   "check that the step kind is spelled correctly",
-		Help:   "available kinds are registered in the engine; see documentation for supported step types",
+		Help:   "available kinds are registered in the engine; run `doit index` for supported step types",
 		Source: &e.Source,
 		Data:   e,
 	}
@@ -304,6 +304,51 @@ func (e UnknownStepKind) EventTemplate() event.Template {
 
 func (UnknownStepKind) Severity() signal.Severity { return signal.Error }
 func (UnknownStepKind) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
+type MissingTargetKind struct {
+	Source spec.SourceSpan
+}
+
+func (e MissingTargetKind) Error() string {
+	return "missing target kind"
+}
+
+func (e MissingTargetKind) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "config.MissingTargetKind",
+		Text:   "missing target kind",
+		Hint:   "ensure that the target provides a kind field",
+		Help:   "available kinds are registered in the engine; run `doit index` for supported target types",
+		Source: &e.Source,
+		Data:   e,
+	}
+}
+
+func (MissingTargetKind) Severity() signal.Severity { return signal.Error }
+func (MissingTargetKind) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
+type UnknownTargetKind struct {
+	Kind   string
+	Source spec.SourceSpan
+}
+
+func (e UnknownTargetKind) Error() string {
+	return fmt.Sprintf("unknown target kind %q", e.Kind)
+}
+
+func (e UnknownTargetKind) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "config.UnknownTargetKind",
+		Text:   `unknown target kind "{{.Kind}}"`,
+		Hint:   "check that the target kind is spelled correctly",
+		Help:   "available kinds are registered in the engine; run `doit index` for supported target types",
+		Source: &e.Source,
+		Data:   e,
+	}
+}
+
+func (UnknownTargetKind) Severity() signal.Severity { return signal.Error }
+func (UnknownTargetKind) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
 
 // CuePanic wraps a panic recovered from the CUE library.
 // This handles (un-)known upstream bugs where CUE panics on malformed input.

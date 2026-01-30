@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -155,6 +156,7 @@ func (s sourceFS) Open(name string) (fs.File, error) {
 const (
 	cueUnit   = "unit"
 	cueUnitID = "id"
+	cueTarget = "target"
 	cueSteps  = "steps"
 )
 
@@ -166,23 +168,13 @@ func LoadConfig(
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *spec.SourceStore,
-) (spec.Config, error) {
-	return LoadConfigWithSource(
-		ctx,
-		em,
-		cfgPath,
-		store,
-		source.LocalPosixSource{},
-	)
-}
-
-func LoadConfigWithSource(
-	ctx context.Context,
-	em diagnostic.Emitter,
-	cfgPath string,
-	store *spec.SourceStore,
 	src source.Source,
 ) (cfg spec.Config, err error) {
+	cfgPath, absErr := filepath.Abs(cfgPath)
+	if absErr != nil {
+		panic(errs.BUG("filepath.Abs() failed: %w", absErr))
+	}
+
 	cfg, err = loadConfigWithSource(ctx, em, cfgPath, store, src)
 	if err != nil {
 		impact, _ := emitEngineDiagnostic(em, cfgPath, err)
@@ -225,6 +217,11 @@ func loadConfigWithSourceUnsafe(
 ) (spec.Config, error) {
 	reg := NewRegistry()
 	cueCtx := cuecontext.New()
+
+	cfgPath, err := filepath.Abs(cfgPath)
+	if err != nil {
+		panic(errs.BUG("filepath.Abs() failed: %w", err))
+	}
 
 	embFS, err := fs.Sub(doit.EmbeddedSchemaModule, "cue")
 	if err != nil {
@@ -321,7 +318,8 @@ func loadConfigWithSourceUnsafe(
 		}
 	}
 
-	// --- apply schema ---
+	// apply schema
+	// ----------------------------------------------------------------------------
 	cfgVal := coreInst.Value().Unify(userInst)
 	if err := cfgVal.Err(); err != nil {
 		var ce cueerr.Error
@@ -364,11 +362,23 @@ func loadConfigWithSourceUnsafe(
 	}
 
 	userFile := userInstance.Files[0]
+
+	// decode unit
+	// ----------------------------------------------------------------------------
 	unitInst, err := decodeUnit(cfgVal, cfgPath, userFile, em)
 	if err != nil {
 		return spec.Config{}, err
 	}
 
+	// decode steps
+	// ----------------------------------------------------------------------------
+	tgtInst, err := decodeTarget(cfgVal, userFile, reg)
+	if err != nil {
+		return spec.Config{}, err
+	}
+
+	// decode steps
+	// ----------------------------------------------------------------------------
 	stepsVal := cfgVal.LookupPath(cue.ParsePath(cueSteps))
 	if err := stepsVal.Err(); err != nil {
 		var ce cueerr.Error
@@ -391,8 +401,15 @@ func loadConfigWithSourceUnsafe(
 		panic(errs.BUG("steps is not a list after schema unification: %w", err))
 	}
 
+	cfgPath, err = filepath.Abs(cfgPath)
+	if err != nil {
+		panic(errs.BUG("filepath.Abs() failed: %w", err))
+	}
+
 	cfg := spec.Config{
-		Unit: unitInst,
+		Path:   cfgPath,
+		Unit:   unitInst,
+		Target: tgtInst,
 	}
 	var sawAbort bool
 	for iter.Next() {
@@ -513,6 +530,99 @@ func decodeUnit(
 
 	return unitInst, nil
 }
+
+func decodeTarget(
+	cfgVal cue.Value,
+	userFile *ast.File,
+	reg *Registry,
+) (spec.TargetInstance, error) {
+	// Resolve target kind
+	// ------------------------------------------------------------
+	targetVal := cfgVal.LookupPath(cue.ParsePath(cueTarget))
+	kindVal := targetVal.LookupPath(cue.ParsePath("kind"))
+	kind, err := kindVal.String()
+	if err != nil || kind == "" {
+		var ce cueerr.Error
+		if !errors.As(err, &ce) {
+			panic(errs.BUG(
+				"decodeTarget.kindVal.String() failed with an unaccounted-for error-type %T: %w",
+				err,
+				err,
+			))
+		}
+
+		return spec.TargetInstance{}, MissingTargetKind{
+			Source: extractSpanFromFile(userFile, cueTarget),
+		}
+	}
+
+	// Resolve target
+	// ------------------------------------------------------------
+	tt, ok := reg.TargetType(kind)
+	if !ok {
+		span := extractSpanFromFile(userFile, cueTarget)
+		return spec.TargetInstance{}, UnknownTargetKind{
+			Kind:   kind,
+			Source: span,
+		}
+	}
+
+	// Instantiate config
+	// ------------------------------------------------------------
+	tCfg := tt.NewConfig()
+	rv := reflect.ValueOf(tCfg)
+	if rv.Kind() != reflect.Pointer {
+		panic(errs.BUG(
+			"StepType['%s'].NewConfig() must return a pointer (got %T)",
+			tt.Kind(),
+			tCfg,
+		))
+	}
+
+	// Decode
+	// ------------------------------------------------------------
+	if err := targetVal.Decode(tCfg); err != nil {
+		// If Validate passed, Decode MUST NOT fail.
+		// This is a hard invariant violation.
+		panic(errs.BUG(
+			"stepVal.Decode failed after successful validation for step %q: %w",
+			kind,
+			err,
+		))
+	}
+
+	// Success
+	// ------------------------------------------------------------
+	return spec.TargetInstance{
+		Type:   tt,
+		Config: tCfg,
+		Source: extractSpanFromFile(userFile, cueTarget),
+	}, nil
+}
+
+// func loadTarget(v cue.Value) (target.Target, error) {
+//     // Extract kind field
+//     kindVal := v.LookupPath(cue.ParsePath("kind"))
+//     kind, err := kindVal.String()
+//     if err != nil {
+//         return nil, TargetMissingKind{Source: sourceSpan(v)}
+//     }
+//
+//     // Get target type
+//     targetType, ok := e.targetRegistry.TargetType(kind)
+//     if !ok {
+//         return nil, UnknownTargetKind{Kind: kind, Source: sourceSpan(v)}
+//     }
+//
+//     // Decode config
+//     cfg := targetType.NewConfig()
+//     if err := v.Decode(cfg); err != nil {
+//         return nil, TargetConfigError{Kind: kind, Err: err, Source: sourceSpan(v)}
+//     }
+//
+//     // Create target
+//     return targetType.Create(cfg)
+// }
 
 type decodeResult struct {
 	abort bool

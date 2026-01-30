@@ -37,15 +37,6 @@ package template
 	group: string @doc("Group name or GID")
 }
 
-// #TemplateSource: ({
-// 	src:      string @doc("Path to template file")
-// 	content?: _|_
-// 	...
-// } | {
-// 	content: string @doc("Inline template content")
-// 	src?:    _|_
-// 	...
-// })
 #TemplateSource: {
 	matchN(==1, [
 		{src!: string},

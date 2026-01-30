@@ -2,41 +2,33 @@ package engine
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	"godoit.dev/doit/diagnostic"
-	"godoit.dev/doit/errs"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/target"
 )
 
 func Apply(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
-	e := New(
-		source.LocalPosixSource{},
-		target.LocalPosixTarget{},
-		em,
-	)
-
-	return e.Apply(ctx, cfgPath, store)
-}
-
-func (e *Engine) Apply(ctx context.Context, cfgPath string, store *spec.SourceStore) error {
-	start := time.Now()
-	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
-
-	cfgPath, err := filepath.Abs(cfgPath)
-	if err != nil {
-		panic(errs.BUG("filepath.Abs() failed: %w", err))
-	}
-
-	cfg, err := LoadConfigWithSource(ctx, e.em, cfgPath, store, e.src)
+	src := source.LocalPosixSource{}
+	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
 	if err != nil {
 		return err
 	}
 
-	plan, err := plan(cfg, e.em, e.tgt.Capabilities())
+	e, err := New(src, cfg, em)
+	if err != nil {
+		return err
+	}
+
+	return e.Apply(ctx)
+}
+
+func (e *Engine) Apply(ctx context.Context) error {
+	start := time.Now()
+	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
+
+	plan, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return err
 	}

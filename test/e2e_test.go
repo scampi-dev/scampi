@@ -127,8 +127,24 @@ func runE2EScenario(t *testing.T, dir string) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", store)
+	apply := func() error {
+		ctx := context.Background()
+		cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+		if err != nil {
+			return err
+		}
+
+		cfg.Target = mockTargetInstance(tgt)
+
+		e, err := engine.New(src, cfg, em)
+		if err != nil {
+			return err
+		}
+
+		return e.Apply(ctx)
+	}
+
+	err := apply()
 
 	// Assert error expectation
 	if expect.Error {

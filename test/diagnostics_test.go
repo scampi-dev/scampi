@@ -37,12 +37,32 @@ func runDiagnosticsCase(t *testing.T, dir string) {
 
 	expect := loadExpected(t, expectPath)
 
+	src := source.LocalPosixSource{}
+	tgt := allCapNoImplTarget{}
+
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
-	e := engine.New(source.LocalPosixSource{}, allCapNoImplTarget{}, em)
-	err := e.Apply(context.Background(), cfgPath, store)
+	ctx := context.Background()
+
+	apply := func() error {
+		cfg, err := engine.LoadConfig(ctx, em, cfgPath, store, src)
+		if err != nil {
+			return err
+		}
+
+		cfg.Target = mockTargetInstance(tgt)
+
+		e, err := engine.New(src, cfg, em)
+		if err != nil {
+			return err
+		}
+
+		return e.Apply(ctx)
+	}
+
+	err := apply()
 
 	if expect.Abort {
 		var abort engine.AbortError

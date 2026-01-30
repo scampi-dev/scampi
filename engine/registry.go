@@ -5,41 +5,57 @@ import (
 	"godoit.dev/doit/step/copy"
 	"godoit.dev/doit/step/symlink"
 	"godoit.dev/doit/step/template"
+	"godoit.dev/doit/target/local"
 )
 
 type Registry struct {
-	types map[string]spec.StepType
+	stepTypes   map[string]spec.StepType
+	targetTypes map[string]spec.TargetType
 }
 
 func NewRegistry() *Registry {
 	// TODO: this probably needs to be automatic at some point
 	// also: this would be where we need to put extensions
 	// for now (probably a while) this is just a manual list
-	types := []spec.StepType{
+
+	stepTypes := []spec.StepType{
 		copy.Copy{},
 		symlink.Symlink{},
 		template.Template{},
 	}
 
-	r := &Registry{}
-	r.types = make(map[string]spec.StepType)
-	for _, spec := range types {
-		r.types[spec.Kind()] = spec
+	targetTypes := []spec.TargetType{
+		local.Local{},
+	}
+
+	r := &Registry{
+		stepTypes:   make(map[string]spec.StepType),
+		targetTypes: make(map[string]spec.TargetType),
+	}
+	for _, spec := range stepTypes {
+		r.stepTypes[spec.Kind()] = spec
+	}
+	for _, t := range targetTypes {
+		r.targetTypes[t.Kind()] = t
 	}
 
 	return r
 }
 
 func (r *Registry) StepType(kind string) (spec.StepType, bool) {
-	step, ok := r.types[kind]
+	step, ok := r.stepTypes[kind]
 	return step, ok
 }
 
-// StepTypes returns all registered step types.
 func (r *Registry) StepTypes() []spec.StepType {
-	stepTypes := make([]spec.StepType, 0, len(r.types))
-	for _, stepType := range r.types {
+	stepTypes := make([]spec.StepType, 0, len(r.stepTypes))
+	for _, stepType := range r.stepTypes {
 		stepTypes = append(stepTypes, stepType)
 	}
 	return stepTypes
+}
+
+func (r *Registry) TargetType(kind string) (spec.TargetType, bool) {
+	step, ok := r.targetTypes[kind]
+	return step, ok
 }

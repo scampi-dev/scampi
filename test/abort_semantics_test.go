@@ -12,6 +12,7 @@ import (
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
+	"godoit.dev/doit/target/local"
 )
 
 // ASSUMPTION:
@@ -45,7 +46,15 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
+	cfg := spec.Config{
+		Target: mockTargetInstance(local.POSIXTarget{}),
+	}
+
+	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
 	rep, err := e.ExecutePlan(context.Background(), plan)
 	if err != nil {
 		t.Fatalf("non-aborting diagnostics must not return error, got %v", err)
@@ -113,8 +122,16 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	_, err := e.ExecutePlan(context.Background(), plan)
+	cfg := spec.Config{
+		Target: mockTargetInstance(local.POSIXTarget{}),
+	}
+
+	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	_, err = e.ExecutePlan(context.Background(), plan)
 	if err != nil {
 		t.Fatalf("non-abort diagnostics must not fail execution: %v", err)
 	}
@@ -154,8 +171,16 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	_, err := e.ExecutePlan(context.Background(), plan)
+	cfg := spec.Config{
+		Target: mockTargetInstance(local.POSIXTarget{}),
+	}
+
+	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	_, err = e.ExecutePlan(context.Background(), plan)
 
 	if err == nil {
 		t.Fatalf("abort diagnostic must abort execution")
@@ -190,8 +215,16 @@ func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	_, err := e.ExecutePlan(context.Background(), plan)
+	cfg := spec.Config{
+		Target: mockTargetInstance(local.POSIXTarget{}),
+	}
+
+	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	_, err = e.ExecutePlan(context.Background(), plan)
 
 	if err == nil {
 		t.Fatalf("abort diagnostic must abort execution")
@@ -236,8 +269,16 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	_, err := e.ExecutePlan(context.Background(), plan)
+	cfg := spec.Config{
+		Target: mockTargetInstance(local.POSIXTarget{}),
+	}
+
+	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	_, err = e.ExecutePlan(context.Background(), plan)
 	if err != nil {
 		t.Fatalf("non-abort diagnostics must not fail execution: %v", err)
 	}
@@ -286,8 +327,15 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	_, err := e.ExecutePlan(ctx, plan)
+	cfg := spec.Config{
+		Target: mockTargetInstance(local.POSIXTarget{}),
+	}
+
+	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+	_, err = e.ExecutePlan(ctx, plan)
 
 	if err == nil {
 		t.Fatalf("execution error must propagate")

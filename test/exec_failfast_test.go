@@ -10,7 +10,7 @@ import (
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/target"
+	"godoit.dev/doit/target/local"
 )
 
 // Dependency graph:
@@ -50,8 +50,21 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}
@@ -104,8 +117,21 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}
@@ -165,8 +191,21 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
 		t.Fatalf("expected execution error, got nil")
 	}
@@ -242,8 +281,21 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
 		t.Fatalf("expected execution error")
 	}
@@ -287,8 +339,21 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}
@@ -334,8 +399,21 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
 		t.Fatalf("expected abort error")
 	}
@@ -384,8 +462,21 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
 		t.Fatalf("expected abort error")
 	}
@@ -431,8 +522,21 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 		},
 	}
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}

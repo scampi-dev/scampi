@@ -63,12 +63,13 @@ steps: [
 			cfgPath := absPath(filepath.Join(tmp, "config.cue"))
 			writeOrDie(cfgPath, []byte(cfg), 0o644)
 
+			src := source.LocalPosixSource{}
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				_, err := engine.LoadConfig(context.Background(), em, cfgPath, store)
+				_, err := engine.LoadConfig(context.Background(), em, cfgPath, store, src)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -103,7 +104,7 @@ func BenchmarkApplyNoOp(b *testing.B) {
 	sizes := []int{1, 10, 100, 1000, 10000}
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			cfg := fmt.Sprintf(`
+			cfgStr := fmt.Sprintf(`
 package bench
 
 import (
@@ -130,15 +131,27 @@ steps: [
 
 			src.Files["/src.txt"] = []byte("hello")
 			tgt.Files["/dest.txt"] = []byte("hello")
-			src.Files["/config.cue"] = []byte(cfg)
+			src.Files["/config.cue"] = []byte(cfgStr)
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := spec.NewSourceStore()
-			e := engine.New(src, tgt, em)
 
 			for b.Loop() {
-				if err := e.Apply(context.Background(), "/config.cue", store); err != nil {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				cfg.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(src, cfg, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -154,7 +167,7 @@ func BenchmarkApplyNoOp_Symlink(b *testing.B) {
 	sizes := []int{1, 10, 100, 1000, 10000}
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			cfg := fmt.Sprintf(`
+			cfgStr := fmt.Sprintf(`
 package bench
 
 import (
@@ -176,16 +189,26 @@ steps: [
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.cue"] = []byte(cfg)
+			src.Files["/config.cue"] = []byte(cfgStr)
 			tgt.Symlinks["/link.txt"] = "/target.txt"
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := spec.NewSourceStore()
-			e := engine.New(src, tgt, em)
 
 			for b.Loop() {
-				if err := e.Apply(context.Background(), "/config.cue", store); err != nil {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -242,10 +265,19 @@ steps: [
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := spec.NewSourceStore()
-			e := engine.New(src, tgt, em)
-
 			for b.Loop() {
-				if err := e.Apply(context.Background(), "/config.cue", store); err != nil {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 			}

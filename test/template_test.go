@@ -15,7 +15,7 @@ import (
 
 // TestTemplate_BasicRender verifies basic template rendering with values.
 func TestTemplate_BasicRender(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -41,13 +41,26 @@ steps: [
 	tgt := target.NewMemTarget()
 
 	src.Files["/tmpl.txt"] = []byte("Hello, {{.name}}! Count: {{.count}}")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -83,7 +96,7 @@ steps: [
 
 // TestTemplate_InlineContent verifies template rendering with inline content.
 func TestTemplate_InlineContent(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -107,13 +120,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -130,7 +156,7 @@ steps: [
 
 // TestTemplate_EnvOverride verifies env variables override values.
 func TestTemplate_EnvOverride(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -157,14 +183,27 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 	src.Env["MY_PORT"] = "9000" // Override via env
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -182,7 +221,7 @@ steps: [
 
 // TestTemplate_EnvNotSet_UsesDefault verifies default is used when env not set.
 func TestTemplate_EnvNotSet_UsesDefault(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -209,13 +248,26 @@ steps: [
 	src := source.NewMemSource() // No env vars
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -233,7 +285,7 @@ steps: [
 
 // TestTemplate_Idempotent verifies no changes when destination already matches.
 func TestTemplate_Idempotent(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -252,7 +304,7 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate target with matching state
 	tgt.Files["/out.txt"] = []byte("static content")
@@ -261,9 +313,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -289,7 +354,7 @@ steps: [
 
 // TestTemplate_ContentChange verifies changes are applied when content differs.
 func TestTemplate_ContentChange(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -308,7 +373,7 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate with different content
 	tgt.Files["/out.txt"] = []byte("old content")
@@ -317,9 +382,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -349,7 +427,7 @@ steps: [
 
 // TestTemplate_Error_ParseError verifies template parse errors are reported.
 func TestTemplate_Error_ParseError(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -368,14 +446,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for parse failure, got nil")
 	}
@@ -397,7 +487,7 @@ steps: [
 func TestTemplate_Error_ExecError(t *testing.T) {
 	// Use a template that calls len on nil, which causes an exec error
 	// Go's text/template doesn't error on missing keys by default
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -416,14 +506,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for exec failure, got nil")
 	}
@@ -443,7 +545,7 @@ steps: [
 
 // TestTemplate_Error_SourceMissing verifies missing source file is reported.
 func TestTemplate_Error_SourceMissing(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -462,15 +564,27 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 	// Note: /nonexistent.txt is not added
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for missing source, got nil")
 	}
@@ -490,7 +604,7 @@ steps: [
 
 // TestTemplate_Error_EnvKeyNotInValues verifies env key not in values is reported.
 func TestTemplate_Error_EnvKeyNotInValues(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -517,15 +631,27 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 	src.Env["MY_HOST"] = "localhost" // Set the env var
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for env key not in values, got nil")
 	}
@@ -545,7 +671,7 @@ steps: [
 
 // TestTemplate_Error_DestDirMissing verifies missing dest directory is reported.
 func TestTemplate_Error_DestDirMissing(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -564,14 +690,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for missing dest directory, got nil")
 	}
@@ -591,7 +729,7 @@ steps: [
 
 // TestTemplate_ModeChange verifies mode changes are applied.
 func TestTemplate_ModeChange(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -610,7 +748,7 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate with wrong mode
 	tgt.Files["/out.txt"] = []byte("content")
@@ -619,9 +757,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -634,7 +785,7 @@ steps: [
 
 // TestTemplate_OwnerChange verifies owner changes are applied.
 func TestTemplate_OwnerChange(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -653,7 +804,7 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate with wrong owner
 	tgt.Files["/out.txt"] = []byte("content")
@@ -662,9 +813,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -678,7 +842,7 @@ steps: [
 
 // TestTemplate_MultipleValues verifies multiple values work correctly.
 func TestTemplate_MultipleValues(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -704,13 +868,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -723,7 +900,7 @@ steps: [
 
 // TestTemplate_NoData verifies templates work without any data.
 func TestTemplate_NoData(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -742,13 +919,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -761,7 +951,7 @@ steps: [
 
 // TestTemplate_NestedValues verifies nested data structures work.
 func TestTemplate_NestedValues(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -788,13 +978,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -807,7 +1010,7 @@ steps: [
 
 // TestTemplate_MultipleEnvOverrides verifies multiple env overrides work.
 func TestTemplate_MultipleEnvOverrides(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -836,15 +1039,28 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 	src.Env["MY_HOST"] = "prod.example.com"
 	src.Env["MY_PORT"] = "443"
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -857,7 +1073,7 @@ steps: [
 
 // TestTemplate_PartialEnvOverride verifies some env vars override while others use defaults.
 func TestTemplate_PartialEnvOverride(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -886,15 +1102,28 @@ steps: [
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 	// Only set MY_HOST, not MY_PORT
 	src.Env["MY_HOST"] = "prod.example.com"
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -908,7 +1137,7 @@ steps: [
 
 // TestTemplate_WriteFailure verifies write failure is handled.
 func TestTemplate_WriteFailure(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -928,17 +1157,29 @@ steps: [
 	innerTgt := target.NewMemTarget()
 	tgt := newFaultyTarget(innerTgt)
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Inject write failure
 	tgt.injectFault("WriteFile", "/out.txt", fs.ErrPermission)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for write failure, got nil")
 	}

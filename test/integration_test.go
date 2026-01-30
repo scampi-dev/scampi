@@ -17,7 +17,7 @@ import (
 // TestIntegration_FullFlow tests the complete engine flow from config loading
 // through execution using in-memory source and target.
 func TestIntegration_FullFlow(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -37,13 +37,26 @@ steps: [
 	tgt := target.NewMemTarget()
 
 	src.Files["/src.txt"] = []byte("test content")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -78,7 +91,7 @@ steps: [
 
 // TestIntegration_Idempotency verifies that a second run skips already-satisfied ops.
 func TestIntegration_Idempotency(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -98,7 +111,7 @@ steps: [
 	tgt := target.NewMemTarget()
 
 	src.Files["/src.txt"] = []byte("content")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate target with matching state
 	tgt.Files["/dest.txt"] = []byte("content")
@@ -107,9 +120,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -146,7 +172,7 @@ steps: [
 
 // TestIntegration_MultipleSteps verifies sequential execution of multiple steps.
 func TestIntegration_MultipleSteps(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -175,13 +201,26 @@ steps: [
 
 	src.Files["/src-a.txt"] = []byte("file A")
 	src.Files["/src-b.txt"] = []byte("file B")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -217,7 +256,7 @@ steps: [
 // TestIntegration_ErrorInjection_WriteFailure verifies engine behavior when
 // target write fails.
 func TestIntegration_ErrorInjection_WriteFailure(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -238,7 +277,7 @@ steps: [
 	tgt := newFaultyTarget(innerTgt)
 
 	src.Files["/src.txt"] = []byte("content")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Inject write failure
 	writeErr := errors.New("disk full")
@@ -246,10 +285,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	// Should fail with AbortError
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -264,7 +315,7 @@ steps: [
 // TestIntegration_ErrorInjection_SourceReadFailure verifies engine behavior
 // when source read fails during check.
 func TestIntegration_ErrorInjection_SourceReadFailure(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -284,7 +335,7 @@ steps: [
 	src := newFaultySource(innerSrc)
 	tgt := target.NewMemTarget()
 
-	innerSrc.Files["/config.cue"] = []byte(cfg)
+	innerSrc.Files["/config.cue"] = []byte(cfgStr)
 	// Note: /missing.txt is not added, so read will fail
 
 	// Inject explicit error
@@ -293,10 +344,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -305,7 +368,7 @@ steps: [
 // TestIntegration_PartialFailure verifies that first action failure aborts
 // subsequent actions (fail-fast).
 func TestIntegration_PartialFailure(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -335,17 +398,29 @@ steps: [
 
 	src.Files["/src-a.txt"] = []byte("A")
 	src.Files["/src-b.txt"] = []byte("B")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// First write fails
 	tgt.injectFault("WriteFile", "/dest-a.txt", errors.New("write failed"))
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
 
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -370,7 +445,7 @@ steps: [
 // TestIntegration_ContentChange verifies that content changes are detected
 // and applied correctly.
 func TestIntegration_ContentChange(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -390,7 +465,7 @@ steps: [
 	tgt := target.NewMemTarget()
 
 	src.Files["/src.txt"] = []byte("new content")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate target with OLD content
 	tgt.Files["/dest.txt"] = []byte("old content")
@@ -399,9 +474,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -434,7 +522,7 @@ steps: [
 // TestIntegration_ModeChange verifies that permission changes are detected
 // and applied correctly.
 func TestIntegration_ModeChange(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -454,7 +542,7 @@ steps: [
 	tgt := target.NewMemTarget()
 
 	src.Files["/src.txt"] = []byte("content")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate target with correct content but WRONG mode
 	tgt.Files["/dest.txt"] = []byte("content")
@@ -463,9 +551,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -480,7 +581,7 @@ steps: [
 // TestIntegration_OwnerChange verifies that ownership changes are detected
 // and applied correctly.
 func TestIntegration_OwnerChange(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -500,7 +601,7 @@ steps: [
 	tgt := target.NewMemTarget()
 
 	src.Files["/src.txt"] = []byte("content")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// Pre-populate target with correct content and mode but WRONG owner
 	tgt.Files["/dest.txt"] = []byte("content")
@@ -509,9 +610,22 @@ steps: [
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -525,7 +639,7 @@ steps: [
 
 // TestIntegration_FaultyClearAndRetry verifies that clearing faults allows retry.
 func TestIntegration_FaultyClearAndRetry(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 
 import "godoit.dev/doit/builtin"
@@ -546,16 +660,29 @@ steps: [
 	tgt := newFaultyTarget(innerTgt)
 
 	src.Files["/src.txt"] = []byte("content")
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	// First attempt: inject fault
 	tgt.injectFault("WriteFile", "/dest.txt", errors.New("temporary failure"))
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
 
-	e := engine.New(src, tgt, em)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("first attempt should fail")
 	}
@@ -565,9 +692,22 @@ steps: [
 
 	rec2 := &recordingDisplayer{}
 	em2 := diagnostic.NewEmitter(diagnostic.Policy{}, rec2)
+	store2 := spec.NewSourceStore()
 
-	e2 := engine.New(src, tgt, em2)
-	err = e2.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	ctx2 := context.Background()
+	cfg2, err := engine.LoadConfig(ctx2, em2, "/config.cue", store2, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg2.Target = mockTargetInstance(tgt)
+
+	e2, err := engine.New(src, cfg2, em2)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e2.Apply(ctx2)
 	if err != nil {
 		t.Fatalf("second attempt should succeed: %v", err)
 	}

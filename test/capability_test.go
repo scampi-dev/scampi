@@ -5,13 +5,14 @@ import (
 	"errors"
 	"testing"
 
+	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/engine"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 )
 
 func TestPlan_CapabilityMismatch(t *testing.T) {
-	cfg := `
+	cfgStr := `
 package test
 import "godoit.dev/doit/builtin"
 steps: [
@@ -27,11 +28,26 @@ steps: [
 	src := source.NewMemSource()
 	tgt := newMinimalTarget() // Only implements Filesystem, not Ownership
 
-	src.Files["/config.cue"] = []byte(cfg)
+	src.Files["/config.cue"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
-	e := engine.New(src, tgt, rec)
-	err := e.Apply(context.Background(), "/config.cue", spec.NewSourceStore())
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
+
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+	}
+
+	cfg.Target = mockTargetInstance(tgt)
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+
+	err = e.Apply(ctx)
 
 	var capErr engine.AbortError
 	if !errors.As(err, &capErr) {

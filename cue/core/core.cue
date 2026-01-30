@@ -7,4 +7,6 @@ unit?: close({
 	desc?: string
 })
 
+target: builtin.#BuiltinTarget
+
 steps: [...builtin.#BuiltinStep]

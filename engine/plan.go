@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"io/fs"
-	"path/filepath"
 	"time"
 
 	"godoit.dev/doit/capability"
@@ -13,36 +12,34 @@ import (
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
+	"godoit.dev/doit/target/local"
 )
 
 func Plan(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
-	e := New(
-		source.LocalPosixSource{},
-		// Plan must NEVER touch target, not even reads
-		capabilityTarget{
-			caps: target.LocalPosixTarget{}.Capabilities(),
-		},
-		em,
-	)
-
-	return e.Plan(ctx, cfgPath, store)
-}
-
-func (e *Engine) Plan(ctx context.Context, cfgPath string, store *spec.SourceStore) error {
-	start := time.Now()
-	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
-
-	cfgPath, err := filepath.Abs(cfgPath)
-	if err != nil {
-		panic(errs.BUG("filepath.Abs() failed: %w", err))
-	}
-
-	cfg, err := LoadConfigWithSource(ctx, e.em, cfgPath, store, e.src)
+	src := source.LocalPosixSource{}
+	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
 	if err != nil {
 		return err
 	}
 
-	plan, err := plan(cfg, e.em, e.tgt.Capabilities())
+	e, err := New(src, cfg, em)
+	if err != nil {
+		return err
+	}
+
+	// Plan must NEVER touch target, not even reads
+	e.tgt = capabilityTarget{
+		caps: local.POSIXTarget{}.Capabilities(),
+	}
+
+	return e.Plan(ctx)
+}
+
+func (e *Engine) Plan(_ context.Context) error {
+	start := time.Now()
+	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
+
+	plan, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return err
 	}

@@ -9,6 +9,7 @@ import (
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
+	"godoit.dev/doit/target/local"
 )
 
 func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
@@ -18,7 +19,19 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 		}
 	}()
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
 
 	op := &fakeOp{
 		name: "raw-error-op",
@@ -38,7 +51,7 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 		},
 	}
 
-	_, err := e.ExecutePlan(context.Background(), plan)
+	_, err = e.ExecutePlan(ctx, plan)
 
 	// panicIfNotAbortError should trigger
 	_ = err
@@ -51,7 +64,19 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 		}
 	}()
 
-	e := engine.New(source.LocalPosixSource{}, target.LocalPosixTarget{}, noopEmitter{})
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx := context.Background()
+	cfg := spec.Config{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
 
 	op := &fakeOp{
 		name: "raw-error-op",
@@ -73,7 +98,7 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 		},
 	}
 
-	_, err := e.ExecutePlan(context.Background(), plan)
+	_, err = e.ExecutePlan(ctx, plan)
 
 	// panicIfNotAbortError should trigger
 	_ = err
