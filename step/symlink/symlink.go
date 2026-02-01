@@ -148,7 +148,6 @@ func (op *ensureSymlinkOp) Check(ctx context.Context, _ source.Source, tgt targe
 		}
 	}
 
-	// Check symlink target
 	current, err := slTgt.Readlink(ctx, op.link)
 	if err != nil {
 		return spec.CheckUnsatisfied, LinkReadError{
@@ -169,22 +168,25 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 	fsTgt := target.Must[target.Filesystem](id, tgt)
 	slTgt := target.Must[target.Symlink](id, tgt)
 
-	// Compute relative target path
 	relTarget, err := resolveTarget(op.target, op.link)
 	if err != nil {
 		return spec.Result{}, err
 	}
 
-	// Check current state
 	info, err := slTgt.Lstat(ctx, op.link)
 	if err == nil {
-		// Something exists
-		if info.Mode()&fs.ModeSymlink != 0 {
-			// It's a symlink - check if correct
-			current, _ := slTgt.Readlink(ctx, op.link)
-			if current == relTarget {
-				return spec.Result{Changed: false}, nil
+		if info.Mode()&fs.ModeSymlink == 0 {
+			// Dest exists but is not a symlink, we won't touch those
+			return spec.Result{}, NotASymlink{
+				Path:   op.link,
+				Source: op.linkSpan,
 			}
+		}
+
+		// Dest is a symlink - check if correct
+		current, _ := slTgt.Readlink(ctx, op.link)
+		if current == relTarget {
+			return spec.Result{Changed: false}, nil
 		}
 
 		// Remove existing (symlink with wrong target, or other file type)

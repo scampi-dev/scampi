@@ -2,6 +2,8 @@ package sandbox
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.copy & {
 		desc:  "builtin.copy action"

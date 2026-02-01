@@ -1,0 +1,10 @@
+services:
+  sshd:
+    build: .
+    ports:
+      - "2222:22"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 1s
+      timeout: 1s
+      retries: 10

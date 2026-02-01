@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrNotExist     = errors.New("path does not exist")
+	ErrPermission   = errors.New("permission denied")
 	ErrUnknownUser  = errors.New("unknown user")
 	ErrUnknownGroup = errors.New("unknown group")
 )
@@ -21,6 +22,9 @@ type (
 	// Ops must treat Target as authoritative for system behavior.
 	Target interface {
 		Capabilities() capability.Capability
+	}
+	Closer interface {
+		Close()
 	}
 	Owner struct {
 		User  string
@@ -49,6 +53,7 @@ type (
 )
 
 func IsNotExist(err error) bool     { return errors.Is(err, ErrNotExist) }
+func IsPermission(err error) bool   { return errors.Is(err, ErrPermission) }
 func IsUnknownUser(err error) bool  { return errors.Is(err, ErrUnknownUser) }
 func IsUnknownGroup(err error) bool { return errors.Is(err, ErrUnknownGroup) }
 

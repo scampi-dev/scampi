@@ -142,7 +142,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 					s.actIdx, s.actKind, s.actDesc, displayID,
 					res, err, s.checkOnly,
 				))
-				if impact.Is(diagnostic.ImpactAbort) {
+				if impact.ShouldAbort() {
 					s.mu.Lock()
 					n.outcome = model.OpAborted
 					n.err = err
@@ -298,7 +298,7 @@ func (e *Engine) runCheckAction(ctx context.Context, idx int, act spec.Action) (
 	var err error
 	if checkErr != nil {
 		impact, consumed := emitActionDiagnostic(e.em, idx, act.Kind(), act.Desc(), checkErr)
-		if impact.Is(diagnostic.ImpactAbort) {
+		if impact.ShouldAbort() {
 			err = AbortError{Causes: []error{checkErr}}
 		} else if !consumed {
 			err = checkErr
@@ -441,7 +441,7 @@ func (e *Engine) runAction(ctx context.Context, idx int, act spec.Action) (model
 
 	if err != nil {
 		impact, consumed := emitActionDiagnostic(e.em, idx, act.Kind(), act.Desc(), err)
-		if impact.Is(diagnostic.ImpactAbort) {
+		if impact.ShouldAbort() {
 			err = AbortError{Causes: []error{err}}
 		} else if consumed {
 			err = nil

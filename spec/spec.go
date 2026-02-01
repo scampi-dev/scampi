@@ -21,12 +21,13 @@ type (
 	TargetType interface {
 		Kind() string
 		NewConfig() any
-		Create(cfg any) (target.Target, error)
+		Create(ctx context.Context, src source.Source, tgt TargetInstance) (target.Target, error)
 	}
 	TargetInstance struct {
 		Type   TargetType
 		Config any
 		Source SourceSpan
+		Fields map[string]FieldSpan
 	}
 
 	UnitInstance struct {

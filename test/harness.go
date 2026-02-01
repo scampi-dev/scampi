@@ -647,9 +647,11 @@ type mockTargetType struct {
 	tgt target.Target
 }
 
-func (mockTargetType) Kind() string                          { return "mem" }
-func (mockTargetType) NewConfig() any                        { return nil }
-func (t mockTargetType) Create(_ any) (target.Target, error) { return t.tgt, nil }
+func (mockTargetType) Kind() string   { return "mem" }
+func (mockTargetType) NewConfig() any { return nil }
+func (t mockTargetType) Create(_ context.Context, _ source.Source, _ spec.TargetInstance) (target.Target, error) {
+	return t.tgt, nil
+}
 
 func mockTargetInstance(tgt target.Target) spec.TargetInstance {
 	return spec.TargetInstance{

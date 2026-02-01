@@ -50,10 +50,16 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 		Target: mockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	e, err := engine.New(
+		context.Background(),
+		source.LocalPosixSource{},
+		cfg,
+		noopEmitter{},
+	)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(context.Background(), plan)
 	if err != nil {
@@ -126,10 +132,16 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 		Target: mockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	e, err := engine.New(
+		context.Background(),
+		source.LocalPosixSource{},
+		cfg,
+		noopEmitter{},
+	)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	_, err = e.ExecutePlan(context.Background(), plan)
 	if err != nil {
@@ -175,10 +187,16 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 		Target: mockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	e, err := engine.New(
+		context.Background(),
+		source.LocalPosixSource{},
+		cfg,
+		noopEmitter{},
+	)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	_, err = e.ExecutePlan(context.Background(), plan)
 
@@ -219,10 +237,16 @@ func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 		Target: mockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	e, err := engine.New(
+		context.Background(),
+		source.LocalPosixSource{},
+		cfg,
+		noopEmitter{},
+	)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	_, err = e.ExecutePlan(context.Background(), plan)
 
@@ -273,10 +297,16 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 		Target: mockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	e, err := engine.New(
+		context.Background(),
+		source.LocalPosixSource{},
+		cfg,
+		noopEmitter{},
+	)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	_, err = e.ExecutePlan(context.Background(), plan)
 	if err != nil {
@@ -331,10 +361,17 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 		Target: mockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+	e, err := engine.New(
+		context.Background(),
+		source.LocalPosixSource{},
+		cfg,
+		noopEmitter{},
+	)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
+
 	_, err = e.ExecutePlan(ctx, plan)
 
 	if err == nil {

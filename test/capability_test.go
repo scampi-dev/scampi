@@ -15,6 +15,7 @@ func TestPlan_CapabilityMismatch(t *testing.T) {
 	cfgStr := `
 package test
 import "godoit.dev/doit/builtin"
+target: builtin.local
 steps: [
     builtin.copy & {
         src:   "/a"
@@ -42,10 +43,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 

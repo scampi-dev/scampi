@@ -28,10 +28,11 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	op := &fakeOp{
 		name: "raw-error-op",
@@ -73,10 +74,11 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	op := &fakeOp{
 		name: "raw-error-op",

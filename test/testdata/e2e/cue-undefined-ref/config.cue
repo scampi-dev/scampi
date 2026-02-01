@@ -2,6 +2,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 // Reference to undefined variable
 steps: [
 	builtin.copy & {

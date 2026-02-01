@@ -8,8 +8,8 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[ImpactAbort-1]
 	_ = x[ImpactNone-0]
+	_ = x[ImpactAbort-1]
 }
 
 const _Impact_name = "ImpactNoneImpactAbort"

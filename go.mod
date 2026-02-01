@@ -8,7 +8,9 @@ require (
 	github.com/charmbracelet/x/term v0.2.1
 	github.com/golangci/golangci-lint/v2 v2.7.2
 	github.com/mattn/go-runewidth v0.0.16
+	github.com/pkg/sftp v1.13.10
 	github.com/urfave/cli/v3 v3.6.1
+	golang.org/x/crypto v0.47.0
 	golang.org/x/perf v0.0.0-20260112171951-5abaabe9f1bd
 	golang.org/x/sync v0.19.0
 	golang.org/x/tools v0.40.0
@@ -122,6 +124,7 @@ require (
 	github.com/karamaru-alpha/copyloopvar v1.2.2 // indirect
 	github.com/kisielk/errcheck v1.9.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.6 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/kulti/thelper v0.7.1 // indirect
 	github.com/kunwardeep/paralleltest v1.0.15 // indirect
 	github.com/lasiar/canonicalheader v1.1.2 // indirect

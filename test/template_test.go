@@ -20,6 +20,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.template & {
 		desc:  "render-test"
@@ -55,10 +57,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -101,6 +104,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.template & {
 		desc:    "inline-template"
@@ -134,10 +139,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -160,6 +166,8 @@ func TestTemplate_EnvOverride(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -198,10 +206,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -225,6 +234,8 @@ func TestTemplate_EnvNotSet_UsesDefault(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -262,10 +273,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -289,6 +301,8 @@ func TestTemplate_Idempotent(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -323,10 +337,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -358,6 +373,8 @@ func TestTemplate_ContentChange(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -392,10 +409,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -432,6 +450,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.template & {
 		desc:    "parse-error"
@@ -460,10 +480,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -491,6 +512,8 @@ func TestTemplate_Error_ExecError(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -520,10 +543,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -549,6 +573,8 @@ func TestTemplate_Error_SourceMissing(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -579,10 +605,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -608,6 +635,8 @@ func TestTemplate_Error_EnvKeyNotInValues(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -646,10 +675,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -675,6 +705,8 @@ func TestTemplate_Error_DestDirMissing(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -704,10 +736,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -733,6 +766,8 @@ func TestTemplate_ModeChange(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -767,10 +802,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -789,6 +825,8 @@ func TestTemplate_OwnerChange(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -823,10 +861,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -846,6 +885,8 @@ func TestTemplate_MultipleValues(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -882,10 +923,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -904,6 +946,8 @@ func TestTemplate_NoData(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -933,10 +977,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -955,6 +1000,8 @@ func TestTemplate_NestedValues(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -992,10 +1039,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -1014,6 +1062,8 @@ func TestTemplate_MultipleEnvOverrides(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -1055,10 +1105,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -1077,6 +1128,8 @@ func TestTemplate_PartialEnvOverride(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -1118,10 +1171,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -1141,6 +1195,8 @@ func TestTemplate_WriteFailure(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.template & {
@@ -1174,10 +1230,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {

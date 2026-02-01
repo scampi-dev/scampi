@@ -136,10 +136,11 @@ func runE2EScenario(t *testing.T, dir string) {
 
 		cfg.Target = mockTargetInstance(tgt)
 
-		e, err := engine.New(src, cfg, em)
+		e, err := engine.New(ctx, src, cfg, em)
 		if err != nil {
 			return err
 		}
+		defer e.Close()
 
 		return e.Apply(ctx)
 	}

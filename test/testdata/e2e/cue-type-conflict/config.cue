@@ -2,6 +2,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 // src must be a string, not a number
 steps: [
 	builtin.copy & {

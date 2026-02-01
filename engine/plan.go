@@ -22,10 +22,11 @@ func Plan(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spe
 		return err
 	}
 
-	e, err := New(src, cfg, em)
+	e, err := New(ctx, src, cfg, em)
 	if err != nil {
 		return err
 	}
+	defer e.Close()
 
 	// Plan must NEVER touch target, not even reads
 	e.tgt = capabilityTarget{
@@ -104,7 +105,7 @@ func plan(cfg spec.Config, em diagnostic.Emitter, tgtCaps capability.Capability)
 	))
 
 	for _, impact := range impacts {
-		if impact.Is(diagnostic.ImpactAbort) {
+		if impact.ShouldAbort() {
 			return spec.Plan{}, AbortError{
 				Causes: causes,
 			}

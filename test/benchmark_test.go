@@ -146,10 +146,11 @@ steps: [
 
 				cfg.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(src, cfg, noopEmitter{})
+				e, err := engine.New(ctx, src, cfg, noopEmitter{})
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
+				defer e.Close()
 
 				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
@@ -203,10 +204,11 @@ steps: [
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
 
-				e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+				e, err := engine.New(ctx, source.LocalPosixSource{}, cfg, noopEmitter{})
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
+				defer e.Close()
 
 				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
@@ -272,10 +274,11 @@ steps: [
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
 
-				e, err := engine.New(source.LocalPosixSource{}, cfg, noopEmitter{})
+				e, err := engine.New(ctx, source.LocalPosixSource{}, cfg, noopEmitter{})
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
+				defer e.Close()
 
 				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)

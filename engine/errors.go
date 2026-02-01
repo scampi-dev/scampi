@@ -86,6 +86,19 @@ func emitEngineDiagnostic(
 		return 0, false
 	}
 
+	var ds diagnostic.Diagnostics
+	if errors.As(err, &ds) {
+		impact := diagnostic.ImpactNone
+		for _, d := range ds {
+			em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(cfgPath, d))
+			if d.Impact() > impact {
+				impact = d.Impact()
+			}
+		}
+
+		return impact, true
+	}
+
 	var d diagnostic.Diagnostic
 	if !errors.As(err, &d) {
 		return 0, false
@@ -106,6 +119,21 @@ func emitPlanDiagnostic(
 ) (diagnostic.Impact, bool) {
 	if err == nil {
 		return 0, false
+	}
+
+	var ds diagnostic.Diagnostics
+	if errors.As(err, &ds) {
+		impact := diagnostic.ImpactNone
+		for _, d := range ds {
+			em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(
+				stepIndex, stepKind, stepDesc, d,
+			))
+			if d.Impact() > impact {
+				impact = d.Impact()
+			}
+		}
+
+		return impact, true
 	}
 
 	var d diagnostic.Diagnostic
@@ -132,6 +160,21 @@ func emitActionDiagnostic(
 		return 0, false
 	}
 
+	var ds diagnostic.Diagnostics
+	if errors.As(err, &ds) {
+		impact := diagnostic.ImpactNone
+		for _, d := range ds {
+			em.EmitActionDiagnostic(diagnostic.RaiseActionDiagnostic(
+				stepIndex, stepKind, stepDesc, d,
+			))
+			if d.Impact() > impact {
+				impact = d.Impact()
+			}
+		}
+
+		return impact, true
+	}
+
 	var d diagnostic.Diagnostic
 	if !errors.As(err, &d) {
 		return 0, false
@@ -155,6 +198,21 @@ func emitOpDiagnostic(
 ) (diagnostic.Impact, bool) {
 	if err == nil {
 		return 0, false
+	}
+
+	var ds diagnostic.Diagnostics
+	if errors.As(err, &ds) {
+		impact := diagnostic.ImpactNone
+		for _, d := range ds {
+			em.EmitOpDiagnostic(diagnostic.RaiseOpDiagnostic(
+				stepIndex, stepKind, stepDesc, displayID, d,
+			))
+			if d.Impact() > impact {
+				impact = d.Impact()
+			}
+		}
+
+		return impact, true
 	}
 
 	var d diagnostic.Diagnostic

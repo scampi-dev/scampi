@@ -22,6 +22,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.copy & {
 		desc:  "copy-test"
@@ -51,10 +53,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -96,6 +99,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.copy & {
 		desc:  "idempotent-copy"
@@ -130,10 +135,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -177,6 +183,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.copy & {
 		desc:  "copy-1"
@@ -215,10 +223,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -261,6 +270,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.copy & {
 		desc:  "will-fail"
@@ -295,10 +306,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	// Should fail with AbortError
@@ -319,6 +331,8 @@ func TestIntegration_ErrorInjection_SourceReadFailure(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.copy & {
@@ -354,10 +368,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -372,6 +387,8 @@ func TestIntegration_PartialFailure(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.copy & {
@@ -415,10 +432,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -449,6 +467,8 @@ func TestIntegration_ContentChange(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.copy & {
@@ -484,10 +504,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -527,6 +548,8 @@ package test
 
 import "godoit.dev/doit/builtin"
 
+target: builtin.local
+
 steps: [
 	builtin.copy & {
 		desc:  "update-mode"
@@ -561,10 +584,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -585,6 +609,8 @@ func TestIntegration_OwnerChange(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.copy & {
@@ -620,10 +646,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err != nil {
@@ -643,6 +670,8 @@ func TestIntegration_FaultyClearAndRetry(t *testing.T) {
 package test
 
 import "godoit.dev/doit/builtin"
+
+target: builtin.local
 
 steps: [
 	builtin.copy & {
@@ -677,10 +706,11 @@ steps: [
 
 	cfg.Target = mockTargetInstance(tgt)
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e.Apply(ctx)
 	if err == nil {
@@ -702,10 +732,11 @@ steps: [
 
 	cfg2.Target = mockTargetInstance(tgt)
 
-	e2, err := engine.New(src, cfg2, em2)
+	e2, err := engine.New(ctx, src, cfg2, em2)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	err = e2.Apply(ctx2)
 	if err != nil {

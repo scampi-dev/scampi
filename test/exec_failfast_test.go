@@ -59,10 +59,11 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {
@@ -126,10 +127,11 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {
@@ -200,10 +202,11 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
@@ -290,10 +293,11 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
@@ -348,10 +352,11 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {
@@ -408,10 +413,11 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
@@ -471,10 +477,11 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err == nil {
@@ -531,10 +538,11 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 		Target: mockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(src, cfg, em)
+	e, err := engine.New(ctx, src, cfg, em)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
+	defer e.Close()
 
 	rep, err := e.ExecutePlan(ctx, plan)
 	if err != nil {

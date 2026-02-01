@@ -38,6 +38,10 @@ doit *args:
 test:
   go test ./...
 
+[doc("Run tests against containers")]
+test-containers:
+  DOIT_TEST_CONTAINERS=1 go test -v ./test/...
+
 [doc("Run tests with race-detector")]
 race:
   go test -race ./...

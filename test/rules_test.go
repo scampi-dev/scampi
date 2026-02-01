@@ -28,12 +28,17 @@ func TestImportCapabilities(t *testing.T) {
 	// ---- restricted imports (require explicit capability) ----
 	restrictedImports := []string{
 		"os",
+		"os/exec",
 		"runtime",
 		"syscall",
 		"net",
 		"net/http",
 		"net/url",
 		"crypto/tls",
+
+		"github.com/pkg/sftp",
+		"golang.org/x/crypto/ssh",
+		"golang.org/x/crypto/ssh/agent",
 	}
 
 	allowAll := func() string {
@@ -68,11 +73,27 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,syscall",
 		},
 		{
+			pattern:        "target/ssh/ssh2.go",
+			allowedImports: "net,os,golang.org/x/crypto/ssh,golang.org/x/crypto/ssh/agent,github.com/pkg/sftp",
+		},
+		{
+			pattern:        "target/ssh/*.go",
+			allowedImports: "net,os,golang.org/x/crypto/ssh,golang.org/x/crypto/ssh/agent,github.com/pkg/sftp",
+		},
+		{
 			pattern:        "osutil/*.go",
 			allowedImports: "os,syscall",
 		},
 		{
 			pattern:        "test/harness.go",
+			allowedImports: "os",
+		},
+		{
+			pattern:        "test/ssh_harness.go",
+			allowedImports: "os,os/exec,net",
+		},
+		{
+			pattern:        "test/ssh_connection_test.go",
 			allowedImports: "os",
 		},
 	}

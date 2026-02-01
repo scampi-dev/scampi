@@ -178,7 +178,7 @@ func LoadConfig(
 	cfg, err = loadConfigWithSource(ctx, em, cfgPath, store, src)
 	if err != nil {
 		impact, _ := emitEngineDiagnostic(em, cfgPath, err)
-		if impact.Is(diagnostic.ImpactAbort) {
+		if impact.ShouldAbort() {
 			return spec.Config{}, AbortError{Causes: []error{err}}
 		}
 		return spec.Config{}, panicIfNotAbortError(err)
@@ -415,7 +415,7 @@ func loadConfigWithSourceUnsafe(
 	for iter.Next() {
 		idx := iter.Selector().Index()
 		stepVal := iter.Value()
-		stepSpan, fields := extractFieldSpansFromFile(userFile, idx)
+		stepSpan, fields := extractStepFieldSpansFromFile(userFile, idx)
 
 		si, decRes := decodeStep(stepVal, idx, reg, em, stepSpan, fields)
 		if decRes.abort {
@@ -489,7 +489,7 @@ func decodeUnit(
 				var abort bool
 				for _, m := range missing {
 					impact, _ := emitEngineDiagnostic(em, cfgPath, MissingFieldDiagnostic{Missing: m})
-					if impact.Is(diagnostic.ImpactAbort) {
+					if impact.ShouldAbort() {
 						abort = true
 					}
 				}
@@ -503,7 +503,7 @@ func decodeUnit(
 				Phase: "decode",
 			})
 
-			if impact.Is(diagnostic.ImpactAbort) {
+			if impact.ShouldAbort() {
 				return spec.UnitInstance{}, AbortError{Causes: []error{err}}
 			}
 			return spec.UnitInstance{}, nil
@@ -556,14 +556,15 @@ func decodeTarget(
 		}
 	}
 
+	targetSpan := extractSpanFromFile(userFile, cueTarget)
+
 	// Resolve target
 	// ------------------------------------------------------------
 	tt, ok := reg.TargetType(kind)
 	if !ok {
-		span := extractSpanFromFile(userFile, cueTarget)
 		return spec.TargetInstance{}, UnknownTargetKind{
 			Kind:   kind,
-			Source: span,
+			Source: targetSpan,
 		}
 	}
 
@@ -577,6 +578,42 @@ func decodeTarget(
 			tt.Kind(),
 			tCfg,
 		))
+	}
+
+	// Validation
+	// ------------------------------------------------------------
+	if err := targetVal.Validate(cue.Concrete(true), cue.All()); err != nil {
+		var ce cueerr.Error
+		if !errors.As(err, &ce) {
+			// unexpected validation failure → engine error
+			panic(errs.BUG(
+				"targetVal.Validate failed with an unaccounted-for error-type %T for target %q: %w",
+				err,
+				kind,
+				err,
+			))
+		}
+
+		missing := findIncompleteFields(
+			ce,
+			targetVal,
+			targetSpan,
+		)
+
+		if len(missing) > 0 {
+			var diags diagnostic.Diagnostics
+			for _, m := range missing {
+				d := MissingFieldDiagnostic{Missing: m}
+				diags = append(diags, d)
+			}
+			return spec.TargetInstance{}, diags
+		}
+
+		// generic cue validation error, still user-facing
+		return spec.TargetInstance{}, CueDiagnostic{
+			Err:   ce,
+			Phase: "decode",
+		}
 	}
 
 	// Decode
@@ -593,36 +630,14 @@ func decodeTarget(
 
 	// Success
 	// ------------------------------------------------------------
+	src, fields := extractFieldSpansFromFile(userFile, cueTarget)
 	return spec.TargetInstance{
 		Type:   tt,
 		Config: tCfg,
-		Source: extractSpanFromFile(userFile, cueTarget),
+		Source: src,
+		Fields: fields,
 	}, nil
 }
-
-// func loadTarget(v cue.Value) (target.Target, error) {
-//     // Extract kind field
-//     kindVal := v.LookupPath(cue.ParsePath("kind"))
-//     kind, err := kindVal.String()
-//     if err != nil {
-//         return nil, TargetMissingKind{Source: sourceSpan(v)}
-//     }
-//
-//     // Get target type
-//     targetType, ok := e.targetRegistry.TargetType(kind)
-//     if !ok {
-//         return nil, UnknownTargetKind{Kind: kind, Source: sourceSpan(v)}
-//     }
-//
-//     // Decode config
-//     cfg := targetType.NewConfig()
-//     if err := v.Decode(cfg); err != nil {
-//         return nil, TargetConfigError{Kind: kind, Err: err, Source: sourceSpan(v)}
-//     }
-//
-//     // Create target
-//     return targetType.Create(cfg)
-// }
 
 type decodeResult struct {
 	abort bool
@@ -657,7 +672,7 @@ func decodeStep(
 			Source: stepSpan,
 		})
 		return spec.StepInstance{}, decodeResult{
-			abort: impact.Is(diagnostic.ImpactAbort),
+			abort: impact.ShouldAbort(),
 			ok:    false,
 		}
 	}
@@ -699,7 +714,7 @@ func decodeStep(
 			var abort bool
 			for _, m := range missing {
 				impact, _ := emitPlanDiagnostic(em, stepIdx, kind, desc, MissingFieldDiagnostic{Missing: m})
-				if impact.Is(diagnostic.ImpactAbort) {
+				if impact.ShouldAbort() {
 					abort = true
 				}
 			}
@@ -716,7 +731,7 @@ func decodeStep(
 		})
 
 		return spec.StepInstance{}, decodeResult{
-			abort: impact.Is(diagnostic.ImpactAbort),
+			abort: impact.ShouldAbort(),
 			ok:    false,
 		}
 	}
@@ -956,6 +971,8 @@ func spanFromPosRange(start, end token.Pos) spec.SourceSpan {
 }
 
 func extractSpanFromFile(f *ast.File, declName string) spec.SourceSpan {
+	var field *ast.Field
+
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.Field)
 		if !ok {
@@ -966,13 +983,45 @@ func extractSpanFromFile(f *ast.File, declName string) spec.SourceSpan {
 			continue
 		}
 
-		return spanFromNode(fd)
+		field = fd
+		break
 	}
 
-	return spec.SourceSpan{}
+	if field == nil {
+		return spec.SourceSpan{}
+	}
+
+	return spanFromNode(field)
 }
 
 func extractFieldSpansFromFile(
+	f *ast.File,
+	declName string,
+) (spec.SourceSpan, map[string]spec.FieldSpan) {
+	var field *ast.Field
+
+	for _, d := range f.Decls {
+		fd, ok := d.(*ast.Field)
+		if !ok {
+			continue
+		}
+		id, ok := fd.Label.(*ast.Ident)
+		if !ok || id.Name != declName {
+			continue
+		}
+
+		field = fd
+		break
+	}
+
+	if field == nil {
+		return spec.SourceSpan{}, map[string]spec.FieldSpan{}
+	}
+
+	return spanFromNode(field), extractFieldSpans(field.Value)
+}
+
+func extractStepFieldSpansFromFile(
 	f *ast.File,
 	stepIndex int,
 ) (spec.SourceSpan, map[string]spec.FieldSpan) {
@@ -1000,12 +1049,11 @@ func extractFieldSpansFromFile(
 		return spec.SourceSpan{}, map[string]spec.FieldSpan{}
 	}
 
-	// 2. pick the steps expr
 	stepExpr := steps.Elts[stepIndex]
+	return spanFromNode(stepExpr), extractFieldSpans(stepExpr)
+}
 
-	// step may be:
-	//   { ... }
-	//   builtin.copy & { ... }
+func extractFieldSpans(stepExpr ast.Expr) map[string]spec.FieldSpan {
 	var st *ast.StructLit
 
 	switch e := stepExpr.(type) {
@@ -1018,10 +1066,9 @@ func extractFieldSpansFromFile(
 	}
 
 	if st == nil {
-		return spec.SourceSpan{}, map[string]spec.FieldSpan{}
+		return map[string]spec.FieldSpan{}
 	}
 
-	// 3. extract field + value spans
 	fields := make(map[string]spec.FieldSpan)
 	for _, elt := range st.Elts {
 		fd, ok := elt.(*ast.Field)
@@ -1040,8 +1087,7 @@ func extractFieldSpansFromFile(
 		}
 	}
 
-	stepSpan := spanFromNode(stepExpr)
-	return stepSpan, fields
+	return fields
 }
 
 func normalizeVirtualPath(path string) string {

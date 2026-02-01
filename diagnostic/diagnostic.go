@@ -2,6 +2,7 @@
 package diagnostic
 
 import (
+	"fmt"
 	"reflect"
 	"slices"
 	"strings"
@@ -34,12 +35,12 @@ func OpDisplayID(op spec.Op) string {
 type Impact uint8
 
 const (
-	ImpactAbort Impact = 1 << iota
-	ImpactNone  Impact = 0
+	ImpactNone Impact = iota
+	ImpactAbort
 )
 
-func (i Impact) Is(other Impact) bool {
-	return i&other != 0
+func (i Impact) ShouldAbort() bool {
+	return i == ImpactAbort
 }
 
 type (
@@ -62,7 +63,14 @@ type (
 		Severity() signal.Severity
 		Impact() Impact
 	}
+	Diagnostics     []Diagnostic
+	MultiDiagnostic interface {
+		Diagnostics() []Diagnostic
+	}
 )
+
+func (d Diagnostics) Diagnostics() []Diagnostic { return d }
+func (d Diagnostics) Error() string             { return fmt.Sprintf("%#v", d) }
 
 // Engine lifecycle
 // ===============================================

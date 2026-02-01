@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"context"
+
 	"godoit.dev/doit/diagnostic"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
@@ -14,9 +16,14 @@ type Engine struct {
 	em  diagnostic.Emitter
 }
 
-func New(src source.Source, cfg spec.Config, em diagnostic.Emitter) (*Engine, error) {
-	tgt, err := cfg.Target.Type.Create(cfg.Target.Config)
+func New(ctx context.Context, src source.Source, cfg spec.Config, em diagnostic.Emitter) (*Engine, error) {
+	tgt, err := cfg.Target.Type.Create(ctx, src, cfg.Target)
 	if err != nil {
+		if impact, ok := emitEngineDiagnostic(em, cfg.Path, err); ok {
+			if impact.ShouldAbort() {
+				return nil, AbortError{Causes: []error{err}}
+			}
+		}
 		return nil, err
 	}
 
@@ -26,4 +33,10 @@ func New(src source.Source, cfg spec.Config, em diagnostic.Emitter) (*Engine, er
 		cfg: cfg,
 		em:  em,
 	}, nil
+}
+
+func (e *Engine) Close() {
+	if closer, ok := e.tgt.(target.Closer); ok {
+		closer.Close()
+	}
 }

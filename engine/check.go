@@ -16,10 +16,11 @@ func Check(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *sp
 		return err
 	}
 
-	e, err := New(src, cfg, em)
+	e, err := New(ctx, src, cfg, em)
 	if err != nil {
 		return err
 	}
+	defer e.Close()
 
 	return e.Check(ctx)
 }

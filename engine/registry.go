@@ -6,6 +6,7 @@ import (
 	"godoit.dev/doit/step/symlink"
 	"godoit.dev/doit/step/template"
 	"godoit.dev/doit/target/local"
+	"godoit.dev/doit/target/ssh"
 )
 
 type Registry struct {
@@ -26,6 +27,7 @@ func NewRegistry() *Registry {
 
 	targetTypes := []spec.TargetType{
 		local.Local{},
+		ssh.SSH{},
 	}
 
 	r := &Registry{
