@@ -30,6 +30,7 @@ func (LocalPosixSource) Stat(_ context.Context, path string) (FileMeta, error) {
 
 	return FileMeta{
 		Exists:   true,
+		IsDir:    info.IsDir(),
 		Size:     info.Size(),
 		Modified: info.ModTime(),
 	}, nil

@@ -2,6 +2,7 @@ package copy
 
 import (
 	"io/fs"
+	"path/filepath"
 
 	"godoit.dev/doit/errs"
 	"godoit.dev/doit/spec"
@@ -39,6 +40,14 @@ func (c Copy) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*CopyConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &CopyConfig{}, step.Config)
+	}
+
+	if !filepath.IsAbs(cfg.Dest) {
+		return nil, sharedops.RelativePathError{
+			Field:  "dest",
+			Path:   cfg.Dest,
+			Source: step.Fields["dest"].Value,
+		}
 	}
 
 	mode, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)

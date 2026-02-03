@@ -121,7 +121,7 @@ func buildSSHConfig(ctx context.Context, src source.Source, c *Config) (*ssh.Cli
 
 	// Try explicit key first
 	if c.Key != "" {
-		keyPath, err := expandPath(c.Key)
+		keyPath, err := expandTilde(c.Key)
 		if err != nil {
 			return nil, closeAgent, KeyReadError{Path: keyPath, Err: err}
 		}
@@ -159,7 +159,7 @@ func buildSSHConfig(ctx context.Context, src source.Source, c *Config) (*ssh.Cli
 	if c.Insecure {
 		hostKeyCallback = ssh.InsecureIgnoreHostKey()
 	} else {
-		khPath, _ := expandPath(knownHostsFile)
+		khPath, _ := expandTilde(knownHostsFile)
 		var err error
 		hostKeyCallback, err = knownhosts.New(khPath)
 		if err != nil {
@@ -194,7 +194,9 @@ func isHostResolvable(h string) bool {
 	return false
 }
 
-func expandPath(p string) (string, error) {
+// expandTilde expands ~ to home directory. Relative paths are returned as-is
+// to allow the rooted source to resolve them relative to the config file.
+func expandTilde(p string) (string, error) {
 	if p == "" {
 		return "", nil
 	}
@@ -206,11 +208,10 @@ func expandPath(p string) (string, error) {
 		}
 
 		if p == "~" {
-			p = home
-		} else {
-			p = filepath.Join(home, p[2:])
+			return home, nil
 		}
+		return filepath.Join(home, p[2:]), nil
 	}
 
-	return filepath.Abs(p)
+	return p, nil
 }

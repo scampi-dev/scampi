@@ -89,3 +89,26 @@ func (e PermissionDeniedError) EventTemplate() event.Template {
 
 func (PermissionDeniedError) Severity() signal.Severity { return signal.Error }
 func (PermissionDeniedError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
+type RelativePathError struct {
+	Field  string
+	Path   string
+	Source spec.SourceSpan
+}
+
+func (e RelativePathError) Error() string {
+	return fmt.Sprintf("relative path %q not allowed for %s", e.Path, e.Field)
+}
+
+func (e RelativePathError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "builtin.RelativePathError",
+		Text:   `{{.Field}}: relative path not allowed`,
+		Hint:   "target paths must be absolute (start with /)",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (RelativePathError) Severity() signal.Severity { return signal.Error }
+func (RelativePathError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }

@@ -9,6 +9,7 @@ import (
 	"godoit.dev/doit/errs"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
+	"godoit.dev/doit/step/sharedops"
 	"godoit.dev/doit/target"
 )
 
@@ -38,6 +39,14 @@ func (s Symlink) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*SymlinkConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &SymlinkConfig{}, step.Config)
+	}
+
+	if !filepath.IsAbs(cfg.Link) {
+		return nil, sharedops.RelativePathError{
+			Field:  "link",
+			Path:   cfg.Link,
+			Source: step.Fields["link"].Value,
+		}
 	}
 
 	return &symlinkAction{

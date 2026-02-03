@@ -63,6 +63,7 @@ func (m *MemSource) Stat(_ context.Context, path string) (FileMeta, error) {
 
 	return FileMeta{
 		Exists:   true,
+		IsDir:    false,
 		Size:     int64(len(data)),
 		Modified: m.ModTimes[path],
 	}, nil

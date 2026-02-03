@@ -16,7 +16,7 @@ import (
 )
 
 func Plan(ctx context.Context, em diagnostic.Emitter, cfgPath string, store *spec.SourceStore) error {
-	src := source.LocalPosixSource{}
+	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
 	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
 	if err != nil {
 		return err

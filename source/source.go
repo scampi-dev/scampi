@@ -7,6 +7,7 @@ import (
 
 type FileMeta struct {
 	Exists   bool
+	IsDir    bool
 	Size     int64
 	Modified time.Time
 }
