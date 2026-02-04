@@ -75,6 +75,14 @@ type (
 		Kind() string
 		Ops() []Op
 	}
+	// Pather is an optional interface that actions can implement to declare
+	// their input/output paths for automatic dependency inference.
+	Pather interface {
+		// InputPaths returns paths this action reads from (source or target)
+		InputPaths() []string
+		// OutputPaths returns paths this action writes to (target only)
+		OutputPaths() []string
+	}
 	Op interface {
 		Action() Action
 		Check(ctx context.Context, src source.Source, tgt target.Target) (CheckResult, error)

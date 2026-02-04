@@ -61,6 +61,8 @@ func (s Symlink) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 
 func (a *symlinkAction) Desc() string            { return a.desc }
 func (a *symlinkAction) Kind() string            { return a.kind }
+func (a *symlinkAction) InputPaths() []string    { return []string{a.target} }
+func (a *symlinkAction) OutputPaths() []string   { return []string{a.link} }
 func (op *ensureSymlinkOp) Action() spec.Action  { return op.action }
 func (op *ensureSymlinkOp) DependsOn() []spec.Op { return op.deps }
 

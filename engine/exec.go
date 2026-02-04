@@ -212,19 +212,62 @@ func (e *Engine) CheckPlan(ctx context.Context, plan spec.Plan) (model.Execution
 }
 
 func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {
-	var rep model.ExecutionReport
+	nodes := buildActionGraph(plan.Unit.Actions)
+	initActionPending(nodes)
 
-	for i, act := range plan.Unit.Actions {
-		res, err := e.checkAction(ctx, i, act)
-		rep.Actions = append(rep.Actions, res)
-		if err != nil {
-			rep.Err = err
-			return rep, err
-		}
-
+	rep := model.ExecutionReport{
+		Actions: make([]model.ActionReport, len(nodes)),
 	}
 
-	return rep, nil
+	var mu sync.Mutex
+	grp, gctx := errgroup.WithContext(ctx)
+
+	var scheduleNode func(n *actionNode)
+	scheduleNode = func(n *actionNode) {
+		grp.Go(func() error {
+			// Check if context was cancelled before starting
+			if err := gctx.Err(); err != nil {
+				return err
+			}
+
+			res, err := e.checkAction(gctx, n.idx, n.action)
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			rep.Actions[n.idx] = res
+			if err != nil {
+				rep.Err = err
+				return err
+			}
+
+			// Unblock actions that were waiting for this one
+			for _, waiter := range n.requiredBy {
+				waiter.pending--
+				if waiter.pending == 0 {
+					scheduleNode(waiter)
+				}
+			}
+
+			return nil
+		})
+	}
+
+	// Schedule actions with no dependencies
+	mu.Lock()
+	for _, n := range nodes {
+		if n.pending == 0 {
+			scheduleNode(n)
+		}
+	}
+	mu.Unlock()
+
+	err := grp.Wait()
+	if err != nil {
+		rep.Err = err
+	}
+
+	return rep, err
 }
 
 func (e *Engine) checkAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {
@@ -342,19 +385,62 @@ func (e *Engine) runCheckAction(ctx context.Context, idx int, act spec.Action) (
 }
 
 func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {
-	var rep model.ExecutionReport
+	nodes := buildActionGraph(plan.Unit.Actions)
+	initActionPending(nodes)
 
-	for i, act := range plan.Unit.Actions {
-		res, err := e.executeAction(ctx, i, act)
-		rep.Actions = append(rep.Actions, res)
-		if err != nil {
-			rep.Err = err
-			return rep, err
-		}
-
+	rep := model.ExecutionReport{
+		Actions: make([]model.ActionReport, len(nodes)),
 	}
 
-	return rep, nil
+	var mu sync.Mutex
+	grp, gctx := errgroup.WithContext(ctx)
+
+	var scheduleNode func(n *actionNode)
+	scheduleNode = func(n *actionNode) {
+		grp.Go(func() error {
+			// Check if context was cancelled before starting
+			if err := gctx.Err(); err != nil {
+				return err
+			}
+
+			res, err := e.executeAction(gctx, n.idx, n.action)
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			rep.Actions[n.idx] = res
+			if err != nil {
+				rep.Err = err
+				return err
+			}
+
+			// Unblock actions that were waiting for this one
+			for _, waiter := range n.requiredBy {
+				waiter.pending--
+				if waiter.pending == 0 {
+					scheduleNode(waiter)
+				}
+			}
+
+			return nil
+		})
+	}
+
+	// Schedule actions with no dependencies
+	mu.Lock()
+	for _, n := range nodes {
+		if n.pending == 0 {
+			scheduleNode(n)
+		}
+	}
+	mu.Unlock()
+
+	err := grp.Wait()
+	if err != nil {
+		rep.Err = err
+	}
+
+	return rep, err
 }
 
 func (e *Engine) executeAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {

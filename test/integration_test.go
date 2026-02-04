@@ -443,20 +443,22 @@ steps: [
 		t.Fatal("expected error, got nil")
 	}
 
-	// Second file should NOT be written (fail-fast)
-	if _, exists := innerTgt.Files["/dest-b.txt"]; exists {
-		t.Error("second file should not be written due to fail-fast")
+	// With parallel execution, independent actions run concurrently.
+	// The second copy (independent paths) WILL complete successfully
+	// even though the first copy failed.
+	if _, exists := innerTgt.Files["/dest-b.txt"]; !exists {
+		t.Error("second file should be written (independent action)")
 	}
 
-	// Should only have one ActionStarted event (second action never started)
+	// Both actions start in parallel (they have independent paths)
 	actionStartCount := 0
 	for _, ev := range rec.actionEvents {
 		if ev.Kind == event.ActionStarted {
 			actionStartCount++
 		}
 	}
-	if actionStartCount != 1 {
-		t.Errorf("expected 1 ActionStarted event (fail-fast), got %d", actionStartCount)
+	if actionStartCount != 2 {
+		t.Errorf("expected 2 ActionStarted events (parallel execution), got %d", actionStartCount)
 	}
 }
 

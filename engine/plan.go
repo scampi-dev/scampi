@@ -116,6 +116,12 @@ func plan(cfg spec.Config, em diagnostic.Emitter, tgtCaps capability.Capability)
 		return spec.Plan{}, err
 	}
 
+	// Build action graph and detect cycles
+	nodes := buildActionGraph(plan.Unit.Actions)
+	if err := DetectActionCycles(em, nodes); err != nil {
+		return spec.Plan{}, err
+	}
+
 	return plan, nil
 }
 

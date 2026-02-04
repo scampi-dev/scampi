@@ -69,8 +69,10 @@ func (c Copy) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (c *copyAction) Desc() string { return c.desc }
-func (c *copyAction) Kind() string { return c.kind }
+func (c *copyAction) Desc() string          { return c.desc }
+func (c *copyAction) Kind() string          { return c.kind }
+func (c *copyAction) InputPaths() []string  { return []string{c.src} }
+func (c *copyAction) OutputPaths() []string { return []string{c.dest} }
 
 func (c *copyAction) Ops() []spec.Op {
 	cp := &copyFileOp{
