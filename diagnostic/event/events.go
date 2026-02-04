@@ -32,10 +32,11 @@ type PlanDetail struct {
 	Actions  []PlannedAction
 }
 type PlannedAction struct {
-	Index int
-	Desc  string
-	Kind  string
-	Ops   []PlannedOp
+	Index     int
+	Desc      string
+	Kind      string
+	DependsOn []int // indices of actions this depends on
+	Ops       []PlannedOp
 }
 type PlannedOp struct {
 	Index     int

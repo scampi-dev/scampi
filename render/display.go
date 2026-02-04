@@ -85,12 +85,16 @@ func fitLine(s string, maxLen int) string {
 	}
 
 	var out strings.Builder
+	var lastColor string // last non-reset ANSI sequence
 	width := 0
 
 	for len(s) > 0 {
 		// ANSI sequence has zero width -> copy verbatim
 		if seq, ok := getANSI(s); ok {
 			out.WriteString(seq)
+			if seq != "\x1b[0m" {
+				lastColor = seq
+			}
 			s = s[len(seq):]
 			continue
 		}
@@ -111,6 +115,11 @@ func fitLine(s string, maxLen int) string {
 		s = s[size:]
 	}
 
+	// Re-apply the last active color so the ellipsis inherits it
+	// instead of appearing as uncolored white.
+	if lastColor != "" {
+		out.WriteString(lastColor)
+	}
 	out.WriteString("…")
 
 	return out.String()

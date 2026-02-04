@@ -29,7 +29,7 @@ func (e *Engine) Check(ctx context.Context) error {
 	start := time.Now()
 	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
 
-	plan, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+	plan, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return err
 	}

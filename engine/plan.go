@@ -40,19 +40,21 @@ func (e *Engine) Plan(_ context.Context) error {
 	start := time.Now()
 	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
 
-	plan, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+	plan, actionDeps, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return err
 	}
 
-	e.em.EmitPlanLifecycle(diagnostic.PlanProduced(plan))
+	e.em.EmitPlanLifecycle(diagnostic.PlanProduced(plan, actionDeps))
 
 	e.em.EmitEngineLifecycle(diagnostic.EngineFinished(model.ExecutionReport{}, time.Since(start), err, false))
 
 	return err
 }
 
-func plan(cfg spec.Config, em diagnostic.Emitter, tgtCaps capability.Capability) (spec.Plan, error) {
+func plan(
+	cfg spec.Config, em diagnostic.Emitter, tgtCaps capability.Capability,
+) (spec.Plan, diagnostic.ActionDeps, error) {
 	start := time.Now()
 	em.EmitPlanLifecycle(diagnostic.PlanStarted(cfg.Unit.ID))
 
@@ -106,23 +108,37 @@ func plan(cfg spec.Config, em diagnostic.Emitter, tgtCaps capability.Capability)
 
 	for _, impact := range impacts {
 		if impact.ShouldAbort() {
-			return spec.Plan{}, AbortError{
+			return spec.Plan{}, nil, AbortError{
 				Causes: causes,
 			}
 		}
 	}
 
 	if err := DetectPlanCycles(em, plan); err != nil {
-		return spec.Plan{}, err
+		return spec.Plan{}, nil, err
 	}
 
 	// Build action graph and detect cycles
 	nodes := buildActionGraph(plan.Unit.Actions)
 	if err := DetectActionCycles(em, nodes); err != nil {
-		return spec.Plan{}, err
+		return spec.Plan{}, nil, err
 	}
 
-	return plan, nil
+	// Extract action dependencies for rendering
+	actionDeps := extractActionDeps(nodes)
+
+	return plan, actionDeps, nil
+}
+
+// extractActionDeps converts action graph nodes to dependency indices.
+func extractActionDeps(nodes []*actionNode) diagnostic.ActionDeps {
+	deps := make(diagnostic.ActionDeps, len(nodes))
+	for _, n := range nodes {
+		for _, req := range n.requires {
+			deps[n.idx] = append(deps[n.idx], req.idx)
+		}
+	}
+	return deps
 }
 
 func collectRequiredCaps(act spec.Action) capability.Capability {

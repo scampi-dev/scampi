@@ -74,6 +74,12 @@ type (
 		actionEnd            string
 		opBranch             string
 		opLast               string
+
+		// parallel layer brackets (right-side)
+		parallelTop   string
+		parallelMid   string
+		parallelBot   string
+		parallelLabel string
 	}
 )
 
@@ -114,6 +120,9 @@ var (
 	colOpCheckUnknown     = ansi.Yellow()
 	colOpExecChanged      = ansi.BrightBlack()
 	colOpExecFailed       = ansi.Red()
+
+	colPlanDeps    = ansi.BrightBlack().Dim()
+	colPlanBracket = ansi.BrightBlack().Dim()
 
 	colDiagMsg      = ansi.Red()
 	colDiagHelp     = ansi.Cyan()
@@ -168,6 +177,11 @@ var (
 		actionEnd:            "■",
 		opBranch:             "├─",
 		opLast:               "└─",
+
+		parallelTop:   "╮",
+		parallelMid:   "│",
+		parallelBot:   "╯",
+		parallelLabel: "⏸",
 	}
 
 	asciiGlyphs = glyphSet{
@@ -195,6 +209,11 @@ var (
 		actionEnd:            "#",
 		opBranch:             "|-",
 		opLast:               "`-",
+
+		parallelTop:   "+",
+		parallelMid:   "|",
+		parallelBot:   "+",
+		parallelLabel: "||",
 	}
 )
 
@@ -740,114 +759,224 @@ func (c *cli) renderPlan(e event.PlanEvent) []renderEvent {
 	}
 
 	maxIndex := 0
-	for _, act := range dag.Actions {
-		if act.Index > maxIndex {
-			maxIndex = act.Index
+	for _, layer := range dag.ActionLayers {
+		for _, act := range layer {
+			if act.Index > maxIndex {
+				maxIndex = act.Index
+			}
 		}
 	}
 
 	indexWidth := digits10(maxIndex)
 
-	for _, act := range dag.Actions {
-		kind := ""
-		if act.Kind != "" {
-			kind = fmt.Sprintf(" %s", act.Kind)
+	// ─── Pass 1: build inner lines for each action ───
+
+	type actionEntry struct {
+		innerLines []string // lines without plan rail prefix
+		headerIdx  int      // index of the header line
+		layerSize  int      // number of actions in this layer
+		posInLayer int      // 0-based position within layer
+		deps       []int    // action dependencies
+	}
+
+	var actions []actionEntry
+
+	for _, layer := range dag.ActionLayers {
+		for posInLayer, act := range layer {
+			ae := actionEntry{
+				layerSize:  len(layer),
+				posInLayer: posInLayer,
+				deps:       act.DependsOn,
+				headerIdx:  0,
+			}
+
+			kind := ""
+			if act.Kind != "" {
+				kind = fmt.Sprintf(" %s", act.Kind)
+			}
+			desc := ""
+			if act.Desc != "" {
+				desc = fmt.Sprintf(" %s %s", c.glyphs.actionKindSep, act.Desc)
+			}
+
+			if v == signal.Quiet {
+				nOps := 0
+				for _, l := range act.Layers {
+					nOps += len(l)
+				}
+
+				line := c.fmtMsg(colActionKind, " "+c.glyphs.actionStartCollapsed) +
+					c.fmtfMsg(colActionKind, " [%*d]%s", indexWidth, act.Index, kind)
+				if desc != "" {
+					line += c.fmtMsg(colActionDesc, desc)
+				}
+
+				var opLine string
+				switch nOps {
+				case 0:
+					opLine = " (noop)"
+				case 1:
+					opLine = " (1 op)"
+				default:
+					opLine = fmt.Sprintf(" (%d ops)", nOps)
+				}
+				line += c.fmtMsg(colActionOps, opLine)
+
+				ae.innerLines = []string{line}
+			} else {
+				gutter := c.glyphs.actionStart
+				if len(act.Layers) == 0 {
+					gutter = c.glyphs.actionStartNoOp
+				}
+
+				headerLine := " " + c.fmtMsg(colActionRail, gutter) +
+					c.fmtfMsg(colActionKind, " [%*d]%s", indexWidth, act.Index, kind)
+				if desc != "" {
+					headerLine += c.fmtMsg(colActionDesc, desc)
+				}
+
+				ae.innerLines = []string{headerLine}
+
+				ops := flattenLayers(act.Layers)
+				children := buildDepTree(ops)
+				roots := findRoots(ops)
+
+				for i, root := range roots {
+					c.collectOpTreeLines(
+						&ae.innerLines,
+						root, children,
+						[]bool{true},
+						i == len(roots)-1,
+						v,
+					)
+				}
+
+				ae.innerLines = append(ae.innerLines,
+					" "+c.fmtMsg(colActionRail, c.glyphs.actionEnd))
+			}
+
+			actions = append(actions, ae)
 		}
-		desc := ""
-		if act.Desc != "" {
-			desc = fmt.Sprintf(" %s %s", c.glyphs.actionKindSep, act.Desc)
+	}
+
+	// ─── Pass 2: compute alignment ───
+
+	maxHeaderWidth := 0
+	for _, ae := range actions {
+		if w := visibleLen(ae.innerLines[ae.headerIdx]); w > maxHeaderWidth {
+			maxHeaderWidth = w
 		}
+	}
 
-		if v == signal.Quiet {
-			nOps := 0
-			for _, l := range act.Layers {
-				nOps += len(l)
+	// Build deps strings (plain text, no ANSI)
+	fmtDeps := func(deps []int) string {
+		if len(deps) == 0 {
+			return ""
+		}
+		parts := make([]string, len(deps))
+		for i, d := range deps {
+			parts[i] = strconv.Itoa(d)
+		}
+		return "← [" + strings.Join(parts, ", ") + "]"
+	}
+
+	depsStrs := make([]string, len(actions))
+	maxParDepsWidth := 0
+
+	for i, ae := range actions {
+		depsStrs[i] = fmtDeps(ae.deps)
+		if ae.layerSize > 1 {
+			if w := len(depsStrs[i]); w > maxParDepsWidth {
+				maxParDepsWidth = w
+			}
+		}
+	}
+
+	// Bracket column (relative to inner content start).
+	// Must be past both (a) header + deps annotations and
+	// (b) the widest line in any parallel-layer action (op-tree
+	// lines in -vv mode include template descriptions).
+	hasParallel := false
+	maxParLineWidth := 0
+	for _, ae := range actions {
+		if ae.layerSize > 1 {
+			hasParallel = true
+			for _, line := range ae.innerLines {
+				if w := visibleLen(line); w > maxParLineWidth {
+					maxParLineWidth = w
+				}
+			}
+		}
+	}
+
+	bracketCol := 0
+	if hasParallel {
+		headerBased := maxHeaderWidth + 2
+		if maxParDepsWidth > 0 {
+			headerBased = maxHeaderWidth + 2 + maxParDepsWidth + 2
+		}
+		contentBased := maxParLineWidth + 2
+		bracketCol = max(headerBased, contentBased)
+	}
+
+	// ─── Pass 3: emit annotated lines ───
+
+	rail := c.fmtMsg(colPlanRail, c.glyphs.planRail)
+
+	for i, ae := range actions {
+		lastLineIdx := len(ae.innerLines) - 1
+
+		for lineIdx, innerLine := range ae.innerLines {
+			isHeader := lineIdx == ae.headerIdx
+			fullLine := rail + innerLine
+
+			if isHeader {
+				// Pad header to alignment column
+				if pad := maxHeaderWidth - visibleLen(innerLine); pad > 0 {
+					fullLine += strings.Repeat(" ", pad)
+				}
+
+				// Append deps annotation
+				if depsStrs[i] != "" {
+					fullLine += c.fmtMsg(colPlanDeps, "  "+depsStrs[i])
+				}
 			}
 
-			line := c.fmtMsg(colActionKind, " "+c.glyphs.actionStartCollapsed) +
-				c.fmtfMsg(
-					colActionKind,
-					" [%*d]%s",
-					indexWidth,
-					act.Index,
-					kind,
-				)
-			if desc != "" {
-				line += c.fmtMsg(colActionDesc, desc)
+			// Bracket glyph for parallel layers — spans the full group
+			// from first action header (╮ ⏸) to last action's final line (╯).
+			if ae.layerSize > 1 {
+				var currentWidth int
+				if isHeader {
+					currentWidth = maxHeaderWidth
+					if depsStrs[i] != "" {
+						currentWidth += 2 + len(depsStrs[i])
+					}
+				} else {
+					currentWidth = visibleLen(innerLine)
+				}
+
+				pad := bracketCol - currentWidth
+				if pad < 1 {
+					pad = 1
+				}
+				fullLine += strings.Repeat(" ", pad)
+
+				switch {
+				case ae.posInLayer == 0 && isHeader:
+					fullLine += c.fmtMsg(colPlanBracket,
+						c.glyphs.parallelTop+" "+c.glyphs.parallelLabel)
+				case ae.posInLayer == ae.layerSize-1 && lineIdx == lastLineIdx:
+					fullLine += c.fmtMsg(colPlanBracket, c.glyphs.parallelBot)
+				default:
+					fullLine += c.fmtMsg(colPlanBracket, c.glyphs.parallelMid)
+				}
 			}
-
-			var opLine string
-			switch nOps {
-			case 0:
-				// this would be very odd tbh, but ¯\_(ツ)_/¯
-				opLine = " (noop)"
-			case 1:
-				opLine = " (1 op)"
-			default:
-				opLine = fmt.Sprintf(" (%d ops)", nOps)
-			}
-
-			line += c.fmtMsg(
-				colActionOps,
-				opLine,
-			)
-
-			line = c.fmtMsg(colPlanRail, c.glyphs.planRail) + line
 
 			out = append(out, renderEvent{
 				stream: streamOut,
-				line:   line,
-			})
-			continue
-		}
-
-		gutter := c.glyphs.actionStart
-		if len(act.Layers) == 0 {
-			gutter = c.glyphs.actionStartNoOp
-		}
-
-		{
-			line := c.fmtMsg(colPlanRail, c.glyphs.planRail+" ") +
-				c.fmtMsg(colActionRail, gutter) +
-				c.fmtfMsg(
-					colActionKind,
-					" [%*d]%s",
-					indexWidth,
-					act.Index,
-					kind,
-				)
-			if desc != "" {
-				line += c.fmtMsg(colActionDesc, desc)
-			}
-			out = append(out, renderEvent{
-				stream: streamOut,
-				line:   line,
+				line:   fullLine,
 			})
 		}
-
-		ops := flattenLayers(act.Layers)
-
-		children := buildDepTree(ops)
-		roots := findRoots(ops)
-
-		for i, root := range roots {
-			c.renderOpTree(
-				&out,
-				root,
-				children,
-				[]bool{true},
-				i == len(roots)-1,
-				v,
-			)
-		}
-
-		line := c.fmtMsg(colPlanRail, c.glyphs.planRail+" ") +
-			c.fmtMsg(colActionRail, c.glyphs.actionEnd)
-
-		out = append(out, renderEvent{
-			stream: streamOut,
-			line:   line,
-		})
 	}
 
 	out = append(out, renderEvent{
@@ -863,16 +992,18 @@ func (c *cli) renderPlan(e event.PlanEvent) []renderEvent {
 	return out
 }
 
-func (c *cli) renderOpTree(
-	out *[]renderEvent,
+// collectOpTreeLines builds op-tree lines without the plan rail prefix.
+// Each line starts with a leading space (for alignment after plan rail).
+func (c *cli) collectOpTreeLines(
+	lines *[]string,
 	op event.PlannedOp,
 	children map[int][]event.PlannedOp,
 	prefix []bool,
 	isLast bool,
 	v signal.Verbosity,
 ) {
-	// Build gutter
 	var b strings.Builder
+	b.WriteString(" ") // leading space (plan rail will precede this)
 
 	for i, cont := range prefix {
 		var seg string
@@ -883,15 +1014,12 @@ func (c *cli) renderOpTree(
 		}
 
 		if i == 0 {
-			// Action-level gutter
 			b.WriteString(c.fmtMsg(colActionRail, seg))
 		} else {
-			// Op-level gutter
 			b.WriteString(c.fmtMsg(colOpRail, seg))
 		}
 	}
 
-	// Connector for this node
 	conn := c.glyphs.opBranch
 	if isLast {
 		conn = c.glyphs.opLast
@@ -911,18 +1039,13 @@ func (c *cli) renderOpTree(
 		}
 	}
 
-	line = c.fmtMsg(colPlanRail, c.glyphs.planRail+" ") + line
-	*out = append(*out, renderEvent{
-		stream: streamOut,
-		line:   line,
-	})
+	*lines = append(*lines, line)
 
-	// Recurse into children
 	kids := children[op.Index]
 	for i, child := range kids {
 		last := i == len(kids)-1
-		c.renderOpTree(
-			out,
+		c.collectOpTreeLines(
+			lines,
 			child,
 			children,
 			append(prefix, !isLast),

@@ -181,7 +181,10 @@ func StepPlanned(index int, desc string, kind string) event.PlanEvent {
 	}
 }
 
-func PlanProduced(plan spec.Plan) event.PlanEvent {
+// ActionDeps maps action index to indices of actions it depends on.
+type ActionDeps [][]int
+
+func PlanProduced(plan spec.Plan, actionDeps ActionDeps) event.PlanEvent {
 	// ------------------------------------------------------------
 	// 1. Flatten all ops and assign GLOBAL indices
 	// ------------------------------------------------------------
@@ -231,11 +234,17 @@ func PlanProduced(plan spec.Plan) event.PlanEvent {
 		start := actionOpBase[i]
 		end := start + len(act.Ops())
 
+		var deps []int
+		if actionDeps != nil && i < len(actionDeps) {
+			deps = actionDeps[i]
+		}
+
 		detail.Actions = append(detail.Actions, event.PlannedAction{
-			Index: i,
-			Desc:  act.Desc(),
-			Kind:  act.Kind(),
-			Ops:   plannedOps[start:end],
+			Index:     i,
+			Desc:      act.Desc(),
+			Kind:      act.Kind(),
+			DependsOn: deps,
+			Ops:       plannedOps[start:end],
 		})
 	}
 
