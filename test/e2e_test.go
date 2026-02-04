@@ -11,7 +11,6 @@ import (
 	"godoit.dev/doit/engine"
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
-	"godoit.dev/doit/target"
 )
 
 // E2EScenario defines a data-driven E2E test case.
@@ -63,19 +62,28 @@ func TestE2E(t *testing.T) {
 		t.Skip("testdata/e2e directory not found")
 	}
 
+	// Get all available drivers
+	drivers := AllDrivers(t)
+
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
 		}
 
 		name := e.Name()
-		t.Run(name, func(t *testing.T) {
-			runE2EScenario(t, filepath.Join(root, name))
-		})
+		scenarioDir := filepath.Join(root, name)
+
+		// Run scenario with each driver
+		for _, driver := range drivers {
+			driverName := driver.Name()
+			t.Run(name+"/"+driverName, func(t *testing.T) {
+				runE2EScenarioWithDriver(t, scenarioDir, driver)
+			})
+		}
 	}
 }
 
-func runE2EScenario(t *testing.T, dir string) {
+func runE2EScenarioWithDriver(t *testing.T, dir string, driver E2EDriver) {
 	cfgPath := filepath.Join(dir, "config.cue")
 	sourcePath := filepath.Join(dir, "source.json")
 	targetPath := filepath.Join(dir, "target.json")
@@ -98,6 +106,10 @@ func runE2EScenario(t *testing.T, dir string) {
 	// Load expected outcomes
 	expect := loadE2EExpect(t, expectPath)
 
+	// Setup driver with initial target state
+	tgt, ti, cleanup := driver.Setup(t, tgtFiles)
+	defer cleanup()
+
 	// Build MemSource with config + source files
 	src := source.NewMemSource()
 	cfgData := readOrDie(cfgPath)
@@ -106,94 +118,46 @@ func runE2EScenario(t *testing.T, dir string) {
 		src.Files[path] = []byte(content)
 	}
 
-	// Build MemTarget with pre-existing state
-	tgt := target.NewMemTarget()
-	for path, content := range tgtFiles.Files {
-		tgt.Files[path] = []byte(content)
-	}
-	for path, permStr := range tgtFiles.Perms {
-		perm := parsePermOrDie(t, permStr)
-		tgt.Modes[path] = perm
-	}
-	for path, owner := range tgtFiles.Owners {
-		tgt.Owners[path] = target.Owner{User: owner.User, Group: owner.Group}
-	}
-	for link, linkTarget := range tgtFiles.Symlinks {
-		tgt.Symlinks[link] = linkTarget
-	}
-
 	// Run engine
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
-	apply := func() error {
-		ctx := context.Background()
-		cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
-		if err != nil {
-			return err
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	if err != nil {
+		if expect.Error {
+			return // Config errors are expected for some tests
 		}
-
-		cfg.Target = mockTargetInstance(tgt)
-
-		e, err := engine.New(ctx, src, cfg, em)
-		if err != nil {
-			return err
-		}
-		defer e.Close()
-
-		return e.Apply(ctx)
+		t.Fatalf("LoadConfig failed: %v", err)
 	}
 
-	err := apply()
+	// Use the target instance from driver, but override the target
+	cfg.Target = ti
+	cfg.Target.Config = ti.Config
+
+	e, err := engine.NewWithTarget(ctx, src, cfg, em, tgt)
+	if err != nil {
+		t.Fatalf("NewWithTarget failed: %v", err)
+	}
+	// Don't defer e.Close() here - the driver cleanup will close the target
+
+	err = e.Apply(ctx)
 
 	// Assert error expectation
 	if expect.Error {
 		if err == nil {
 			t.Fatalf("expected error, got success\n%s", rec)
 		}
-	} else {
-		if err != nil {
-			t.Fatalf("expected success, got error: %v\n%s", err, rec)
-		}
+		// Error tests don't verify target state
+		return
+	}
+	if err != nil {
+		t.Fatalf("expected success, got error: %v\n%s", err, rec)
 	}
 
-	// Assert target file contents
-	for path, wantContent := range expect.Target.Files {
-		got, ok := tgt.Files[path]
-		if !ok {
-			t.Errorf("expected target file %q to exist", path)
-			continue
-		}
-		if string(got) != wantContent {
-			t.Errorf("target file %q: got %q, want %q", path, got, wantContent)
-		}
-	}
-
-	// Assert target permissions (if specified)
-	for path, wantPermStr := range expect.Target.Perms {
-		wantPerm := parsePermOrDie(t, wantPermStr)
-		gotPerm, ok := tgt.Modes[path]
-		if !ok {
-			t.Errorf("expected target file %q to have permissions", path)
-			continue
-		}
-		if gotPerm != wantPerm {
-			t.Errorf("target file %q perms: got %o, want %o", path, gotPerm, wantPerm)
-		}
-	}
-
-	// Assert target symlinks (if specified)
-	for link, wantTarget := range expect.Target.Symlinks {
-		gotTarget, ok := tgt.Symlinks[link]
-		if !ok {
-			t.Errorf("expected symlink %q to exist", link)
-			continue
-		}
-		if gotTarget != wantTarget {
-			t.Errorf("symlink %q: got target %q, want %q", link, gotTarget, wantTarget)
-		}
-	}
+	// Verify target state using driver
+	driver.Verify(t, expect.Target)
 
 	// Assert changed count
 	gotChanged := rec.countChangedOps()

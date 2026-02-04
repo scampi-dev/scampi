@@ -1,7 +1,7 @@
 {
   "target": {
     "symlinks": {
-      "/link.txt": "/new-target.txt"
+      "/tmp/link.txt": "/tmp/new-target.txt"
     }
   },
   "changed": 1

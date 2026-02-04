@@ -54,6 +54,10 @@ func (m *MemTarget) WriteFile(_ context.Context, path string, data []byte) error
 	m.Files[path] = cp
 	m.Modes[path] = 0o644
 	m.ModTimes[path] = time.Now()
+	// Set default owner so chown to the same owner is a no-op (matches SSH behavior)
+	if _, exists := m.Owners[path]; !exists {
+		m.Owners[path] = Owner{User: "testuser", Group: "testgroup"}
+	}
 	return nil
 }
 
@@ -70,20 +74,42 @@ func (m *MemTarget) Stat(_ context.Context, path string) (fs.FileInfo, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
+	// Check if it's a regular file
 	data, ok := m.Files[path]
-	if !ok {
-		return nil, errs.WrapErrf(ErrNotExist, "%q", path)
+	if ok {
+		mode := m.Modes[path]
+		mod := m.ModTimes[path]
+
+		return memFileInfo{
+			name:    path,
+			size:    int64(len(data)),
+			mode:    mode,
+			modTime: mod,
+		}, nil
 	}
 
-	mode := m.Modes[path]
-	mod := m.ModTimes[path]
+	// Check if path is an implicit directory (files exist under it)
+	dirPrefix := path + "/"
+	for filePath := range m.Files {
+		if len(filePath) > len(dirPrefix) && filePath[:len(dirPrefix)] == dirPrefix {
+			return memFileInfo{
+				name:  path,
+				mode:  fs.ModeDir | 0o755,
+				isDir: true,
+			}, nil
+		}
+	}
+	for symlinkPath := range m.Symlinks {
+		if len(symlinkPath) > len(dirPrefix) && symlinkPath[:len(dirPrefix)] == dirPrefix {
+			return memFileInfo{
+				name:  path,
+				mode:  fs.ModeDir | 0o755,
+				isDir: true,
+			}, nil
+		}
+	}
 
-	return memFileInfo{
-		name:    path,
-		size:    int64(len(data)),
-		mode:    mode,
-		modTime: mod,
-	}, nil
+	return nil, errs.WrapErrf(ErrNotExist, "%q", path)
 }
 
 func (m *MemTarget) Chmod(_ context.Context, path string, mode fs.FileMode) error {
@@ -151,21 +177,42 @@ func (m *MemTarget) Lstat(_ context.Context, path string) (fs.FileInfo, error) {
 		}, nil
 	}
 
-	// Fall back to regular file
+	// Check if it's a regular file
 	data, ok := m.Files[path]
-	if !ok {
-		return nil, errs.WrapErrf(ErrNotExist, "%q", path)
+	if ok {
+		mode := m.Modes[path]
+		mod := m.ModTimes[path]
+
+		return memFileInfo{
+			name:    path,
+			size:    int64(len(data)),
+			mode:    mode,
+			modTime: mod,
+		}, nil
 	}
 
-	mode := m.Modes[path]
-	mod := m.ModTimes[path]
+	// Check if path is an implicit directory (files/symlinks exist under it)
+	dirPrefix := path + "/"
+	for filePath := range m.Files {
+		if len(filePath) > len(dirPrefix) && filePath[:len(dirPrefix)] == dirPrefix {
+			return memFileInfo{
+				name:  path,
+				mode:  fs.ModeDir | 0o755,
+				isDir: true,
+			}, nil
+		}
+	}
+	for symlinkPath := range m.Symlinks {
+		if len(symlinkPath) > len(dirPrefix) && symlinkPath[:len(dirPrefix)] == dirPrefix {
+			return memFileInfo{
+				name:  path,
+				mode:  fs.ModeDir | 0o755,
+				isDir: true,
+			}, nil
+		}
+	}
 
-	return memFileInfo{
-		name:    path,
-		size:    int64(len(data)),
-		mode:    mode,
-		modTime: mod,
-	}, nil
+	return nil, errs.WrapErrf(ErrNotExist, "%q", path)
 }
 
 func (m *MemTarget) Readlink(_ context.Context, path string) (string, error) {

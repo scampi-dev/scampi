@@ -7,7 +7,7 @@ target: builtin.local
 steps: [
 	builtin.symlink & {
 		desc:   "link in missing directory"
-		target: "/target.txt"
-		link:   "/nonexistent/link.txt"
+		target: "/tmp/target.txt"
+		link:   "/tmp/nonexistent/link.txt"
 	},
 ]

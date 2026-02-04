@@ -35,6 +35,23 @@ func New(ctx context.Context, src source.Source, cfg spec.Config, em diagnostic.
 	}, nil
 }
 
+// NewWithTarget creates an engine with a pre-created target.
+// Use this for testing when you need to provide a specific target instance.
+func NewWithTarget(
+	_ context.Context,
+	src source.Source,
+	cfg spec.Config,
+	em diagnostic.Emitter,
+	tgt target.Target,
+) (*Engine, error) {
+	return &Engine{
+		src: src,
+		tgt: tgt,
+		cfg: cfg,
+		em:  em,
+	}, nil
+}
+
 func (e *Engine) Close() {
 	if closer, ok := e.tgt.(target.Closer); ok {
 		closer.Close()

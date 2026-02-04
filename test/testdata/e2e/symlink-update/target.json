@@ -1,5 +1,5 @@
 {
   "symlinks": {
-    "/link.txt": "/old-target.txt"
+    "/tmp/link.txt": "/tmp/old-target.txt"
   }
 }

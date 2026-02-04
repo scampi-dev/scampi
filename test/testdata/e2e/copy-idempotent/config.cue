@@ -7,8 +7,8 @@ target: builtin.local
 steps: [
 	builtin.copy & {
 		desc:  "copy already-present file"
-		src:   "/src.txt"
-		dest:  "/dest.txt"
+		src:   "/tmp/src.txt"
+		dest:  "/tmp/dest.txt"
 		perm:  "0644"
 		owner: "testuser"
 		group: "testgroup"

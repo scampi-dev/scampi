@@ -7,7 +7,7 @@ target: builtin.local
 steps: [
 	builtin.symlink & {
 		desc:   "update symlink target"
-		target: "/new-target.txt"
-		link:   "/link.txt"
+		target: "/tmp/new-target.txt"
+		link:   "/tmp/link.txt"
 	},
 ]

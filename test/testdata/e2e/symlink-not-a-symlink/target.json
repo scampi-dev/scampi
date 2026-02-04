@@ -1,5 +1,5 @@
 {
   "files": {
-    "/link.txt": "I am a regular file, not a symlink"
+    "/tmp/link.txt": "I am a regular file, not a symlink"
   }
 }

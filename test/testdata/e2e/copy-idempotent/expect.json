@@ -1,7 +1,7 @@
 {
   "target": {
     "files": {
-      "/dest.txt": "same content"
+      "/tmp/dest.txt": "same content"
     }
   },
   "changed": 0

@@ -1,12 +1,12 @@
 {
   "files": {
-    "/dest.txt": "same content"
+    "/tmp/dest.txt": "same content"
   },
   "perms": {
-    "/dest.txt": "0644"
+    "/tmp/dest.txt": "0644"
   },
   "owners": {
-    "/dest.txt": {
+    "/tmp/dest.txt": {
       "user": "testuser",
       "group": "testgroup"
     }

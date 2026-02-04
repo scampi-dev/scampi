@@ -7,8 +7,8 @@ target: builtin.local
 steps: [
 	builtin.copy & {
 		desc:  "copy to nonexistent dir"
-		src:   "/src.txt"
-		dest:  "/subdir/dest.txt"
+		src:   "/tmp/src.txt"
+		dest:  "/tmp/subdir/dest.txt"
 		perm:  "0644"
 		owner: "testuser"
 		group: "testgroup"
