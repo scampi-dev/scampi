@@ -582,9 +582,10 @@ func decodeTarget(
 		))
 	}
 
-	// Apply ENV overrides
+	// Extract env map and fill non-concrete fields from env (before validation)
 	// ------------------------------------------------------------
-	targetVal, err = applyEnvOverrides(targetVal, src)
+	envMap := extractEnvMap(targetVal)
+	targetVal, err = fillNonConcreteFromEnv(targetVal, envMap, src)
 	if err != nil {
 		return spec.TargetInstance{}, err
 	}
@@ -635,6 +636,12 @@ func decodeTarget(
 			kind,
 			err,
 		))
+	}
+
+	// Apply ENV overrides to Go struct (after decode, so concrete values work)
+	// ------------------------------------------------------------
+	if err := applyEnvOverridesToStruct(tCfg, envMap, src); err != nil {
+		return spec.TargetInstance{}, err
 	}
 
 	// Success
