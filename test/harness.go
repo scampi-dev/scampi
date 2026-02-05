@@ -130,6 +130,8 @@ func (r *recordingDisplayer) EmitIndexStep(e event.IndexStepEvent) {
 	r.indexStepEvents = append(r.indexStepEvents, e)
 }
 
+func (r *recordingDisplayer) EmitLegend() {}
+
 func (r *recordingDisplayer) Close() {}
 
 func (r *recordingDisplayer) String() string {

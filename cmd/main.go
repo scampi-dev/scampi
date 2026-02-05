@@ -72,6 +72,7 @@ func main() {
 			checkCmd(),
 			planCmd(),
 			indexCmd(),
+			legendCmd(),
 		},
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 			ascii := cmd.Bool(flagASCII)
@@ -263,7 +264,7 @@ does not inspect or modify the target system.`,
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {
 					// Engine violated its contract: unexpected error
-					panic(errs.BUG("engine.Apply returned unexpected error: %w", err))
+					panic(errs.BUG("engine.Plan returned unexpected error: %w", err))
 				}
 
 				return cli.Exit("", exitUserError)
@@ -322,6 +323,22 @@ shown, including fields, behavior, and examples.`,
 				return cli.Exit("", exitUserError)
 			}
 
+			return nil
+		},
+	}
+}
+
+func legendCmd() *cli.Command {
+	return &cli.Command{
+		Name:  "legend",
+		Usage: "Show the CLI visual language reference",
+		Description: `Prints a reference card for glyphs, plan structure,
+and color semantics used in doit CLI output.`,
+		Action: func(ctx context.Context, _ *cli.Command) error {
+			opts := mustGlobalOpts(ctx)
+			displ := newDisplayer(opts, nil)
+			defer displ.Close()
+			displ.EmitLegend()
 			return nil
 		},
 	}

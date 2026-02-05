@@ -38,6 +38,8 @@ type Displayer interface {
 	EmitIndexAll(e event.IndexAllEvent)
 	EmitIndexStep(e event.IndexStepEvent)
 
+	EmitLegend()
+
 	EmitEngineDiagnostic(e event.EngineDiagnostic)
 	EmitPlanDiagnostic(e event.PlanDiagnostic)
 	EmitActionDiagnostic(e event.ActionDiagnostic)

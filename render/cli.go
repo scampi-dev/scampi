@@ -210,10 +210,10 @@ var (
 		opBranch:             "|-",
 		opLast:               "`-",
 
-		parallelTop:   "+",
-		parallelMid:   "|",
-		parallelBot:   "+",
-		parallelLabel: "||",
+		parallelTop:   ")",
+		parallelMid:   ")",
+		parallelBot:   ")",
+		parallelLabel: "\"",
 	}
 )
 
@@ -521,6 +521,133 @@ func (c *cli) EmitIndexStep(e event.IndexStepEvent) {
 			line:   c.fmtMsg(ansi.BrightBlack(), "Use -v to see examples."),
 			stream: streamOut,
 		})
+	}
+
+	c.commitRenderEvents(events)
+}
+
+type legendEntry struct {
+	glyph string
+	color ansi.ANSI
+	desc  string
+}
+
+func (c *cli) legendSection(header string, entries []legendEntry) []renderEvent {
+	var events []renderEvent
+
+	events = append(events, renderEvent{
+		stream: streamOut,
+		line:   c.fmtMsg(ansi.BrightBlack(), header),
+	})
+	events = append(events, renderEvent{
+		stream: streamOut,
+		line:   "",
+	})
+
+	maxGlyphWidth := 0
+	for _, e := range entries {
+		if w := visibleLen(c.fmtMsg(e.color, e.glyph)); w > maxGlyphWidth {
+			maxGlyphWidth = w
+		}
+	}
+
+	for _, e := range entries {
+		if e.glyph == "" && e.desc == "" {
+			events = append(events, renderEvent{
+				stream: streamOut,
+				line:   "",
+			})
+			continue
+		}
+
+		styled := c.fmtMsg(e.color, e.glyph)
+		pad := maxGlyphWidth - visibleLen(styled)
+		if pad < 0 {
+			pad = 0
+		}
+		line := "  " + styled + strings.Repeat(" ", pad)
+		if e.desc != "" {
+			line += "  " + c.fmtMsg(ansi.White(), e.desc)
+		}
+		events = append(events, renderEvent{
+			stream: streamOut,
+			line:   line,
+		})
+	}
+
+	return events
+}
+
+func (c *cli) EmitLegend() {
+	var events []renderEvent
+
+	// ─── STATE ───
+	events = append(events, c.legendSection("STATE", []legendEntry{
+		{c.glyphs.change, colActionFinishedChanged, "change    system state was modified"},
+		{c.glyphs.ok, colActionFinishedUnchanged, "ok        already correct, no change needed"},
+		{c.glyphs.exec, colOpExecChanged, "exec      operation executed"},
+		{c.glyphs.warn, colOpCheckUnknown, "warn      non-fatal issue"},
+		{c.glyphs.error, colOpExecFailed, "error     operation failed"},
+		{c.glyphs.fatal, colEngineFinishedFatal, "fatal     unrecoverable failure"},
+	})...)
+	events = append(events, renderEvent{stream: streamOut, line: ""})
+
+	// ─── PLAN ───
+	planBoundary := fmt.Sprintf(
+		"%s ··· %s",
+		c.glyphs.planStart,
+		c.glyphs.planEnd,
+	)
+	actionHeader := fmt.Sprintf(
+		"%s [0] copy",
+		c.glyphs.actionStart,
+	)
+	opBranch := fmt.Sprintf(
+		"%s %s CopyCheck",
+		c.glyphs.actionRail,
+		c.glyphs.opBranch,
+	)
+	opLast := fmt.Sprintf(
+		"%s %s CopyExec",
+		c.glyphs.actionRail,
+		c.glyphs.opLast,
+	)
+	collapsed := fmt.Sprintf(
+		"%s  [2] symlink",
+		c.glyphs.actionStartCollapsed,
+	)
+
+	events = append(events, c.legendSection("PLAN", []legendEntry{
+		{planBoundary, colPlanRail, "plan boundary (wraps entire execution)"},
+		{c.glyphs.planRail, colPlanRail, "plan rail (actions listed inside)"},
+		{"", ansi.ANSI{}, ""},
+		{actionHeader, colActionKind, "action start (step with ops)"},
+		{opBranch, colOpHeader, "op branch"},
+		{opLast, colOpHeader, "op branch (last)"},
+		{c.glyphs.actionEnd, colActionRail, "action end"},
+		{"", ansi.ANSI{}, ""},
+		{collapsed, colActionKind, "collapsed action (default verbosity)"},
+		{"", ansi.ANSI{}, ""},
+		{"← [N, ...]", colPlanDeps, "depends on action N (must complete first)"},
+		{c.glyphs.parallelTop, colPlanBracket, "parallel execution group"},
+		{c.glyphs.parallelMid, colPlanBracket, ""},
+		{c.glyphs.parallelBot, colPlanBracket, ""},
+		{c.glyphs.parallelLabel, colPlanBracket, "group boundary (engine waits for all)"},
+	})...)
+	events = append(events, renderEvent{stream: streamOut, line: ""})
+
+	// ─── COLORS (only meaningful when color is active) ───
+	if c.shouldUseColor() {
+		events = append(events, c.legendSection("COLORS", []legendEntry{
+			{"yellow", ansi.Yellow(), "mutation, system state changed"},
+			{"green", ansi.Green(), "correct, no change needed"},
+			{"red", ansi.Red(), "failure"},
+			{"blue", ansi.Blue(), "engine and plan boundaries"},
+			{"magenta", ansi.Magenta(), "plan structure"},
+			{"cyan", ansi.Cyan(), "action context"},
+			{"dim", ansi.BrightBlack().Dim(), "detail (higher verbosity)"},
+		})...)
+		events = append(events, renderEvent{stream: streamOut, line: ""})
 	}
 
 	c.commitRenderEvents(events)
