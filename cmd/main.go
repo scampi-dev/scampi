@@ -21,6 +21,7 @@ import (
 	"godoit.dev/doit/errs"
 	"godoit.dev/doit/osutil"
 	"godoit.dev/doit/render"
+	clir "godoit.dev/doit/render/cli"
 	"godoit.dev/doit/signal"
 	"godoit.dev/doit/spec"
 )
@@ -397,8 +398,8 @@ func mustGlobalOpts(ctx context.Context) globalOpts {
 }
 
 func newDisplayer(opts globalOpts, store *spec.SourceStore) render.Displayer {
-	return render.NewCLI(
-		render.CLIOptions{
+	return clir.New(
+		clir.Options{
 			ColorMode:  opts.colorMode,
 			Verbosity:  opts.verbosity,
 			ForceASCII: opts.ascii,

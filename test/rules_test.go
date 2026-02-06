@@ -61,20 +61,16 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "runtime",
 		},
 		{
-			pattern:        "render/cli.go",
+			pattern:        "render/cli/cli.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "source/local_*.go",
+			pattern:        "source/local_posix.go",
 			allowedImports: "os",
 		},
 		{
 			pattern:        "target/local/posix.go",
 			allowedImports: "os,syscall",
-		},
-		{
-			pattern:        "target/ssh/ssh2.go",
-			allowedImports: "net,os,golang.org/x/crypto/ssh,golang.org/x/crypto/ssh/agent,github.com/pkg/sftp",
 		},
 		{
 			pattern:        "target/ssh/*.go",
