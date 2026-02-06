@@ -1,36 +1,38 @@
-# Naming Conventions and Conceptual Model
+# Naming Conventions
 
 This document defines the **authoritative naming conventions** used throughout the `doit` codebase.
 
 Its purpose is to:
-
-* make the conceptual model explicit
-* keep CUE and Go terminology aligned without conflation
-* prevent naming drift and "Impl-suffix creep"
-* provide a stable vocabulary for future extensions
+- Make the conceptual model explicit
+- Keep CUE and Go terminology aligned without conflation
+- Prevent naming drift and "Impl-suffix creep"
+- Provide a stable vocabulary for future extensions
 
 If a naming question arises, this document is the source of truth.
 
 ---
 
-## 1. High-level mental model
+## Mental Model
 
 `doit` is a **declarative system convergence engine**.
 
-Users describe *what should exist* in **CUE**.
-The engine translates this into *how to make it so* in **Go**.
+Users describe *what should exist* in CUE. The engine translates this into *how to make it so* in Go.
 
-The core flow is:
+The core flow:
 
 ```
 CUE step (kind + fields)
-        ↓
+        |
+        v
 Go StepType
-        ↓
+        |
+        v
 Action (planned execution)
-        ↓
+        |
+        v
 Ops (execution graph)
-        ↓
+        |
+        v
 Target (execution environment)
 ```
 
@@ -38,53 +40,43 @@ Every name in the codebase exists to make this flow obvious.
 
 ---
 
-## 2. CUE-side terminology (authoritative)
+## CUE-Side Terminology
 
-CUE is the **user-facing, declarative language**.
-Go adapts to CUE concepts — not the other way around.
+CUE is the user-facing, declarative language. Go adapts to CUE concepts — not the other way around.
 
 ### Step
 
-A **step** is a *single declarative step of work* defined by the user.
-
-Example:
+A **step** is a single declarative unit of work defined by the user.
 
 ```cue
 steps: [
-    builtin.copy & {
-        name:  "copy config"
-        src:   "./src.yml"
-        dest:  "/etc/app/config.yml"
-        owner: "root"
-        group: "root"
-        mode:  "rw-r-----"
-    },
+  builtin.copy & {
+    src:   "./src.yml"
+    dest:  "/etc/app/config.yml"
+    owner: "root"
+    mode:  "0640"
+  },
 ]
 ```
 
 ### Kind
 
-A **kind** identifies *what type of step this is*.
+A **kind** identifies what type of step this is.
 
-* Stored as `meta.kind`
-* Examples: `"copy"`, `"service"`, `"package"`
+- Stored as `meta.kind`
+- Examples: `"copy"`, `"service"`, `"package"`
 
 Kinds are semantic categories, not implementations.
 
 ---
 
-## 3. Go-side core concepts
+## Go-Side Core Concepts
 
 Go code mirrors the CUE model, but separates **definition**, **instance**, and **execution**.
 
 ### StepType
 
-A **StepType** represents a CUE *kind* in Go.
-
-It defines:
-
-* how to decode configuration
-* how to plan execution
+A **StepType** represents a CUE kind in Go. It defines how to decode configuration and how to plan execution.
 
 ```go
 type StepType interface {
@@ -95,14 +87,11 @@ type StepType interface {
 ```
 
 Key points:
-
-* There is exactly one `StepType` per CUE kind
-* `StepType` is *not* an implementation detail
-* Avoid `Impl`, `Handler`, or `Spec` suffixes
+- There is exactly one StepType per CUE kind
+- StepType is not an implementation detail
+- Avoid `Impl`, `Handler`, or `Spec` suffixes
 
 > A step has a **type**, not an "implementation".
-
----
 
 ### StepInstance
 
@@ -116,15 +105,13 @@ type StepInstance struct {
 }
 ```
 
-* Created by decoding user CUE
-* Couples user data with its `StepType`
-* Exists only during planning
-
----
+- Created by decoding user CUE
+- Couples user data with its StepType
+- Exists only during planning
 
 ### Registry
 
-The **Registry** maps CUE kinds to Go `StepType`s.
+The **Registry** maps CUE kinds to Go StepTypes.
 
 ```go
 type Registry struct {
@@ -133,15 +120,14 @@ type Registry struct {
 ```
 
 Responsibilities:
-
-* resolve kinds (`"copy" → Copy`)
-* act as the extension point in the future
+- Resolve kinds (`"copy"` -> `Copy`)
+- Act as the extension point
 
 The registry is intentionally explicit and centralized.
 
 ---
 
-## 4. Planning and execution
+## Planning and Execution
 
 ### Action
 
@@ -154,15 +140,13 @@ type Action interface {
 }
 ```
 
-* Produced by `StepType.Plan`
-* Still declarative
-* Not yet tied to a target
-
----
+- Produced by `StepType.Plan`
+- Still declarative
+- Not yet tied to a target
 
 ### Op
 
-An **Op** is the smallest executable step.
+An **Op** is the smallest executable unit.
 
 ```go
 type Op interface {
@@ -173,13 +157,11 @@ type Op interface {
 }
 ```
 
-* Ops form a DAG
-* Ops are target-aware
-* Ops are idempotent
+- Ops form a DAG
+- Ops are target-aware
+- Ops are idempotent
 
 This is where concurrency and dependency resolution happen.
-
----
 
 ### Plan
 
@@ -191,15 +173,13 @@ type Plan struct {
 }
 ```
 
-* Produced from a config
-* Executed sequentially at the action level
-* Parallelism exists *within* actions via ops
+- Produced from a config
+- Executed sequentially at the action level
+- Parallelism exists within actions via ops
 
 ---
 
-## 5. Source and Target
-
-**Source** and **Target** are the two execution environment abstractions.
+## Source and Target
 
 ### Source
 
@@ -214,12 +194,9 @@ type Source interface {
 }
 ```
 
-* Supports both read and write (write is for caching, not mutation)
-* Examples: local filesystem, git repository, S3 bucket, remote storage
-* Used to fetch files that will be distributed to targets
-
-The write operations exist for caching scenarios: downloading an ISO once
-and caching it locally before distributing to many targets.
+- Supports both read and write (write is for caching, not mutation)
+- Examples: local filesystem, git repository, S3 bucket
+- Used to fetch files that will be distributed to targets
 
 ### Target
 
@@ -232,10 +209,8 @@ type Target interface {
 }
 ```
 
-* The managed system(s)
-* Examples: local filesystem, SSH remote, container, cloud instance
-
-Key rule:
+- The managed system(s)
+- Examples: local filesystem, SSH remote, REST API
 
 > Ops must treat the target as the **authority for system behavior**.
 
@@ -243,27 +218,26 @@ Platform-specific logic belongs in targets, not ops.
 
 ### Source vs Target
 
-| Aspect       | Source           | Target             |
-| ------------ | ---------------- | ------------------ |
-| Role         | Data origin      | Change destination |
-| Read         | Yes              | Yes                |
-| Write        | For caching only | For mutations      |
-| Multiplicity | Typically one    | Often many         |
+| Aspect | Source | Target |
+|--------|--------|--------|
+| Role | Data origin | Change destination |
+| Read | Yes | Yes |
+| Write | For caching only | For mutations |
+| Multiplicity | Typically one | Often many |
 
-Both are abstract interfaces. The local POSIX implementations are development
-defaults, not the only options. Users will configure these in the future.
+Both are abstract interfaces. The local POSIX implementations are development defaults, not the only options.
 
 ---
 
-## 6. Package and directory naming
+## Package and Directory Naming
 
-### Go package rules
+### Go Package Rules
 
-* packages are **singular nouns**
-* names describe *what the package contains*, not how it's used
-* avoid suffixes like `impl`, `handler`, `spec`
+- Packages are singular nouns
+- Names describe what the package contains, not how it's used
+- Avoid suffixes like `impl`, `handler`, `spec`
 
-### Canonical directories
+### Canonical Directories
 
 ```
 step/          # StepType implementations (one per kind)
@@ -283,38 +257,37 @@ step/
 
 ---
 
-## 7. Explicit non-goals
+## Explicit Non-Goals
 
 The following patterns are intentionally avoided:
 
-* `Impl` suffixes (Java-style indirection)
-* Interface/implementation name pairs
-* Go names leaking into CUE
-* CUE schema shaped around Go constraints
-* Over-generalization "for future extensions"
+- `Impl` suffixes (Java-style indirection)
+- Interface/implementation name pairs
+- Go names leaking into CUE
+- CUE schema shaped around Go constraints
+- Over-generalization "for future extensions"
 
 Extensibility is achieved by **clear boundaries**, not abstractions.
 
 ---
 
-## 8. Summary table
+## Summary
 
-| Concept            | CUE  | Go           |
-| ------------------ | ---- | ------------ |
-| Declarative work   | step | StepInstance |
-| Semantic category  | kind | StepType     |
-| Planned execution  | —    | Action       |
-| Executable step    | —    | Op           |
-| Data origin        | —    | Source       |
-| Change destination | —    | Target       |
+| Concept | CUE | Go |
+|---------|-----|-----|
+| Declarative work | step | StepInstance |
+| Semantic category | kind | StepType |
+| Planned execution | — | Action |
+| Executable unit | — | Op |
+| Data origin | — | Source |
+| Change destination | — | Target |
 
 ---
 
-## 9. Final rule of thumb
+## Rule of Thumb
 
 If you are unsure how to name something, ask:
 
-> "Where does this live in the
-> **step → type → action → op → target** flow?"
+> "Where does this live in the **step -> type -> action -> op -> target** flow?"
 
 If the name doesn't answer that clearly, it's wrong.
