@@ -57,6 +57,8 @@ There are two fundamentally different concepts:
 
 ## Units
 
+> **Status: Design — not yet implemented**
+
 ### What a Unit Is
 
 A **unit** is a reusable convergence module. It defines a sequence of steps that bring a system to a desired state.
@@ -215,6 +217,8 @@ targets: {
 
 ## Groups
 
+> **Status: Design — not yet implemented**
+
 ### What Groups Are
 
 Groups are **explicit lists** of target names. They live separately from targets.
@@ -256,6 +260,8 @@ But prefer explicit lists for clarity.
 ---
 
 ## Variables
+
+> **Status: Design — not yet implemented**
 
 ### The Ansible Trap
 
@@ -336,6 +342,8 @@ Resolution strategies (planned):
 ## Site Definition
 
 ### Host-Centric Model
+
+> **Note:** Unit references (e.g. `nginx.#Unit`) in examples below are aspirational. Only inline steps work today.
 
 The site file defines "on these targets, run these steps":
 
