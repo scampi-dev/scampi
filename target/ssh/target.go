@@ -163,6 +163,9 @@ func (t *SSHTarget) resolveUser(user string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	if result.ExitCode == 127 {
+		return 0, target.ErrCommandNotFound
+	}
 	if result.ExitCode != 0 {
 		return 0, target.ErrUnknownUser
 	}
@@ -184,6 +187,9 @@ func (t *SSHTarget) resolveGroup(group string) (int, error) {
 	result, err := t.runCommand(fmt.Sprintf("getent group %s", shellQuote(group)))
 	if err != nil {
 		return 0, err
+	}
+	if result.ExitCode == 127 {
+		return 0, target.ErrCommandNotFound
 	}
 	if result.ExitCode != 0 {
 		return 0, target.ErrUnknownGroup

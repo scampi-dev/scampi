@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	ErrNotExist     = errors.New("path does not exist")
-	ErrPermission   = errors.New("permission denied")
-	ErrUnknownUser  = errors.New("unknown user")
-	ErrUnknownGroup = errors.New("unknown group")
+	ErrNotExist        = errors.New("path does not exist")
+	ErrPermission      = errors.New("permission denied")
+	ErrUnknownUser     = errors.New("unknown user")
+	ErrUnknownGroup    = errors.New("unknown group")
+	ErrCommandNotFound = errors.New("command not found on target")
 )
 
 type (
@@ -52,10 +53,11 @@ type (
 	}
 )
 
-func IsNotExist(err error) bool     { return errors.Is(err, ErrNotExist) }
-func IsPermission(err error) bool   { return errors.Is(err, ErrPermission) }
-func IsUnknownUser(err error) bool  { return errors.Is(err, ErrUnknownUser) }
-func IsUnknownGroup(err error) bool { return errors.Is(err, ErrUnknownGroup) }
+func IsNotExist(err error) bool        { return errors.Is(err, ErrNotExist) }
+func IsPermission(err error) bool      { return errors.Is(err, ErrPermission) }
+func IsUnknownUser(err error) bool     { return errors.Is(err, ErrUnknownUser) }
+func IsUnknownGroup(err error) bool    { return errors.Is(err, ErrUnknownGroup) }
+func IsCommandNotFound(err error) bool { return errors.Is(err, ErrCommandNotFound) }
 
 func Must[T any](reqID string, tgt Target) T {
 	res, ok := tgt.(T)
