@@ -70,6 +70,15 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 	changed := info.Mode() != op.Mode
 
 	if err := fmTgt.Chmod(ctx, op.Path, op.Mode); err != nil {
+		// Can't catch during Check: file may not exist yet, and probing
+		// write-permission would mutate state in a read-only phase.
+		if target.IsPermission(err) {
+			return spec.Result{}, sharedops.PermissionDeniedError{
+				Operation: fmt.Sprintf("chmod %s %s", op.Mode, op.Path),
+				Source:    op.DestSpan,
+				Err:       err,
+			}
+		}
 		return spec.Result{}, err
 	}
 

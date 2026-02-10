@@ -100,7 +100,8 @@ func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt targe
 				Err:    err,
 			}
 		}
-		// TODO: Can we catch this earlier?
+		// Can't catch during Check: file may not exist yet, and probing
+		// write-permission would mutate state in a read-only phase.
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedops.PermissionDeniedError{
 				Operation: fmt.Sprintf("chown %s:%s %s", op.Owner, op.Group, op.Path),
