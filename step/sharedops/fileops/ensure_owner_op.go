@@ -27,7 +27,7 @@ type EnsureOwnerOp struct {
 }
 
 func (op *EnsureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
-	owTgt := target.Must[target.Ownership](ensureModeID, tgt)
+	owTgt := target.Must[target.Ownership](ensureOwnerID, tgt)
 
 	if !owTgt.HasUser(ctx, op.Owner) {
 		return spec.CheckUnsatisfied, sharedops.UnknownUserError{
@@ -67,7 +67,7 @@ func (op *EnsureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.
 }
 
 func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
-	owTgt := target.Must[target.Ownership](ensureModeID, tgt)
+	owTgt := target.Must[target.Ownership](ensureOwnerID, tgt)
 
 	have, err := owTgt.GetOwner(ctx, op.Path)
 	if err != nil {
