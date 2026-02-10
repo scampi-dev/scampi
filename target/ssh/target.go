@@ -1,7 +1,9 @@
 package ssh
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -157,12 +159,15 @@ func (t *SSHTarget) resolveUser(user string) (int, error) {
 	}
 
 	// Use `id` command
-	output, err := t.runCommand(fmt.Sprintf("id -u %s", shellQuote(user)))
+	result, err := t.runCommand(fmt.Sprintf("id -u %s", shellQuote(user)))
 	if err != nil {
+		return 0, err
+	}
+	if result.ExitCode != 0 {
 		return 0, target.ErrUnknownUser
 	}
 
-	uid, err := strconv.Atoi(strings.TrimSpace(output))
+	uid, err := strconv.Atoi(strings.TrimSpace(result.Stdout))
 	if err != nil {
 		return 0, target.ErrUnknownUser
 	}
@@ -176,13 +181,16 @@ func (t *SSHTarget) resolveGroup(group string) (int, error) {
 	}
 
 	// Use `getent` command
-	output, err := t.runCommand(fmt.Sprintf("getent group %s", shellQuote(group)))
+	result, err := t.runCommand(fmt.Sprintf("getent group %s", shellQuote(group)))
 	if err != nil {
+		return 0, err
+	}
+	if result.ExitCode != 0 {
 		return 0, target.ErrUnknownGroup
 	}
 
 	// getent output: "groupname:x:gid:members"
-	parts := strings.Split(strings.TrimSpace(output), ":")
+	parts := strings.Split(strings.TrimSpace(result.Stdout), ":")
 	if len(parts) < 3 {
 		return 0, target.ErrUnknownGroup
 	}
@@ -195,11 +203,11 @@ func (t *SSHTarget) resolveGroup(group string) (int, error) {
 }
 
 func (t *SSHTarget) resolveUID(uid int) string {
-	output, err := t.runCommand(fmt.Sprintf("getent passwd %d", uid))
-	if err != nil {
+	result, err := t.runCommand(fmt.Sprintf("getent passwd %d", uid))
+	if err != nil || result.ExitCode != 0 {
 		return fmt.Sprintf("%d", uid) // Fall back to numeric
 	}
-	parts := strings.Split(strings.TrimSpace(output), ":")
+	parts := strings.Split(strings.TrimSpace(result.Stdout), ":")
 	if len(parts) > 0 {
 		return parts[0]
 	}
@@ -207,27 +215,54 @@ func (t *SSHTarget) resolveUID(uid int) string {
 }
 
 func (t *SSHTarget) resolveGID(gid int) string {
-	output, err := t.runCommand(fmt.Sprintf("getent group %d", gid))
-	if err != nil {
+	result, err := t.runCommand(fmt.Sprintf("getent group %d", gid))
+	if err != nil || result.ExitCode != 0 {
 		return fmt.Sprintf("%d", gid) // Fall back to numeric
 	}
-	parts := strings.Split(strings.TrimSpace(output), ":")
+	parts := strings.Split(strings.TrimSpace(result.Stdout), ":")
 	if len(parts) > 0 {
 		return parts[0]
 	}
 	return fmt.Sprintf("%d", gid)
 }
 
-func (t *SSHTarget) runCommand(cmd string) (string, error) {
+var errSession = errors.New("ssh session")
+
+type cmdResult struct {
+	Stdout   string
+	Stderr   string
+	ExitCode int
+}
+
+func (t *SSHTarget) runCommand(cmd string) (cmdResult, error) {
 	session, err := t.client.NewSession()
 	if err != nil {
-		return "", err
+		return cmdResult{}, errs.WrapErrf(errSession, "%v", err)
 	}
 	defer func() { _ = session.Close() }()
 
-	output, err := session.CombinedOutput(cmd)
-	// FIXME: unwrapped SSH session error — loses context about which command failed
-	return string(output), err
+	var stdout, stderr bytes.Buffer
+	session.Stdout = &stdout
+	session.Stderr = &stderr
+
+	err = session.Run(cmd)
+	if err != nil {
+		var exitErr *ssh.ExitError
+		if errors.As(err, &exitErr) {
+			return cmdResult{
+				Stdout:   stdout.String(),
+				Stderr:   stderr.String(),
+				ExitCode: exitErr.ExitStatus(),
+			}, nil
+		}
+		return cmdResult{}, errs.WrapErrf(errSession, "%v", err)
+	}
+
+	return cmdResult{
+		Stdout:   stdout.String(),
+		Stderr:   stderr.String(),
+		ExitCode: 0,
+	}, nil
 }
 
 func shellQuote(s string) string {
