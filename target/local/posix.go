@@ -14,9 +14,12 @@ import (
 	"godoit.dev/doit/capability"
 	"godoit.dev/doit/errs"
 	"godoit.dev/doit/target"
+	"godoit.dev/doit/target/pkgmgr"
 )
 
-type POSIXTarget struct{}
+type POSIXTarget struct {
+	pkgBackend *pkgmgr.Backend
+}
 
 func (POSIXTarget) ReadFile(_ context.Context, path string) ([]byte, error) {
 	return os.ReadFile(path)
@@ -150,8 +153,12 @@ func (POSIXTarget) RunCommand(ctx context.Context, cmd string) (target.CommandRe
 	}, nil
 }
 
-func (POSIXTarget) Capabilities() capability.Capability {
-	return capability.POSIX
+func (t POSIXTarget) Capabilities() capability.Capability {
+	caps := capability.POSIX
+	if t.pkgBackend != nil {
+		caps |= capability.Pkg
+	}
+	return caps
 }
 
 func lookupUser(u string) (*user.User, error) {

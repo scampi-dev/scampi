@@ -79,6 +79,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,os/exec,os/user,syscall",
 		},
 		{
+			pattern:        "target/local/local_test.go",
+			allowedImports: "runtime",
+		},
+		{
 			pattern:        "target/ssh/errors.go",
 			allowedImports: "golang.org/x/crypto/ssh/knownhosts",
 		},
