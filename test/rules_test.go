@@ -124,6 +124,14 @@ func TestImportCapabilities(t *testing.T) {
 			pattern:        "test/main_test.go",
 			allowedImports: "os",
 		},
+		{
+			pattern:        "cmd/usage_test.go",
+			allowedImports: "os,os/exec",
+		},
+		{
+			pattern:        "cmd/fuzz_test.go",
+			allowedImports: "os/exec",
+		},
 	}
 
 	splitList := func(s string) []string {

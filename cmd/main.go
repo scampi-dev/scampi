@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	ossig "os/signal"
 	"runtime/debug"
@@ -68,6 +67,14 @@ func main() {
 				Name:  flagColor,
 				Value: "auto",
 				Usage: "colorize output: auto, always, never",
+				Validator: func(s string) error {
+					switch strings.ToLower(s) {
+					case "auto", "always", "never":
+						return nil
+					default:
+						return fmt.Errorf("invalid --color value %q (expected auto, always, or never)", s)
+					}
+				},
 			},
 			&cli.BoolFlag{
 				Name:  flagVerbosity,
@@ -107,9 +114,15 @@ func main() {
 	defer stop()
 
 	if err := doit.Run(ctx, os.Args); err != nil {
-		// must never happen, since we either return cleanly
-		// or we handle abort and other errors ourselves with exit-codes
-		log.Fatalf("unhandled error: %#v\n", err)
+		// Flag-parsing errors (missing value, unknown flag) are reported
+		// to stderr by urfave/cli before returning. Exit cleanly so the
+		// user sees only the library's message, not a scary "unhandled
+		// error" trace.
+		var exitErr cli.ExitCoder
+		if errors.As(err, &exitErr) {
+			os.Exit(exitErr.ExitCode())
+		}
+		os.Exit(exitUserError)
 	}
 }
 
@@ -122,6 +135,7 @@ func applyCmd() *cli.Command {
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
+		OnUsageError:           onUsageError,
 		Flags:                  resolveFlags(),
 		Arguments: []cli.Argument{
 			&cli.StringArg{
@@ -180,6 +194,7 @@ func checkCmd() *cli.Command {
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
+		OnUsageError:           onUsageError,
 		Flags:                  resolveFlags(),
 		Arguments: []cli.Argument{
 			&cli.StringArg{
@@ -239,6 +254,7 @@ func inspectCmd() *cli.Command {
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
+		OnUsageError:           onUsageError,
 		Flags: append(resolveFlags(), &cli.StringFlag{
 			Name:  "step",
 			Usage: "filter to a specific file op by destination path (substring match)",
@@ -303,6 +319,7 @@ func planCmd() *cli.Command {
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
+		OnUsageError:           onUsageError,
 		Flags:                  resolveFlags(),
 		Arguments: []cli.Argument{
 			&cli.StringArg{
@@ -360,6 +377,7 @@ func indexCmd() *cli.Command {
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
+		OnUsageError:           onUsageError,
 		ArgsUsage:              "[step]",
 		Description: `Prints the index of steps supported by the engine.
 
@@ -420,6 +438,12 @@ and color semantics used in doit CLI output.`,
 			return nil
 		},
 	}
+}
+
+func onUsageError(_ context.Context, cmd *cli.Command, err error, _ bool) error {
+	fmt.Fprintf(os.Stderr, "Incorrect Usage: %s\n\n", err)
+	_ = cli.ShowSubcommandHelp(cmd)
+	return cli.Exit("", exitUserError)
 }
 
 func requireMaxArgs(n int) func(context.Context, *cli.Command) (context.Context, error) {
