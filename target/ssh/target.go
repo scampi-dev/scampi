@@ -15,6 +15,7 @@ import (
 	"godoit.dev/doit/capability"
 	"godoit.dev/doit/errs"
 	"godoit.dev/doit/target"
+	"godoit.dev/doit/target/pkgmgr"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -23,10 +24,16 @@ type SSHTarget struct {
 	client     *ssh.Client
 	sftp       *sftp.Client
 	closeAgent func() error
+	osInfo     pkgmgr.OSInfo
+	pkgBackend *pkgmgr.Backend
 }
 
 func (t *SSHTarget) Capabilities() capability.Capability {
-	return capability.POSIX
+	caps := capability.POSIX
+	if t.pkgBackend != nil {
+		caps |= capability.Pkg
+	}
+	return caps
 }
 
 func (t *SSHTarget) Close() {

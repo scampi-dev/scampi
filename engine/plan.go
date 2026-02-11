@@ -194,3 +194,15 @@ func (capabilityTarget) HasGroup(_ context.Context, _ string) bool {
 func (capabilityTarget) GetOwner(_ context.Context, _ string) (target.Owner, error) {
 	panic(errs.BUG("GetOwner called on capability-only target"))
 }
+
+func (capabilityTarget) IsInstalled(_ context.Context, _ string) (bool, error) {
+	panic(errs.BUG("IsInstalled called on capability-only target"))
+}
+
+func (capabilityTarget) InstallPkgs(_ context.Context, _ []string) error {
+	panic(errs.BUG("InstallPkgs called on capability-only target"))
+}
+
+func (capabilityTarget) RemovePkgs(_ context.Context, _ []string) error {
+	panic(errs.BUG("RemovePkgs called on capability-only target"))
+}

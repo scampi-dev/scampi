@@ -16,6 +16,7 @@ const (
 	FileMode                          // Chmod, mode in Stat
 	Symlink                           // Symlink, Readlink, Lstat
 	Ownership                         // HasUser, HasGroup, GetOwner, Chown
+	Pkg                               // IsInstalled, InstallPkgs, RemovePkgs
 )
 
 const (
@@ -49,6 +50,9 @@ func (c Capability) String() string {
 	}
 	if c&Symlink != 0 {
 		parts = append(parts, "Symlink")
+	}
+	if c&Pkg != 0 {
+		parts = append(parts, "Pkg")
 	}
 
 	// If no known flags matched, show raw value

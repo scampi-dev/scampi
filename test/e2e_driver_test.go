@@ -79,6 +79,9 @@ func (d *MemDriver) Setup(t *testing.T, initial E2EFiles) (target.Target, spec.T
 	for link, linkTarget := range initial.Symlinks {
 		d.tgt.Symlinks[link] = linkTarget
 	}
+	for pkg, installed := range initial.Pkgs {
+		d.tgt.Pkgs[pkg] = installed
+	}
 
 	ti := mockTargetInstance(d.tgt)
 
@@ -122,6 +125,14 @@ func (d *MemDriver) Verify(t *testing.T, expect E2EFiles) {
 		}
 		if gotTarget != wantTarget {
 			t.Errorf("symlink %q: got target %q, want %q", link, gotTarget, wantTarget)
+		}
+	}
+
+	// Verify packages
+	for pkg, wantInstalled := range expect.Pkgs {
+		gotInstalled := d.tgt.Pkgs[pkg]
+		if gotInstalled != wantInstalled {
+			t.Errorf("package %q: got installed=%v, want installed=%v", pkg, gotInstalled, wantInstalled)
 		}
 	}
 }

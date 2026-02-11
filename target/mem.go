@@ -18,6 +18,7 @@ type MemTarget struct {
 	Owners   map[string]Owner
 	ModTimes map[string]time.Time
 	Symlinks map[string]string
+	Pkgs     map[string]bool
 }
 
 func NewMemTarget() *MemTarget {
@@ -27,6 +28,7 @@ func NewMemTarget() *MemTarget {
 		Owners:   make(map[string]Owner),
 		ModTimes: make(map[string]time.Time),
 		Symlinks: make(map[string]string),
+		Pkgs:     make(map[string]bool),
 	}
 }
 
@@ -239,7 +241,31 @@ func (m *MemTarget) Remove(_ context.Context, path string) error {
 }
 
 func (m *MemTarget) Capabilities() capability.Capability {
-	return capability.POSIX
+	return capability.POSIX | capability.Pkg
+}
+
+func (m *MemTarget) IsInstalled(_ context.Context, pkg string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.Pkgs[pkg], nil
+}
+
+func (m *MemTarget) InstallPkgs(_ context.Context, pkgs []string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, pkg := range pkgs {
+		m.Pkgs[pkg] = true
+	}
+	return nil
+}
+
+func (m *MemTarget) RemovePkgs(_ context.Context, pkgs []string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, pkg := range pkgs {
+		delete(m.Pkgs, pkg)
+	}
+	return nil
 }
 
 type memFileInfo struct {

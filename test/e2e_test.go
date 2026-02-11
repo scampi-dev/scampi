@@ -31,6 +31,7 @@ type E2EFiles struct {
 	Perms    map[string]string   `json:"perms,omitempty"`    // path -> "0644"
 	Owners   map[string]E2EOwner `json:"owners,omitempty"`   // path -> owner info
 	Symlinks map[string]string   `json:"symlinks,omitempty"` // link -> target
+	Pkgs     map[string]bool     `json:"pkgs,omitempty"`     // pkg name -> installed
 }
 
 // E2EOwner represents file ownership.

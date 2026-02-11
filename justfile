@@ -46,9 +46,18 @@ test-containers:
 race:
   go test -race ./...
 
-[doc("Run fuzz tests")]
+[doc("Run fuzz tests across all packages")]
 fuzz time='30s':
-  go test ./test -fuzz=. -fuzztime={{time}}
+  #!/usr/bin/env bash
+  set -euo pipefail
+  # Find every package that contains a Fuzz function.
+  pkgs=$(grep -rl '^func Fuzz' --include='*_test.go' . \
+    | xargs -n1 dirname | sort -u \
+    | sed 's|^\./||')
+  for pkg in $pkgs; do
+    echo "fuzzing ./$pkg ({{time}})..."
+    go test "./$pkg" -fuzz=. -fuzztime={{time}}
+  done
 
 [doc("Run benchmarks")]
 bench save_as='' count='10':

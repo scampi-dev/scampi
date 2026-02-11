@@ -51,6 +51,11 @@ type (
 		GetOwner(ctx context.Context, path string) (Owner, error)
 		Chown(ctx context.Context, path string, owner Owner) error
 	}
+	PkgManager interface {
+		IsInstalled(ctx context.Context, pkg string) (bool, error)
+		InstallPkgs(ctx context.Context, pkgs []string) error
+		RemovePkgs(ctx context.Context, pkgs []string) error
+	}
 )
 
 func IsNotExist(err error) bool        { return errors.Is(err, ErrNotExist) }

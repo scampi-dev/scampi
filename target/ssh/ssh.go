@@ -19,6 +19,7 @@ import (
 	"godoit.dev/doit/source"
 	"godoit.dev/doit/spec"
 	"godoit.dev/doit/target"
+	"godoit.dev/doit/target/pkgmgr"
 )
 
 const knownHostsFile = "~/.ssh/known_hosts"
@@ -121,12 +122,31 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 		return nil, SFTPSessionError{Err: err}
 	}
 
-	return &SSHTarget{
+	sshTgt := &SSHTarget{
 		config:     cfg,
 		client:     client,
 		sftp:       sftpClient,
 		closeAgent: closeAgent,
-	}, nil
+	}
+
+	// OS detection for package manager support.
+	// Phase 1: kernel via uname -s
+	if result, err := sshTgt.runCommand("uname -s"); err == nil {
+		sshTgt.osInfo.Kernel = strings.TrimSpace(result.Stdout)
+	}
+
+	// Phase 2: distro detection (Linux only) via /etc/os-release
+	if sshTgt.osInfo.Kernel == pkgmgr.KernelLinux {
+		if osRelease, err := sshTgt.ReadFile(ctx, "/etc/os-release"); err == nil {
+			info := pkgmgr.ParseOSRelease(osRelease)
+			info.Kernel = pkgmgr.KernelLinux
+			sshTgt.osInfo = info
+		}
+	}
+
+	sshTgt.pkgBackend = pkgmgr.Detect(sshTgt.osInfo)
+
+	return sshTgt, nil
 }
 
 func buildSSHConfig(
