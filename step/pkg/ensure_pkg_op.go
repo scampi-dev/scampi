@@ -21,54 +21,76 @@ type ensurePkgOp struct {
 	pkgsSource spec.SourceSpan
 }
 
-func (op *ensurePkgOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *ensurePkgOp) Check(
+	ctx context.Context, _ source.Source, tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
 
-	// For latest, refresh the cache so upgrade checks are accurate.
 	if op.state == StateLatest {
 		pu, ok := tgt.(target.PkgUpdater)
 		if !ok {
-			return spec.CheckUnsatisfied, fmt.Errorf("target %T does not support upgrade checks", tgt)
+			return spec.CheckUnsatisfied, nil, fmt.Errorf("target %T does not support upgrade checks", tgt)
 		}
 		if err := pu.UpdateCache(ctx); err != nil {
-			return spec.CheckUnsatisfied, PkgCacheError{
+			return spec.CheckUnsatisfied, nil, PkgCacheError{
 				Stderr: err.Error(),
 				Source: op.pkgsSource,
 			}
 		}
 	}
 
+	var drift []spec.DriftDetail
 	for _, pkg := range op.packages {
 		installed, err := pm.IsInstalled(ctx, pkg)
 		if err != nil {
-			return spec.CheckUnsatisfied, err
+			return spec.CheckUnsatisfied, nil, err
 		}
 
 		switch op.state {
 		case StatePresent:
 			if !installed {
-				return spec.CheckUnsatisfied, nil
+				drift = append(drift, spec.DriftDetail{
+					Field:   "state",
+					Current: pkg + ": not installed",
+					Desired: "present",
+				})
 			}
 		case StateAbsent:
 			if installed {
-				return spec.CheckUnsatisfied, nil
+				drift = append(drift, spec.DriftDetail{
+					Field:   "state",
+					Current: pkg + ": installed",
+					Desired: "absent",
+				})
 			}
 		case StateLatest:
 			if !installed {
-				return spec.CheckUnsatisfied, nil
-			}
-			pu := tgt.(target.PkgUpdater) // safe: asserted above
-			upgradable, err := pu.IsUpgradable(ctx, pkg)
-			if err != nil {
-				return spec.CheckUnsatisfied, err
-			}
-			if upgradable {
-				return spec.CheckUnsatisfied, nil
+				drift = append(drift, spec.DriftDetail{
+					Field:   "state",
+					Current: pkg + ": not installed",
+					Desired: "latest",
+				})
+			} else {
+				pu := tgt.(target.PkgUpdater) // safe: asserted above
+				upgradable, err := pu.IsUpgradable(ctx, pkg)
+				if err != nil {
+					return spec.CheckUnsatisfied, nil, err
+				}
+				if upgradable {
+					drift = append(drift, spec.DriftDetail{
+						Field:   "state",
+						Current: pkg + ": upgradable",
+						Desired: "latest",
+					})
+				}
 			}
 		}
 	}
 
-	return spec.CheckSatisfied, nil
+	if len(drift) > 0 {
+		return spec.CheckUnsatisfied, drift, nil
+	}
+	return spec.CheckSatisfied, nil, nil
 }
 
 func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {

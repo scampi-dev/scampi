@@ -3,6 +3,7 @@ package template
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"path/filepath"
 	"text/template"
 
@@ -23,22 +24,24 @@ type renderTemplateOp struct {
 	data    DataConfig
 }
 
-func (op *renderTemplateOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *renderTemplateOp) Check(
+	ctx context.Context, src source.Source, tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](renderTemplateID, tgt)
 
 	data, err := mergeData(op.data, src)
 	if err != nil {
-		return spec.CheckUnsatisfied, err
+		return spec.CheckUnsatisfied, nil, err
 	}
 
 	tmplContent, err := op.getTemplateContent(ctx, src)
 	if err != nil {
-		return spec.CheckUnsatisfied, err
+		return spec.CheckUnsatisfied, nil, err
 	}
 
 	tmpl, err := template.New("template").Parse(string(tmplContent))
 	if err != nil {
-		return spec.CheckUnsatisfied, TemplateParseError{
+		return spec.CheckUnsatisfied, nil, TemplateParseError{
 			Err:    err,
 			Source: op.SrcSpan,
 		}
@@ -46,14 +49,14 @@ func (op *renderTemplateOp) Check(ctx context.Context, src source.Source, tgt ta
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return spec.CheckUnsatisfied, TemplateExecError{
+		return spec.CheckUnsatisfied, nil, TemplateExecError{
 			Err:    err,
 			Source: op.SrcSpan,
 		}
 	}
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
-		return spec.CheckUnsatisfied, DestDirMissingError{
+		return spec.CheckUnsatisfied, nil, DestDirMissingError{
 			Path:   filepath.Dir(op.dest),
 			Err:    err,
 			Source: op.DestSpan,
@@ -62,14 +65,21 @@ func (op *renderTemplateOp) Check(ctx context.Context, src source.Source, tgt ta
 
 	destData, err := fsTgt.ReadFile(ctx, op.dest)
 	if err != nil {
-		return spec.CheckUnsatisfied, nil // expected drift
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "content",
+			Desired: fmt.Sprintf("%d bytes", buf.Len()),
+		}}, nil
 	}
 
 	if !bytes.Equal(buf.Bytes(), destData) {
-		return spec.CheckUnsatisfied, nil // expected drift
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "content",
+			Current: fmt.Sprintf("%d bytes", len(destData)),
+			Desired: fmt.Sprintf("%d bytes", buf.Len()),
+		}}, nil
 	}
 
-	return spec.CheckSatisfied, nil
+	return spec.CheckSatisfied, nil, nil
 }
 
 func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {

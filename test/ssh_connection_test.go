@@ -14,7 +14,8 @@ import (
 	"godoit.dev/doit/target/ssh"
 )
 
-// --- Connection Tests ---
+// Connection Tests
+// -----------------------------------------------------------------------------
 
 func TestSSH_Connect(t *testing.T) {
 	env, cleanup := SetupSSHTestEnv(t)
@@ -175,7 +176,8 @@ func TestSSH_Connect_PublicKeyAsPrivate(t *testing.T) {
 	}
 }
 
-// --- SFTP Operation Tests ---
+// SFTP Operation Tests
+// -----------------------------------------------------------------------------
 
 func TestSSH_ReadWriteFile(t *testing.T) {
 	env, cleanup := SetupSSHTestEnv(t)
@@ -312,7 +314,8 @@ func TestSSH_Chmod(t *testing.T) {
 	}
 }
 
-// --- Symlink Tests ---
+// Symlink Tests
+// -----------------------------------------------------------------------------
 
 func TestSSH_Symlink(t *testing.T) {
 	env, cleanup := SetupSSHTestEnv(t)
@@ -358,7 +361,8 @@ func TestSSH_Symlink(t *testing.T) {
 	}
 }
 
-// --- Ownership Tests ---
+// Ownership Tests
+// -----------------------------------------------------------------------------
 
 func TestSSH_HasUser(t *testing.T) {
 	env, cleanup := SetupSSHTestEnv(t)
@@ -464,7 +468,8 @@ func TestSSH_Chown(t *testing.T) {
 	// testuser can only chown to themselves, so we just verify the current ownership works.
 }
 
-// --- Helper Functions ---
+// Helper Functions
+// -----------------------------------------------------------------------------
 
 func connectSSH(t *testing.T, env *SSHTestEnv) *ssh.SSHTarget {
 	t.Helper()

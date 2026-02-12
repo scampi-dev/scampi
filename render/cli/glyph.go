@@ -10,6 +10,7 @@ type glyphSet struct {
 	hint   string
 	help   string
 	bullet string
+	arrow  string
 
 	planStart            string
 	planRail             string
@@ -41,6 +42,7 @@ var (
 		hint:   "󰌵",
 		help:   "󰋖",
 		bullet: "•",
+		arrow:  "→",
 
 		planStart:            "┌─┬",
 		planRail:             "│",
@@ -71,6 +73,7 @@ var (
 		hint:   "?",
 		help:   "i",
 		bullet: "*",
+		arrow:  "->",
 
 		planStart:            "+--",
 		planRail:             "|",

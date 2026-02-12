@@ -60,6 +60,7 @@ type ActionDetail struct {
 type OpCheckDetail struct {
 	Result spec.CheckResult
 	Err    error
+	Drift  []spec.DriftDetail
 }
 
 type OpExecuteDetail struct {

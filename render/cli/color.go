@@ -33,6 +33,7 @@ var (
 	colOpDesc             = ansi.BrightBlack().Dim()
 	colOpCheckSatisfied   = ansi.BrightBlack().Dim()
 	colOpCheckUnsatisfied = ansi.BrightBlack().Dim()
+	colOpDrift            = ansi.BrightBlack().Dim()
 	colOpCheckUnknown     = ansi.Yellow()
 	colOpExecChanged      = ansi.BrightBlack()
 	colOpExecFailed       = ansi.Red()

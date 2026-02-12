@@ -348,6 +348,7 @@ func OpChecked(
 	res spec.CheckResult,
 	err error,
 	checkOnly bool,
+	drift []spec.DriftDetail,
 ) event.OpEvent {
 	e := event.OpEvent{
 		Time: time.Now(),
@@ -361,6 +362,7 @@ func OpChecked(
 		CheckDetail: &event.OpCheckDetail{
 			Result: res,
 			Err:    err,
+			Drift:  drift,
 		},
 	}
 

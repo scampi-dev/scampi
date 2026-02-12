@@ -52,7 +52,8 @@ func newFailTarget(t *testing.T) POSIXTarget {
 	return POSIXTarget{escalate: script}
 }
 
-// --- Detection ---
+// Detection
+// -----------------------------------------------------------------------------
 
 func TestDetectEscalation(t *testing.T) {
 	if os.Getuid() == 0 {
@@ -67,7 +68,8 @@ func TestDetectEscalation(t *testing.T) {
 	}
 }
 
-// --- Command construction (capture script records args) ---
+// Command construction (capture script records args)
+// -----------------------------------------------------------------------------
 
 func TestEscalatedReadFile_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
@@ -154,7 +156,8 @@ func TestEscalatedSymlink_Command(t *testing.T) {
 	}
 }
 
-// --- Error types on failure ---
+// Error types on failure
+// -----------------------------------------------------------------------------
 
 func TestEscalatedRemove_ReturnsEscalationError(t *testing.T) {
 	tgt := newFailTarget(t)
@@ -195,7 +198,8 @@ func TestEscalatedReadFile_ReturnsEscalationError(t *testing.T) {
 	}
 }
 
-// --- Try-then-fallback behavior ---
+// Try-then-fallback behavior
+// -----------------------------------------------------------------------------
 
 func TestReadFile_FallsBackOnPermission(t *testing.T) {
 	if os.Getuid() == 0 {
@@ -350,7 +354,8 @@ func TestInstallPkgs_NoErrorWhenRoot(t *testing.T) {
 	}
 }
 
-// --- Package manager escalation ---
+// Package manager escalation
+// -----------------------------------------------------------------------------
 
 func TestInstallPkgs_Escalated(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
@@ -405,7 +410,8 @@ func TestInstallPkgs_NoEscalationWithoutNeedsRoot(t *testing.T) {
 	}
 }
 
-// --- UpdateCache escalation ---
+// UpdateCache escalation
+// -----------------------------------------------------------------------------
 
 func TestUpdateCache_NoEscalationErrorWhenNoTool(t *testing.T) {
 	tgt := POSIXTarget{

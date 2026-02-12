@@ -24,12 +24,14 @@ type copyFileOp struct {
 	dest string
 }
 
-func (op *copyFileOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *copyFileOp) Check(
+	ctx context.Context, src source.Source, tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 
 	srcData, err := src.ReadFile(ctx, op.src)
 	if err != nil {
-		return spec.CheckUnsatisfied, CopySourceMissingError{
+		return spec.CheckUnsatisfied, nil, CopySourceMissingError{
 			Path:   op.src,
 			Err:    err,
 			Source: op.SrcSpan,
@@ -37,7 +39,7 @@ func (op *copyFileOp) Check(ctx context.Context, src source.Source, tgt target.T
 	}
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
-		return spec.CheckUnsatisfied, CopyDestDirMissingError{
+		return spec.CheckUnsatisfied, nil, CopyDestDirMissingError{
 			Path:   filepath.Dir(op.dest),
 			Err:    err,
 			Source: op.DestSpan,
@@ -46,14 +48,21 @@ func (op *copyFileOp) Check(ctx context.Context, src source.Source, tgt target.T
 
 	destData, err := fsTgt.ReadFile(ctx, op.dest)
 	if err != nil {
-		return spec.CheckUnsatisfied, nil
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "content",
+			Desired: fmt.Sprintf("%d bytes", len(srcData)),
+		}}, nil
 	}
 
 	if !bytes.Equal(srcData, destData) {
-		return spec.CheckUnsatisfied, nil
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "content",
+			Current: fmt.Sprintf("%d bytes", len(destData)),
+			Desired: fmt.Sprintf("%d bytes", len(srcData)),
+		}}, nil
 	}
 
-	return spec.CheckSatisfied, nil
+	return spec.CheckSatisfied, nil, nil
 }
 
 func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {

@@ -280,7 +280,7 @@ func (noopEmitter) EmitIndexAll(event.IndexAllEvent)            {}
 func (noopEmitter) EmitIndexStep(event.IndexStepEvent)          {}
 
 type (
-	checkFn func(context.Context, source.Source, target.Target) (spec.CheckResult, error)
+	checkFn func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error)
 	execFn  func(context.Context, source.Source, target.Target) (spec.Result, error)
 	fakeOp  struct {
 		name   string
@@ -296,8 +296,8 @@ type (
 )
 
 func okCheckFn(res spec.CheckResult) checkFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-		return res, nil
+	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		return res, nil, nil
 	}
 }
 
@@ -308,8 +308,8 @@ func okExecFn(changed bool) execFn {
 }
 
 func diagCheckFn(severity signal.Severity, impact diagnostic.Impact) checkFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-		return spec.CheckUnknown, &fakeDiagnostic{
+	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		return spec.CheckUnknown, nil, &fakeDiagnostic{
 			severity: severity,
 			impact:   impact,
 		}
@@ -327,8 +327,8 @@ func diagExecFn(severity signal.Severity, impact diagnostic.Impact) execFn {
 
 //lint:ignore U1000
 func errCheckFn(err error) checkFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-		return spec.CheckUnknown, err
+	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		return spec.CheckUnknown, nil, err
 	}
 }
 
@@ -340,7 +340,7 @@ func errExecFn(err error) execFn {
 }
 
 func panicCheckFn(msg string) checkFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
+	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
 		panic(msg)
 	}
 }
@@ -354,7 +354,9 @@ func panicExecFn(msg string) execFn {
 func (o fakeOp) Action() spec.Action  { return o.action }
 func (o fakeOp) DependsOn() []spec.Op { return o.deps }
 
-func (o *fakeOp) Check(ctx context.Context, src source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (o *fakeOp) Check(
+	ctx context.Context, src source.Source, tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	o.checkCalls++
 	return o.checkFn(ctx, src, tgt)
 }

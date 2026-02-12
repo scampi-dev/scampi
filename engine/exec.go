@@ -134,13 +134,13 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 				s.actIdx, s.actKind, s.actDesc, displayID,
 			))
 
-			res, err := n.op.Check(ctx, s.src, s.tgt)
+			res, drift, err := n.op.Check(ctx, s.src, s.tgt)
 			if err != nil {
 				impact, consumed := emitOpDiagnostic(s.em, s.actIdx, s.actKind, s.actDesc, displayID, err)
 
 				s.em.EmitOpLifecycle(diagnostic.OpChecked(
 					s.actIdx, s.actKind, s.actDesc, displayID,
-					res, err, s.checkOnly,
+					res, err, s.checkOnly, nil,
 				))
 				if impact.ShouldAbort() {
 					s.mu.Lock()
@@ -157,9 +157,13 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 				return err
 			}
 
+			if !s.checkOnly {
+				drift = nil
+			}
+
 			s.em.EmitOpLifecycle(diagnostic.OpChecked(
 				s.actIdx, s.actKind, s.actDesc, displayID,
-				res, nil, s.checkOnly,
+				res, nil, s.checkOnly, drift,
 			))
 
 			s.mu.Lock()

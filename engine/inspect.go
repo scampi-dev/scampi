@@ -107,7 +107,8 @@ type inspectableOp struct {
 	tgt  target.Target
 }
 
-// --- diagnostics ---
+// Diagnostics
+// -----------------------------------------------------------------------------
 
 type noInspectableOpsError struct {
 	CfgPath string

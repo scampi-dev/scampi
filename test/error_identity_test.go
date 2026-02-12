@@ -36,8 +36,8 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 
 	op := &fakeOp{
 		name: "raw-error-op",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, errors.New("random check error")
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, errors.New("random check error")
 		},
 		execFn: panicExecFn("exec must not run on raw check error"),
 	}
@@ -82,8 +82,8 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 
 	op := &fakeOp{
 		name: "raw-error-op",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, nil
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, nil
 		},
 		execFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
 			return spec.Result{}, errors.New("random exec error")

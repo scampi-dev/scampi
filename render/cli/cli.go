@@ -516,11 +516,25 @@ func (c *cli) renderOpChecked(e event.OpEvent) []renderEvent {
 				"[%s]%s %s - up-to-date", st.id, glyphR(c.glyphs.ok), e.DisplayID),
 		}}
 	case spec.CheckUnsatisfied:
-		return []renderEvent{{
+		events := []renderEvent{{
 			stream: streamOut,
 			line: c.formatter.fmtfMsg(colOpCheckUnsatisfied,
 				"[%s]%s %s - needs change", st.id, glyphR(c.glyphs.change), e.DisplayID),
 		}}
+		if c.opts.Verbosity >= signal.V && len(d.Drift) > 0 {
+			for _, dd := range d.Drift {
+				current := dd.Current
+				if current == "" {
+					current = "(missing)"
+				}
+				events = append(events, renderEvent{
+					stream: streamOut,
+					line: c.formatter.fmtfMsg(colOpDrift,
+						"         %s: %s %s %s", dd.Field, current, c.glyphs.arrow, dd.Desired),
+				})
+			}
+		}
+		return events
 	case spec.CheckUnknown:
 		return []renderEvent{{
 			stream: streamErr,

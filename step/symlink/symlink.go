@@ -114,12 +114,14 @@ func resolveTarget(target, link string) (string, error) {
 	return filepath.Rel(linkDir, absTarget)
 }
 
-func (op *ensureSymlinkOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *ensureSymlinkOp) Check(
+	ctx context.Context, _ source.Source, tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](id, tgt)
 	slTgt := target.Must[target.Symlink](id, tgt)
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.link)); err != nil {
-		return spec.CheckUnsatisfied, LinkDirMissingError{
+		return spec.CheckUnsatisfied, nil, LinkDirMissingError{
 			Path:   filepath.Dir(op.link),
 			Err:    err,
 			Source: op.linkSpan,
@@ -128,7 +130,7 @@ func (op *ensureSymlinkOp) Check(ctx context.Context, _ source.Source, tgt targe
 
 	relTarget, err := resolveTarget(op.target, op.link)
 	if err != nil {
-		return spec.CheckUnsatisfied, LinkReadError{
+		return spec.CheckUnsatisfied, nil, LinkReadError{
 			Path:   op.link,
 			Err:    err,
 			Source: op.linkSpan,
@@ -138,10 +140,13 @@ func (op *ensureSymlinkOp) Check(ctx context.Context, _ source.Source, tgt targe
 	info, err := slTgt.Lstat(ctx, op.link)
 	if err != nil {
 		if target.IsNotExist(err) {
-			return spec.CheckUnsatisfied, nil // expected drift
+			return spec.CheckUnsatisfied, []spec.DriftDetail{{
+				Field:   "target",
+				Desired: relTarget,
+			}}, nil
 		}
 
-		return spec.CheckUnsatisfied, LinkReadError{
+		return spec.CheckUnsatisfied, nil, LinkReadError{
 			Path:   op.link,
 			Err:    err,
 			Source: op.linkSpan,
@@ -149,7 +154,7 @@ func (op *ensureSymlinkOp) Check(ctx context.Context, _ source.Source, tgt targe
 	}
 
 	if info.Mode()&fs.ModeSymlink == 0 {
-		return spec.CheckUnsatisfied, NotASymlinkError{
+		return spec.CheckUnsatisfied, nil, NotASymlinkError{
 			Path:   op.link,
 			Source: op.linkSpan,
 		}
@@ -157,7 +162,7 @@ func (op *ensureSymlinkOp) Check(ctx context.Context, _ source.Source, tgt targe
 
 	current, err := slTgt.Readlink(ctx, op.link)
 	if err != nil {
-		return spec.CheckUnsatisfied, LinkReadError{
+		return spec.CheckUnsatisfied, nil, LinkReadError{
 			Path:   op.link,
 			Err:    err,
 			Source: op.linkSpan,
@@ -165,10 +170,14 @@ func (op *ensureSymlinkOp) Check(ctx context.Context, _ source.Source, tgt targe
 	}
 
 	if current != relTarget {
-		return spec.CheckUnsatisfied, nil // expected drift
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "target",
+			Current: current,
+			Desired: relTarget,
+		}}, nil
 	}
 
-	return spec.CheckSatisfied, nil
+	return spec.CheckSatisfied, nil, nil
 }
 
 func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {

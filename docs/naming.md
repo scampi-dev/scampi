@@ -238,7 +238,7 @@ An **Op** is the smallest executable unit.
 ```go
 type Op interface {
     Action() Action
-    Check(ctx context.Context, src source.Source, tgt target.Target) (CheckResult, error)
+    Check(ctx context.Context, src source.Source, tgt target.Target) (CheckResult, []DriftDetail, error)
     Execute(ctx context.Context, src source.Source, tgt target.Target) (Result, error)
     DependsOn() []Op
     RequiredCapabilities() capability.Capability

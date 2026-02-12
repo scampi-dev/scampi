@@ -24,18 +24,21 @@ type EnsureModeOp struct {
 	Mode fs.FileMode
 }
 
-func (op *EnsureModeOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *EnsureModeOp) Check(
+	ctx context.Context, _ source.Source, tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](ensureModeID, tgt)
 
 	info, err := fsTgt.Stat(ctx, op.Path)
 	if err != nil {
 		if target.IsNotExist(err) {
-			// file missing -> expected drift, copyFileOp will create it
-			return spec.CheckUnsatisfied, nil
+			return spec.CheckUnsatisfied, []spec.DriftDetail{{
+				Field:   "perm",
+				Desired: op.Mode.String(),
+			}}, nil
 		}
 
-		// non-transient error (perm, IO, etc.) -> abort
-		return spec.CheckUnsatisfied, modeReadError{
+		return spec.CheckUnsatisfied, nil, modeReadError{
 			Path:   op.Path,
 			Err:    err,
 			Source: op.DestSpan,
@@ -43,10 +46,14 @@ func (op *EnsureModeOp) Check(ctx context.Context, _ source.Source, tgt target.T
 	}
 
 	if info.Mode() != op.Mode {
-		return spec.CheckUnsatisfied, nil
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "perm",
+			Current: info.Mode().String(),
+			Desired: op.Mode.String(),
+		}}, nil
 	}
 
-	return spec.CheckSatisfied, nil
+	return spec.CheckSatisfied, nil, nil
 }
 
 func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {

@@ -26,18 +26,21 @@ type EnsureOwnerOp struct {
 	GroupSpan spec.SourceSpan
 }
 
-func (op *EnsureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.Target) (spec.CheckResult, error) {
+func (op *EnsureOwnerOp) Check(
+	ctx context.Context, _ source.Source, tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	owTgt := target.Must[target.Ownership](ensureOwnerID, tgt)
+	desired := op.Owner + ":" + op.Group
 
 	if !owTgt.HasUser(ctx, op.Owner) {
-		return spec.CheckUnsatisfied, sharedops.UnknownUserError{
+		return spec.CheckUnsatisfied, nil, sharedops.UnknownUserError{
 			User:   op.Owner,
 			Source: op.OwnerSpan,
 			Err:    nil,
 		}
 	}
 	if !owTgt.HasGroup(ctx, op.Group) {
-		return spec.CheckUnsatisfied, sharedops.UnknownGroupError{
+		return spec.CheckUnsatisfied, nil, sharedops.UnknownGroupError{
 			Group:  op.Group,
 			Source: op.GroupSpan,
 			Err:    nil,
@@ -47,12 +50,13 @@ func (op *EnsureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.
 	have, err := owTgt.GetOwner(ctx, op.Path)
 	if err != nil {
 		if target.IsNotExist(err) {
-			// file missing -> expected drift, copyFileOp will create it
-			return spec.CheckUnsatisfied, nil
+			return spec.CheckUnsatisfied, []spec.DriftDetail{{
+				Field:   "owner:group",
+				Desired: desired,
+			}}, nil
 		}
 
-		// non-transient error (perm, IO, etc.) -> abort
-		return spec.CheckUnsatisfied, ownerReadError{
+		return spec.CheckUnsatisfied, nil, ownerReadError{
 			Path:   op.Path,
 			Err:    err,
 			Source: op.DestSpan,
@@ -60,10 +64,14 @@ func (op *EnsureOwnerOp) Check(ctx context.Context, _ source.Source, tgt target.
 	}
 
 	if have.User != op.Owner || have.Group != op.Group {
-		return spec.CheckUnsatisfied, nil
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "owner:group",
+			Current: have.User + ":" + have.Group,
+			Desired: desired,
+		}}, nil
 	}
 
-	return spec.CheckSatisfied, nil
+	return spec.CheckSatisfied, nil, nil
 }
 
 func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {

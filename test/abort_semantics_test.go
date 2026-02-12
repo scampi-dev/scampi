@@ -24,8 +24,8 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 
 	op := &fakeOp{
 		name: "A",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, fakeDiagnostic{
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, fakeDiagnostic{
 				severity: signal.Warning,
 				impact:   diagnostic.ImpactNone,
 			}
@@ -96,8 +96,8 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 
 	opA := &fakeOp{
 		name: "A",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, fakeDiagnostic{
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, fakeDiagnostic{
 				severity: signal.Warning,
 				impact:   diagnostic.ImpactNone,
 			}
@@ -110,8 +110,8 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 
 	opB := &fakeOp{
 		name: "B",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, nil
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, nil
 		},
 		execFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
 			ranB.Store(true)
@@ -156,8 +156,8 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 	opA := &fakeOp{
 		name: "A",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, fakeDiagnostic{
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, fakeDiagnostic{
 				severity: signal.Error,
 				impact:   diagnostic.ImpactAbort,
 			}
@@ -167,8 +167,8 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 
 	opB := &fakeOp{
 		name: "B",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, nil
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, nil
 		},
 		execFn: panicExecFn("execFn of B must not be called after aborting check"),
 	}
@@ -208,8 +208,8 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 	op := &fakeOp{
 		name: "abort-op",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, fakeDiagnostic{
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, fakeDiagnostic{
 				severity: signal.Error,
 				impact:   diagnostic.ImpactAbort,
 			}
@@ -260,8 +260,8 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 
 	opA := &fakeOp{
 		name: "A",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, fakeDiagnostic{
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, fakeDiagnostic{
 				severity: signal.Warning,
 				impact:   diagnostic.ImpactNone,
 			}
@@ -274,8 +274,8 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 
 	opB := &fakeOp{
 		name: "B",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, nil
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, nil
 		},
 		execFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
 			ranB = true
@@ -324,8 +324,8 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 	// parent op: executes and fails
 	parent := &fakeOp{
 		name: "parent",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, nil
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, nil
 		},
 		execFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
 			return spec.Result{}, fakeDiagnostic{
@@ -338,8 +338,8 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 	// child op: must never execute
 	child := &fakeOp{
 		name: "child",
-		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, error) {
-			return spec.CheckUnsatisfied, nil
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, nil
 		},
 		execFn: panicExecFn("exec must not run after parent failure"),
 	}
