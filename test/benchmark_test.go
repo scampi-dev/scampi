@@ -241,7 +241,9 @@ deploy: {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				e, err := engine.New(ctx, source.LocalPosixSource{}, resolved, noopEmitter{})
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -325,7 +327,9 @@ deploy: {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				e, err := engine.New(ctx, source.LocalPosixSource{}, resolved, noopEmitter{})
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
