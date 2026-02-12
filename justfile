@@ -93,13 +93,15 @@ benchplot suffix:
     && go run benchplot.go ../../{{bench_dir}}/*{{suffix}}.txt > bench.csv \
     && gnuplot bench.gnuplot
 
-[doc("Format all go code")]
+[doc("Format all code")]
 fmt:
   go fmt ./...
+  cue fmt --files cue/
 
 [doc("Lint project")]
 lint:
   golangci-lint run
+  cue fmt --check --files cue/
 
 [doc("Clean project")]
 clean:
