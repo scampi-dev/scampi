@@ -12,7 +12,7 @@ deploy: {
 		steps: [
 			builtin.pkg & {
 				desc:     "remove packages"
-				packages: ["telnetd"]
+				packages: ["tree"]
 				state:    "absent"
 			},
 		]

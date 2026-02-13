@@ -94,6 +94,39 @@ func stopSharedContainer() {
 	}
 }
 
+// RecreateContainer tears down the shared container and brings up a fresh one.
+// Tests that modify package state call this to get a clean slate instead of
+// trying to undo changes with fragile cleanup commands.
+func RecreateContainer(t *testing.T) {
+	t.Helper()
+
+	if sharedComposeFile == "" {
+		t.Fatal("RecreateContainer: no compose file — TestMain did not start a container")
+	}
+
+	cmd := exec.Command("docker", "compose", "-f", sharedComposeFile, "up", "-d", "--force-recreate", "--wait")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("RecreateContainer: docker compose up failed: %v", err)
+	}
+
+	if err := waitForSSHOrErr(sshTestHost, sshTestPort, 30*time.Second); err != nil {
+		t.Fatalf("RecreateContainer: %v", err)
+	}
+
+	knownHostsPath, err := setupKnownHostsOrErr(sshTestHost, sshTestPort)
+	if err != nil {
+		t.Fatalf("RecreateContainer: %v", err)
+	}
+
+	// Clean up old known_hosts, swap in new one
+	if sharedKnownHostsPath != "" {
+		_ = os.Remove(sharedKnownHostsPath)
+	}
+	sharedKnownHostsPath = knownHostsPath
+}
+
 // SetupSSHTestEnv returns the shared SSH environment.
 // The container is already running (started by TestMain).
 func SetupSSHTestEnv(t *testing.T) (*SSHTestEnv, func()) {

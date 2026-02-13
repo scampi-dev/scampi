@@ -65,7 +65,7 @@ var backendsByFamily = map[string]Backend{
 		Install:        "apk add %s",
 		Remove:         "apk del %s",
 		NeedsRoot:      true,
-		IsUpgradable:   "apk version -l '<' %s 2>/dev/null | grep -q .",
+		IsUpgradable:   "apk version -l '<' %s 2>/dev/null | tail -n +2 | grep -q .",
 		UpdateCache:    "apk update -q",
 		CacheNeedsRoot: true,
 	},

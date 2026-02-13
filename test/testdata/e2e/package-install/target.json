@@ -1,0 +1,7 @@
+{
+  "files": {},
+  "pkgs": {
+    "nginx": false,
+    "curl": false
+  }
+}

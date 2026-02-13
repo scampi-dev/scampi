@@ -61,6 +61,9 @@ type E2EExpect struct {
 
 	// Diagnostics lists expected diagnostic template IDs (optional).
 	Diagnostics []string `json:"diagnostics,omitempty"`
+
+	// MemOnly skips non-mem drivers (for scenarios that require simulated state).
+	MemOnly bool `json:"memOnly,omitempty"`
 }
 
 func TestE2E(t *testing.T) {
@@ -138,6 +141,10 @@ func runE2EScenarioWithDriver(t *testing.T, dir string, cfgFilename string, driv
 
 	// Load expected outcomes
 	expect := loadE2EExpect(t, expectPath)
+
+	if expect.MemOnly && driver.Name() != "mem" {
+		t.Skip("scenario requires simulated state (memOnly)")
+	}
 
 	// Setup driver with initial target state
 	tgt, ti, cleanup := driver.Setup(t, tgtFiles)

@@ -215,8 +215,13 @@ func (d *SSHDriver) Setup(t *testing.T, initial E2EFiles) (target.Target, spec.T
 		"/tmp/dest.txt", "/tmp/link", "/tmp/link.txt",
 		"/tmp/dest-a.txt", "/tmp/dest-b.txt",
 		"/tmp/src.txt", "/tmp/target.txt", "/tmp/new-target.txt",
+		"/tmp/mydir",
+		"/tmp/greeting.txt", "/tmp/config.txt",
 	}
 	for path := range initial.Files {
+		cleanPaths = append(cleanPaths, path)
+	}
+	for path := range initial.Dirs {
 		cleanPaths = append(cleanPaths, path)
 	}
 	for link := range initial.Symlinks {
@@ -224,6 +229,26 @@ func (d *SSHDriver) Setup(t *testing.T, initial E2EFiles) (target.Target, spec.T
 	}
 	for _, p := range cleanPaths {
 		_ = d.tgt.Remove(ctx, p)
+	}
+
+	// If this fixture touches package state, recreate the container so we
+	// start from a clean slate instead of trying to undo previous changes.
+	if len(initial.Pkgs) > 0 || len(initial.Upgradable) > 0 {
+		RecreateContainer(t)
+		d.tgt = connectSSH(t, env)
+
+		// Seed packages that the fixture expects to be pre-installed.
+		var toInstall []string
+		for pkg, installed := range initial.Pkgs {
+			if installed {
+				toInstall = append(toInstall, pkg)
+			}
+		}
+		if len(toInstall) > 0 {
+			if err := d.tgt.InstallPkgs(ctx, toInstall); err != nil {
+				t.Fatalf("failed to seed packages %v: %v", toInstall, err)
+			}
+		}
 	}
 
 	// Populate initial state

@@ -26,10 +26,10 @@ func TestSSH_Connect(t *testing.T) {
 	tgt := connectSSH(t, env)
 	defer tgt.Close()
 
-	// Verify capabilities
+	// Verify capabilities (at minimum POSIX; Pkg may also be present)
 	caps := tgt.Capabilities()
-	if caps != capability.POSIX {
-		t.Errorf("Expected POSIX capabilities, got %s", caps)
+	if caps&capability.POSIX != capability.POSIX {
+		t.Errorf("Expected at least POSIX capabilities, got %s", caps)
 	}
 }
 

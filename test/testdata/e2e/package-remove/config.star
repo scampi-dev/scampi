@@ -6,7 +6,7 @@ deploy(
     steps=[
         pkg(
             desc="remove packages",
-            packages=["telnetd"],
+            packages=["tree"],
             state="absent",
         ),
     ],

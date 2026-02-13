@@ -2,7 +2,7 @@
   "target": {
     "files": {},
     "pkgs": {
-      "telnetd": false
+      "tree": false
     }
   },
   "changed": 1

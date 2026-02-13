@@ -1,6 +1,6 @@
 {
   "files": {},
   "pkgs": {
-    "tree": true
+    "nginx": false
   }
 }
