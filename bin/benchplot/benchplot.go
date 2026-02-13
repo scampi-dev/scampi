@@ -79,7 +79,7 @@ func main() {
 
 	for _, k := range keys {
 		med := median(values[k])
-		fmt.Printf("%s,%s,%.0f\n", k.name, k.ts, med/1000000.0)
+		_, _ = fmt.Printf("%s,%s,%.0f\n", k.name, k.ts, med/1000000.0)
 	}
 }
 

@@ -44,6 +44,10 @@ linters:
         - name: unused-parameter #     [POLICY] flag unused function parameters
         - name: var-declaration #      [POLICY] discourage redundant var blocks
         - name: var-naming #           [POLICY] enforce idiomatic naming
+          arguments:
+            - [] # allowlist
+            - [] # blocklist
+            - - skipPackageNameChecks: true
 
         # BUG prevention rules (logic errors, correctness, safety)
         - name: context-as-argument #  [BUG]    enforce context.Context API contract
