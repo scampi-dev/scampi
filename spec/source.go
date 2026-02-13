@@ -55,18 +55,22 @@ func splitLines(s string) []string {
 }
 
 func fallbackPaths(path string) []string {
-	path = strings.Trim(path, "/")
+	trimmed := strings.Trim(path, "/")
 
 	var result []string
-	for {
+	if trimmed != path {
 		result = append(result, path)
+	}
 
-		idx := strings.Index(path, "/")
+	for {
+		result = append(result, trimmed)
+
+		idx := strings.Index(trimmed, "/")
 		if idx == -1 {
 			break
 		}
 
-		path = path[idx+1:]
+		trimmed = trimmed[idx+1:]
 	}
 
 	return result
