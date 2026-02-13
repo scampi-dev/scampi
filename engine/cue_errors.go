@@ -288,6 +288,32 @@ func (e CuePanicError) EventTemplate() event.Template {
 func (CuePanicError) Severity() signal.Severity { return signal.Error }
 func (CuePanicError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
 
+// UnknownStepKindError is emitted when a step references an unknown or missing kind.
+type UnknownStepKindError struct {
+	Kind   string
+	Source spec.SourceSpan
+}
+
+func (e UnknownStepKindError) Error() string {
+	if e.Kind == "" {
+		return "step has no kind"
+	}
+	return fmt.Sprintf("unknown step type %q", e.Kind)
+}
+
+func (e UnknownStepKindError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "config.UnknownStepKind",
+		Text:   `{{if .Kind}}unknown step type "{{.Kind}}"{{else}}step has no kind{{end}}`,
+		Hint:   "run 'doit index' to list available step types",
+		Source: &e.Source,
+		Data:   e,
+	}
+}
+
+func (UnknownStepKindError) Severity() signal.Severity { return signal.Error }
+func (UnknownStepKindError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
 // UnknownIndexKindError is emitted when a user requests documentation for an unknown step kind.
 type UnknownIndexKindError struct {
 	Kind string

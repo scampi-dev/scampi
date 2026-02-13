@@ -504,27 +504,39 @@ func decodeStep(
 	em diagnostic.Emitter,
 	stepSpan spec.SourceSpan,
 	fields map[string]spec.FieldSpan,
+	typeRef string,
 ) (spec.StepInstance, decodeResult) {
 	kind, desc, err := resolveStepKind(stepVal, stepIdx)
 	if err != nil {
-		// engine/schema error – cannot continue safely
-		panic(errs.BUG(
-			"resolveStepKind returned an unexpected error for step %q (%s): %w",
-			desc,
-			kind,
-			err,
-		))
+		// The step value is unresolvable (e.g. builtin.directory doesn't
+		// exist). Report it as an unknown step type using the source
+		// expression rather than leaking internal CUE field names.
+		ref := typeRef
+		if ref == "" {
+			ref = kind
+		}
+		impact, _ := emitPlanDiagnostic(em, stepIdx, kind, desc, UnknownStepKindError{
+			Kind:   ref,
+			Source: stepSpan,
+		})
+		return spec.StepInstance{}, decodeResult{
+			abort: impact.ShouldAbort(),
+			ok:    false,
+		}
 	}
 
 	// Resolve step type
 	// -----------------------------------------------------------------------------
 	st, ok := reg.StepType(kind)
 	if !ok {
-		panic(errs.BUG(
-			"unknown step kind %q passed CUE schema validation for step %q",
-			kind,
-			desc,
-		))
+		impact, _ := emitPlanDiagnostic(em, stepIdx, kind, desc, UnknownStepKindError{
+			Kind:   kind,
+			Source: stepSpan,
+		})
+		return spec.StepInstance{}, decodeResult{
+			abort: impact.ShouldAbort(),
+			ok:    false,
+		}
 	}
 
 	// Instantiate config
@@ -763,15 +775,17 @@ func decodeDeployBlock(
 
 		var stepSpan spec.SourceSpan
 		var fields map[string]spec.FieldSpan
+		var typeRef string
 		if idx < len(stepNodes) {
 			stepSpan = spanFromNode(stepNodes[idx])
 			fields = extractFieldSpansFromAST(stepNodes[idx])
+			typeRef = stepTypeRef(stepNodes[idx])
 		}
 		if len(fields) == 0 {
 			fields = extractFieldSpans(stepVal)
 		}
 
-		si, decRes := decodeStep(stepVal, idx, reg, em, stepSpan, fields)
+		si, decRes := decodeStep(stepVal, idx, reg, em, stepSpan, fields, typeRef)
 		if decRes.abort {
 			sawAbort = true
 		}
@@ -785,10 +799,17 @@ func decodeDeployBlock(
 }
 
 func resolveStepKind(stepVal cue.Value, idx int) (string, string, error) {
+	// Check if the step value itself is bottom (e.g. bad reference like
+	// builtin.directory when the field doesn't exist). Surface that error
+	// rather than the misleading "kind not found" from looking up a field
+	// on a bottom value.
+	if err := stepVal.Err(); err != nil {
+		return "", "", err
+	}
+
 	kindVal := stepVal.LookupPath(cue.ParsePath("kind"))
 	if err := kindVal.Err(); err != nil {
-		// not found
-		return "", "", nil
+		return "", "", err
 	}
 
 	kind, err := kindVal.String()
@@ -1038,6 +1059,35 @@ func findStructLit(expr ast.Expr) *ast.StructLit {
 		}
 	}
 	return nil
+}
+
+// stepTypeRef extracts the type reference from a step AST expression.
+// For "builtin.copy & { ... }" it returns "builtin.copy".
+func stepTypeRef(expr ast.Expr) string {
+	bin, ok := expr.(*ast.BinaryExpr)
+	if !ok {
+		return ""
+	}
+	return exprString(bin.X)
+}
+
+func exprString(expr ast.Expr) string {
+	switch v := expr.(type) {
+	case *ast.Ident:
+		return v.Name
+	case *ast.SelectorExpr:
+		sel, ok := v.Sel.(*ast.Ident)
+		if !ok {
+			return ""
+		}
+		parent := exprString(v.X)
+		if parent == "" {
+			return sel.Name
+		}
+		return parent + "." + sel.Name
+	default:
+		return ""
+	}
 }
 
 func extractSpanFromFile(f *ast.File, declName string) spec.SourceSpan {

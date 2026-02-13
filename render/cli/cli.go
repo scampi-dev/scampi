@@ -584,18 +584,14 @@ func (c *cli) EmitPlanDiagnostic(e event.PlanDiagnostic) {
 	if !c.shouldRender(e.Chattiness) {
 		return
 	}
-	c.renderDiagnostic("plan.error",
-		fmt.Sprintf(` in step [%d|%s] '%s'`, e.Step.StepIndex, e.Step.StepKind, e.Step.StepDesc),
-		e.Detail.Template)
+	c.renderDiagnostic("plan.error", stepScope(e.Step), e.Detail.Template)
 }
 
 func (c *cli) EmitActionDiagnostic(e event.ActionDiagnostic) {
 	if !c.shouldRender(e.Chattiness) {
 		return
 	}
-	c.renderDiagnostic("action.error",
-		fmt.Sprintf(` in step [%d|%s] '%s'`, e.Step.StepIndex, e.Step.StepKind, e.Step.StepDesc),
-		e.Detail.Template)
+	c.renderDiagnostic("action.error", stepScope(e.Step), e.Detail.Template)
 }
 
 func (c *cli) EmitOpDiagnostic(e event.OpDiagnostic) {
@@ -603,9 +599,19 @@ func (c *cli) EmitOpDiagnostic(e event.OpDiagnostic) {
 		return
 	}
 	c.renderDiagnostic("op.error",
-		fmt.Sprintf(` in op '%s' of step [%d|%s] '%s'`,
-			e.DisplayID, e.Step.StepIndex, e.Step.StepKind, e.Step.StepDesc),
+		fmt.Sprintf(` in op '%s' of%s`, e.DisplayID, stepScope(e.Step)),
 		e.Detail.Template)
+}
+
+func stepScope(s event.StepDetail) string {
+	tag := fmt.Sprintf("%d", s.StepIndex)
+	if s.StepKind != "" {
+		tag += "|" + s.StepKind
+	}
+	if s.StepDesc != "" {
+		return fmt.Sprintf(` in step [%s] '%s'`, tag, s.StepDesc)
+	}
+	return fmt.Sprintf(` in step [%s]`, tag)
 }
 
 func (c *cli) renderDiagnostic(prefix, msg string, tmpl event.Template) {
