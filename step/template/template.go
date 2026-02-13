@@ -51,13 +51,15 @@ func (c *TemplateConfig) Validate(step spec.StepInstance) error {
 	hasContent := c.Content != ""
 	if hasSrc == hasContent {
 		var got []string
+		source := step.Source
 		if hasSrc {
 			got = []string{"src", "content"}
+			source = step.Fields["content"].Value
 		}
 		return MutuallyExclusiveError{
 			Fields: []string{"src", "content"},
 			Got:    got,
-			Source: step.Source,
+			Source: source,
 		}
 	}
 	return nil

@@ -37,7 +37,7 @@ func (Pkg) NewConfig() any { return &PkgConfig{} }
 func (c *PkgConfig) Validate(step spec.StepInstance) error {
 	if len(c.Packages) == 0 {
 		return EmptyPackagesError{
-			Source: step.Source,
+			Source: step.Fields["packages"].Value,
 		}
 	}
 	switch c.State {
@@ -46,7 +46,7 @@ func (c *PkgConfig) Validate(step spec.StepInstance) error {
 		return InvalidStateError{
 			Got:     c.State,
 			Allowed: []string{StatePresent, StateAbsent, StateLatest},
-			Source:  step.Source,
+			Source:  step.Fields["state"].Value,
 		}
 	}
 	return nil

@@ -151,7 +151,7 @@ func builtinPkg(
 			Type:   pkg.Pkg{},
 			Config: &pkg.PkgConfig{Desc: desc, Packages: pkgs, State: state},
 			Source: span,
-			Fields: kwargsFieldSpans(thread, "packages"),
+			Fields: kwargsFieldSpans(thread, "packages", "state"),
 		},
 	}, nil
 }
