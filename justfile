@@ -102,7 +102,8 @@ benchcomp suffix:
 
 [doc("Plot benchmark history as HTML dashboard for given suffix")]
 benchplot suffix:
-  go run ./bin/benchplot -o bin/benchplot/{{suffix}}.html {{bench_dir}}/*-{{suffix}}.txt
+  go run ./bin/benchplot -o ./bin/benchplot/{{suffix}}.html {{bench_dir}}/*-{{suffix}}.txt \
+    && open ./bin/benchplot/{{suffix}}.html
 
 [doc("Format all code")]
 fmt:
