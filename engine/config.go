@@ -103,7 +103,6 @@ func ResolveMultiple(cfg spec.Config, opts spec.ResolveOptions) ([]spec.Resolved
 				TargetName: targetName,
 				Target:     tgt,
 				Steps:      block.Steps,
-				Sources:    cfg.Sources,
 			})
 		}
 	}
@@ -174,6 +173,5 @@ func Resolve(cfg spec.Config, deployName, targetName string) (spec.ResolvedConfi
 		TargetName: targetName,
 		Target:     tgt,
 		Steps:      block.Steps,
-		Sources:    cfg.Sources,
 	}, nil
 }

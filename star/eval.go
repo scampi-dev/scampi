@@ -38,10 +38,10 @@ func Eval(
 	}
 
 	if store != nil {
-		store.AddFile(cfgPath, string(data))
+		store.AddFile(cfgPath, data)
 	}
 
-	collector := newCollector(cfgPath, store, src)
+	collector := newCollector(cfgPath, src)
 
 	thread := &starlark.Thread{
 		Name: cfgPath,
@@ -143,7 +143,7 @@ func execModule(
 	}
 
 	if store != nil {
-		store.AddFile(absPath, string(data))
+		store.AddFile(absPath, data)
 	}
 
 	// Loaded modules share the same collector (thread-locals) from the parent.

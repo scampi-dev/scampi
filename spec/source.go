@@ -7,51 +7,52 @@ import (
 )
 
 type SourceStore struct {
-	files map[string][]string
+	files map[string][]byte
 }
 
 func NewSourceStore() *SourceStore {
 	return &SourceStore{
-		files: make(map[string][]string),
+		files: make(map[string][]byte),
 	}
 }
 
-func (s *SourceStore) AddFile(name string, content string) {
-	s.files[name] = splitLines(content)
+func (s *SourceStore) AddFile(name string, data []byte) {
+	s.files[name] = data
 }
 
 func (s *SourceStore) Line(name string, line int) (string, bool) {
 	if line <= 0 {
 		return "", false
 	}
-	lines, ok := s.findFile(name)
-	if !ok || line > len(lines) {
+	data, ok := s.findFile(name)
+	if !ok {
 		return "", false
 	}
-	return lines[line-1], true
-}
-
-func (s *SourceStore) findFile(name string) ([]string, bool) {
-	for _, p := range fallbackPaths(name) {
-		if lines, ok := s.files[p]; ok {
-			return lines, true
-		}
-	}
-
-	return []string{}, false
-}
-
-func splitLines(s string) []string {
-	var lines []string
+	// Scan raw bytes to find the Nth line on demand.
+	n := 1
 	start := 0
-	for i, r := range s {
-		if r == '\n' {
-			lines = append(lines, s[start:i])
+	for i, b := range data {
+		if b == '\n' {
+			if n == line {
+				return string(data[start:i]), true
+			}
+			n++
 			start = i + 1
 		}
 	}
-	lines = append(lines, s[start:])
-	return lines
+	if n == line {
+		return string(data[start:]), true
+	}
+	return "", false
+}
+
+func (s *SourceStore) findFile(name string) ([]byte, bool) {
+	for _, p := range fallbackPaths(name) {
+		if data, ok := s.files[p]; ok {
+			return data, true
+		}
+	}
+	return nil, false
 }
 
 func fallbackPaths(path string) []string {

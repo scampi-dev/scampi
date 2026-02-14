@@ -18,17 +18,15 @@ type Collector struct {
 	path    string
 	targets map[string]spec.TargetInstance
 	deploy  map[string]spec.DeployBlock
-	sources *spec.SourceStore
 	src     source.Source
 	files   map[string]*syntax.File
 }
 
-func newCollector(path string, sources *spec.SourceStore, src source.Source) *Collector {
+func newCollector(path string, src source.Source) *Collector {
 	return &Collector{
 		path:    path,
 		targets: make(map[string]spec.TargetInstance),
 		deploy:  make(map[string]spec.DeployBlock),
-		sources: sources,
 		src:     src,
 		files:   make(map[string]*syntax.File),
 	}
@@ -73,13 +71,9 @@ func (c *Collector) AddDeploy(name string, block spec.DeployBlock, span spec.Sou
 
 // Config drains the collector into a spec.Config.
 func (c *Collector) Config() spec.Config {
-	cfg := spec.Config{
+	return spec.Config{
 		Path:    c.path,
 		Targets: c.targets,
 		Deploy:  c.deploy,
 	}
-	if c.sources != nil {
-		cfg.Sources = *c.sources
-	}
-	return cfg
 }

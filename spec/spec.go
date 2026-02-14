@@ -16,7 +16,6 @@ type (
 		Path    string
 		Targets map[string]TargetInstance // named targets
 		Deploy  map[string]DeployBlock    // deploy blocks
-		Sources SourceStore
 	}
 
 	DeployBlock struct {
@@ -32,7 +31,6 @@ type (
 		TargetName string         // which target
 		Target     TargetInstance // resolved target
 		Steps      []StepInstance // steps from the deploy block
-		Sources    SourceStore
 	}
 
 	// TargetType is the Go handler for a target kind (one per kind).
