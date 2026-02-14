@@ -5,7 +5,6 @@
 package tools
 
 import (
-	_ "cuelang.org/go/cmd/cue"
 	_ "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
 	_ "golang.org/x/perf/cmd/benchstat"
 )

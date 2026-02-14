@@ -100,12 +100,10 @@ benchplot suffix:
 [doc("Format all code")]
 fmt:
   go fmt ./...
-  go run cuelang.org/go/cmd/cue fmt --files cue/
 
 [doc("Lint project")]
 lint:
   golangci-lint run
-  go run cuelang.org/go/cmd/cue fmt --check --files cue/
   just license-check
 
 [doc("Check SPDX license headers")]
@@ -123,7 +121,7 @@ license-check:
     if [[ "$count" -gt 1 ]]; then
       stray+=("$f (${count}x)")
     fi
-  done < <(find . -name '*.go' -not -path './vendor/*' && find ./cue -name '*.cue')
+  done < <(find . -name '*.go' -not -path './vendor/*')
   ok=true
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo "Missing SPDX header:"

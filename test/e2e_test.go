@@ -17,14 +17,10 @@ import (
 
 // E2EScenario defines a data-driven E2E test case.
 // Each scenario is a directory under testdata/e2e/ containing:
-//   - config.cue     (optional) - CUE configuration
-//   - config.star    (optional) - Starlark configuration
+//   - config.star    (required) - Starlark configuration
 //   - source.json    (required) - source files to populate
 //   - target.json    (optional) - pre-existing target state
 //   - expect.json    (required) - expected outcomes
-//
-// At least one config file must be present. When both exist,
-// the scenario runs once per format.
 type E2EScenario struct {
 	Source E2EFiles  `json:"source"`
 	Target E2EFiles  `json:"target"`
@@ -85,38 +81,18 @@ func TestE2E(t *testing.T) {
 		name := e.Name()
 		scenarioDir := filepath.Join(root, name)
 
-		configs := discoverConfigs(scenarioDir)
-		if len(configs) == 0 {
-			t.Errorf("%s: no config.cue or config.star found", name)
+		cfgPath := filepath.Join(scenarioDir, "config.star")
+		if _, err := readFileSafe(cfgPath); err != nil {
+			t.Errorf("%s: no config.star found", name)
 			continue
 		}
 
-		for _, cfg := range configs {
-			for _, driver := range drivers {
-				t.Run(name+"/"+cfg.format+"/"+driver.Name(), func(t *testing.T) {
-					runE2EScenarioWithDriver(t, scenarioDir, cfg.filename, driver)
-				})
-			}
+		for _, driver := range drivers {
+			t.Run(name+"/"+driver.Name(), func(t *testing.T) {
+				runE2EScenarioWithDriver(t, scenarioDir, "config.star", driver)
+			})
 		}
 	}
-}
-
-type configFile struct {
-	filename string // "config.cue" or "config.star"
-	format   string // "cue" or "star"
-}
-
-func discoverConfigs(dir string) []configFile {
-	var configs []configFile
-	for _, c := range []configFile{
-		{"config.cue", "cue"},
-		{"config.star", "star"},
-	} {
-		if _, err := readFileSafe(filepath.Join(dir, c.filename)); err == nil {
-			configs = append(configs, c)
-		}
-	}
-	return configs
 }
 
 func runE2EScenarioWithDriver(t *testing.T, dir string, cfgFilename string, driver E2EDriver) {

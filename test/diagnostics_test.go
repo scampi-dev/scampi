@@ -29,12 +29,15 @@ func TestDiagnostics(t *testing.T) {
 		name := e.Name()
 		dir := filepath.Join(root, name)
 
-		configs := discoverConfigs(dir)
-		for _, cfg := range configs {
-			t.Run(name+"/"+cfg.format, func(t *testing.T) {
-				runDiagnosticsCase(t, dir, cfg.filename, cfg.format)
-			})
+		cfgPath := filepath.Join(dir, "config.star")
+		if _, err := readFileSafe(cfgPath); err != nil {
+			t.Errorf("%s: no config.star found", name)
+			continue
 		}
+
+		t.Run(name, func(t *testing.T) {
+			runDiagnosticsCase(t, dir, "config.star", "star")
+		})
 	}
 }
 

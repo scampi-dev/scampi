@@ -61,7 +61,7 @@ func FuzzCLI(f *testing.F) {
 		"",
 		"   ",
 		"🎉",
-		"apply --only=foo --targets=bar nonexistent.cue",
+		"apply --only=foo --targets=bar nonexistent.star",
 	}
 
 	for _, s := range seeds {
