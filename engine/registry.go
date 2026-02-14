@@ -19,10 +19,6 @@ type Registry struct {
 }
 
 func NewRegistry() *Registry {
-	// TODO: this probably needs to be automatic at some point
-	// also: this would be where we need to put extensions
-	// for now (probably a while) this is just a manual list
-
 	stepTypes := []spec.StepType{
 		copy.Copy{},
 		dir.Dir{},

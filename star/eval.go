@@ -16,6 +16,15 @@ import (
 
 const maxExecutionSteps = 100_000_000
 
+// fileOptions enables language extensions beyond core Starlark: set literals,
+// while loops, and recursive functions. All are useful for config generation
+// and don't compromise hermeticity.
+var fileOptions = &syntax.FileOptions{
+	Set:       true,
+	While:     true,
+	Recursion: true,
+}
+
 // Eval evaluates a Starlark configuration file and returns a spec.Config.
 func Eval(
 	ctx context.Context,
@@ -47,13 +56,7 @@ func Eval(
 		thread.Cancel(ctx.Err().Error())
 	}()
 
-	fOpts := &syntax.FileOptions{
-		Set:       true,
-		While:     true,
-		Recursion: true,
-	}
-
-	f, prog, err := starlark.SourceProgramOptions(fOpts, cfgPath, data, predeclared().Has)
+	f, prog, err := starlark.SourceProgramOptions(fileOptions, cfgPath, data, predeclared().Has)
 	if err != nil {
 		return spec.Config{}, wrapStarlarkError(err, collector)
 	}

@@ -384,6 +384,12 @@ func starlarkToGo(v starlark.Value) any {
 			out[i] = starlarkToGo(v.Index(i))
 		}
 		return out
+	case starlark.Tuple:
+		out := make([]any, len(v))
+		for i, elem := range v {
+			out[i] = starlarkToGo(elem)
+		}
+		return out
 	case *starlark.Dict:
 		m, _ := starlarkDictToMap(v, "dict")
 		return m
