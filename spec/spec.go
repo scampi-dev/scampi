@@ -150,10 +150,6 @@ type (
 		DeployNames []string
 		// TargetNames filters to specific targets (empty = all in deploy block)
 		TargetNames []string
-		// InventoryPath is an explicit inventory file path
-		InventoryPath string
-		// EnvName loads inventory/<name>.cue and vars/<name>.cue
-		EnvName string
 	}
 )
 

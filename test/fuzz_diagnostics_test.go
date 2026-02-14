@@ -19,38 +19,52 @@ func FuzzDiagnostics(f *testing.F) {
 	// ---- Seeds: real, high-value starting points ----
 
 	seeds := []string{
-		// minimal valid-ish
-		`package fuzz
-import "godoit.dev/doit/builtin"
-targets: { local: builtin.local }
-deploy: { test: { targets: ["local"], steps: [] } }`,
+		// minimal valid config
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[])`,
 
-		// invalid steps shape
-		`package fuzz
-import "godoit.dev/doit/builtin"
-targets: { local: builtin.local }
-deploy: { test: { targets: ["local"], steps: {} } }`,
+		// valid config with a copy step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    copy(src="/a", dest="/b", perm="0644", owner="u", group="g"),
+])`,
 
-		// missing copy fields
-		`package fuzz
-import "godoit.dev/doit/builtin"
-targets: { local: builtin.local }
-deploy: { test: { targets: ["local"], steps: [builtin.copy & { src: "a", dest: "b" }] } }`,
+		// missing required copy fields
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    copy(src="a", dest="b"),
+])`,
 
-		// missing symlink fields
-		`package fuzz
-import "godoit.dev/doit/builtin"
-targets: { local: builtin.local }
-deploy: { test: { targets: ["local"], steps: [builtin.symlink & { target: "a" }] } }`,
+		// missing required symlink fields
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    symlink(target="a"),
+])`,
 
-		// missing template fields
-		`package fuzz
-import "godoit.dev/doit/builtin"
-targets: { local: builtin.local }
-deploy: { test: { targets: ["local"], steps: [builtin.template & { src: "a", dest: "b" }] } }`,
+		// missing required template fields
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    template(src="a", dest="b"),
+])`,
+
+		// syntax error: unclosed paren
+		`target.local(name="local"
+deploy(name="test", targets=["local"], steps=[])`,
+
+		// syntax error: unclosed bracket
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[)`,
+
+		// type error: wrong argument type for targets
+		`target.local(name="local")
+deploy(name="test", targets="local", steps=[])`,
+
+		// unknown function call
+		`target.local(name="local")
+frobnicate(name="test")`,
 
 		// garbage
-		`this is not cue`,
+		`this is not valid starlark at all @@@ !!!`,
 
 		// empty
 		``,
@@ -64,15 +78,13 @@ deploy: { test: { targets: ["local"], steps: [builtin.template & { src: "a", des
 		src := source.NewMemSource()
 		tgt := target.NewMemTarget()
 
-		src.Files["/config.cue"] = []byte(input)
+		src.Files["/config.star"] = []byte(input)
 
 		rec := &recordingDisplayer{}
 		em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 		store := spec.NewSourceStore()
 
 		// ---- Hard invariant: user input must not panic ----
-		// CUE panics are caught by the engine and converted to CuePanic errors.
-		// Any panic here indicates a bug in doit, not CUE.
 		defer func() {
 			if r := recover(); r != nil {
 				t.Fatalf("PANIC on user input:\n%q\npanic: (%T) %v", input, r, r)
@@ -81,7 +93,7 @@ deploy: { test: { targets: ["local"], steps: [builtin.template & { src: "a", des
 
 		apply := func() error {
 			ctx := context.Background()
-			cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+			cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 			if err != nil {
 				return err
 			}

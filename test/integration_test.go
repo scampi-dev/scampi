@@ -32,10 +32,10 @@ func loadAndResolve(
 
 	memSrc, ok := src.(*source.MemSource)
 	if ok {
-		memSrc.Files["/config.cue"] = []byte(cfgStr)
+		memSrc.Files["/config.star"] = []byte(cfgStr)
 	}
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		return nil, err
 	}
@@ -54,29 +54,18 @@ func loadAndResolve(
 // through execution using in-memory source and target.
 func TestIntegration_FullFlow(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "copy-test"
-				src:   "/src.txt"
-				dest:  "/dest.txt"
-				perm:  "0644"
-				owner: "testuser"
-				group: "testgroup"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="copy-test",
+		src="/src.txt",
+		dest="/dest.txt",
+		perm="0644",
+		owner="testuser",
+		group="testgroup",
+	),
+])
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -129,29 +118,18 @@ deploy: {
 // TestIntegration_Idempotency verifies that a second run skips already-satisfied ops.
 func TestIntegration_Idempotency(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "idempotent-copy"
-				src:   "/src.txt"
-				dest:  "/dest.txt"
-				perm:  "0644"
-				owner: "owner"
-				group: "group"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="idempotent-copy",
+		src="/src.txt",
+		dest="/dest.txt",
+		perm="0644",
+		owner="owner",
+		group="group",
+	),
+])
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -211,37 +189,26 @@ deploy: {
 // TestIntegration_MultipleSteps verifies sequential execution of multiple steps.
 func TestIntegration_MultipleSteps(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "copy-1"
-				src:   "/src-a.txt"
-				dest:  "/dest-a.txt"
-				perm:  "0644"
-				owner: "user"
-				group: "group"
-			},
-			builtin.copy & {
-				desc:  "copy-2"
-				src:   "/src-b.txt"
-				dest:  "/dest-b.txt"
-				perm:  "0600"
-				owner: "user"
-				group: "group"
-			},
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="copy-1",
+		src="/src-a.txt",
+		dest="/dest-a.txt",
+		perm="0644",
+		owner="user",
+		group="group",
+	),
+	copy(
+		desc="copy-2",
+		src="/src-b.txt",
+		dest="/dest-b.txt",
+		perm="0600",
+		owner="user",
+		group="group",
+	),
+])
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -296,29 +263,18 @@ deploy: {
 // target write fails.
 func TestIntegration_ErrorInjection_WriteFailure(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "will-fail"
-				src:   "/src.txt"
-				dest:  "/dest.txt"
-				perm:  "0644"
-				owner: "user"
-				group: "group"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="will-fail",
+		src="/src.txt",
+		dest="/dest.txt",
+		perm="0644",
+		owner="user",
+		group="group",
+	),
+])
 `
 	src := source.NewMemSource()
 	innerTgt := target.NewMemTarget()
@@ -356,35 +312,24 @@ deploy: {
 // when source read fails during check.
 func TestIntegration_ErrorInjection_SourceReadFailure(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "source-fail"
-				src:   "/missing.txt"
-				dest:  "/dest.txt"
-				perm:  "0644"
-				owner: "user"
-				group: "group"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="source-fail",
+		src="/missing.txt",
+		dest="/dest.txt",
+		perm="0644",
+		owner="user",
+		group="group",
+	),
+])
 `
 	innerSrc := source.NewMemSource()
 	src := newFaultySource(innerSrc)
 	tgt := target.NewMemTarget()
 
-	innerSrc.Files["/config.cue"] = []byte(cfgStr)
+	innerSrc.Files["/config.star"] = []byte(cfgStr)
 	// Note: /missing.txt is not added, so read will fail
 
 	// Inject explicit error
@@ -396,7 +341,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -424,37 +369,26 @@ deploy: {
 // subsequent actions (fail-fast).
 func TestIntegration_PartialFailure(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "first-fails"
-				src:   "/src-a.txt"
-				dest:  "/dest-a.txt"
-				perm:  "0644"
-				owner: "user"
-				group: "group"
-			},
-			builtin.copy & {
-				desc:  "never-runs"
-				src:   "/src-b.txt"
-				dest:  "/dest-b.txt"
-				perm:  "0644"
-				owner: "user"
-				group: "group"
-			},
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="first-fails",
+		src="/src-a.txt",
+		dest="/dest-a.txt",
+		perm="0644",
+		owner="user",
+		group="group",
+	),
+	copy(
+		desc="never-runs",
+		src="/src-b.txt",
+		dest="/dest-b.txt",
+		perm="0644",
+		owner="user",
+		group="group",
+	),
+])
 `
 	src := source.NewMemSource()
 	innerTgt := target.NewMemTarget()
@@ -504,29 +438,18 @@ deploy: {
 // and applied correctly.
 func TestIntegration_ContentChange(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "update-content"
-				src:   "/src.txt"
-				dest:  "/dest.txt"
-				perm:  "0644"
-				owner: "user"
-				group: "group"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="update-content",
+		src="/src.txt",
+		dest="/dest.txt",
+		perm="0644",
+		owner="user",
+		group="group",
+	),
+])
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -582,29 +505,18 @@ deploy: {
 // and applied correctly.
 func TestIntegration_ModeChange(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "update-mode"
-				src:   "/src.txt"
-				dest:  "/dest.txt"
-				perm:  "0755"
-				owner: "user"
-				group: "group"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="update-mode",
+		src="/src.txt",
+		dest="/dest.txt",
+		perm="0755",
+		owner="user",
+		group="group",
+	),
+])
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -642,29 +554,18 @@ deploy: {
 // and applied correctly.
 func TestIntegration_OwnerChange(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "update-owner"
-				src:   "/src.txt"
-				dest:  "/dest.txt"
-				perm:  "0644"
-				owner: "newuser"
-				group: "newgroup"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="update-owner",
+		src="/src.txt",
+		dest="/dest.txt",
+		perm="0644",
+		owner="newuser",
+		group="newgroup",
+	),
+])
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -701,29 +602,18 @@ deploy: {
 // TestIntegration_FaultyClearAndRetry verifies that clearing faults allows retry.
 func TestIntegration_FaultyClearAndRetry(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-			builtin.copy & {
-				desc:  "retry-test"
-				src:   "/src.txt"
-				dest:  "/dest.txt"
-				perm:  "0644"
-				owner: "user"
-				group: "group"
-			}
-		]
-	}
-}
+deploy(name="test", targets=["local"], steps=[
+	copy(
+		desc="retry-test",
+		src="/src.txt",
+		dest="/dest.txt",
+		perm="0644",
+		owner="user",
+		group="group",
+	),
+])
 `
 	src := source.NewMemSource()
 	innerTgt := target.NewMemTarget()

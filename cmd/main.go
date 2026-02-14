@@ -48,10 +48,8 @@ const (
 	flagVerbosity = "v"
 
 	// Resolve options flags
-	flagOnly      = "only"
-	flagTargets   = "targets"
-	flagInventory = "i"
-	flagEnv       = "env"
+	flagOnly    = "only"
+	flagTargets = "targets"
 
 	ctxGlobalOpts = ctxKey("globalOpts")
 )
@@ -521,15 +519,6 @@ func resolveFlags() []cli.Flag {
 			Name:  flagTargets,
 			Usage: "filter to specific targets (comma-separated)",
 		},
-		&cli.StringFlag{
-			Name:    flagInventory,
-			Aliases: []string{"inventory"},
-			Usage:   "explicit inventory file path",
-		},
-		&cli.StringFlag{
-			Name:  flagEnv,
-			Usage: "environment name (loads inventory/<name>.cue and vars/<name>.cue)",
-		},
 	}
 }
 
@@ -542,8 +531,6 @@ func parseResolveOpts(cmd *cli.Command) spec.ResolveOptions {
 	if s := cmd.String(flagTargets); s != "" {
 		opts.TargetNames = splitComma(s)
 	}
-	opts.InventoryPath = cmd.String(flagInventory)
-	opts.EnvName = cmd.String(flagEnv)
 
 	return opts
 }

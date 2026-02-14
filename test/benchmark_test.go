@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"godoit.dev/doit/diagnostic"
@@ -32,7 +31,7 @@ They intentionally avoid:
 */
 
 // -----------------------------------------------------------------------------
-// Benchmark: loadConfig (schema + CUE validation)
+// Benchmark: loadConfig (Starlark evaluation)
 // -----------------------------------------------------------------------------
 
 func BenchmarkLoadConfig(b *testing.B) {
@@ -41,37 +40,26 @@ func BenchmarkLoadConfig(b *testing.B) {
 	sizes := []int{1, 10, 100, 1000, 10000}
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			cfg := fmt.Sprintf(`
-package bench
+			cfg := fmt.Sprintf(`target.local(name="local")
 
-import (
-  "list"
-	"godoit.dev/doit/builtin"
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        copy(
+            desc="step-%%d" %% i,
+            src="/tmp/src-%%d" %% i,
+            dest="/tmp/dest-%%d" %% i,
+            perm="0644",
+            owner="user",
+            group="group",
+        )
+        for i in range(%d)
+    ],
 )
-
-targets: {
-  local: builtin.local
-}
-
-deploy: {
-  bench: {
-    targets: ["local"]
-    steps: [
-      for i in list.Range(0, %d, 1) {
-        builtin.copy & {
-          desc:  "step-\(i)"
-          src:   "/tmp/src-\(i)"
-          dest:  "/tmp/dest-\(i)"
-          perm:  "0644"
-          owner: "user"
-          group: "group"
-        }
-      }
-    ]
-  }
-}
 `, size)
-			cfgPath := absPath(filepath.Join(tmp, "config.cue"))
+
+			cfgPath := absPath(filepath.Join(tmp, "config.star"))
 			writeOrDie(cfgPath, []byte(cfg), 0o644)
 
 			src := source.LocalPosixSource{}
@@ -115,35 +103,23 @@ func BenchmarkApplyNoOp(b *testing.B) {
 	sizes := []int{1, 10, 100, 1000, 10000}
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			cfgStr := fmt.Sprintf(`
-package bench
+			cfgStr := fmt.Sprintf(`target.local(name="local")
 
-import (
-	"list"
-	"godoit.dev/doit/builtin"
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        copy(
+            desc="step-%%d" %% i,
+            src="/src.txt",
+            dest="/dest.txt",
+            perm="0644",
+            owner="perf-owner",
+            group="perf-group",
+        )
+        for i in range(%d)
+    ],
 )
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	bench: {
-		targets: ["local"]
-		steps: [
-			for i in list.Range(0, %d, 1) {
-				builtin.copy & {
-					desc:  "step-\(i)"
-					src:   "/src.txt"
-					dest:  "/dest.txt"
-					perm:  "0644"
-					owner: "perf-owner"
-					group: "perf-group"
-				}
-			}
-		]
-	}
-}
 `, size)
 
 			src := source.NewMemSource()
@@ -151,7 +127,7 @@ deploy: {
 
 			src.Files["/src.txt"] = []byte("hello")
 			tgt.Files["/dest.txt"] = []byte("hello")
-			src.Files["/config.cue"] = []byte(cfgStr)
+			src.Files["/config.star"] = []byte(cfgStr)
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -159,7 +135,7 @@ deploy: {
 
 			for b.Loop() {
 				ctx := context.Background()
-				cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -193,38 +169,26 @@ func BenchmarkApplyNoOp_Symlink(b *testing.B) {
 	sizes := []int{1, 10, 100, 1000, 10000}
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			cfgStr := fmt.Sprintf(`
-package bench
+			cfgStr := fmt.Sprintf(`target.local(name="local")
 
-import (
-	"list"
-	"godoit.dev/doit/builtin"
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        symlink(
+            desc="symlink-%%d" %% i,
+            target="/target.txt",
+            link="/link.txt",
+        )
+        for i in range(%d)
+    ],
 )
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	bench: {
-		targets: ["local"]
-		steps: [
-			for i in list.Range(0, %d, 1) {
-				builtin.symlink & {
-					desc:   "symlink-\(i)"
-					target: "/target.txt"
-					link:   "/link.txt"
-				}
-			}
-		]
-	}
-}
 `, size)
 
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.cue"] = []byte(cfgStr)
+			src.Files["/config.star"] = []byte(cfgStr)
 			tgt.Symlinks["/link.txt"] = "/target.txt"
 
 			rec := &recordingDisplayer{}
@@ -233,7 +197,7 @@ deploy: {
 
 			for b.Loop() {
 				ctx := context.Background()
-				cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -267,50 +231,37 @@ func BenchmarkApplyNoOp_Mixed(b *testing.B) {
 	sizes := []int{1, 10, 100, 1000, 10000}
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			// Half copy, half symlink
-			cfgStr := fmt.Sprintf(`
-package bench
+			cfgStr := fmt.Sprintf(`target.local(name="local")
 
-import (
-	"list"
-	"godoit.dev/doit/builtin"
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        copy(
+            desc="copy-%%d" %% i,
+            src="/src.txt",
+            dest="/dest.txt",
+            perm="0644",
+            owner="perf-owner",
+            group="perf-group",
+        )
+        for i in range(%d)
+    ] + [
+        symlink(
+            desc="symlink-%%d" %% i,
+            target="/target.txt",
+            link="/link.txt",
+        )
+        for i in range(%d)
+    ],
 )
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	bench: {
-		targets: ["local"]
-		steps: [
-			for i in list.Range(0, %d, 1) {
-				builtin.copy & {
-					desc:  "copy-\(i)"
-					src:   "/src.txt"
-					dest:  "/dest.txt"
-					perm:  "0644"
-					owner: "perf-owner"
-					group: "perf-group"
-				}
-			},
-			for i in list.Range(0, %d, 1) {
-				builtin.symlink & {
-					desc:   "symlink-\(i)"
-					target: "/target.txt"
-					link:   "/link.txt"
-				}
-			}
-		]
-	}
-}
 `, size, size)
 
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
 			src.Files["/src.txt"] = []byte("hello")
-			src.Files["/config.cue"] = []byte(cfgStr)
+			src.Files["/config.star"] = []byte(cfgStr)
 			tgt.Files["/dest.txt"] = []byte("hello")
 			tgt.Symlinks["/link.txt"] = "/target.txt"
 
@@ -319,7 +270,7 @@ deploy: {
 			store := spec.NewSourceStore()
 			for b.Loop() {
 				ctx := context.Background()
-				cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -340,46 +291,6 @@ deploy: {
 				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
-			}
-		})
-	}
-}
-
-func BenchmarkValidateCueInput(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
-	for _, size := range sizes {
-		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
-			steps := make([]string, 0)
-			for i := range size {
-				step := fmt.Sprintf(`
-builtin.copy & {
-  desc:  "step-%d"
-	src:   "/src.txt"
-	dest:  "/dest.txt"
-	perm:  "0644"
-	owner: "perf-owner"
-	group: "perf-group"
-}
-`, i)
-				steps = append(steps, step)
-			}
-
-			cfg := fmt.Sprintf(`
-package bench
-
-import (
-	"list"
-	"godoit.dev/doit/builtin"
-)
-
-steps: [
-%s
-]
-`, strings.Join(steps, "\n\n"))
-
-			data := []byte(cfg)
-			for i := 0; i < b.N; i++ {
-				_ = engine.ValidateCueInput(data)
 			}
 		})
 	}

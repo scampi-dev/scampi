@@ -69,7 +69,7 @@ func runForEachResolved(
 	run func(ctx context.Context, e *Engine) error,
 ) error {
 	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
-	cfg, err := LoadConfigWithOptions(ctx, em, cfgPath, store, src, opts)
+	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
 	if err != nil {
 		return err
 	}

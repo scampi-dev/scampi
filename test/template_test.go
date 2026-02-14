@@ -18,48 +18,41 @@ import (
 // TestTemplate_BasicRender verifies basic template rendering with values.
 func TestTemplate_BasicRender(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:  "render-test"
-		src:   "/tmpl.txt"
-		dest:  "/out.txt"
-		data: {
-			values: {
-				name: "world"
-				count: 42
-			}
-		}
-		perm:  "0644"
-		owner: "testuser"
-		group: "testgroup"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="render-test",
+            src="/tmpl.txt",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "name": "world",
+                    "count": 42,
+                },
+            },
+            perm="0644",
+            owner="testuser",
+            group="testgroup",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
 	src.Files["/tmpl.txt"] = []byte("Hello, {{.name}}! Count: {{.count}}")
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -114,46 +107,39 @@ deploy: {
 // TestTemplate_InlineContent verifies template rendering with inline content.
 func TestTemplate_InlineContent(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "inline-template"
-		content: "Inline: {{.msg}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				msg: "hello"
-			}
-		}
-		perm:  "0600"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="inline-template",
+            content="Inline: {{.msg}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "msg": "hello",
+                },
+            },
+            perm="0600",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -189,42 +175,35 @@ deploy: {
 // TestTemplate_EnvOverride verifies env variables override values.
 func TestTemplate_EnvOverride(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "env-override"
-		content: "Port: {{.port}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				port: "8080"
-			}
-			env: {
-				MY_PORT: "port"
-			}
-		}
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="env-override",
+            content="Port: {{.port}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "port": "8080",
+                },
+                "env": {
+                    "MY_PORT": "port",
+                },
+            },
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 	src.Env["MY_PORT"] = "9000" // Override via env
 
 	rec := &recordingDisplayer{}
@@ -232,7 +211,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -269,49 +248,42 @@ deploy: {
 // TestTemplate_EnvNotSet_UsesDefault verifies default is used when env not set.
 func TestTemplate_EnvNotSet_UsesDefault(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "env-default"
-		content: "Port: {{.port}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				port: "8080"
-			}
-			env: {
-				MY_PORT: "port"
-			}
-		}
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="env-default",
+            content="Port: {{.port}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "port": "8080",
+                },
+                "env": {
+                    "MY_PORT": "port",
+                },
+            },
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource() // No env vars
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -348,34 +320,27 @@ deploy: {
 // TestTemplate_Idempotent verifies no changes when destination already matches.
 func TestTemplate_Idempotent(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "idempotent"
-		content: "static content"
-		dest:    "/out.txt"
-		perm:    "0644"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="idempotent",
+            content="static content",
+            dest="/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	// Pre-populate target with matching state
 	tgt.Files["/out.txt"] = []byte("static content")
@@ -387,7 +352,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -432,34 +397,27 @@ deploy: {
 // TestTemplate_ContentChange verifies changes are applied when content differs.
 func TestTemplate_ContentChange(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "content-change"
-		content: "new content"
-		dest:    "/out.txt"
-		perm:    "0644"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="content-change",
+            content="new content",
+            dest="/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	// Pre-populate with different content
 	tgt.Files["/out.txt"] = []byte("old content")
@@ -471,7 +429,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -520,41 +478,34 @@ deploy: {
 // TestTemplate_Error_ParseError verifies template parse errors are reported.
 func TestTemplate_Error_ParseError(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "parse-error"
-		content: "{{.unclosed"
-		dest:    "/out.txt"
-		perm:    "0644"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="parse-error",
+            content="{{.unclosed",
+            dest="/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -595,41 +546,34 @@ func TestTemplate_Error_ExecError(t *testing.T) {
 	// Use a template that calls len on nil, which causes an exec error
 	// Go's text/template doesn't error on missing keys by default
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "exec-error"
-		content: "{{len .missing}}"
-		dest:    "/out.txt"
-		perm:    "0644"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="exec-error",
+            content="{{len .missing}}",
+            dest="/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -668,34 +612,27 @@ deploy: {
 // TestTemplate_Error_SourceMissing verifies missing source file is reported.
 func TestTemplate_Error_SourceMissing(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:  "source-missing"
-		src:   "/nonexistent.txt"
-		dest:  "/out.txt"
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="source-missing",
+            src="/nonexistent.txt",
+            dest="/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 	// Note: /nonexistent.txt is not added
 
 	rec := &recordingDisplayer{}
@@ -703,7 +640,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -742,42 +679,35 @@ deploy: {
 // TestTemplate_Error_EnvKeyNotInValues verifies env key not in values is reported.
 func TestTemplate_Error_EnvKeyNotInValues(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "env-key-missing"
-		content: "{{.port}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				port: "8080"
-			}
-			env: {
-				MY_HOST: "host"
-			}
-		}
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="env-key-missing",
+            content="{{.port}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "port": "8080",
+                },
+                "env": {
+                    "MY_HOST": "host",
+                },
+            },
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 	src.Env["MY_HOST"] = "localhost" // Set the env var
 
 	rec := &recordingDisplayer{}
@@ -785,7 +715,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -824,41 +754,34 @@ deploy: {
 // TestTemplate_Error_DestDirMissing verifies missing dest directory is reported.
 func TestTemplate_Error_DestDirMissing(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "dest-dir-missing"
-		content: "content"
-		dest:    "/nonexistent/dir/out.txt"
-		perm:    "0644"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="dest-dir-missing",
+            content="content",
+            dest="/nonexistent/dir/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -897,34 +820,27 @@ deploy: {
 // TestTemplate_ModeChange verifies mode changes are applied.
 func TestTemplate_ModeChange(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "mode-change"
-		content: "content"
-		dest:    "/out.txt"
-		perm:    "0755"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="mode-change",
+            content="content",
+            dest="/out.txt",
+            perm="0755",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	// Pre-populate with wrong mode
 	tgt.Files["/out.txt"] = []byte("content")
@@ -936,7 +852,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -968,34 +884,27 @@ deploy: {
 // TestTemplate_OwnerChange verifies owner changes are applied.
 func TestTemplate_OwnerChange(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "owner-change"
-		content: "content"
-		dest:    "/out.txt"
-		perm:    "0644"
-		owner:   "newuser"
-		group:   "newgroup"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="owner-change",
+            content="content",
+            dest="/out.txt",
+            perm="0644",
+            owner="newuser",
+            group="newgroup",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	// Pre-populate with wrong owner
 	tgt.Files["/out.txt"] = []byte("content")
@@ -1007,7 +916,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1040,48 +949,41 @@ deploy: {
 // TestTemplate_MultipleValues verifies multiple values work correctly.
 func TestTemplate_MultipleValues(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "multi-values"
-		content: "{{.host}}:{{.port}} - {{.name}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				host: "localhost"
-				port: 8080
-				name: "myapp"
-			}
-		}
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="multi-values",
+            content="{{.host}}:{{.port}} - {{.name}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "host": "localhost",
+                    "port": 8080,
+                    "name": "myapp",
+                },
+            },
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1113,41 +1015,34 @@ deploy: {
 // TestTemplate_NoData verifies templates work without any data.
 func TestTemplate_NoData(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "no-data"
-		content: "static template"
-		dest:    "/out.txt"
-		perm:    "0644"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="no-data",
+            content="static template",
+            dest="/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1179,49 +1074,42 @@ deploy: {
 // TestTemplate_NestedValues verifies nested data structures work.
 func TestTemplate_NestedValues(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "nested"
-		content: "{{.server.host}}:{{.server.port}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				server: {
-					host: "example.com"
-					port: 443
-				}
-			}
-		}
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="nested",
+            content="{{.server.host}}:{{.server.port}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "server": {
+                        "host": "example.com",
+                        "port": 443,
+                    },
+                },
+            },
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1253,44 +1141,37 @@ deploy: {
 // TestTemplate_MultipleEnvOverrides verifies multiple env overrides work.
 func TestTemplate_MultipleEnvOverrides(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "multi-env"
-		content: "{{.host}}:{{.port}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				host: "localhost"
-				port: "8080"
-			}
-			env: {
-				MY_HOST: "host"
-				MY_PORT: "port"
-			}
-		}
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="multi-env",
+            content="{{.host}}:{{.port}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "host": "localhost",
+                    "port": "8080",
+                },
+                "env": {
+                    "MY_HOST": "host",
+                    "MY_PORT": "port",
+                },
+            },
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 	src.Env["MY_HOST"] = "prod.example.com"
 	src.Env["MY_PORT"] = "443"
 
@@ -1299,7 +1180,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1331,44 +1212,37 @@ deploy: {
 // TestTemplate_PartialEnvOverride verifies some env vars override while others use defaults.
 func TestTemplate_PartialEnvOverride(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "partial-env"
-		content: "{{.host}}:{{.port}}"
-		dest:    "/out.txt"
-		data: {
-			values: {
-				host: "localhost"
-				port: "8080"
-			}
-			env: {
-				MY_HOST: "host"
-				MY_PORT: "port"
-			}
-		}
-		perm:  "0644"
-		owner: "user"
-		group: "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="partial-env",
+            content="{{.host}}:{{.port}}",
+            dest="/out.txt",
+            data={
+                "values": {
+                    "host": "localhost",
+                    "port": "8080",
+                },
+                "env": {
+                    "MY_HOST": "host",
+                    "MY_PORT": "port",
+                },
+            },
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 	// Only set MY_HOST, not MY_PORT
 	src.Env["MY_HOST"] = "prod.example.com"
 
@@ -1377,7 +1251,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1410,35 +1284,28 @@ deploy: {
 // TestTemplate_WriteFailure verifies write failure is handled.
 func TestTemplate_WriteFailure(t *testing.T) {
 	cfgStr := `
-package test
+target.local(name="local")
 
-import "godoit.dev/doit/builtin"
-
-targets: {
-	local: builtin.local
-}
-
-deploy: {
-	test: {
-		targets: ["local"]
-		steps: [
-	builtin.template & {
-		desc:    "write-fail"
-		content: "content"
-		dest:    "/out.txt"
-		perm:    "0644"
-		owner:   "user"
-		group:   "group"
-		}
-		]
-	}
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        template(
+            desc="write-fail",
+            content="content",
+            dest="/out.txt",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	innerTgt := target.NewMemTarget()
 	tgt := newFaultyTarget(innerTgt)
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	// Inject write failure
 	tgt.injectFault("WriteFile", "/out.txt", fs.ErrPermission)
@@ -1448,7 +1315,7 @@ deploy: {
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}

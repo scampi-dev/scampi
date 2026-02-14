@@ -15,39 +15,33 @@ import (
 
 func TestPlan_CapabilityMismatch(t *testing.T) {
 	cfgStr := `
-package test
-import "godoit.dev/doit/builtin"
+target.local(name="local")
 
-targets: {
-    local: builtin.local
-}
-
-deploy: {
-    test: {
-        targets: ["local"]
-        steps: [
-            builtin.copy & {
-                src:   "/a"
-                dest:  "/b"
-                perm:  "0644"
-                owner: "user"
-                group: "group"
-            }
-        ]
-    }
-}
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        copy(
+            src="/a",
+            dest="/b",
+            perm="0644",
+            owner="user",
+            group="group",
+        ),
+    ],
+)
 `
 	src := source.NewMemSource()
 	tgt := newMinimalTarget() // Only implements Filesystem, not Ownership
 
-	src.Files["/config.cue"] = []byte(cfgStr)
+	src.Files["/config.star"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := spec.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.cue", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
