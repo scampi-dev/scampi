@@ -15,14 +15,16 @@ import (
 type (
 	Template       struct{}
 	TemplateConfig struct {
-		Desc    string
-		Src     string
-		Content string
-		Dest    string
-		Data    DataConfig
-		Perm    string
-		Owner   string
-		Group   string
+		_ struct{} `summary:"Render templates with data substitution and owner/permission management"`
+
+		Desc    string     `step:"Human-readable description" optional:"true"`
+		Src     string     `step:"Source template file (exclusive with content)" optional:"true" example:"./tmpl"`
+		Content string     `step:"Inline template string (exclusive with src)" optional:"true"`
+		Dest    string     `step:"Output file path" example:"/etc/nginx/nginx.conf"`
+		Data    DataConfig `step:"Data sources for template rendering" optional:"true"`
+		Perm    string     `step:"File permissions in octal (e.g. 0644)" example:"0644"`
+		Owner   string     `step:"Owner user name or UID" example:"root"`
+		Group   string     `step:"Group name or GID" example:"root"`
 	}
 	DataConfig struct {
 		Values map[string]any

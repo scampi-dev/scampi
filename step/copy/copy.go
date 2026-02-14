@@ -15,12 +15,14 @@ import (
 type (
 	Copy       struct{}
 	CopyConfig struct {
-		Desc  string
-		Src   string
-		Dest  string
-		Perm  string
-		Owner string
-		Group string
+		_ struct{} `summary:"Copy files with owner and permission management"`
+
+		Desc  string `step:"Human-readable description" optional:"true"`
+		Src   string `step:"Source file path" example:"./config.yaml"`
+		Dest  string `step:"Destination file path" example:"/etc/app/config.yaml"`
+		Perm  string `step:"File permissions in octal (e.g. 0644)" example:"0644"`
+		Owner string `step:"Owner user name or UID" example:"root"`
+		Group string `step:"Group name or GID" example:"root"`
 	}
 	copyAction struct {
 		idx   int

@@ -35,7 +35,7 @@ type (
 		Sources    SourceStore
 	}
 
-	// TargetType is the Go handler for a CUE target kind (one per kind).
+	// TargetType is the Go handler for a target kind (one per kind).
 	TargetType interface {
 		Kind() string
 		NewConfig() any
@@ -59,7 +59,7 @@ type (
 		Source SourceSpan
 		Fields map[string]FieldSpan
 	}
-	// StepType is the Go handler for a CUE step kind (one per kind).
+	// StepType is the Go handler for a step kind (one per kind).
 	StepType interface {
 		Kind() string
 		// NewConfig MUST return a pointer to a freshly allocated config struct.

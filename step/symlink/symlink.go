@@ -20,9 +20,11 @@ const id = "builtin.symlink"
 type (
 	Symlink       struct{}
 	SymlinkConfig struct {
-		Desc   string
-		Target string
-		Link   string
+		_ struct{} `summary:"Create and manage symbolic links"`
+
+		Desc   string `step:"Human-readable description" optional:"true"`
+		Target string `step:"Path the symlink points to (like ln -s TARGET)" example:"/opt/app/config.yaml"`
+		Link   string `step:"Path where symlink is created (like ln -s ... LINK)" example:"/etc/app/config.yaml"`
 	}
 	symlinkAction struct {
 		idx    int

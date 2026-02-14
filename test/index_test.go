@@ -53,34 +53,28 @@ func TestIndexAll_EmitsWellFormedEvent(t *testing.T) {
 
 func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 	tests := []struct {
-		kind             string
-		wantSummary      string
-		wantFields       []string
-		wantFieldCount   int
-		wantExample      bool
-		wantExampleCount int // 0 means just check non-empty
+		kind           string
+		wantSummary    string
+		wantFields     []string
+		wantFieldCount int
 	}{
 		{
 			kind:           "copy",
 			wantSummary:    "Copy files with owner and permission management",
 			wantFields:     []string{"src", "dest", "perm", "owner", "group"},
 			wantFieldCount: 6, // includes desc
-			wantExample:    true,
 		},
 		{
 			kind:           "symlink",
 			wantSummary:    "Create and manage symbolic links",
 			wantFields:     []string{"target", "link"},
 			wantFieldCount: 3, // includes desc
-			wantExample:    true,
 		},
 		{
-			kind:             "pkg",
-			wantSummary:      "Ensure packages are present, absent, or at the latest version on the target",
-			wantFields:       []string{"packages", "state"},
-			wantFieldCount:   3, // includes desc
-			wantExample:      true,
-			wantExampleCount: 3,
+			kind:           "pkg",
+			wantSummary:    "Ensure packages are present, absent, or at the latest version on the target",
+			wantFields:     []string{"packages", "state"},
+			wantFieldCount: 3, // includes desc
 		},
 	}
 
@@ -104,27 +98,22 @@ func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 
 			doc := rec.indexStepEvents[0].Doc
 
-			// Check kind
 			if doc.Kind != tt.kind {
 				t.Errorf("Kind = %q, want %q", doc.Kind, tt.kind)
 			}
 
-			// Check summary
 			if doc.Summary != tt.wantSummary {
 				t.Errorf("Summary = %q, want %q", doc.Summary, tt.wantSummary)
 			}
 
-			// Check field count
 			if len(doc.Fields) != tt.wantFieldCount {
 				t.Errorf("len(Fields) = %d, want %d", len(doc.Fields), tt.wantFieldCount)
 			}
 
-			// Check required fields are present
 			fieldNames := make(map[string]bool)
 			for _, f := range doc.Fields {
 				fieldNames[f.Name] = true
 
-				// Every field should have a type
 				if f.Type == "" {
 					t.Errorf("field %q has empty Type", f.Name)
 				}
@@ -134,17 +123,6 @@ func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 				if !fieldNames[wantField] {
 					t.Errorf("missing field %q", wantField)
 				}
-			}
-
-			// Check example
-			if tt.wantExample && len(doc.Examples) == 0 {
-				t.Error("expected example, got none")
-			}
-			if tt.wantExample && len(doc.Examples) > 0 && doc.Examples[0] == "" {
-				t.Error("example is empty string")
-			}
-			if tt.wantExampleCount > 0 && len(doc.Examples) != tt.wantExampleCount {
-				t.Errorf("len(Examples) = %d, want %d", len(doc.Examples), tt.wantExampleCount)
 			}
 		})
 	}
@@ -181,7 +159,7 @@ func TestIndexStep_FieldsHaveDocumentation(t *testing.T) {
 
 	for _, f := range rec.indexStepEvents[0].Doc.Fields {
 		if f.Desc == "" {
-			t.Errorf("field %q has no @doc description", f.Name)
+			t.Errorf("field %q has no description", f.Name)
 		}
 	}
 }

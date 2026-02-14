@@ -16,13 +16,24 @@ import (
 	"godoit.dev/doit/source"
 )
 
+// extractCueAttr extracts the first argument of a named attribute from a CUE value.
+func extractCueAttr(v cue.Value, name string) string {
+	for _, attr := range v.Attributes(cue.ValueAttr) {
+		if attr.Name() == name && attr.NumArgs() > 0 {
+			s, _ := attr.String(0)
+			return s
+		}
+	}
+	return ""
+}
+
 func extractEnvMap(v cue.Value) map[string]string {
 	res := make(map[string]string)
 
 	iter, _ := v.Fields(cue.Optional(true))
 	for iter.Next() {
 		field := iter.Selector().String()
-		envVar := extractAttr(iter.Value(), cueAttrEnv)
+		envVar := extractCueAttr(iter.Value(), cueAttrEnv)
 		if envVar != "" {
 			res[field] = envVar
 		}

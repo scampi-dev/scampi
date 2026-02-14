@@ -18,9 +18,11 @@ const (
 type (
 	Pkg       struct{}
 	PkgConfig struct {
-		Desc     string
-		Packages []string
-		State    string
+		_ struct{} `summary:"Ensure packages are present, absent, or at the latest version on the target"`
+
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Packages []string `step:"Packages to manage" example:"[\"nginx\", \"curl\"]"`
+		State    string   `step:"Desired package state" default:"present" example:"latest"`
 	}
 	pkgAction struct {
 		idx      int
