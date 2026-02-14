@@ -60,6 +60,19 @@ func (d Dir) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 		}
 	}
 
+	if cfg.Owner != "" && cfg.Group == "" {
+		return nil, PartialOwnershipError{
+			Set: "owner", Missing: "group",
+			Source: step.Fields["owner"].Value,
+		}
+	}
+	if cfg.Group != "" && cfg.Owner == "" {
+		return nil, PartialOwnershipError{
+			Set: "group", Missing: "owner",
+			Source: step.Fields["group"].Value,
+		}
+	}
+
 	return &dirAction{
 		idx:  idx,
 		desc: cfg.Desc,

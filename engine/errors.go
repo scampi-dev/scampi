@@ -65,11 +65,10 @@ func panicIfNotAbortError(err error) error {
 	}
 	// very cold codepath
 	wrap := errs.BUG("Engine failed with non-signal error: %w", err)
-	if pc, file, line, ok := runtime.Caller(1); ok {
-		_ = file
-		_ = line
-		details := runtime.FuncForPC(pc)
-		wrap = errs.BUG("%s failed with non-signal error: %w", details.Name(), err)
+	if pc, _, _, ok := runtime.Caller(1); ok {
+		if details := runtime.FuncForPC(pc); details != nil {
+			wrap = errs.BUG("%s failed with non-signal error: %w", details.Name(), err)
+		}
 	}
 	panic(wrap)
 }

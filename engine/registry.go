@@ -40,8 +40,8 @@ func NewRegistry() *Registry {
 		stepTypes:   make(map[string]spec.StepType),
 		targetTypes: make(map[string]spec.TargetType),
 	}
-	for _, spec := range stepTypes {
-		r.stepTypes[spec.Kind()] = spec
+	for _, st := range stepTypes {
+		r.stepTypes[st.Kind()] = st
 	}
 	for _, t := range targetTypes {
 		r.targetTypes[t.Kind()] = t
@@ -64,6 +64,6 @@ func (r *Registry) StepTypes() []spec.StepType {
 }
 
 func (r *Registry) TargetType(kind string) (spec.TargetType, bool) {
-	step, ok := r.targetTypes[kind]
-	return step, ok
+	tgt, ok := r.targetTypes[kind]
+	return tgt, ok
 }

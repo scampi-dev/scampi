@@ -108,6 +108,15 @@ func (t Template) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 func (a *templateAction) Desc() string { return a.desc }
 func (a *templateAction) Kind() string { return a.kind }
 
+func (a *templateAction) InputPaths() []string {
+	if a.src != "" {
+		return []string{a.src}
+	}
+	return nil
+}
+
+func (a *templateAction) OutputPaths() []string { return []string{a.dest} }
+
 func (a *templateAction) Ops() []spec.Op {
 	render := &renderTemplateOp{
 		BaseOp: sharedops.BaseOp{

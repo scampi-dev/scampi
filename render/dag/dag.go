@@ -117,6 +117,7 @@ func topoLayers(ops []event.PlannedOp) [][]event.PlannedOp {
 			ready = append(ready, id)
 		}
 	}
+	slices.Sort(ready)
 
 	for len(ready) > 0 {
 		var next []int
@@ -132,7 +133,12 @@ func topoLayers(ops []event.PlannedOp) [][]event.PlannedOp {
 			}
 		}
 
+		slices.SortFunc(layer, func(a, b event.PlannedOp) int {
+			return a.Index - b.Index
+		})
+
 		layers = append(layers, layer)
+		slices.Sort(next)
 		ready = next
 	}
 
