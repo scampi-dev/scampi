@@ -151,11 +151,11 @@ deploy(
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
-				defer e.Close()
 
 				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
+				e.Close()
 			}
 		})
 	}
@@ -213,11 +213,11 @@ deploy(
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
-				defer e.Close()
 
 				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
+				e.Close()
 			}
 		})
 	}
@@ -286,11 +286,11 @@ deploy(
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
-				defer e.Close()
 
 				if err := e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
+				e.Close()
 			}
 		})
 	}
