@@ -24,7 +24,7 @@ type (
 
 		Desc  string `step:"Human-readable description" optional:"true"`
 		Path  string `step:"Absolute path to ensure exists (creates parents)" example:"/opt/app/data"`
-		Perm  string `step:"Permissions in octal notation (e.g. 0755)" optional:"true" example:"0755"`
+		Perm  string `step:"Permissions (octal, POSIX, or ls-style)" optional:"true" example:"0755"`
 		Owner string `step:"Owner user name or UID" optional:"true" example:"root"`
 		Group string `step:"Owner group name or GID" optional:"true" example:"root"`
 	}

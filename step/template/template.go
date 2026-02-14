@@ -22,7 +22,7 @@ type (
 		Content string     `step:"Inline template string (exclusive with src)" optional:"true"`
 		Dest    string     `step:"Output file path" example:"/etc/nginx/nginx.conf"`
 		Data    DataConfig `step:"Data sources for template rendering" optional:"true"`
-		Perm    string     `step:"File permissions in octal (e.g. 0644)" example:"0644"`
+		Perm    string     `step:"File permissions (octal, POSIX, or ls-style)" example:"0644"`
 		Owner   string     `step:"Owner user name or UID" example:"root"`
 		Group   string     `step:"Group name or GID" example:"root"`
 	}

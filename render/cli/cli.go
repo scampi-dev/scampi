@@ -258,12 +258,8 @@ func (c *cli) EmitIndexStep(e event.IndexStepEvent) {
 			if f.Required {
 				reqStr = "required"
 			}
-			desc := f.Desc
-			if f.Example != "" {
-				desc += "  (e.g. " + f.Example + ")"
-			}
 			line := fmt.Sprintf("  %-*s   %-*s   %-*s   %s",
-				nameW, f.Name, typeW, f.Type, reqW, reqStr, desc)
+				nameW, f.Name, typeW, f.Type, reqW, reqStr, f.Desc)
 			events = append(events, renderEvent{
 				line:   c.formatter.fmtMsg(ansi.White(), line),
 				stream: streamOut,
@@ -271,7 +267,59 @@ func (c *cli) EmitIndexStep(e event.IndexStepEvent) {
 		}
 	}
 
+	examples := doc.Examples()
+	if len(examples) > 0 {
+		v := c.opts.Verbosity
+		switch {
+		case v >= signal.VV:
+			events = append(events, c.renderExamples(examples)...)
+		case v >= signal.V:
+			events = append(events, c.renderExamples(examples[:1])...)
+			if len(examples) > 1 {
+				events = append(events, renderEvent{line: "", stream: streamOut})
+				events = append(events, renderEvent{
+					line: c.formatter.fmtMsg(ansi.BrightBlack(),
+						fmt.Sprintf("For all examples, run 'doit index %s -vv'.", doc.Kind)),
+					stream: streamOut,
+				})
+			}
+		default:
+			events = append(events, renderEvent{line: "", stream: streamOut})
+			events = append(events, renderEvent{
+				line: c.formatter.fmtMsg(ansi.BrightBlack(),
+					fmt.Sprintf("For usage examples, run 'doit index %s -v'.", doc.Kind)),
+				stream: streamOut,
+			})
+		}
+	}
+
 	c.commitRenderEvents(events)
+}
+
+func (c *cli) renderExamples(examples []string) []renderEvent {
+	var events []renderEvent
+	header := "EXAMPLE"
+	if len(examples) > 1 {
+		header = "EXAMPLES"
+	}
+	events = append(events, renderEvent{line: "", stream: streamOut})
+	events = append(events, renderEvent{
+		line:   c.formatter.fmtMsg(ansi.BrightBlack(), header),
+		stream: streamOut,
+	})
+	for i, ex := range examples {
+		if i > 0 {
+			events = append(events, renderEvent{line: "", stream: streamOut})
+		}
+		events = append(events, renderEvent{line: "", stream: streamOut})
+		for _, l := range strings.Split(ex, "\n") {
+			events = append(events, renderEvent{
+				line:   c.formatter.fmtMsg(ansi.BrightBlack().Dim(), "  "+l),
+				stream: streamOut,
+			})
+		}
+	}
+	return events
 }
 
 type legendEntry struct {
