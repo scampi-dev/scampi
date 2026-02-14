@@ -100,7 +100,9 @@ func (c *cli) shouldRender(chatty event.Chattiness) bool {
 func (c *cli) commitRenderEvents(events []renderEvent) {
 	for i := range events {
 		events[i].line = strings.NewReplacer("\n", " ", "\r", "").Replace(events[i].line)
-		events[i].line = layout.FitLine(events[i].line, c.width)
+		if !events[i].wrap {
+			events[i].line = layout.FitLine(events[i].line, c.width)
+		}
 		if c.shouldUseColor() {
 			events[i].line += ansi.Reset
 		}
@@ -581,7 +583,7 @@ func stepScope(s event.StepDetail) string {
 func (c *cli) renderDiagnostic(prefix, msg string, tmpl event.Template) {
 	var events []renderEvent
 	for _, l := range c.formatter.fmtTemplate(tmpl, prefix, msg, c.glyphs.err, colDiagMsg, colDiagHelp) {
-		events = append(events, renderEvent{stream: streamErr, line: l})
+		events = append(events, renderEvent{stream: streamErr, line: l, wrap: true})
 	}
 	c.commitRenderEvents(events)
 }

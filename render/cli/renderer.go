@@ -18,6 +18,7 @@ const (
 type renderEvent struct {
 	line   string
 	stream stream
+	wrap   bool
 }
 
 type renderer struct {
