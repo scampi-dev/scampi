@@ -67,17 +67,17 @@ fuzz time='30s' pkg='':
   done
 
 [doc("Run benchmarks")]
-bench save_as='' count='10':
+bench save_as='' count='10' benchtime='100ms':
   {{
     if save_as == '' {
-      f"go test ./test -bench=. -benchmem -count={{count}}"
+      f"go test ./test -bench=. -benchmem -count={{count}} -benchtime={{benchtime}}"
     } else {
       f'''
       mkdir -p "{{bench_dir}}"
       echo 'Warmup run...'
-      go test ./test -bench=. -benchmem -count=2
+      go test ./test -bench=. -benchmem -count=2 -benchtime={{benchtime}}
       echo 'Recorded run...'
-      go test ./test -bench=. -benchmem -count={{count}} \
+      go test ./test -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
         | tee "{{bench_dir}}/$(date '+%Y-%m-%dT%H%M')-{{save_as}}.txt"
       '''
     }
