@@ -1,0 +1,9 @@
+{
+  "files": {},
+  "commands": {
+    "fail-cmd": {
+      "exitCode": 1,
+      "stderr": "something went wrong"
+    }
+  }
+}

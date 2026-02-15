@@ -1,0 +1,13 @@
+{
+  "files": {},
+  "commands": {
+    "check-thing": {
+      "exitCode": 1,
+      "stderr": "not ok"
+    },
+    "apply-thing": {
+      "exitCode": 1,
+      "stderr": "permission denied"
+    }
+  }
+}

@@ -98,6 +98,28 @@ func (d *MemDriver) Setup(t *testing.T, initial E2EFiles) (target.Target, spec.T
 	for svc, enabled := range initial.EnabledServices {
 		d.tgt.EnabledServices[svc] = enabled
 	}
+	if len(initial.Commands) > 0 {
+		commands := make(map[string]E2ECommandResult, len(initial.Commands))
+		for k, v := range initial.Commands {
+			commands[k] = v
+		}
+		d.tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
+			r, ok := commands[cmd]
+			if !ok {
+				return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil
+			}
+			res := target.CommandResult{
+				ExitCode: r.ExitCode,
+				Stdout:   r.Stdout,
+				Stderr:   r.Stderr,
+			}
+			// Promote After to current result, simulating state change
+			if r.After != nil {
+				commands[cmd] = *r.After
+			}
+			return res, nil
+		}
+	}
 
 	ti := mockTargetInstance(d.tgt)
 

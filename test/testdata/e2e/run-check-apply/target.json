@@ -1,0 +1,15 @@
+{
+  "files": {},
+  "commands": {
+    "check-ip-forward": {
+      "exitCode": 1,
+      "stderr": "not enabled",
+      "after": {
+        "exitCode": 0
+      }
+    },
+    "apply-ip-forward": {
+      "exitCode": 0
+    }
+  }
+}

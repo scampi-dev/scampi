@@ -1,0 +1,8 @@
+{
+  "files": {},
+  "commands": {
+    "do-the-thing": {
+      "exitCode": 0
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "files": {},
+  "commands": {
+    "check-thing": {
+      "exitCode": 1,
+      "stderr": "still not converged"
+    },
+    "apply-thing": {
+      "exitCode": 0
+    }
+  }
+}

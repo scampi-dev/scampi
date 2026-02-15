@@ -49,6 +49,36 @@ deploy(name="test", targets=["local"], steps=[
     template(src="a", dest="b"),
 ])`,
 
+		// run step with check/apply
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    run(apply="do-thing", check="check-thing"),
+])`,
+
+		// run step with always
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    run(apply="do-thing", always=True),
+])`,
+
+		// run step missing check and always
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    run(apply="do-thing"),
+])`,
+
+		// run step with conflicting check and always
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    run(apply="do-thing", check="check-thing", always=True),
+])`,
+
+		// run step missing apply
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    run(check="check-thing"),
+])`,
+
 		// syntax error: unclosed paren
 		`target.local(name="local"
 deploy(name="test", targets=["local"], steps=[])`,
