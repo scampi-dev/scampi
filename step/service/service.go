@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package service implements the service step type for declarative service management.
 package service
 
 import (

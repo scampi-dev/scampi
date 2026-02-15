@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package run implements the run step type — doit's escape hatch for
-// arbitrary shell commands that preserve the check/execute contract.
 package run
 
 import (

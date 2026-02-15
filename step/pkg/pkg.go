@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package pkg implements the pkg step type for declarative package management.
 package pkg
 
 import (
