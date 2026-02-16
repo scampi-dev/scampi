@@ -66,6 +66,7 @@ target.ssh(
 |------|---------|----------|
 | `local` | `target.local(name)` | Local machine execution |
 | `ssh` | `target.ssh(name, host, user, ...)` | Remote execution via SSH |
+| `rest` | `target.rest(name, base_url, auth, ...)` | API-driven services (planned, see `docs/roadmap.md`) |
 
 SSH targets accept additional keyword arguments:
 
@@ -89,9 +90,9 @@ target.ssh(
 
 Steps are the executable primitives. They are **built into `doit`**, not plugins.
 
-Current steps: `copy`, `dir`, `symlink`, `template`, `pkg`
+Current steps: `copy`, `dir`, `symlink`, `template`, `pkg`, `service`, `run`
 
-Planned steps: `service`, `command`, `absent`, `user`, `group`
+Planned steps: see `docs/roadmap.md`
 
 ### Why No Plugins
 
@@ -185,10 +186,22 @@ Every value is either a literal in your `.star` file or an explicit `env()` call
 There's no layering, no precedence, no hidden override mechanism. You can always
 answer "where did this value come from?" by reading the code.
 
-### Secrets (Future)
+### Secrets
 
-Runtime secret resolution (vault, keychain, etc.) is planned but not yet
-implemented.
+The `secret()` builtin resolves sensitive values at eval time from a pluggable
+backend. Secrets are always required (no default value).
+
+```python
+db_password = secret("postgres.admin.password")
+api_token = secret("npm.api_token")
+```
+
+V1 ships with an `unencrypted_file` backend that reads a flat JSON
+`secrets.json` next to the config file. Additional backends (age, Bitwarden,
+Vault, etc.) are planned — the backend is selected by the user, not by doit.
+See `docs/roadmap.md` for the full design direction.
+
+Secret values never appear in diagnostic output — only key names.
 
 ---
 
@@ -370,6 +383,7 @@ inspection is a liability, not an optimization.
 | Targets | `target.local()`, `target.ssh()` | Pure identity |
 | Deploy blocks | `deploy(name, targets, steps)` | Host-centric: "on X run Y" |
 | Environment | `env(key, default?)` | Explicit, no precedence |
+| Secrets | `secret(key)` | Pluggable backend, never logged |
 | Multi-file | `load()` | Standard Starlark |
 | Groups | Plain lists | Just Starlark |
 
