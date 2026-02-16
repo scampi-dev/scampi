@@ -31,7 +31,7 @@ func Plan(
 	})
 }
 
-func (e *Engine) Plan(_ context.Context) error {
+func (e *Engine) Plan(ctx context.Context) error {
 	start := time.Now()
 	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
 
@@ -39,6 +39,7 @@ func (e *Engine) Plan(_ context.Context) error {
 	if err != nil {
 		return err
 	}
+	e.storeInputPaths(ctx, plan)
 
 	e.em.EmitPlanLifecycle(diagnostic.PlanProduced(plan, actionDeps))
 

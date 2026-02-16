@@ -543,8 +543,7 @@ deploy(
 
 // TestTemplate_Error_ExecError verifies template execution errors are reported.
 func TestTemplate_Error_ExecError(t *testing.T) {
-	// Use a template that calls len on nil, which causes an exec error
-	// Go's text/template doesn't error on missing keys by default
+	// Calls len on nil — triggers an exec error distinct from missingkey=error
 	cfgStr := `
 target.local(name="local")
 

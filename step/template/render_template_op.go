@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"text/template"
+	"strconv"
+	"strings"
+	gotmpl "text/template"
 
 	"godoit.dev/doit/capability"
 	"godoit.dev/doit/source"
@@ -20,10 +22,11 @@ const renderTemplateID = "builtin.render-template"
 
 type renderTemplateOp struct {
 	sharedops.BaseOp
-	src     string
-	content string
-	dest    string
-	data    DataConfig
+	src         string
+	content     string
+	contentSpan spec.SourceSpan
+	dest        string
+	data        DataConfig
 }
 
 func (op *renderTemplateOp) Check(
@@ -41,7 +44,7 @@ func (op *renderTemplateOp) Check(
 		return spec.CheckUnsatisfied, nil, err
 	}
 
-	tmpl, err := template.New("template").Parse(string(tmplContent))
+	tmpl, err := gotmpl.New("template").Option("missingkey=error").Parse(string(tmplContent))
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, TemplateParseError{
 			Err:    err,
@@ -51,10 +54,7 @@ func (op *renderTemplateOp) Check(
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return spec.CheckUnsatisfied, nil, TemplateExecError{
-			Err:    err,
-			Source: op.SrcSpan,
-		}
+		return spec.CheckUnsatisfied, nil, op.execError(err, string(tmplContent))
 	}
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
@@ -97,14 +97,14 @@ func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt 
 		return spec.Result{}, err
 	}
 
-	tmpl, err := template.New("template").Parse(string(tmplContent))
+	tmpl, err := gotmpl.New("template").Option("missingkey=error").Parse(string(tmplContent))
 	if err != nil {
 		return spec.Result{}, err
 	}
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return spec.Result{}, err
+		return spec.Result{}, op.execError(err, string(tmplContent))
 	}
 
 	destData, err := fsTgt.ReadFile(ctx, op.dest)
@@ -185,6 +185,146 @@ func (d renderTemplateDesc) PlanTemplate() spec.PlanTemplate {
 		Text: `render "{{.Src}}" -> "{{.Dest}}"`,
 		Data: d,
 	}
+}
+
+// execError builds a TemplateExecError with a source span that points at
+// the offending placeholder inside the template content when possible.
+func (op *renderTemplateOp) execError(err error, tmplContent string) TemplateExecError {
+	span := op.SrcSpan
+	if op.content != "" {
+		if s, ok := tmplErrorSpan(err, tmplContent, op.contentSpan); ok {
+			span = s
+		}
+	} else if op.src != "" {
+		if s, ok := tmplFileErrorSpan(err, op.src); ok {
+			span = s
+		}
+	}
+
+	key := extractMissingKey(err)
+	if key != "" {
+		return TemplateExecError{
+			Err:    fmt.Errorf("missing template variable %q", key),
+			Source: span,
+		}
+	}
+
+	return TemplateExecError{Err: err, Source: span}
+}
+
+// tmplFileErrorSpan computes a SourceSpan pointing into the template source
+// file. The Go template error gives us line/col within the file directly.
+func tmplFileErrorSpan(err error, srcPath string) (spec.SourceSpan, bool) {
+	msg := err.Error()
+	parts := strings.SplitN(msg, ":", 5)
+	if len(parts) < 5 {
+		return spec.SourceSpan{}, false
+	}
+	tmplLine, lineErr := strconv.Atoi(strings.TrimSpace(parts[2]))
+	tmplCol, colErr := strconv.Atoi(strings.TrimSpace(parts[3]))
+	if lineErr != nil || colErr != nil {
+		return spec.SourceSpan{}, false
+	}
+
+	exprLen := 0
+	if idx := strings.Index(msg, "at <"); idx >= 0 {
+		rest := msg[idx+4:]
+		if end := strings.Index(rest, ">"); end >= 0 {
+			exprLen = len(rest[:end])
+		}
+	}
+
+	// Go template reports col at the second '{'; add 1 to reach the expression.
+	srcCol := tmplCol + 1
+	endCol := srcCol
+	if exprLen > 0 {
+		endCol = srcCol + exprLen
+	}
+
+	return spec.SourceSpan{
+		Filename:  srcPath,
+		StartLine: tmplLine,
+		EndLine:   tmplLine,
+		StartCol:  srcCol,
+		EndCol:    endCol,
+	}, true
+}
+
+// tmplErrorSpan computes a SourceSpan pointing at the offending expression
+// inside an inline template string. The Go template error format is:
+//
+//	template: <name>:<line>:<col>: ...
+//
+// We offset from the content string literal's start position in the Starlark
+// source to land on the right line/col.
+func tmplErrorSpan(err error, content string, contentSpan spec.SourceSpan) (spec.SourceSpan, bool) {
+	// Parse "template: template:<line>:<col>: ..."
+	msg := err.Error()
+	parts := strings.SplitN(msg, ":", 5)
+	if len(parts) < 5 {
+		return spec.SourceSpan{}, false
+	}
+	tmplLine, lineErr := strconv.Atoi(strings.TrimSpace(parts[2]))
+	tmplCol, colErr := strconv.Atoi(strings.TrimSpace(parts[3]))
+	if lineErr != nil || colErr != nil {
+		return spec.SourceSpan{}, false
+	}
+
+	// Extract the expression (between < and > in the error) for underline.
+	// We underline the variable reference, not the {{ }} delimiters.
+	exprLen := 0
+	if idx := strings.Index(msg, "at <"); idx >= 0 {
+		rest := msg[idx+4:]
+		if end := strings.Index(rest, ">"); end >= 0 {
+			exprLen = len(rest[:end])
+		}
+	}
+
+	// Starlark triple-quoted strings: the content span points at the opening
+	// triple-quote. The actual content starts on the next line. For single-
+	// quoted strings, content starts at col+1 on the same line.
+	// We detect triple-quote by checking if content starts with a newline.
+	srcLine := contentSpan.StartLine
+	srcCol := contentSpan.StartCol
+
+	// Go template reports col at the second '{'; add 1 to reach the expression.
+	exprCol := tmplCol + 1
+
+	if strings.HasPrefix(content, "\n") {
+		srcLine += tmplLine
+		srcCol = exprCol
+	} else {
+		if tmplLine == 1 {
+			srcCol += exprCol - 1
+		} else {
+			srcLine += tmplLine - 1
+			srcCol = exprCol
+		}
+	}
+
+	endCol := srcCol
+	if exprLen > 0 {
+		endCol = srcCol + exprLen
+	}
+
+	return spec.SourceSpan{
+		Filename:  contentSpan.Filename,
+		StartLine: srcLine,
+		EndLine:   srcLine,
+		StartCol:  srcCol,
+		EndCol:    endCol,
+	}, true
+}
+
+// extractMissingKey pulls the key name from a "map has no entry for key" error.
+func extractMissingKey(err error) string {
+	const marker = "map has no entry for key "
+	msg := err.Error()
+	idx := strings.Index(msg, marker)
+	if idx < 0 {
+		return ""
+	}
+	return strings.Trim(msg[idx+len(marker):], "\"")
 }
 
 func (op *renderTemplateOp) OpDescription() spec.OpDescription {

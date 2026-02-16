@@ -123,10 +123,11 @@ func (a *templateAction) Ops() []spec.Op {
 			SrcSpan:  a.step.Fields["src"].Value,
 			DestSpan: a.step.Fields["dest"].Value,
 		},
-		src:     a.src,
-		content: a.content,
-		dest:    a.dest,
-		data:    a.data,
+		src:         a.src,
+		content:     a.content,
+		contentSpan: a.step.Fields["content"].Value,
+		dest:        a.dest,
+		data:        a.data,
 	}
 	chown := &fileops.EnsureOwnerOp{
 		BaseOp: sharedops.BaseOp{

@@ -570,10 +570,6 @@ Things that aren't blocking anything but would be nice to get to.
   formatter for repeatable flags pushes description columns way right, and error
   output needs manual workarounds. Worth doing a comparison with cobra, kong, or
   ff at some point.
-- **Broken symlink in sandbox.** `cat /tmp/.link1.yml` in the sshd container —
-  the link created by `sandbox/config.star` is broken.
-- **Templates render `<no value>` for missing keys.** Should error instead of
-  silently producing wrong output. Fix: `template.Option("missingkey=error")`.
 - **`doit inspect` doesn't show template steps.** Templates should be
   inspectable like other step types.
 - **Error message consistency pass.** Go through all error messages codebase-wide

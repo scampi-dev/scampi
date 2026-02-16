@@ -12,10 +12,11 @@ import (
 )
 
 type Engine struct {
-	src source.Source
-	tgt target.Target
-	cfg spec.ResolvedConfig
-	em  diagnostic.Emitter
+	src   source.Source
+	tgt   target.Target
+	cfg   spec.ResolvedConfig
+	em    diagnostic.Emitter
+	store *spec.SourceStore
 }
 
 func New(ctx context.Context, src source.Source, cfg spec.ResolvedConfig, em diagnostic.Emitter) (*Engine, error) {
@@ -60,6 +61,26 @@ func (e *Engine) Close() {
 	}
 }
 
+// storeInputPaths reads action input files (e.g. template sources) via the
+// source and registers them in the store so the renderer can display source
+// context in error messages.
+func (e *Engine) storeInputPaths(ctx context.Context, p spec.Plan) {
+	if e.store == nil {
+		return
+	}
+	for _, act := range p.Unit.Actions {
+		pather, ok := act.(spec.Pather)
+		if !ok {
+			continue
+		}
+		for _, path := range pather.InputPaths() {
+			if data, err := e.src.ReadFile(ctx, path); err == nil {
+				e.store.AddFile(path, data)
+			}
+		}
+	}
+}
+
 func runForEachResolved(
 	ctx context.Context,
 	em diagnostic.Emitter,
@@ -89,6 +110,7 @@ func runForEachResolved(
 		if err != nil {
 			return err
 		}
+		e.store = store
 
 		if err := run(ctx, e); err != nil {
 			e.Close()

@@ -30,6 +30,7 @@ func (e *Engine) Check(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	e.storeInputPaths(ctx, plan)
 
 	rep, err := e.CheckPlan(ctx, plan)
 	if err != nil {
