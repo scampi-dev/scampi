@@ -73,7 +73,7 @@ func builtinTargetSSH(
 		return nil, err
 	}
 
-	return starlark.None, nil
+	return poisonValue{funcName: "target.ssh"}, nil
 }
 
 // target.local(name)
@@ -107,5 +107,5 @@ func builtinTargetLocal(
 		return nil, err
 	}
 
-	return starlark.None, nil
+	return poisonValue{funcName: "target.local"}, nil
 }

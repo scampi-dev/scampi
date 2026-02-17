@@ -410,6 +410,9 @@ func starlarkDictToMap(dict *starlark.Dict, ctx string) (map[string]any, error) 
 				Got:      item[0].Type(),
 			}
 		}
+		if err := checkPoison(item[1]); err != nil {
+			return nil, err
+		}
 		result[key] = starlarkToGo(item[1])
 	}
 	return result, nil

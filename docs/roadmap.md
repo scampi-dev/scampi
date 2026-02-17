@@ -575,11 +575,6 @@ Things that aren't blocking anything but would be nice to get to.
 - **Error message consistency pass.** Go through all error messages codebase-wide
   and make them self-documenting: say what's wrong, show correct syntax using
   values the user already provided.
-- **`secrets()` validation ordering.** `secrets(backend="nope")` complains about
-  missing `path` before rejecting the unknown backend. Should validate backend
-  first.
-- **`secrets()` usable as a value expression.** `secrets()` returns
-  `starlark.None`, so it silently works as a value (e.g. inside a `data` dict)
-  when it should only be a top-level declaration. Fix: return a sentinel/poison
-  pill value that produces a clear error when used as a template value or
-  similar.
+- ~~**`secrets()` validation ordering.**~~ Fixed: backend validated before path.
+- ~~**`secrets()` usable as a value expression.**~~ Fixed: declaration builtins
+  (`secrets`, `deploy`, `target.*`) return a poison pill value.

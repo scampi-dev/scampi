@@ -87,7 +87,7 @@ func builtinDeploy(
 		return nil, err
 	}
 
-	return starlark.None, nil
+	return poisonValue{funcName: "deploy"}, nil
 }
 
 func extractSteps(
@@ -251,7 +251,7 @@ func builtinSecrets(
 	var recipientsVal starlark.Value
 	if err := starlark.UnpackArgs("secrets", args, kwargs,
 		"backend", &backend,
-		"path", &path,
+		"path?", &path,
 		"recipients?", &recipientsVal,
 	); err != nil {
 		if backend == "" {
@@ -269,6 +269,19 @@ func builtinSecrets(
 		}
 	}
 
+	switch backend {
+	case "file", "age":
+	default:
+		return nil, &SecretsConfigError{
+			Detail: fmt.Sprintf("unknown backend %q (available: file, age)", backend),
+			Source: span,
+		}
+	}
+
+	if path == "" {
+		path = "secrets." + backend + ".json"
+	}
+
 	c := threadCollector(thread)
 
 	b, err := buildSecretBackend(c, backend, path, recipientsVal, span)
@@ -283,7 +296,7 @@ func builtinSecrets(
 		}
 	}
 
-	return starlark.None, nil
+	return poisonValue{funcName: "secrets"}, nil
 }
 
 func buildSecretBackend(
@@ -344,12 +357,9 @@ func buildSecretBackend(
 		}
 		return b, nil
 
-	default:
-		return nil, &SecretsConfigError{
-			Detail: fmt.Sprintf("unknown backend %q (available: file, age)", backend),
-			Source: span,
-		}
 	}
+
+	panic("unreachable: backend validated before buildSecretBackend")
 }
 
 // parseRecipientStrings extracts age recipient public keys from a Starlark list value.
