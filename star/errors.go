@@ -59,6 +59,9 @@ func wrapStarlarkError(err error, c *Collector) error {
 			if ss, ok := diag.(sourceSettable); ok {
 				ss.setSource(span)
 			}
+			if pe, ok := cause.(*PoisonValueError); ok {
+				refinePoisonSpan(pe, c, span)
+			}
 			return cause
 		}
 
@@ -669,6 +672,36 @@ func (SecretsConfigError) Severity() signal.Severity { return signal.Error }
 func (SecretsConfigError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
 
 func (e *SecretsConfigError) setSource(s spec.SourceSpan) {
+	if e.Source == (spec.SourceSpan{}) {
+		e.Source = s
+	}
+}
+
+// PoisonValueError is raised when a declaration builtin's return value is used
+// where a real value is expected (e.g. passed as a kwarg to a step).
+type PoisonValueError struct {
+	FuncName string
+	Source   spec.SourceSpan
+}
+
+func (e PoisonValueError) Error() string {
+	return fmt.Sprintf("%s() is a top-level declaration and cannot be used as a value", e.FuncName)
+}
+
+func (e PoisonValueError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "star.PoisonValue",
+		Text:   "{{.FuncName}}() is a top-level declaration and cannot be used as a value",
+		Hint:   "declaration builtins must be called at the top level, not nested inside other calls",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (PoisonValueError) Severity() signal.Severity { return signal.Error }
+func (PoisonValueError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
+func (e *PoisonValueError) setSource(s spec.SourceSpan) {
 	if e.Source == (spec.SourceSpan{}) {
 		e.Source = s
 	}

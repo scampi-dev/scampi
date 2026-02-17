@@ -51,9 +51,17 @@ func builtinTargetSSH(
 	}
 
 	span := callSpan(thread)
+	pos := callerPosition(thread)
+	call := findCallFromThread(thread, pos)
 
 	if name == "" {
-		return nil, &EmptyNameError{Func: "target.ssh", Source: span}
+		s := span
+		if call != nil {
+			if vs, ok := kwargValueSpan(call, "name"); ok {
+				s = vs
+			}
+		}
+		return nil, &EmptyNameError{Func: "target.ssh", Source: s}
 	}
 	fields := kwargsFieldSpans(thread,
 		"host", "user", "port", "key", "insecure", "timeout")
@@ -91,9 +99,17 @@ func builtinTargetLocal(
 	}
 
 	span := callSpan(thread)
+	pos := callerPosition(thread)
+	call := findCallFromThread(thread, pos)
 
 	if name == "" {
-		return nil, &EmptyNameError{Func: "target.local", Source: span}
+		s := span
+		if call != nil {
+			if vs, ok := kwargValueSpan(call, "name"); ok {
+				s = vs
+			}
+		}
+		return nil, &EmptyNameError{Func: "target.local", Source: s}
 	}
 	inst := spec.TargetInstance{
 		Type:   local.Local{},

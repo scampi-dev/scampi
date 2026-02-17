@@ -170,3 +170,61 @@ func kwargValueSpan(call *syntax.CallExpr, name string) (spec.SourceSpan, bool) 
 	}
 	return spec.SourceSpan{}, false
 }
+
+// refinePoisonSpan attempts to replace the LPAREN-level span on a
+// PoisonValueError with the precise span of the nested declaration call
+// (e.g. secrets(...) inside a template's data dict).
+func refinePoisonSpan(pe *PoisonValueError, c *Collector, callSite spec.SourceSpan) {
+	if c == nil {
+		return
+	}
+	f := c.AST(callSite.Filename)
+	if f == nil {
+		return
+	}
+	call := findCallExpr(f, posFromSpan(callSite))
+	if call == nil {
+		return
+	}
+	if s, ok := nestedCallSpan(call, pe.FuncName); ok {
+		pe.Source = s
+	}
+}
+
+// nestedCallSpan walks the argument subtree of a CallExpr looking for a
+// nested call to the named function. Used to refine poison value errors so
+// they point at the offending declaration call rather than the enclosing step.
+func nestedCallSpan(call *syntax.CallExpr, funcName string) (spec.SourceSpan, bool) {
+	var found *syntax.CallExpr
+	for _, arg := range call.Args {
+		syntax.Walk(arg, func(n syntax.Node) bool {
+			if n == nil || found != nil {
+				return false
+			}
+			c, ok := n.(*syntax.CallExpr)
+			if !ok {
+				return true
+			}
+			ident, ok := c.Fn.(*syntax.Ident)
+			if !ok || ident.Name != funcName {
+				return true
+			}
+			found = c
+			return false
+		})
+		if found != nil {
+			break
+		}
+	}
+	if found == nil {
+		return spec.SourceSpan{}, false
+	}
+	start, end := found.Span()
+	return spec.SourceSpan{
+		Filename:  start.Filename(),
+		StartLine: int(start.Line),
+		StartCol:  int(start.Col),
+		EndLine:   int(end.Line),
+		EndCol:    int(end.Col),
+	}, true
+}

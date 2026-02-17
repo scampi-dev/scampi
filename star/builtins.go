@@ -55,9 +55,17 @@ func builtinDeploy(
 	}
 
 	span := callSpan(thread)
+	pos := callerPosition(thread)
+	call := findCallFromThread(thread, pos)
 
 	if name == "" {
-		return nil, &EmptyNameError{Func: "deploy", Source: span}
+		s := span
+		if call != nil {
+			if vs, ok := kwargValueSpan(call, "name"); ok {
+				s = vs
+			}
+		}
+		return nil, &EmptyNameError{Func: "deploy", Source: s}
 	}
 
 	targetNames, err := stringList(targets, "deploy", "targets")
@@ -65,7 +73,13 @@ func builtinDeploy(
 		return nil, err
 	}
 	if len(targetNames) == 0 {
-		return nil, &EmptyListError{Func: "deploy", Field: "targets", Source: span}
+		s := span
+		if call != nil {
+			if vs, ok := kwargValueSpan(call, "targets"); ok {
+				s = vs
+			}
+		}
+		return nil, &EmptyListError{Func: "deploy", Field: "targets", Source: s}
 	}
 
 	stepInstances, err := extractSteps(steps, "deploy")
@@ -73,7 +87,13 @@ func builtinDeploy(
 		return nil, err
 	}
 	if len(stepInstances) == 0 {
-		return nil, &EmptyListError{Func: "deploy", Field: "steps", Source: span}
+		s := span
+		if call != nil {
+			if vs, ok := kwargValueSpan(call, "steps"); ok {
+				s = vs
+			}
+		}
+		return nil, &EmptyListError{Func: "deploy", Field: "steps", Source: s}
 	}
 	block := spec.DeployBlock{
 		Name:    name,
@@ -144,7 +164,7 @@ func builtinEnv(
 	if !ok {
 		return nil, &EnvError{
 			Detail: fmt.Sprintf("key must be a string, got %s", args[0].Type()),
-			Source: span,
+			Source: firstArgSpan(thread),
 		}
 	}
 
@@ -156,7 +176,7 @@ func builtinEnv(
 		if !found {
 			return nil, &EnvVarRequiredError{
 				Key:    key,
-				Source: span,
+				Source: firstArgSpan(thread),
 			}
 		}
 		return starlark.String(envVal), nil
@@ -199,7 +219,7 @@ func builtinSecret(
 	if !ok {
 		return nil, &SecretError{
 			Detail: fmt.Sprintf("key must be a string, got %s", args[0].Type()),
-			Source: span,
+			Source: firstArgSpan(thread),
 		}
 	}
 
@@ -272,9 +292,16 @@ func builtinSecrets(
 	switch backend {
 	case "file", "age":
 	default:
+		s := span
+		pos := callerPosition(thread)
+		if call := findCallFromThread(thread, pos); call != nil {
+			if vs, ok := kwargValueSpan(call, "backend"); ok {
+				s = vs
+			}
+		}
 		return nil, &SecretsConfigError{
 			Detail: fmt.Sprintf("unknown backend %q (available: file, age)", backend),
-			Source: span,
+			Source: s,
 		}
 	}
 

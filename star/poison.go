@@ -31,7 +31,7 @@ func (p poisonValue) Hash() (uint32, error) {
 func checkPoison(v starlark.Value) error {
 	switch v := v.(type) {
 	case poisonValue:
-		return fmt.Errorf("%s() is a top-level declaration and cannot be used as a value", v.funcName)
+		return &PoisonValueError{FuncName: v.funcName}
 	case *starlark.List:
 		for i := 0; i < v.Len(); i++ {
 			if err := checkPoison(v.Index(i)); err != nil {
