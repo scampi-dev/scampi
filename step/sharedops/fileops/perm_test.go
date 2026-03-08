@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/spec"
 )
@@ -65,6 +66,16 @@ func TestParsePerm_InvalidPermissions(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEnsureModeOp_RequiresFilesystem(t *testing.T) {
+	caps := EnsureModeOp{}.RequiredCapabilities()
+	if caps&capability.Filesystem == 0 {
+		t.Fatal("EnsureModeOp must require Filesystem (uses Stat in Check and Execute)")
+	}
+	if caps&capability.FileMode == 0 {
+		t.Fatal("EnsureModeOp must require FileMode (uses Chmod in Execute)")
 	}
 }
 

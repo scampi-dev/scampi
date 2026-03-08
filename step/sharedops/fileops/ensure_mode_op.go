@@ -97,7 +97,7 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 }
 
 func (EnsureModeOp) RequiredCapabilities() capability.Capability {
-	return capability.FileMode
+	return capability.Filesystem | capability.FileMode
 }
 
 type ensureModeDesc struct {
