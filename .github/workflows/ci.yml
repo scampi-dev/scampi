@@ -20,5 +20,5 @@ jobs:
 
       - run: just install-prereqs
       - run: just build
-      - run: just test-all
+      - run: just test everything
       - run: just lint

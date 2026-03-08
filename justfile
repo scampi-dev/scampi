@@ -4,23 +4,15 @@ BENCHSTAT_VERSION     := `go list -m -f '{{.Version}}' golang.org/x/perf`
 build_dir := "./build"
 bin_dir   := f"{{build_dir}}/bin"
 bin_path  := f"{{bin_dir}}/scampi"
-bench_dir := "./benchmarks"
 
 
 [default]
 [doc("Show this help message")]
-@help:
-  just --list
+@help *args:
+  just --unsorted --list {{args}}
 
-[doc("Install prerequisites")]
-install-prereqs:
-  go mod tidy
-  go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{GOLANGCI_LINT_VERSION}}
-  go install golang.org/x/perf/cmd/benchstat@{{BENCHSTAT_VERSION}}
-
-[doc("Run code generation")]
-generate:
-  go generate ./...
+# Daily drivers
+# ##############################################################################
 
 [doc("Build the scampi CLI binary")]
 build:
@@ -31,79 +23,8 @@ build:
 scampi *args:
   go run ./cmd {{args}}
 
-# Testing
-# ##############################################################################
-
-[doc("Run tests")]
-test:
-  go test ./...
-
-[doc("Run tests against containers")]
-test-containers:
-  SCAMPI_TEST_CONTAINERS=1 go test -v ./test/...
-
-[doc("Run all tests with race-detector and containers")]
-test-all:
-  SCAMPI_TEST_CONTAINERS=1 go test -race -v ./...
-
-[doc("Run tests with race-detector")]
-race:
-  go test -race ./...
-
-[doc("Run fuzz tests (optional package filter, e.g. just fuzz 10m test)")]
-fuzz time='30s' pkg='':
-  #!/usr/bin/env bash
-  set -euo pipefail
-  if [[ -n "{{pkg}}" ]]; then
-    pkgs="{{pkg}}"
-  else
-    pkgs=$(grep -rl '^func Fuzz' --include='*_test.go' . \
-      | xargs -n1 dirname | sort -u \
-      | sed 's|^\./||')
-  fi
-  for pkg in $pkgs; do
-    echo "fuzzing ./$pkg ({{time}})..."
-    go test "./$pkg" -fuzz=. -fuzztime={{time}}
-  done
-
-[doc("Run benchmarks")]
-bench save_as='' count='10' benchtime='100ms':
-  {{
-    if save_as == '' {
-      f"go test ./test -bench=. -benchmem -count={{count}} -benchtime={{benchtime}}"
-    } else {
-      f'''
-      mkdir -p "{{bench_dir}}"
-      latest=$(ls {{bench_dir}}/*.txt 2>/dev/null | sort | tail -1)
-      ts=$(date '+%Y-%m-%dT%H%M')
-      if [ -n "$latest" ]; then
-        prev_ts=$(basename "$latest" | sed 's/-[^-]*\.txt$//')
-        if [ ! -f "{{bench_dir}}/$prev_ts-{{save_as}}.txt" ]; then
-          ts=$prev_ts
-        fi
-      fi
-      echo 'Warmup run...'
-      go test ./test -bench=. -benchmem -count=2 -benchtime={{benchtime}}
-      echo 'Recorded run...'
-      go test ./test -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
-        | tee "{{bench_dir}}/$ts-{{save_as}}.txt"
-      '''
-    }
-  }}
-
-[doc("Compare the latest 2 existing benchmarks with suffix")]
-benchcomp suffix:
-  curr=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 1`; \
-  prev=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 2 | head -n 1`; \
-  echo "Comparing:"; \
-  echo "  $prev"; \
-  echo "  $curr"; \
-  benchstat -table .config -row .fullname -col .file "$prev" "$curr"
-
-[doc("Plot benchmark history as HTML dashboard for given suffix")]
-benchplot suffix:
-  go run ./bin/benchplot -o ./bin/benchplot/{{suffix}}.html {{bench_dir}}/*-{{suffix}}.txt \
-    && open ./bin/benchplot/{{suffix}}.html
+[doc("Run tests (just test --list for subcommands)")]
+mod test
 
 [doc("Format all code")]
 fmt:
@@ -113,6 +34,19 @@ fmt:
 lint:
   golangci-lint run
   just license-check
+
+# Housekeeping
+# ##############################################################################
+
+[doc("Run code generation")]
+generate:
+  go generate ./...
+
+[doc("Install prerequisites")]
+install-prereqs:
+  go mod tidy
+  go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{GOLANGCI_LINT_VERSION}}
+  go install golang.org/x/perf/cmd/benchstat@{{BENCHSTAT_VERSION}}
 
 [doc("Check SPDX license headers")]
 license-check:
