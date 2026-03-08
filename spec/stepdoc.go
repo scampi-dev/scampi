@@ -24,8 +24,7 @@ type FieldDoc struct {
 	Examples []string // example values (from pipe-delimited example tag)
 }
 
-// Examples returns Starlark code snippets showing how to call this step.
-// The auto-generated example is built from field metadata (example/default tags).
+// Examples builds code snippets from field metadata (example/default tags).
 func (d StepDoc) Examples() []string {
 	var b strings.Builder
 	b.WriteString(d.Kind + "(\n")

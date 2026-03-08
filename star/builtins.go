@@ -14,7 +14,6 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
-// predeclared returns the global builtins available in every .star file.
 func predeclared() starlark.StringDict {
 	return starlark.StringDict{
 		"copy":     starlark.NewBuiltin("copy", builtinCopy),

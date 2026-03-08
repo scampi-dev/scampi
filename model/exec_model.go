@@ -8,7 +8,7 @@ import "scampi.dev/scampi/spec"
 type OpOutcome uint8
 
 const (
-	OpSucceeded OpOutcome = iota // internal only
+	OpSucceeded OpOutcome = iota
 	OpFailed
 	OpAborted
 	OpSkipped

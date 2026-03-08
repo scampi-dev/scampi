@@ -25,7 +25,7 @@ var fileOptions = &syntax.FileOptions{
 	Recursion: true,
 }
 
-// Eval evaluates a Starlark configuration file and returns a spec.Config.
+// Eval loads and evaluates a Starlark configuration file at cfgPath.
 func Eval(
 	ctx context.Context,
 	cfgPath string,

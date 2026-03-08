@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-// UserConfigDir returns the root directory for user-specific configuration.
+// UserConfigDir resolves the user config directory with XDG_CONFIG_HOME support.
 //
 // Unlike os.UserConfigDir, this respects $XDG_CONFIG_HOME on every platform
 // (including Darwin, where the stdlib ignores it in favor of
