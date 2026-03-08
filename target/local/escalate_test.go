@@ -403,6 +403,7 @@ func TestUpdateCache_NoEscalationErrorWhenNoTool(t *testing.T) {
 		pkgBackend: &pkgmgr.Backend{
 			Name:           "apt",
 			UpdateCache:    "apt-get update -qq",
+			IsUpgradable:   "apt list --upgradable %s",
 			CacheNeedsRoot: true,
 		},
 	}
@@ -422,6 +423,7 @@ func TestUpdateCache_Escalated(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	tgt.pkgBackend = &pkgmgr.Backend{
 		UpdateCache:    "echo update-cache",
+		IsUpgradable:   "true %s",
 		CacheNeedsRoot: true,
 	}
 
@@ -440,6 +442,7 @@ func TestUpdateCache_NoEscalationWithoutCacheNeedsRoot(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	tgt.pkgBackend = &pkgmgr.Backend{
 		UpdateCache:    "echo update-cache",
+		IsUpgradable:   "true %s",
 		CacheNeedsRoot: false,
 	}
 
@@ -453,10 +456,32 @@ func TestUpdateCache_NoEscalationWithoutCacheNeedsRoot(t *testing.T) {
 	}
 }
 
+func TestUpdateCache_NoUpgradeSupport(t *testing.T) {
+	tgt := POSIXTarget{
+		pkgBackend: &pkgmgr.Backend{
+			Name:        "minimal",
+			IsInstalled: "dpkg -s %s",
+			Install:     "apt-get install -y %s",
+			Remove:      "apt-get remove -y %s",
+		},
+	}
+
+	err := tgt.UpdateCache(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "BUG") {
+		t.Fatalf("expected BUG error, got: %v", err)
+	}
+
+	_, err = tgt.IsUpgradable(context.Background(), "foo")
+	if err == nil || !strings.Contains(err.Error(), "BUG") {
+		t.Fatalf("expected BUG error, got: %v", err)
+	}
+}
+
 func TestUpdateCache_CacheUpdateError(t *testing.T) {
 	tgt := newFailTarget(t)
 	tgt.pkgBackend = &pkgmgr.Backend{
 		UpdateCache:    "false",
+		IsUpgradable:   "true %s",
 		CacheNeedsRoot: false,
 	}
 

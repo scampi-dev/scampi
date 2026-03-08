@@ -197,6 +197,27 @@ func (m *minimalTarget) GetOwner(_ context.Context, _ string) (target.Owner, err
 	panic("MinimalTarget.GetOwner called - capability check failed")
 }
 
+// pkgOnlyTarget advertises Pkg but not PkgUpdate.
+type pkgOnlyTarget struct {
+	*target.MemTarget
+}
+
+func newPkgOnlyTarget() *pkgOnlyTarget {
+	return &pkgOnlyTarget{MemTarget: target.NewMemTarget()}
+}
+
+func (p *pkgOnlyTarget) Capabilities() capability.Capability {
+	return capability.POSIX | capability.Pkg
+}
+
+func (p *pkgOnlyTarget) UpdateCache(_ context.Context) error {
+	panic("pkgOnlyTarget.UpdateCache called — capability check failed")
+}
+
+func (p *pkgOnlyTarget) IsUpgradable(_ context.Context, _ string) (bool, error) {
+	panic("pkgOnlyTarget.IsUpgradable called — capability check failed")
+}
+
 type allCapNoImplTarget struct{}
 
 func (allCapNoImplTarget) Capabilities() capability.Capability {

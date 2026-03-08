@@ -30,19 +30,6 @@ func (op *ensurePkgOp) Check(
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
 
-	if op.state == StateLatest {
-		pu, ok := tgt.(target.PkgUpdater)
-		if !ok {
-			return spec.CheckUnsatisfied, nil, fmt.Errorf("target %T does not support upgrade checks", tgt)
-		}
-		if err := pu.UpdateCache(ctx); err != nil {
-			return spec.CheckUnsatisfied, nil, PkgCacheError{
-				Stderr: err.Error(),
-				Source: op.pkgsSource,
-			}
-		}
-	}
-
 	var drift []spec.DriftDetail
 	for _, pkg := range op.packages {
 		installed, err := pm.IsInstalled(ctx, pkg)
@@ -67,27 +54,6 @@ func (op *ensurePkgOp) Check(
 					Desired: "absent",
 				})
 			}
-		case StateLatest:
-			if !installed {
-				drift = append(drift, spec.DriftDetail{
-					Field:   "state",
-					Current: pkg + ": not installed",
-					Desired: "latest",
-				})
-			} else {
-				pu := tgt.(target.PkgUpdater) // safe: asserted above
-				upgradable, err := pu.IsUpgradable(ctx, pkg)
-				if err != nil {
-					return spec.CheckUnsatisfied, nil, err
-				}
-				if upgradable {
-					drift = append(drift, spec.DriftDetail{
-						Field:   "state",
-						Current: pkg + ": upgradable",
-						Desired: "latest",
-					})
-				}
-			}
 		}
 	}
 
@@ -100,7 +66,6 @@ func (op *ensurePkgOp) Check(
 func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
 	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
 
-	// Collect only the packages that need action.
 	var actionable []string
 	for _, pkg := range op.packages {
 		installed, err := pm.IsInstalled(ctx, pkg)
@@ -117,19 +82,6 @@ func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.
 			if installed {
 				actionable = append(actionable, pkg)
 			}
-		case StateLatest:
-			if !installed {
-				actionable = append(actionable, pkg)
-			} else {
-				pu := tgt.(target.PkgUpdater) // safe: Check already asserted
-				upgradable, err := pu.IsUpgradable(ctx, pkg)
-				if err != nil {
-					return spec.Result{}, err
-				}
-				if upgradable {
-					actionable = append(actionable, pkg)
-				}
-			}
 		}
 	}
 
@@ -138,7 +90,7 @@ func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.
 	}
 
 	switch op.state {
-	case StatePresent, StateLatest:
+	case StatePresent:
 		if err := pm.InstallPkgs(ctx, actionable); err != nil {
 			return spec.Result{}, PkgInstallError{
 				Pkgs:   actionable,
@@ -161,6 +113,114 @@ func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.
 
 func (ensurePkgOp) RequiredCapabilities() capability.Capability {
 	return capability.Pkg
+}
+
+// ensureLatestPkgOp
+// -----------------------------------------------------------------------------
+
+type ensureLatestPkgOp struct {
+	sharedops.BaseOp
+	packages   []string
+	pkgsSource spec.SourceSpan
+}
+
+func (op *ensureLatestPkgOp) Check(
+	ctx context.Context,
+	_ source.Source,
+	tgt target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
+	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
+	pu := target.Must[target.PkgUpdater](ensurePkgID, tgt)
+
+	if err := pu.UpdateCache(ctx); err != nil {
+		return spec.CheckUnsatisfied, nil, PkgCacheError{
+			Stderr: err.Error(),
+			Source: op.pkgsSource,
+		}
+	}
+
+	var drift []spec.DriftDetail
+	for _, pkg := range op.packages {
+		installed, err := pm.IsInstalled(ctx, pkg)
+		if err != nil {
+			return spec.CheckUnsatisfied, nil, err
+		}
+
+		if !installed {
+			drift = append(drift, spec.DriftDetail{
+				Field:   "state",
+				Current: pkg + ": not installed",
+				Desired: "latest",
+			})
+		} else {
+			upgradable, err := pu.IsUpgradable(ctx, pkg)
+			if err != nil {
+				return spec.CheckUnsatisfied, nil, err
+			}
+			if upgradable {
+				drift = append(drift, spec.DriftDetail{
+					Field:   "state",
+					Current: pkg + ": upgradable",
+					Desired: "latest",
+				})
+			}
+		}
+	}
+
+	if len(drift) > 0 {
+		return spec.CheckUnsatisfied, drift, nil
+	}
+	return spec.CheckSatisfied, nil, nil
+}
+
+func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
+	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
+	pu := target.Must[target.PkgUpdater](ensurePkgID, tgt)
+
+	var actionable []string
+	for _, pkg := range op.packages {
+		installed, err := pm.IsInstalled(ctx, pkg)
+		if err != nil {
+			return spec.Result{}, err
+		}
+
+		if !installed {
+			actionable = append(actionable, pkg)
+		} else {
+			upgradable, err := pu.IsUpgradable(ctx, pkg)
+			if err != nil {
+				return spec.Result{}, err
+			}
+			if upgradable {
+				actionable = append(actionable, pkg)
+			}
+		}
+	}
+
+	if len(actionable) == 0 {
+		return spec.Result{Changed: false}, nil
+	}
+
+	if err := pm.InstallPkgs(ctx, actionable); err != nil {
+		return spec.Result{}, PkgInstallError{
+			Pkgs:   actionable,
+			Stderr: err.Error(),
+			Source: op.pkgsSource,
+		}
+	}
+
+	return spec.Result{Changed: true}, nil
+}
+
+func (ensureLatestPkgOp) RequiredCapabilities() capability.Capability {
+	return capability.Pkg | capability.PkgUpdate
+}
+
+func (op *ensureLatestPkgOp) OpDescription() spec.OpDescription {
+	return ensurePkgDesc{
+		Pkgs:  fmt.Sprintf("[%s]", strings.Join(op.packages, ", ")),
+		State: StateLatest,
+	}
 }
 
 type ensurePkgDesc struct {

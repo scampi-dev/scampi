@@ -76,11 +76,19 @@ func (a *pkgAction) Desc() string { return a.desc }
 func (a *pkgAction) Kind() string { return "pkg" }
 
 func (a *pkgAction) Ops() []spec.Op {
-	op := &ensurePkgOp{
-		packages:   a.packages,
-		state:      a.state,
-		pkgsSource: a.step.Fields["packages"].Value,
+	pkgsSource := a.step.Fields["packages"].Value
+
+	// Two branches because SetAction lives on the concrete BaseOp, not on
+	// the spec.Op interface, so we need the concrete type to wire it up.
+	var op spec.Op
+	if a.state == StateLatest {
+		o := &ensureLatestPkgOp{packages: a.packages, pkgsSource: pkgsSource}
+		o.SetAction(a)
+		op = o
+	} else {
+		o := &ensurePkgOp{packages: a.packages, state: a.state, pkgsSource: pkgsSource}
+		o.SetAction(a)
+		op = o
 	}
-	op.SetAction(a)
 	return []spec.Op{op}
 }

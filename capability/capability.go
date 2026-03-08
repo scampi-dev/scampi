@@ -13,13 +13,15 @@ const (
 	None Capability = 0
 	All  Capability = ^Capability(0)
 )
+
 const (
-	Filesystem Capability = 1 << iota // ReadFile, WriteFile, Stat, Remove
-	FileMode                          // Chmod, mode in Stat
-	Symlink                           // Symlink, Readlink, Lstat
-	Ownership                         // HasUser, HasGroup, GetOwner, Chown
-	Pkg                               // IsInstalled, InstallPkgs, RemovePkgs
-	Service                           // IsActive, IsEnabled, Start, Stop, Enable, Disable
+	Filesystem Capability = 0b1 << iota // ReadFile, WriteFile, Stat, Remove
+	FileMode                            // Chmod, mode in Stat
+	Symlink                             // Symlink, Readlink, Lstat
+	Ownership                           // HasUser, HasGroup, GetOwner, Chown
+	Pkg                                 // IsInstalled, InstallPkgs, RemovePkgs
+	PkgUpdate                           // UpdateCache, IsUpgradable
+	Service                             // IsActive, IsEnabled, Start, Stop, Enable, Disable
 )
 
 const (
@@ -56,6 +58,9 @@ func (c Capability) String() string {
 	}
 	if c&Pkg != 0 {
 		parts = append(parts, "Pkg")
+	}
+	if c&PkgUpdate != 0 {
+		parts = append(parts, "PkgUpdate")
 	}
 	if c&Service != 0 {
 		parts = append(parts, "Service")

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/target"
 )
 
@@ -72,6 +73,13 @@ func (t *SSHTarget) RemovePkgs(ctx context.Context, pkgs []string) error {
 }
 
 func (t *SSHTarget) UpdateCache(ctx context.Context) error {
+	if !t.pkgBackend.SupportsUpgrade() {
+		return errs.BUG(
+			"%s backend does not support upgrade checks"+
+				" — capability should have prevented this call",
+			t.pkgBackend.Name,
+		)
+	}
 	if t.pkgBackend.CacheNeedsRoot && !t.isRoot && t.escalate == "" {
 		return target.NoEscalationError{Op: t.pkgBackend.Name + " update-cache"}
 	}
@@ -93,6 +101,13 @@ func (t *SSHTarget) UpdateCache(ctx context.Context) error {
 }
 
 func (t *SSHTarget) IsUpgradable(ctx context.Context, pkg string) (bool, error) {
+	if !t.pkgBackend.SupportsUpgrade() {
+		return false, errs.BUG(
+			"%s backend does not support upgrade checks"+
+				" — capability should have prevented this call",
+			t.pkgBackend.Name,
+		)
+	}
 	cmd := fmt.Sprintf(t.pkgBackend.IsUpgradable, shellQuote(pkg))
 	result, err := t.RunCommand(ctx, cmd)
 	if err != nil {

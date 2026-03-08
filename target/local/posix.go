@@ -233,6 +233,9 @@ func (t POSIXTarget) Capabilities() capability.Capability {
 	caps := capability.POSIX
 	if t.pkgBackend != nil {
 		caps |= capability.Pkg
+		if t.pkgBackend.SupportsUpgrade() {
+			caps |= capability.PkgUpdate
+		}
 	}
 	if t.svcBackend != nil {
 		caps |= capability.Service

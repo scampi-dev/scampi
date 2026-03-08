@@ -288,7 +288,7 @@ func (m *MemTarget) Remove(_ context.Context, path string) error {
 }
 
 func (m *MemTarget) Capabilities() capability.Capability {
-	return capability.POSIX | capability.Pkg | capability.Service
+	return capability.POSIX | capability.Pkg | capability.PkgUpdate | capability.Service
 }
 
 func (m *MemTarget) IsInstalled(_ context.Context, pkg string) (bool, error) {

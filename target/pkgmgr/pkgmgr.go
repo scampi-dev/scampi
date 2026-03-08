@@ -16,6 +16,10 @@ type Backend struct {
 	CacheNeedsRoot bool   // whether cache refresh needs root
 }
 
+func (b *Backend) SupportsUpgrade() bool {
+	return b.UpdateCache != "" && b.IsUpgradable != ""
+}
+
 // backendsByFamily maps os-release ID/ID_LIKE values (and lowercased kernel
 // names like "darwin") to backends.
 var backendsByFamily = map[string]Backend{
