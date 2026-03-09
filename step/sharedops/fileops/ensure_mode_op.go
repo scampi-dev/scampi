@@ -61,10 +61,12 @@ func (op *EnsureModeOp) Check(
 }
 
 func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
-	fsTgt := target.Must[target.Filesystem](ensureModeID, tgt)
-	fmTgt := target.Must[target.FileMode](ensureModeID, tgt)
+	t := target.Must[interface {
+		target.Filesystem
+		target.FileMode
+	}](ensureModeID, tgt)
 
-	info, err := fsTgt.Stat(ctx, op.Path)
+	info, err := t.Stat(ctx, op.Path)
 	if err != nil {
 		if target.IsNotExist(err) {
 			// file should exist - copyFileOp is a dependency and should have created it
@@ -80,7 +82,7 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 
 	changed := info.Mode().Perm() != op.Mode.Perm()
 
-	if err := fmTgt.Chmod(ctx, op.Path, op.Mode); err != nil {
+	if err := t.Chmod(ctx, op.Path, op.Mode); err != nil {
 		// Can't catch during Check: file may not exist yet, and probing
 		// write-permission would mutate state in a read-only phase.
 		if target.IsPermission(err) {

@@ -123,10 +123,12 @@ func (op *ensureSymlinkOp) Check(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	fsTgt := target.Must[target.Filesystem](id, tgt)
-	slTgt := target.Must[target.Symlink](id, tgt)
+	t := target.Must[interface {
+		target.Filesystem
+		target.Symlink
+	}](id, tgt)
 
-	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.link)); err != nil {
+	if _, err := t.Stat(ctx, filepath.Dir(op.link)); err != nil {
 		return spec.CheckUnsatisfied, nil, LinkDirMissingError{
 			Path:   filepath.Dir(op.link),
 			Err:    err,
@@ -143,7 +145,7 @@ func (op *ensureSymlinkOp) Check(
 		}
 	}
 
-	info, err := slTgt.Lstat(ctx, op.link)
+	info, err := t.Lstat(ctx, op.link)
 	if err != nil {
 		if target.IsNotExist(err) {
 			return spec.CheckUnsatisfied, []spec.DriftDetail{{
@@ -166,7 +168,7 @@ func (op *ensureSymlinkOp) Check(
 		}
 	}
 
-	current, err := slTgt.Readlink(ctx, op.link)
+	current, err := t.Readlink(ctx, op.link)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, LinkReadError{
 			Path:   op.link,
@@ -187,15 +189,17 @@ func (op *ensureSymlinkOp) Check(
 }
 
 func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
-	fsTgt := target.Must[target.Filesystem](id, tgt)
-	slTgt := target.Must[target.Symlink](id, tgt)
+	t := target.Must[interface {
+		target.Filesystem
+		target.Symlink
+	}](id, tgt)
 
 	relTarget, err := resolveTarget(op.target, op.link)
 	if err != nil {
 		return spec.Result{}, err
 	}
 
-	info, err := slTgt.Lstat(ctx, op.link)
+	info, err := t.Lstat(ctx, op.link)
 	if err == nil {
 		if info.Mode()&fs.ModeSymlink == 0 {
 			// Dest exists but is not a symlink, we won't touch those
@@ -206,13 +210,13 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 		}
 
 		// Dest is a symlink - check if correct
-		current, _ := slTgt.Readlink(ctx, op.link)
+		current, _ := t.Readlink(ctx, op.link)
 		if current == relTarget {
 			return spec.Result{Changed: false}, nil
 		}
 
 		// Remove existing (symlink with wrong target, or other file type)
-		if err := fsTgt.Remove(ctx, op.link); err != nil {
+		if err := t.Remove(ctx, op.link); err != nil {
 			if target.IsPermission(err) {
 				return spec.Result{}, sharedops.PermissionDeniedError{
 					Operation: "remove " + op.link,
@@ -225,7 +229,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 	}
 
 	// Create symlink
-	if err := slTgt.Symlink(ctx, relTarget, op.link); err != nil {
+	if err := t.Symlink(ctx, relTarget, op.link); err != nil {
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedops.PermissionDeniedError{
 				Operation: "symlink " + op.link,

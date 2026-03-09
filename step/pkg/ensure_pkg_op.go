@@ -129,10 +129,12 @@ func (op *ensureLatestPkgOp) Check(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
-	pu := target.Must[target.PkgUpdater](ensurePkgID, tgt)
+	t := target.Must[interface {
+		target.PkgManager
+		target.PkgUpdater
+	}](ensurePkgID, tgt)
 
-	if err := pu.UpdateCache(ctx); err != nil {
+	if err := t.UpdateCache(ctx); err != nil {
 		return spec.CheckUnsatisfied, nil, PkgCacheError{
 			Stderr: err.Error(),
 			Source: op.pkgsSource,
@@ -141,7 +143,7 @@ func (op *ensureLatestPkgOp) Check(
 
 	var drift []spec.DriftDetail
 	for _, pkg := range op.packages {
-		installed, err := pm.IsInstalled(ctx, pkg)
+		installed, err := t.IsInstalled(ctx, pkg)
 		if err != nil {
 			return spec.CheckUnsatisfied, nil, err
 		}
@@ -153,7 +155,7 @@ func (op *ensureLatestPkgOp) Check(
 				Desired: "latest",
 			})
 		} else {
-			upgradable, err := pu.IsUpgradable(ctx, pkg)
+			upgradable, err := t.IsUpgradable(ctx, pkg)
 			if err != nil {
 				return spec.CheckUnsatisfied, nil, err
 			}
@@ -174,12 +176,14 @@ func (op *ensureLatestPkgOp) Check(
 }
 
 func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
-	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
-	pu := target.Must[target.PkgUpdater](ensurePkgID, tgt)
+	t := target.Must[interface {
+		target.PkgManager
+		target.PkgUpdater
+	}](ensurePkgID, tgt)
 
 	var actionable []string
 	for _, pkg := range op.packages {
-		installed, err := pm.IsInstalled(ctx, pkg)
+		installed, err := t.IsInstalled(ctx, pkg)
 		if err != nil {
 			return spec.Result{}, err
 		}
@@ -187,7 +191,7 @@ func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt t
 		if !installed {
 			actionable = append(actionable, pkg)
 		} else {
-			upgradable, err := pu.IsUpgradable(ctx, pkg)
+			upgradable, err := t.IsUpgradable(ctx, pkg)
 			if err != nil {
 				return spec.Result{}, err
 			}
@@ -201,7 +205,7 @@ func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt t
 		return spec.Result{Changed: false}, nil
 	}
 
-	if err := pm.InstallPkgs(ctx, actionable); err != nil {
+	if err := t.InstallPkgs(ctx, actionable); err != nil {
 		return spec.Result{}, PkgInstallError{
 			Pkgs:   actionable,
 			Stderr: err.Error(),
