@@ -4,8 +4,8 @@
 !.golangci.yml
 !.gomarklint.json
 
-# Github workflows
-!/.github/
+# CI
+!/.forgejo/
 
 # Developer environments
 !.dev/
