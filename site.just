@@ -11,9 +11,9 @@ dev:
   cd site && {{hugo}} server -D -e production
 
 [doc("Package site for deployment")]
-dist: build
-  mkdir -p build/site-dist
-  tar czf build/site-dist/site.tar.gz -C build/site .
+dist outdir="build/site-dist": build
+  mkdir -p {{outdir}}
+  tar czf {{outdir}}/site.tar.gz -C build/site .
 
 [doc("Lint markdown content")]
 lint:

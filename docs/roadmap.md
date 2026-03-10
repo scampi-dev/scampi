@@ -578,15 +578,27 @@ Things that aren't blocking anything but would be nice to get to.
   `--recipients` (inline CSV) or `--recipients-file` override, otherwise
   look for `<project_root>/.scampi/recipients` then
   `<project_root>/.recipients`. Each line is an age public key.
-- **`check` across barriers.** When a `run` step's check reports "would change",
-  downstream steps that depend on it will fail because the side effect hasn't
-  happened. Instead of hard errors, the engine should report these as "skipped —
-  depends on uncommitted changes." Requires the check phase to propagate
-  "uncommitted" state through barrier edges.
+- **`check` across uncommitted changes.** When any step's check reports "would
+  change", downstream steps that depend on its side effects will fail because
+  the mutation hasn't happened yet. Example: a `dir` step "would create"
+  `/etc/caddy`, but the `template` step that writes `/etc/caddy/Caddyfile`
+  fails because the directory doesn't exist during check. Same problem with
+  `run` steps across barriers. Instead of hard errors, the engine should report
+  these as "skipped — depends on uncommitted changes." Requires the check phase
+  to propagate "uncommitted" state through dependency edges.
 - **Action-started feedback.** The CLI shows nothing between "plan finished" and
   the first action completing. Every action should announce itself when it starts
   executing, not just when it finishes — otherwise slow steps (apt installs,
   large file transfers) look like hangs.
+- **Service reload/restart.** The service step only supports `running`/`stopped`.
+  No way to reload or restart a service after config changes — currently requires
+  a `run(always=True)` workaround. Add `Reload()`/`Restart()` to
+  `ServiceManager` and support `reloaded`/`restarted` states, or fold it into
+  the handlers design.
+- **Scriptable configs.** Allow `scampi CONFIG apply` in addition to
+  `scampi apply CONFIG` — config file as first positional arg. Combined with a
+  `#!/usr/bin/env scampi` shebang and `+x`, configs become self-contained
+  executables: `./site.star apply`, `./site.star check`, `./site.star plan`.
 - **Error message consistency pass.** Go through all error messages codebase-wide
   and make them self-documenting: say what's wrong, show correct syntax using
   values the user already provided.
