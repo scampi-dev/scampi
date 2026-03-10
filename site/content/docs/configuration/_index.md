@@ -12,7 +12,7 @@ A target defines where steps execute. Currently supported:
 
 ### Local
 
-```python
+```python {filename="deploy.star"}
 target.local(name="my-machine")
 ```
 
@@ -21,7 +21,7 @@ only be one local target — you only have one local machine.
 
 ### SSH
 
-```python
+```python {filename="deploy.star"}
 target.ssh(
     name = "web",
     host = "app.example.com",
@@ -90,7 +90,7 @@ Secrets are managed through a two-step setup: configure a backend with
 
 ### Configure a backend
 
-```python
+```python {filename="deploy.star"}
 secrets(backend="age", path="secrets.age.json")
 ```
 
@@ -124,7 +124,7 @@ a template that writes it into a file).
 
 Use `load()` to split configs across files:
 
-```python
+```python {filename="deploy.star"}
 load("targets.star", "web", "db")
 
 deploy(

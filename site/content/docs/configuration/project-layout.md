@@ -10,14 +10,12 @@ well as projects grow.
 
 A single file is enough:
 
-```
-myproject/
-├── deploy.star
-└── nginx.conf
-```
+{{< filetree/container >}}
+  {{< filetree/file name="deploy.star" >}}
+  {{< filetree/file name="nginx.conf" >}}
+{{< /filetree/container >}}
 
-```python
-# deploy.star
+```python {filename="deploy.star"}
 target.local(name="dev")
 
 deploy(
@@ -30,8 +28,7 @@ deploy(
 )
 ```
 
-```nginx
-# nginx.conf
+```nginx {filename="nginx.conf"}
 worker_processes auto;
 
 events {
@@ -50,24 +47,23 @@ http {
 
 Separate targets from deploy logic:
 
-```
-myproject/
-├── targets.star
-├── deploy.star
-├── files/
-│   ├── nginx.conf
-│   └── app.env
-└── templates/
-    └── Caddyfile.tmpl
-```
+{{< filetree/container >}}
+  {{< filetree/file name="targets.star" >}}
+  {{< filetree/file name="deploy.star" >}}
+  {{< filetree/folder name="files" >}}
+    {{< filetree/file name="nginx.conf" >}}
+    {{< filetree/file name="app.env" >}}
+  {{< /filetree/folder >}}
+  {{< filetree/folder name="templates" >}}
+    {{< filetree/file name="Caddyfile.tmpl" >}}
+  {{< /filetree/folder >}}
+{{< /filetree/container >}}
 
-```python
-# targets.star
+```python {filename="targets.star"}
 target.ssh(name="web", host="app.example.com", user="deploy")
 ```
 
-```python
-# deploy.star
+```python {filename="deploy.star"}
 load("targets.star", "web")
 
 deploy(
@@ -87,14 +83,12 @@ deploy(
 )
 ```
 
-```
-# files/app.env
+```text {filename="files/app.env"}
 NODE_ENV=production
 PORT=3000
 ```
 
-```
-# templates/Caddyfile.tmpl
+```text {filename="templates/Caddyfile.tmpl"}
 {{ .domain }} {
     reverse_proxy localhost:3000
 }
@@ -104,27 +98,27 @@ PORT=3000
 
 Group by concern when managing multiple services:
 
-```
-infra/
-├── targets.star
-├── web.star
-├── db.star
-├── monitoring.star
-├── files/
-│   └── ...
-└── templates/
-    └── ...
-```
+{{< filetree/container >}}
+  {{< filetree/file name="targets.star" >}}
+  {{< filetree/file name="web.star" >}}
+  {{< filetree/file name="db.star" >}}
+  {{< filetree/file name="monitoring.star" >}}
+  {{< filetree/folder name="files" >}}
+    {{< filetree/file name="nginx.conf" >}}
+    {{< filetree/file name="pg_hba.conf" >}}
+  {{< /filetree/folder >}}
+  {{< filetree/folder name="templates" >}}
+    {{< filetree/file name="prometheus.yml.tmpl" >}}
+  {{< /filetree/folder >}}
+{{< /filetree/container >}}
 
-```python
-# targets.star
+```python {filename="targets.star"}
 target.ssh(name="web", host="web.example.com", user="deploy")
 target.ssh(name="db", host="db.example.com", user="deploy")
 target.ssh(name="mon", host="mon.example.com", user="deploy")
 ```
 
-```python
-# web.star
+```python {filename="web.star"}
 load("targets.star", "web")
 
 deploy(
@@ -138,8 +132,7 @@ deploy(
 )
 ```
 
-```python
-# db.star
+```python {filename="db.star"}
 load("targets.star", "db")
 
 deploy(
@@ -153,8 +146,7 @@ deploy(
 )
 ```
 
-```python
-# monitoring.star
+```python {filename="monitoring.star"}
 load("targets.star", "mon")
 
 deploy(
@@ -179,25 +171,24 @@ deploy(
 Split into directories per environment. Use Starlark functions to define steps
 once and vary the data per environment:
 
-```
-infra/
-├── shared/
-│   ├── targets.star
-│   └── web.star
-├── production.star
-├── staging.star
-└── templates/
-    └── nginx.conf.tmpl
-```
+{{< filetree/container >}}
+  {{< filetree/folder name="shared" >}}
+    {{< filetree/file name="targets.star" >}}
+    {{< filetree/file name="web.star" >}}
+  {{< /filetree/folder >}}
+  {{< filetree/file name="production.star" >}}
+  {{< filetree/file name="staging.star" >}}
+  {{< filetree/folder name="templates" >}}
+    {{< filetree/file name="nginx.conf.tmpl" >}}
+  {{< /filetree/folder >}}
+{{< /filetree/container >}}
 
-```python
-# shared/targets.star
+```python {filename="shared/targets.star"}
 target.ssh(name="prod-web", host="web.prod.example.com", user="deploy")
 target.ssh(name="staging-web", host="web.staging.example.com", user="deploy")
 ```
 
-```python
-# shared/web.star — defines the steps once
+```python {filename="shared/web.star"}
 def web_steps(domain):
     return [
         pkg(packages=["nginx"], state="present"),
@@ -211,16 +202,14 @@ def web_steps(domain):
     ]
 ```
 
-```python
-# production.star — just wiring
+```python {filename="production.star"}
 load("shared/targets.star", "prod-web")
 load("shared/web.star", "web_steps")
 
 deploy(name="prod-web", targets=["prod-web"], steps=web_steps("prod.example.com"))
 ```
 
-```python
-# staging.star — same steps, different values
+```python {filename="staging.star"}
 load("shared/targets.star", "staging-web")
 load("shared/web.star", "web_steps")
 

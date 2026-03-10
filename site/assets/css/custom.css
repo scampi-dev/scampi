@@ -1,3 +1,17 @@
+/* Gruvbox color overrides */
+:root {
+  --primary-hue: 40deg;
+  --primary-saturation: 60%;
+  --primary-lightness: 50%;
+}
+
+.dark {
+  --primary-hue: 25deg;
+  --primary-saturation: 70%;
+  --primary-lightness: 55%;
+  --color-dark: #282828;
+}
+
 nav a[href*="docs"],
 nav a[href*="docs"] * {
   font-weight: 600 !important;

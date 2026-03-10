@@ -20,9 +20,11 @@ The binary lands at `./build/bin/scampi`.
 
 ## Your first config
 
-Create a file called `deploy.star`:
+{{% steps %}}
 
-```python
+### Create a config file
+
+```python {filename="deploy.star"}
 target.local(name="my-machine")
 
 deploy(
@@ -39,7 +41,7 @@ deploy(
 )
 ```
 
-## Check what would change
+### Check what would change
 
 Dry-run to see what scampi would do without making changes:
 
@@ -50,7 +52,7 @@ scampi check deploy.star
 Scampi inspects the current state and reports what differs from your declared
 config. Yellow means something would change. Green means it already matches.
 
-## Apply
+### Apply
 
 ```bash
 scampi apply deploy.star
@@ -59,11 +61,13 @@ scampi apply deploy.star
 Run it again — everything should be green. That's convergence: the system already
 matches your declared state, so there's nothing to do.
 
+{{% /steps %}}
+
 ## Add a remote target
 
 To manage a remote machine over SSH, add a target:
 
-```python
+```python {filename="remote.star"}
 target.ssh(name="web", host="192.168.1.10", user="deploy")
 
 deploy(

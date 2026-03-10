@@ -62,9 +62,9 @@ template(
 )
 ```
 
-With `nginx.conf.tmpl`:
+With the template file:
 
-```
+```text {filename="templates/nginx.conf.tmpl"}
 server {
     listen 80;
     server_name {{ .values.server_name }};
@@ -117,7 +117,7 @@ template(
 
 In the template, environment variables are accessible under `.env`:
 
-```
+```text {filename="app.env.tmpl"}
 APP_NAME={{ .values.app_name }}
 DB_PASSWORD={{ .env.db_password }}
 ```
