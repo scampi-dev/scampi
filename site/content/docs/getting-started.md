@@ -11,7 +11,7 @@ configuration.
 Build from source (requires Go 1.25+):
 
 ```bash
-git clone https://github.com/pskry/scampi.git
+git clone https://codeberg.org/pskry/scampi.git
 cd scampi
 just build
 ```
