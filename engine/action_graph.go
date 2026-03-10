@@ -2,7 +2,11 @@
 
 package engine
 
-import "scampi.dev/scampi/spec"
+import (
+	"strings"
+
+	"scampi.dev/scampi/spec"
+)
 
 // actionNode represents an action in the dependency graph.
 type actionNode struct {
@@ -32,32 +36,56 @@ func buildActionGraph(actions []spec.Action) []*actionNode {
 		}
 	}
 
-	// For each action that reads a path, depend on the writer
+	// For each action that reads a path, depend on the writer.
+	// For each action that writes to a path, depend on the action that
+	// creates its parent directory (path-prefix matching).
 	for _, n := range nodes {
-		if p, ok := n.action.(spec.Pather); ok {
-			for _, in := range p.InputPaths() {
-				if writer := writers[in]; writer != nil && writer != n {
-					n.requires = append(n.requires, writer)
-					writer.requiredBy = append(writer.requiredBy, n)
+		p, ok := n.action.(spec.Pather)
+		if !ok {
+			continue
+		}
+		for _, in := range p.InputPaths() {
+			if writer := writers[in]; writer != nil && writer != n {
+				addEdge(writer, n)
+			}
+		}
+		for _, out := range p.OutputPaths() {
+			for dir, writer := range writers {
+				if writer != n && strings.HasPrefix(out, dir+"/") {
+					addEdge(writer, n)
 				}
 			}
 		}
 	}
 
-	// Actions without Pather run sequentially (each depends on previous)
-	// to preserve fail-fast for unknown side effects
-	var prevNonPather *actionNode
-	for _, n := range nodes {
-		if _, ok := n.action.(spec.Pather); !ok {
-			if prevNonPather != nil {
-				n.requires = append(n.requires, prevNonPather)
-				prevNonPather.requiredBy = append(prevNonPather.requiredBy, n)
-			}
-			prevNonPather = n
+	// Non-Pather actions (e.g. run steps) act as barriers: they depend on
+	// all preceding actions, and all subsequent actions depend on them.
+	// The engine can't see what an opaque command reads or writes, so it
+	// must not reorder anything across it — same idea as a memory fence.
+	for i, n := range nodes {
+		if _, ok := n.action.(spec.Pather); ok {
+			continue
+		}
+		for _, prev := range nodes[:i] {
+			addEdge(prev, n)
+		}
+		for _, next := range nodes[i+1:] {
+			addEdge(n, next)
 		}
 	}
 
 	return nodes
+}
+
+// addEdge adds a dependency edge from -> to, skipping duplicates.
+func addEdge(from, to *actionNode) {
+	for _, r := range to.requires {
+		if r == from {
+			return
+		}
+	}
+	to.requires = append(to.requires, from)
+	from.requiredBy = append(from.requiredBy, to)
 }
 
 // initActionPending sets pending counts based on unmet requirements.

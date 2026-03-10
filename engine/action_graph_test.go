@@ -76,7 +76,7 @@ func TestBuildActionGraph_PathDependency(t *testing.T) {
 }
 
 func TestBuildActionGraph_NonPatherSequential(t *testing.T) {
-	// Non-Pather actions run sequentially
+	// Non-Pather actions are barriers — each drains all preceding actions
 	actions := []spec.Action{
 		&mockAction{desc: "A"},
 		&mockAction{desc: "B"},
@@ -85,24 +85,21 @@ func TestBuildActionGraph_NonPatherSequential(t *testing.T) {
 
 	nodes := buildActionGraph(actions)
 
-	// A has no deps
+	// A: no deps (first action)
 	if len(nodes[0].requires) != 0 {
 		t.Error("A should have no dependencies")
 	}
 
-	// B depends on A
-	if len(nodes[1].requires) != 1 || nodes[1].requires[0] != nodes[0] {
-		t.Error("B should depend on A")
-	}
+	// B: depends on A
+	requiresExactly(t, nodes[1], "B", nodes[0])
 
-	// C depends on B
-	if len(nodes[2].requires) != 1 || nodes[2].requires[0] != nodes[1] {
-		t.Error("C should depend on B")
-	}
+	// C: depends on A and B (barrier drains all preceding)
+	requiresExactly(t, nodes[2], "C", nodes[0], nodes[1])
 }
 
-func TestBuildActionGraph_MixedPatherAndNonPather(t *testing.T) {
-	// Pather actions are independent, non-Pather are sequential among themselves
+func TestBuildActionGraph_NonPatherBarrier(t *testing.T) {
+	// Non-Pather actions are barriers: everything before must complete,
+	// everything after must wait.
 	actions := []spec.Action{
 		&mockPatherAction{desc: "P1", outputs: []string{"/p1"}},
 		&mockAction{desc: "N1"},
@@ -117,19 +114,33 @@ func TestBuildActionGraph_MixedPatherAndNonPather(t *testing.T) {
 		t.Error("P1 should have no dependencies")
 	}
 
-	// N1: no deps (first non-Pather)
-	if len(nodes[1].requires) != 0 {
-		t.Error("N1 should have no dependencies")
-	}
+	// N1: depends on P1 (barrier drains all preceding)
+	requiresExactly(t, nodes[1], "N1", nodes[0])
 
-	// P2: no deps (independent Pather)
-	if len(nodes[2].requires) != 0 {
-		t.Error("P2 should have no dependencies")
-	}
+	// P2: depends on N1 (barrier blocks all subsequent)
+	requiresExactly(t, nodes[2], "P2", nodes[1])
 
-	// N2: depends on N1 (second non-Pather)
-	if len(nodes[3].requires) != 1 || nodes[3].requires[0] != nodes[1] {
-		t.Error("N2 should depend on N1")
+	// N2: depends on P1, N1, P2 (second barrier drains all preceding)
+	requiresExactly(t, nodes[3], "N2", nodes[0], nodes[1], nodes[2])
+}
+
+func requiresExactly(t *testing.T, n *actionNode, name string, expected ...*actionNode) {
+	t.Helper()
+	if len(n.requires) != len(expected) {
+		t.Errorf("%s: expected %d dependencies, got %d", name, len(expected), len(n.requires))
+		return
+	}
+	for _, e := range expected {
+		found := false
+		for _, r := range n.requires {
+			if r == e {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("%s: missing expected dependency on %s", name, e.action.Desc())
+		}
 	}
 }
 
@@ -157,6 +168,22 @@ func TestBuildActionGraph_ChainedDependencies(t *testing.T) {
 	if len(nodes[2].requires) != 1 || nodes[2].requires[0] != nodes[1] {
 		t.Error("C should depend on B")
 	}
+}
+
+func TestBuildActionGraph_ParentDirDependency(t *testing.T) {
+	// dir creates /home/user/.ssh, copy writes /home/user/.ssh/authorized_keys
+	// -> copy should depend on dir (parent directory)
+	actions := []spec.Action{
+		&mockPatherAction{desc: "dir", outputs: []string{"/home/user/.ssh"}},
+		&mockPatherAction{
+			desc: "copy", inputs: []string{"./keys"},
+			outputs: []string{"/home/user/.ssh/authorized_keys"},
+		},
+	}
+
+	nodes := buildActionGraph(actions)
+
+	requiresExactly(t, nodes[1], "copy", nodes[0])
 }
 
 func TestInitActionPending(t *testing.T) {

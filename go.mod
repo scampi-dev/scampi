@@ -11,13 +11,11 @@ tool (
 require (
 	filippo.io/age v1.3.1
 	github.com/charmbracelet/x/term v0.2.1
-	github.com/golangci/golangci-lint/v2 v2.9.0
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/pkg/sftp v1.13.10
 	github.com/urfave/cli/v3 v3.6.1
 	go.starlark.net v0.0.0-20260210143700-b62fd896b91b
 	golang.org/x/crypto v0.48.0
-	golang.org/x/perf v0.0.0-20260112171951-5abaabe9f1bd
 	golang.org/x/sync v0.19.0
 	golang.org/x/tools v0.42.0
 )
@@ -103,6 +101,7 @@ require (
 	github.com/golangci/dupl v0.0.0-20250308024227-f665c8d69b32 // indirect
 	github.com/golangci/go-printf-func-name v0.1.1 // indirect
 	github.com/golangci/gofmt v0.0.0-20250106114630-d62b90e6713d // indirect
+	github.com/golangci/golangci-lint/v2 v2.9.0 // indirect
 	github.com/golangci/golines v0.15.0 // indirect
 	github.com/golangci/misspell v0.8.0 // indirect
 	github.com/golangci/plugin-module-register v0.1.2 // indirect
@@ -221,6 +220,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20251125195548-87e1e737ad39 // indirect
 	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/perf v0.0.0-20260112171951-5abaabe9f1bd // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
