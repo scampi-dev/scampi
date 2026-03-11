@@ -72,7 +72,7 @@ func New(opts Options, store *spec.SourceStore) render.Displayer {
 	return &cli{
 		opts:         opts,
 		store:        store,
-		render:       newRenderer(os.Stdout, os.Stderr),
+		render:       newRenderer(os.Stdout, os.Stderr, isTTY, glyphs, fmt),
 		glyphs:       glyphs,
 		isTTY:        isTTY,
 		width:        width,
@@ -143,13 +143,30 @@ func (c *cli) EmitPlanLifecycle(e event.PlanEvent) {
 }
 
 func (c *cli) EmitActionLifecycle(e event.ActionEvent) {
-	if !c.shouldRender(e.Chattiness) {
-		return
-	}
 	switch e.Kind {
 	case event.ActionStarted:
-		// intentionally ignored
+		st := c.ensureActionFromStep(e.Step)
+		if c.isTTY {
+			c.render.sendLive(liveUpdate{
+				kind: liveActionStarted,
+				id:   st.id,
+				desc: e.Step.StepDesc,
+			})
+		} else {
+			c.commitRenderEvents([]renderEvent{{
+				stream: streamOut,
+				line:   c.formatter.fmtfMsg(colSpinner, "[%s] started...", st.id),
+			}})
+		}
 	case event.ActionFinished:
+		st := c.ensureActionFromStep(e.Step)
+		c.render.sendLive(liveUpdate{
+			kind: liveActionFinished,
+			id:   st.id,
+		})
+		if !c.shouldRender(e.Chattiness) {
+			return
+		}
 		c.commitRenderEvents(c.renderActionFinished(e))
 	default:
 		panic(errs.BUG("unknown action event kind %q (0x%02x)", e.Kind, uint8(e.Kind)))

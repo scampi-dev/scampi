@@ -33,6 +33,8 @@ type glyphSet struct {
 	parallelMid   string
 	parallelBot   string
 	parallelLabel string
+
+	spinnerFrames []string
 }
 
 var (
@@ -67,6 +69,8 @@ var (
 		parallelMid:   "│",
 		parallelBot:   "╯",
 		parallelLabel: "⏸",
+
+		spinnerFrames: []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 	}
 
 	asciiGlyphs = glyphSet{
@@ -100,6 +104,8 @@ var (
 		parallelMid:   ")",
 		parallelBot:   ")",
 		parallelLabel: "\"",
+
+		spinnerFrames: []string{"|", "/", "-", "\\"},
 	}
 )
 

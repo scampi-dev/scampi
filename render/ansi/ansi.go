@@ -109,3 +109,18 @@ func (a ANSI) BgBrightBlue() ANSI    { return a.add(104) }
 func (a ANSI) BgBrightMagenta() ANSI { return a.add(105) }
 func (a ANSI) BgBrightCyan() ANSI    { return a.add(106) }
 func (a ANSI) BgBrightWhite() ANSI   { return a.add(107) }
+
+// Cursor control
+// -----------------------------------------------------------------------------
+
+const (
+	EraseLine  = "\x1b[2K"
+	EraseToEnd = "\x1b[J"
+)
+
+func CursorUp(n int) string {
+	if n <= 0 {
+		return ""
+	}
+	return "\x1b[" + strconv.Itoa(n) + "A"
+}

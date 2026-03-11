@@ -43,6 +43,8 @@ var (
 	colPlanDeps    = ansi.BrightBlack().Dim()
 	colPlanBracket = ansi.BrightBlack().Dim()
 
+	colSpinner = ansi.Cyan().Dim()
+
 	colDiagMsg      = ansi.Red()
 	colDiagHelp     = ansi.Cyan()
 	colSourceGutter = ansi.BrightBlack()
