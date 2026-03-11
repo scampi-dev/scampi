@@ -5,8 +5,10 @@ package engine
 import (
 	"cmp"
 	"context"
+	"errors"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -67,6 +69,11 @@ type scheduler struct {
 	actKind   string
 	actDesc   string
 	checkOnly bool // true for check command (affects op event chattiness)
+
+	// promisedPaths holds paths that upstream actions have promised to create.
+	// Used during check mode to defer abort errors for missing directories
+	// that would be created by earlier actions.
+	promisedPaths map[string]bool
 
 	mu      sync.Mutex
 	results []spec.Result
@@ -149,6 +156,23 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 
 			res, drift, err := n.op.Check(ctx, s.src, s.tgt)
 			if err != nil {
+				if s.isDeferred(err) {
+					s.mu.Lock()
+					n.outcome = model.OpWouldChange
+					s.mu.Unlock()
+					s.em.EmitOpLifecycle(diagnostic.OpChecked(
+						s.actIdx,
+						s.actKind,
+						s.actDesc,
+						displayID,
+						spec.CheckUnsatisfied,
+						nil,
+						s.checkOnly,
+						nil,
+					))
+					return nil
+				}
+
 				impact, consumed := emitOpDiagnostic(s.em, s.actIdx, s.actKind, s.actDesc, displayID, err)
 
 				s.em.EmitOpLifecycle(diagnostic.OpChecked(
@@ -206,6 +230,30 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 	return g.Wait()
 }
 
+// isDeferred returns true when err references a missing path that an upstream
+// action has already promised to create.
+func (s *scheduler) isDeferred(err error) bool {
+	if len(s.promisedPaths) == 0 {
+		return false
+	}
+	var dp diagnostic.DeferrablePath
+	if !errors.As(err, &dp) {
+		return false
+	}
+	path := dp.DeferredPath()
+	if s.promisedPaths[path] {
+		return true
+	}
+	// A promised path like /foo/bar implies /foo will also exist
+	// (MkdirAll semantics), so check if any promised path is a descendant.
+	for pp := range s.promisedPaths {
+		if strings.HasPrefix(pp, path+"/") {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *scheduler) initPending(nodes []*opNode) {
 	for _, n := range nodes {
 		n.pending = 0
@@ -249,16 +297,23 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 	}
 
 	var mu sync.Mutex
+	promisedPaths := map[string]bool{}
 	grp, gctx := errgroup.WithContext(ctx)
 
 	var scheduleNode func(n *actionNode)
 	scheduleNode = func(n *actionNode) {
+		// Snapshot promised paths for this action under the lock
+		pp := make(map[string]bool, len(promisedPaths))
+		for k := range promisedPaths {
+			pp[k] = true
+		}
+
 		grp.Go(func() error {
 			if err := gctx.Err(); err != nil {
 				return err
 			}
 
-			res, err := e.checkAction(gctx, n.idx, n.action)
+			res, err := e.checkAction(gctx, n.idx, n.action, pp)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -267,6 +322,16 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 			if err != nil {
 				rep.Err = err
 				return err
+			}
+
+			// If this action would change something and declares output
+			// paths, add them to the promised set for downstream actions.
+			if res.Summary.WouldChange > 0 {
+				if p, ok := n.action.(spec.Pather); ok {
+					for _, out := range p.OutputPaths() {
+						promisedPaths[out] = true
+					}
+				}
 			}
 
 			// Unblock actions that were waiting for this one
@@ -297,7 +362,12 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 	return rep, err
 }
 
-func (e *Engine) checkAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {
+func (e *Engine) checkAction(
+	ctx context.Context,
+	idx int,
+	act spec.Action,
+	promisedPaths map[string]bool,
+) (model.ActionReport, error) {
 	start := time.Now()
 	kind := act.Kind()
 	desc := act.Desc()
@@ -306,7 +376,7 @@ func (e *Engine) checkAction(ctx context.Context, idx int, act spec.Action) (mod
 	actCtx, cancel := context.WithTimeout(ctx, actionTimeout)
 	defer cancel()
 
-	res, err := e.runCheckAction(actCtx, idx, act)
+	res, err := e.runCheckAction(actCtx, idx, act, promisedPaths)
 
 	e.em.EmitActionLifecycle(
 		diagnostic.ActionFinished(
@@ -326,20 +396,26 @@ func (e *Engine) checkAction(ctx context.Context, idx int, act spec.Action) (mod
 	return res, nil
 }
 
-func (e *Engine) runCheckAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {
+func (e *Engine) runCheckAction(
+	ctx context.Context,
+	idx int,
+	act spec.Action,
+	promisedPaths map[string]bool,
+) (model.ActionReport, error) {
 	nodes, planErr := buildPlan(act.Ops())
 	if planErr != nil {
 		return model.ActionReport{}, planErr
 	}
 
 	s := &scheduler{
-		src:       e.src,
-		tgt:       e.tgt,
-		em:        e.em,
-		actIdx:    idx,
-		actKind:   act.Kind(),
-		actDesc:   act.Desc(),
-		checkOnly: true,
+		src:           e.src,
+		tgt:           e.tgt,
+		em:            e.em,
+		actIdx:        idx,
+		actKind:       act.Kind(),
+		actDesc:       act.Desc(),
+		checkOnly:     true,
+		promisedPaths: promisedPaths,
 	}
 	s.grp, s.ctx = errgroup.WithContext(ctx)
 

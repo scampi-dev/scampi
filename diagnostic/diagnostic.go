@@ -44,6 +44,13 @@ func (i Impact) ShouldAbort() bool {
 	return i == ImpactAbort
 }
 
+// DeferrablePath is implemented by errors that reference a missing path which
+// could be created by an upstream action. The engine uses this to defer aborts
+// during check mode when the path is already promised.
+type DeferrablePath interface {
+	DeferredPath() string
+}
+
 type (
 	Emitter interface {
 		EmitEngineLifecycle(e event.EngineEvent)
