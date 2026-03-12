@@ -73,6 +73,9 @@ type (
 		Enable(ctx context.Context, name string) error
 		Disable(ctx context.Context, name string) error
 		DaemonReload(ctx context.Context) error
+		Restart(ctx context.Context, name string) error
+		Reload(ctx context.Context, name string) error
+		SupportsReload() bool
 	}
 	CommandResult struct {
 		Stdout   string

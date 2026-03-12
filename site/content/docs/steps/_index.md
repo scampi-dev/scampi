@@ -15,7 +15,7 @@ This shows up in CLI output and is useful when you have many similar steps.
   {{< card link="copy" title="copy" subtitle="Copy files with owner and permission management" >}}
   {{< card link="dir" title="dir" subtitle="Ensure a directory exists" >}}
   {{< card link="pkg" title="pkg" subtitle="Manage system packages" >}}
-  {{< card link="service" title="service" subtitle="Manage systemd services" >}}
+  {{< card link="service" title="service" subtitle="Manage services (systemd, OpenRC, launchctl)" >}}
   {{< card link="symlink" title="symlink" subtitle="Create and manage symbolic links" >}}
   {{< card link="template" title="template" subtitle="Render templates with data substitution" >}}
   {{< card link="run" title="run" subtitle="Run arbitrary shell commands" >}}

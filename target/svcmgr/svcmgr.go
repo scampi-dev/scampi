@@ -19,6 +19,8 @@ type Backend interface {
 	CmdEnable(name string) string
 	CmdDisable(name string) string
 	CmdDaemonReload() string // "" = not applicable
+	CmdRestart(name string) string
+	CmdReload(name string) string // "" = not supported
 }
 
 // ShellQuote wraps s in single quotes, escaping embedded single quotes.
@@ -38,6 +40,8 @@ type templateBackend struct {
 	enable       string
 	disable      string
 	daemonReload string
+	restart      string
+	reload       string // "" = not supported
 	needsRoot    bool
 }
 
@@ -70,6 +74,17 @@ func (b *templateBackend) CmdDisable(name string) string {
 
 func (b *templateBackend) CmdDaemonReload() string { return b.daemonReload }
 
+func (b *templateBackend) CmdRestart(name string) string {
+	return fmt.Sprintf(b.restart, ShellQuote(name))
+}
+
+func (b *templateBackend) CmdReload(name string) string {
+	if b.reload == "" {
+		return ""
+	}
+	return fmt.Sprintf(b.reload, ShellQuote(name))
+}
+
 // Built-in template backends
 // -----------------------------------------------------------------------------
 
@@ -83,6 +98,8 @@ var backends = map[string]*templateBackend{
 		enable:       "systemctl enable %s",
 		disable:      "systemctl disable %s",
 		daemonReload: "systemctl daemon-reload",
+		restart:      "systemctl restart %s",
+		reload:       "systemctl reload %s",
 		needsRoot:    true,
 	},
 	"openrc": {
@@ -93,6 +110,8 @@ var backends = map[string]*templateBackend{
 		stop:      "rc-service %s stop",
 		enable:    "rc-update add %s default",
 		disable:   "rc-update del %s default",
+		restart:   "rc-service %s restart",
+		reload:    "rc-service %s reload",
 		needsRoot: true,
 	},
 }

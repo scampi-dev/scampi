@@ -59,6 +59,12 @@ func (b *launchctlBackend) CmdDisable(name string) string {
 
 func (b *launchctlBackend) CmdDaemonReload() string { return "" }
 
+func (b *launchctlBackend) CmdRestart(name string) string {
+	return fmt.Sprintf("f=$(%s) && launchctl unload \"$f\" && launchctl load -w \"$f\"", plistFindExpr(name))
+}
+
+func (b *launchctlBackend) CmdReload(_ string) string { return "" }
+
 // plistFindExpr returns a shell snippet that finds <label>.plist in the
 // standard directories and prints its path. Evaluates to empty string (and
 // non-zero exit) if not found.

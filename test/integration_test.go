@@ -662,3 +662,45 @@ deploy(name="test", targets=["local"], steps=[
 		t.Error("file should be written after retry")
 	}
 }
+
+// TestIntegration_ReloadFallbackToRestart verifies that state="reloaded"
+// falls back to restart when the backend does not support reload.
+func TestIntegration_ReloadFallbackToRestart(t *testing.T) {
+	cfgStr := `
+target.local(name="local")
+
+deploy(name="test", targets=["local"], steps=[
+	service(
+		desc="reload-or-restart nginx",
+		name="nginx",
+		state="reloaded",
+	),
+])
+`
+	src := source.NewMemSource()
+	tgt := target.NewMemTarget()
+	tgt.Services["nginx"] = true
+	tgt.EnabledServices["nginx"] = true
+	tgt.ReloadUnsupported = true
+
+	rec := &recordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := spec.NewSourceStore()
+
+	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+	defer e.Close()
+
+	if err := e.Apply(context.Background()); err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+
+	if tgt.Restarts["nginx"] != 1 {
+		t.Errorf("expected 1 restart, got %d", tgt.Restarts["nginx"])
+	}
+	if tgt.Reloads["nginx"] != 0 {
+		t.Errorf("expected 0 reloads, got %d", tgt.Reloads["nginx"])
+	}
+}

@@ -42,6 +42,18 @@ func (t *SSHTarget) Disable(ctx context.Context, name string) error {
 	return t.runSvcCommand(ctx, t.svcBackend.CmdDisable(name), "disable")
 }
 
+func (t *SSHTarget) Restart(ctx context.Context, name string) error {
+	return t.runSvcCommand(ctx, t.svcBackend.CmdRestart(name), "restart")
+}
+
+func (t *SSHTarget) Reload(ctx context.Context, name string) error {
+	return t.runSvcCommand(ctx, t.svcBackend.CmdReload(name), "reload")
+}
+
+func (t *SSHTarget) SupportsReload() bool {
+	return t.svcBackend.CmdReload("_") != ""
+}
+
 func (t *SSHTarget) DaemonReload(ctx context.Context) error {
 	cmd := t.svcBackend.CmdDaemonReload()
 	if cmd == "" {

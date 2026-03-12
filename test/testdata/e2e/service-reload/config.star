@@ -1,0 +1,13 @@
+target.local(name="local")
+
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        service(
+            desc="reload nginx",
+            name="nginx",
+            state="reloaded",
+        ),
+    ],
+)

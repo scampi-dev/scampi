@@ -38,6 +38,8 @@ type E2EFiles struct {
 	Upgradable      map[string]bool             `json:"upgradable,omitempty"`      // pkg name -> has upgrade
 	Services        map[string]bool             `json:"services,omitempty"`        // service name -> active (running)
 	EnabledServices map[string]bool             `json:"enabledServices,omitempty"` // service name -> enabled at boot
+	Restarts        map[string]int              `json:"restarts,omitempty"`        // service name -> restart call count
+	Reloads         map[string]int              `json:"reloads,omitempty"`         // service name -> reload call count
 	Commands        map[string]E2ECommandResult `json:"commands,omitempty"`        // cmd string -> result
 }
 

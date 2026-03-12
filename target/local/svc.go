@@ -42,6 +42,18 @@ func (t POSIXTarget) Disable(ctx context.Context, name string) error {
 	return t.runSvcCommand(ctx, t.svcBackend.CmdDisable(name), "disable")
 }
 
+func (t POSIXTarget) Restart(ctx context.Context, name string) error {
+	return t.runSvcCommand(ctx, t.svcBackend.CmdRestart(name), "restart")
+}
+
+func (t POSIXTarget) Reload(ctx context.Context, name string) error {
+	return t.runSvcCommand(ctx, t.svcBackend.CmdReload(name), "reload")
+}
+
+func (t POSIXTarget) SupportsReload() bool {
+	return t.svcBackend.CmdReload("_") != ""
+}
+
 func (t POSIXTarget) DaemonReload(ctx context.Context) error {
 	cmd := t.svcBackend.CmdDaemonReload()
 	if cmd == "" {

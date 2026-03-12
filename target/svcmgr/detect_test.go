@@ -79,6 +79,8 @@ func TestTemplateBackendCommands(t *testing.T) {
 		{"systemd", "Enable", "nginx", "systemctl enable 'nginx'"},
 		{"systemd", "Disable", "nginx", "systemctl disable 'nginx'"},
 		{"systemd", "DaemonReload", "", "systemctl daemon-reload"},
+		{"systemd", "Restart", "nginx", "systemctl restart 'nginx'"},
+		{"systemd", "Reload", "nginx", "systemctl reload 'nginx'"},
 
 		{"openrc", "IsActive", "nginx", "rc-service 'nginx' status"},
 		{"openrc", "IsEnabled", "nginx", "rc-update show default | grep -q 'nginx'"},
@@ -87,6 +89,8 @@ func TestTemplateBackendCommands(t *testing.T) {
 		{"openrc", "Enable", "nginx", "rc-update add 'nginx' default"},
 		{"openrc", "Disable", "nginx", "rc-update del 'nginx' default"},
 		{"openrc", "DaemonReload", "", ""},
+		{"openrc", "Restart", "nginx", "rc-service 'nginx' restart"},
+		{"openrc", "Reload", "nginx", "rc-service 'nginx' reload"},
 	}
 
 	for _, tt := range tests {
@@ -174,6 +178,16 @@ func TestLaunchctlBackendCommands(t *testing.T) {
 	disable := b.CmdDisable("homebrew.mxcl.nginx")
 	if !strings.Contains(disable, "launchctl unload -w") {
 		t.Errorf("Disable should use 'launchctl unload -w', got %q", disable)
+	}
+
+	restart := b.CmdRestart("homebrew.mxcl.nginx")
+	if !strings.Contains(restart, "launchctl unload") || !strings.Contains(restart, "launchctl load -w") {
+		t.Errorf("Restart should unload then load, got %q", restart)
+	}
+
+	reload := b.CmdReload("homebrew.mxcl.nginx")
+	if reload != "" {
+		t.Errorf("Reload should be empty for launchctl, got %q", reload)
 	}
 }
 
@@ -265,6 +279,10 @@ func callMethod(b Backend, method, name string) string {
 		return b.CmdDisable(name)
 	case "DaemonReload":
 		return b.CmdDaemonReload()
+	case "Restart":
+		return b.CmdRestart(name)
+	case "Reload":
+		return b.CmdReload(name)
 	default:
 		panic("unknown method: " + method)
 	}

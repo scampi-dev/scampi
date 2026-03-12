@@ -1,0 +1,16 @@
+{
+  "target": {
+    "files": {},
+    "services": {
+      "nginx": true
+    },
+    "enabledServices": {
+      "nginx": true
+    },
+    "reloads": {
+      "nginx": 1
+    }
+  },
+  "changed": 1,
+  "memOnly": true
+}

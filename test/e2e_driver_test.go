@@ -194,6 +194,22 @@ func (d *MemDriver) Verify(t *testing.T, expect E2EFiles) {
 			t.Errorf("service %q: got enabled=%v, want enabled=%v", svc, gotEnabled, wantEnabled)
 		}
 	}
+
+	// Verify restart counts
+	for svc, wantCount := range expect.Restarts {
+		gotCount := d.tgt.Restarts[svc]
+		if gotCount != wantCount {
+			t.Errorf("service %q: got %d restarts, want %d", svc, gotCount, wantCount)
+		}
+	}
+
+	// Verify reload counts
+	for svc, wantCount := range expect.Reloads {
+		gotCount := d.tgt.Reloads[svc]
+		if gotCount != wantCount {
+			t.Errorf("service %q: got %d reloads, want %d", svc, gotCount, wantCount)
+		}
+	}
 }
 
 func (d *MemDriver) ReadFile(_ context.Context, path string) ([]byte, error) {
