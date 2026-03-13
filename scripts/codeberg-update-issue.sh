@@ -34,6 +34,20 @@ if [[ -n "$state" ]]; then
   patch=$(echo "$patch" | jq --arg s "$state" '. + {state: $s}')
 fi
 
+if [[ "$patch" == '{}' && -z "$labels" ]]; then
+  echo "nothing to update — pass --title, --body, --state, or --labels"
+  exit 1
+fi
+
+if [[ "$patch" != '{}' ]]; then
+  curl -sf -X PATCH \
+    -H "Authorization: token $CODEBERG_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$patch" \
+    "$api/repos/$repo/issues/$number" > /dev/null
+fi
+
+# Labels use a separate endpoint — PUT replaces all labels on the issue.
 if [[ -n "$labels" ]]; then
   all_labels=$(curl -sf \
     -H "Authorization: token $CODEBERG_TOKEN" \
@@ -41,17 +55,15 @@ if [[ -n "$labels" ]]; then
   label_ids=$(echo "$all_labels" | jq --arg names "$labels" '
     ($names | split(", ")) as $want |
     [.[] | select(.name as $n | $want | any(. == $n)) | .id]')
-  patch=$(echo "$patch" | jq --argjson l "$label_ids" '. + {labels: $l}')
+  curl -sf -X PUT \
+    -H "Authorization: token $CODEBERG_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -n --argjson l "$label_ids" '{labels: $l}')" \
+    "$api/repos/$repo/issues/$number/labels" > /dev/null
 fi
 
-if [[ "$patch" == '{}' ]]; then
-  echo "nothing to update — pass --title, --body, --state, or --labels"
-  exit 1
-fi
-
-resp=$(curl -sf -X PATCH \
+# Fetch final state for display
+resp=$(curl -sf \
   -H "Authorization: token $CODEBERG_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "$patch" \
   "$api/repos/$repo/issues/$number")
 echo "$resp" | jq -r '"#\(.number): \(.title) [\(.state)] → \(.html_url)"'

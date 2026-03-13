@@ -46,7 +46,7 @@ for f in "${files[@]}"; do
   label_ids="[]"
   label_names=""
   if [[ "$labels_line" == labels:* ]]; then
-    label_names=$(echo "$labels_line" | sed 's/^labels: *//')
+    label_names="${labels_line#labels: }"
     label_ids=$(echo "$all_labels" | jq --arg names "$label_names" '
       ($names | split(", ")) as $want |
       [.[] | select(.name as $n | $want | any(. == $n)) | .id]')
