@@ -1,4 +1,4 @@
-![scampi](scampi.png)
+<img src="scampi.png" alt="scampi" width="200">
 
 # scampi
 
