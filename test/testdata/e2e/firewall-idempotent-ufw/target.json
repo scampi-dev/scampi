@@ -1,0 +1,13 @@
+{
+  "files": {},
+  "commands": {
+    "ufw version": {
+      "exitCode": 0,
+      "stdout": "ufw 0.36.2\n"
+    },
+    "ufw show added": {
+      "exitCode": 0,
+      "stdout": "Added user rules (see 'ufw status' for running firewall):\nufw allow 22/tcp\n"
+    }
+  }
+}

@@ -29,6 +29,7 @@ scampi leaves it alone. If you want scampi to manage it, set it explicitly.
 {{< cards >}}
   {{< card link="copy" title="copy" subtitle="Copy files with owner and permission management" >}}
   {{< card link="dir" title="dir" subtitle="Ensure a directory exists" >}}
+  {{< card link="firewall" title="firewall" subtitle="Manage firewall rules via UFW or firewalld" >}}
   {{< card link="group" title="group" subtitle="Manage system groups" >}}
   {{< card link="pkg" title="pkg" subtitle="Manage system packages" >}}
   {{< card link="run" title="run" subtitle="Run arbitrary shell commands" >}}

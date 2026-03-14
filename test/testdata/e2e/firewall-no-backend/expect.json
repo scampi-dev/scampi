@@ -1,0 +1,9 @@
+{
+  "target": {
+    "files": {}
+  },
+  "changed": 0,
+  "error": true,
+  "diagnostics": ["builtin.firewall.BackendNotFound"],
+  "memOnly": true
+}

@@ -1,0 +1,13 @@
+{
+  "files": {},
+  "commands": {
+    "ufw version": {
+      "exitCode": 127,
+      "stderr": "ufw: command not found"
+    },
+    "firewall-cmd --version": {
+      "exitCode": 127,
+      "stderr": "firewall-cmd: command not found"
+    }
+  }
+}

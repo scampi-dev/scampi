@@ -18,6 +18,7 @@ func predeclared() starlark.StringDict {
 	return starlark.StringDict{
 		"copy":     starlark.NewBuiltin("copy", builtinCopy),
 		"dir":      starlark.NewBuiltin("dir", builtinDir),
+		"firewall": starlark.NewBuiltin("firewall", builtinFirewall),
 		"group":    starlark.NewBuiltin("group", builtinGroup),
 		"pkg":      starlark.NewBuiltin("pkg", builtinPkg),
 		"run":      starlark.NewBuiltin("run", builtinRun),

@@ -1,0 +1,21 @@
+{
+  "files": {},
+  "commands": {
+    "ufw version": {
+      "exitCode": 0,
+      "stdout": "ufw 0.36.2\n"
+    },
+    "ufw show added": {
+      "exitCode": 0,
+      "stdout": "Added user rules (see 'ufw status' for running firewall):\n",
+      "after": {
+        "exitCode": 0,
+        "stdout": "Added user rules (see 'ufw status' for running firewall):\nufw deny 443/tcp\n"
+      }
+    },
+    "ufw deny 443/tcp": {
+      "exitCode": 0,
+      "stdout": "Rule added\n"
+    }
+  }
+}

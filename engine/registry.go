@@ -6,6 +6,7 @@ import (
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/copy"
 	"scampi.dev/scampi/step/dir"
+	"scampi.dev/scampi/step/firewall"
 	"scampi.dev/scampi/step/group"
 	"scampi.dev/scampi/step/pkg"
 	"scampi.dev/scampi/step/run"
@@ -27,6 +28,7 @@ func NewRegistry() *Registry {
 	stepTypes := []spec.StepType{
 		copy.Copy{},
 		dir.Dir{},
+		firewall.Firewall{},
 		group.Group{},
 		pkg.Pkg{},
 		run.Run{},

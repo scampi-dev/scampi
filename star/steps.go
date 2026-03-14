@@ -10,6 +10,7 @@ import (
 	"scampi.dev/scampi/spec"
 	stepcopy "scampi.dev/scampi/step/copy"
 	"scampi.dev/scampi/step/dir"
+	"scampi.dev/scampi/step/firewall"
 	"scampi.dev/scampi/step/group"
 	"scampi.dev/scampi/step/pkg"
 	"scampi.dev/scampi/step/run"
@@ -139,6 +140,50 @@ func builtinDir(
 			OnChange: hookIDs,
 			Source:   span,
 			Fields:   kwargsFieldSpans(thread, "path", "perm", "owner", "group", "on_change"),
+		},
+	}, nil
+}
+
+// Step builtin: firewall
+// -----------------------------------------------------------------------------
+
+func builtinFirewall(
+	thread *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		port        string
+		action      = "allow"
+		desc        string
+		onChangeVal starlark.Value
+	)
+	if err := starlark.UnpackArgs("firewall", args, kwargs,
+		"port", &port,
+		"action?", &action,
+		"desc?", &desc,
+		"on_change?", &onChangeVal,
+	); err != nil {
+		return nil, err
+	}
+
+	hookIDs, err := unpackOnChange(thread, onChangeVal, "firewall")
+	if err != nil {
+		return nil, err
+	}
+
+	span := callSpan(thread)
+	return &StarlarkStep{
+		Instance: spec.StepInstance{
+			Desc: desc,
+			Type: firewall.Firewall{},
+			Config: &firewall.FirewallConfig{
+				Desc: desc, Port: port, Action: action,
+			},
+			OnChange: hookIDs,
+			Source:   span,
+			Fields:   kwargsFieldSpans(thread, "port", "action", "on_change"),
 		},
 	}, nil
 }
