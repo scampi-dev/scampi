@@ -79,6 +79,90 @@ deploy(name="test", targets=["local"], steps=[
     run(check="check-thing"),
 ])`,
 
+		// pkg step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    pkg(packages=["nginx"], state="present"),
+])`,
+
+		// pkg step with invalid state
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    pkg(packages=["nginx"], state="bogus"),
+])`,
+
+		// service step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    service(name="nginx", state="running", enabled=True),
+])`,
+
+		// service step missing required fields
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    service(state="running"),
+])`,
+
+		// group step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    group(name="deploy"),
+])`,
+
+		// group step absent
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    group(name="oldgroup", state="absent"),
+])`,
+
+		// user step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    user(name="deploy", shell="/bin/bash", groups=["sudo"]),
+])`,
+
+		// user step absent
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    user(name="olduser", state="absent"),
+])`,
+
+		// sysctl step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    sysctl(key="net.ipv4.ip_forward", value="1"),
+])`,
+
+		// sysctl step with persist=False
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    sysctl(key="vm.swappiness", value="10", persist=False),
+])`,
+
+		// firewall step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    firewall(port="22/tcp", action="allow"),
+])`,
+
+		// firewall step deny
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    firewall(port="443/tcp", action="deny"),
+])`,
+
+		// firewall step invalid port
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    firewall(port="not-a-port", action="allow"),
+])`,
+
+		// firewall step invalid action
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    firewall(port="22/tcp", action="bogus"),
+])`,
+
 		// syntax error: unclosed paren
 		`target.local(name="local"
 deploy(name="test", targets=["local"], steps=[])`,

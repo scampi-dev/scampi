@@ -219,6 +219,66 @@ deploy(
 	}
 }
 
+// Benchmark: Apply() no-op run for dir (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Dir(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        dir(
+            desc="dir-%%d" %% i,
+            path="/mydir",
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.Dirs["/mydir"] = 0o755
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
 // Benchmark: Apply() no-op run with mixed step types
 // -----------------------------------------------------------------------------
 
@@ -263,6 +323,527 @@ deploy(
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := spec.NewSourceStore()
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for template (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Template(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        template(
+            desc="tmpl-%%d" %% i,
+            content="server {{ .name }} port={{ .port }}",
+            dest="/out.conf",
+            perm="0644",
+            owner="perf-owner",
+            group="perf-group",
+            data={"values": {"name": "bench", "port": 8080}},
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.Files["/out.conf"] = []byte("server bench port=8080")
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for pkg (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Pkg(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        pkg(
+            desc="pkg-%%d" %% i,
+            packages=["nginx"],
+            state="present",
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.Pkgs["nginx"] = true
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for service (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Service(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        service(
+            desc="svc-%%d" %% i,
+            name="nginx",
+            state="running",
+            enabled=True,
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.Services["nginx"] = true
+			tgt.EnabledServices["nginx"] = true
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for group (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Group(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        group(
+            desc="grp-%%d" %% i,
+            name="deploy",
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.Groups["deploy"] = target.GroupInfo{Name: "deploy"}
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for user (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_User(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        user(
+            desc="usr-%%d" %% i,
+            name="deploy",
+            shell="/bin/bash",
+            groups=["sudo"],
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.Users["deploy"] = target.UserInfo{
+				Name:   "deploy",
+				Shell:  "/bin/bash",
+				Groups: []string{"sudo"},
+			}
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for sysctl (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Sysctl(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        sysctl(
+            desc="sysctl-%%d" %% i,
+            key="net.ipv4.ip_forward",
+            value="1",
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.Files["/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf"] = []byte("net.ipv4.ip_forward = 1\n")
+			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
+				if cmd == "sysctl -n net.ipv4.ip_forward" {
+					return target.CommandResult{ExitCode: 0, Stdout: "1\n"}, nil
+				}
+				return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil
+			}
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for firewall (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Firewall(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        firewall(
+            desc="fw-%%d" %% i,
+            port="22/tcp",
+            action="allow",
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
+				switch cmd {
+				case "ufw version":
+					return target.CommandResult{ExitCode: 0, Stdout: "ufw 0.36.2\n"}, nil
+				case "ufw show added":
+					return target.CommandResult{
+						ExitCode: 0,
+						Stdout:   "Added user rules:\nufw allow 22/tcp\n",
+					}, nil
+				default:
+					return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil
+				}
+			}
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
+			for b.Loop() {
+				ctx := context.Background()
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for run step (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Run(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        run(
+            desc="run-%%d" %% i,
+            apply="do-thing",
+            check="check-thing",
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
+				if cmd == "check-thing" {
+					return target.CommandResult{ExitCode: 0}, nil
+				}
+				return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil
+			}
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := spec.NewSourceStore()
+
 			for b.Loop() {
 				ctx := context.Background()
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
