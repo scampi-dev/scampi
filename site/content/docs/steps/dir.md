@@ -7,13 +7,13 @@ ownership. Creates parent directories as needed.
 
 ## Fields
 
-| Field   | Type   | Required | Description |
-|---------|--------|:--------:|-------------|
-| `path`  | string | ✓ | Absolute path to ensure exists (creates parents) |
-| `desc`  | string |   | Human-readable description |
-| `group` | string |   | Group name or GID |
-| `owner` | string |   | Owner user name or UID |
-| `perm`  | string |   | File permissions (`0755`, `u=rwx,g=rx,o=rx`, or `rwxr-xr-x`) |
+| Field   | Type   | Required | Description                                                   |
+|---------|--------|:--------:|---------------------------------------------------------------|
+| `path`  | string |    ✓     | Absolute path to ensure exists (creates parents)              |
+| `desc`  | string |          | Human-readable description                                    |
+| `group` | string |          | Group name or GID                                             |
+| `owner` | string |          | Owner user name or UID                                        |
+| `perm`  | string |          | File permissions (`0755`, `u=rwx,g=rx,o=rx`, or `rwxr-xr-x`) |
 
 If `owner` is set, `group` must also be set (and vice versa).
 

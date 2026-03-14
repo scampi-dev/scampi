@@ -20,10 +20,10 @@ the system, and how project layout scales.
 
 Two fundamentally different concepts:
 
-| Concept | Has identity? | Needs ordering? | Example |
-|---------|---------------|-----------------|---------|
-| Unit | Yes | No (unordered across deploys) | nginx, postgres, base-packages |
-| Step | No | Yes (ordered within a block) | copy file, template config |
+| Concept | Has identity? | Needs ordering?               | Example                        |
+|---------|---------------|-------------------------------|--------------------------------|
+| Unit    | Yes           | No (unordered across deploys) | nginx, postgres, base-packages |
+| Step    | No            | Yes (ordered within a block)  | copy file, template config     |
 
 **Design rules:**
 - If naming feels awkward, it's not a unit — it's a step
@@ -62,11 +62,11 @@ target.ssh(
 
 ### Target Types
 
-| Type | Builtin | Use case |
-|------|---------|----------|
-| `local` | `target.local(name)` | Local machine execution |
-| `ssh` | `target.ssh(name, host, user, ...)` | Remote execution via SSH |
-| `rest` | `target.rest(name, base_url, auth, ...)` | API-driven services (planned, see `docs/roadmap.md`) |
+| Type    | Builtin                                  | Use case                                             |
+|---------|------------------------------------------|------------------------------------------------------|
+| `local` | `target.local(name)`                     | Local machine execution                              |
+| `ssh`   | `target.ssh(name, host, user, ...)`      | Remote execution via SSH                             |
+| `rest`  | `target.rest(name, base_url, auth, ...)` | API-driven services (planned, see `docs/roadmap.md`) |
 
 SSH targets accept additional keyword arguments:
 
@@ -313,13 +313,13 @@ myproject/
 
 ## CLI Flags
 
-| Flag | Meaning |
-|------|---------|
-| `--targets <names>` | Filter to specific target names (comma-separated) |
-| `--only <blocks>` | Filter to specific deploy blocks (comma-separated) |
-| `-v` / `-vv` / `-vvv` | Increase verbosity |
-| `--color <mode>` | Colorize output: auto, always, never |
-| `--ascii` | Force ASCII output (no Unicode glyphs) |
+| Flag                   | Meaning                                             |
+|------------------------|-----------------------------------------------------|
+| `--targets <names>`    | Filter to specific target names (comma-separated)   |
+| `--only <blocks>`      | Filter to specific deploy blocks (comma-separated)  |
+| `-v` / `-vv` / `-vvv` | Increase verbosity                                  |
+| `--color <mode>`       | Colorize output: auto, always, never                |
+| `--ascii`              | Force ASCII output (no Unicode glyphs)              |
 
 ### Examples
 
@@ -377,15 +377,15 @@ inspection is a liability, not an optimization.
 
 ## Summary
 
-| Concept | How | Key property |
-|---------|-----|--------------|
-| Steps | Built-in functions (`copy`, `dir`, ...) | Batteries included |
-| Targets | `target.local()`, `target.ssh()` | Pure identity |
-| Deploy blocks | `deploy(name, targets, steps)` | Host-centric: "on X run Y" |
-| Environment | `env(key, default?)` | Explicit, no precedence |
-| Secrets | `secret(key)` | Pluggable backend, never logged |
-| Multi-file | `load()` | Standard Starlark |
-| Groups | Plain lists | Just Starlark |
+| Concept       | How                                     | Key property                    |
+|---------------|-----------------------------------------|---------------------------------|
+| Steps         | Built-in functions (`copy`, `dir`, ...) | Batteries included              |
+| Targets       | `target.local()`, `target.ssh()`        | Pure identity                   |
+| Deploy blocks | `deploy(name, targets, steps)`          | Host-centric: "on X run Y"     |
+| Environment   | `env(key, default?)`                    | Explicit, no precedence         |
+| Secrets       | `secret(key)`                           | Pluggable backend, never logged |
+| Multi-file    | `load()`                                | Standard Starlark               |
+| Groups        | Plain lists                             | Just Starlark                   |
 
 Complexity scales from one file to full layout. Explicit over implicit.
 Target is truth.

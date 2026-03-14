@@ -7,21 +7,21 @@ Works with systemd, OpenRC, and launchctl.
 
 ## Fields
 
-| Field     | Type   | Required | Default      | Description |
-|-----------|--------|:--------:|--------------|-------------|
-| `name`    | string | ✓ |              | Service name |
-| `desc`    | string |   |              | Human-readable description |
-| `enabled` | bool   |   | `true`       | Whether the service should start at boot |
-| `state`   | string |   | `"running"`  | Desired state (see below) |
+| Field     | Type   | Required | Default     | Description                              |
+|-----------|--------|:--------:|-------------|------------------------------------------|
+| `name`    | string |    ✓     |             | Service name                             |
+| `desc`    | string |          |             | Human-readable description               |
+| `enabled` | bool   |          | `true`      | Whether the service should start at boot |
+| `state`   | string |          | `"running"` | Desired state (see below)                |
 
 ## States
 
-| State | Behavior |
-|-------|----------|
-| `running` | Start the service if not active. Idempotent. |
-| `stopped` | Stop the service if active. Idempotent. |
-| `restarted` | Restart the service unconditionally. Always fires. |
-| `reloaded` | Reload the service unconditionally. Falls back to restart if the init system doesn't support reload. Always fires. |
+| State       | Behavior                                                                                                          |
+|-------------|-----------------------------------------------------------------------------------------------------------------------|
+| `running`   | Start the service if not active. Idempotent.                                                                      |
+| `stopped`   | Stop the service if active. Idempotent.                                                                           |
+| `restarted` | Restart the service unconditionally. Always fires.                                                                |
+| `reloaded`  | Reload the service unconditionally. Falls back to restart if the init system doesn't support reload. Always fires. |
 
 ## How it works
 

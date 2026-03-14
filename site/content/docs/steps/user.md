@@ -6,23 +6,23 @@ Ensure a user account exists or is absent on the target.
 
 ## Fields
 
-| Field      | Type     | Required | Default     | Description |
-|------------|----------|:--------:|-------------|-------------|
-| `name`     | string   | ✓ |             | Username to manage |
-| `desc`     | string   |   |             | Human-readable description |
-| `state`    | string   |   | `"present"` | Desired state: `present` or `absent` |
-| `shell`    | string   |   |             | Login shell |
-| `home`     | string   |   |             | Home directory (useradd default if omitted) |
-| `system`   | bool     |   | `false`     | Create as system user |
-| `password` | string   |   |             | Pre-hashed password |
-| `groups`   | list     |   |             | Supplementary group names |
+| Field      | Type   | Required | Default     | Description                                 |
+|------------|--------|:--------:|-------------|---------------------------------------------|
+| `name`     | string |    ✓     |             | Username to manage                          |
+| `desc`     | string |          |             | Human-readable description                  |
+| `state`    | string |          | `"present"` | Desired state: `present` or `absent`        |
+| `shell`    | string |          |             | Login shell                                 |
+| `home`     | string |          |             | Home directory (useradd default if omitted) |
+| `system`   | bool   |          | `false`     | Create as system user                       |
+| `password` | string |          |             | Pre-hashed password                         |
+| `groups`   | list   |          |             | Supplementary group names                   |
 
 ## States
 
-| State     | Behavior |
-|-----------|----------|
+| State     | Behavior                                                                                                                                     |
+|-----------|----------------------------------------------------------------------------------------------------------------------------------------------|
 | `present` | Create the user if missing. If the user exists but shell, home, or groups differ from the desired state, modify the user to match. Idempotent. |
-| `absent`  | Delete the user if it exists. No-op if already absent. |
+| `absent`  | Delete the user if it exists. No-op if already absent.                                                                                       |
 
 ## How it works
 

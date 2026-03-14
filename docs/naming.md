@@ -382,13 +382,13 @@ Platform-specific logic belongs in targets, not ops.
 
 ### Source vs Target
 
-| Aspect | Source | Target |
-|--------|--------|--------|
-| Role | Data origin | Change destination |
-| Read | Yes | Yes |
-| Write | For caching only | For mutations |
-| Multiplicity | Typically one | Often many |
-| Interface | Single concrete interface | Capability-based composition |
+| Aspect       | Source                     | Target                       |
+|--------------|---------------------------|------------------------------|
+| Role         | Data origin               | Change destination           |
+| Read         | Yes                       | Yes                          |
+| Write        | For caching only          | For mutations                |
+| Multiplicity | Typically one             | Often many                   |
+| Interface    | Single concrete interface | Capability-based composition |
 
 Both are abstract interfaces. The local POSIX implementations are development defaults, not the only options.
 
@@ -445,21 +445,21 @@ Extensibility is achieved by **clear boundaries**, not abstractions.
 
 ## Summary
 
-| Concept | Starlark | Go |
-|---------|----------|-----|
-| Declarative work | step builtin (copy, dir, …) | StepInstance |
-| Semantic category | kind | StepType |
-| Target definition | target.ssh / target.local | TargetInstance |
-| Target category | target type | TargetType |
-| Planned execution | — | Action |
-| Executable unit | — | Op |
-| Execution graph | — | Plan / Unit |
-| Data origin | — | Source |
-| Change destination | — | Target (capability-based) |
-| Configuration | deploy() | Config / DeployBlock / ResolvedConfig |
-| Check outcome | — | CheckResult |
-| Op self-description | — | OpDescriber / PlanTemplate |
-| Dependency inference | — | Pather |
+| Concept              | Starlark                    | Go                                    |
+|----------------------|-----------------------------|---------------------------------------|
+| Declarative work     | step builtin (copy, dir, …) | StepInstance                          |
+| Semantic category    | kind                        | StepType                              |
+| Target definition    | target.ssh / target.local   | TargetInstance                        |
+| Target category      | target type                 | TargetType                            |
+| Planned execution    | —                           | Action                                |
+| Executable unit      | —                           | Op                                    |
+| Execution graph      | —                           | Plan / Unit                           |
+| Data origin          | —                           | Source                                |
+| Change destination   | —                           | Target (capability-based)             |
+| Configuration        | deploy()                    | Config / DeployBlock / ResolvedConfig |
+| Check outcome        | —                           | CheckResult                           |
+| Op self-description  | —                           | OpDescriber / PlanTemplate            |
+| Dependency inference | —                           | Pather                                |
 
 ---
 

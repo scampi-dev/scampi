@@ -6,20 +6,20 @@ Ensure a group exists or is absent on the target.
 
 ## Fields
 
-| Field    | Type   | Required | Default     | Description |
-|----------|--------|:--------:|-------------|-------------|
-| `name`   | string | ✓ |             | Group name to manage |
-| `desc`   | string |   |             | Human-readable description |
-| `state`  | string |   | `"present"` | Desired state: `present` or `absent` |
-| `gid`    | int    |   |             | Group ID (auto-assigned if omitted) |
-| `system` | bool   |   | `false`     | Create as system group |
+| Field    | Type   | Required | Default     | Description                            |
+|----------|--------|:--------:|-------------|----------------------------------------|
+| `name`   | string |    ✓     |             | Group name to manage                   |
+| `desc`   | string |          |             | Human-readable description             |
+| `state`  | string |          | `"present"` | Desired state: `present` or `absent`   |
+| `gid`    | int    |          |             | Group ID (auto-assigned if omitted)    |
+| `system` | bool   |          | `false`     | Create as system group                 |
 
 ## States
 
-| State     | Behavior |
-|-----------|----------|
-| `present` | Create the group if it doesn't exist. No-op if already present. |
-| `absent`  | Delete the group if it exists. No-op if already absent. |
+| State     | Behavior                                                         |
+|-----------|------------------------------------------------------------------|
+| `present` | Create the group if it doesn't exist. No-op if already present.  |
+| `absent`  | Delete the group if it exists. No-op if already absent.          |
 
 ## How it works
 

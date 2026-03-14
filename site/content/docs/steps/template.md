@@ -9,27 +9,27 @@ permission management.
 
 Provide exactly one of:
 
-| Field     | Type   | Description |
-|-----------|--------|-------------|
-| `src`     | string | Source template file path (local) |
-| `content` | string | Inline template string |
+| Field     | Type   | Description                       |
+|-----------|--------|-----------------------------------|
+| `src`     | string | Source template file path (local)  |
+| `content` | string | Inline template string            |
 
-| Field   | Type   | Required | Description |
-|---------|--------|:--------:|-------------|
-| `dest`  | string | ✓ | Output file path (on target) |
-| `group` | string | ✓ | Group name or GID |
-| `owner` | string | ✓ | Owner user name or UID |
-| `perm`  | string | ✓ | File permissions |
-| `data`  | dict   |   | Data sources for template rendering |
-| `desc`  | string |   | Human-readable description |
+| Field   | Type   | Required | Description                         |
+|---------|--------|:--------:|-------------------------------------|
+| `dest`  | string |    ✓     | Output file path (on target)        |
+| `group` | string |    ✓     | Group name or GID                   |
+| `owner` | string |    ✓     | Owner user name or UID              |
+| `perm`  | string |    ✓     | File permissions                    |
+| `data`  | dict   |          | Data sources for template rendering |
+| `desc`  | string |          | Human-readable description          |
 
 ### Data fields
 
 The `data` dict supports:
 
-| Key      | Type              | Description |
-|----------|-------------------|-------------|
-| `values` | dict (string→any) | Arbitrary key-value pairs accessible in the template |
+| Key      | Type                 | Description                                          |
+|----------|----------------------|------------------------------------------------------|
+| `values` | dict (string→any)    | Arbitrary key-value pairs accessible in the template |
 | `env`    | dict (string→string) | Map template variable names to environment variables |
 
 ## How it works

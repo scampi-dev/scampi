@@ -8,20 +8,20 @@ Copy files or inline content to the target with owner and permission management.
 
 Provide exactly one of:
 
-| Field     | Type   | Description |
-|-----------|--------|-------------|
-| `src`     | string | Source file path (local) |
-| `content` | string | Inline file content |
+| Field     | Type   | Description              |
+|-----------|--------|--------------------------|
+| `src`     | string | Source file path (local)  |
+| `content` | string | Inline file content      |
 
 Always required:
 
-| Field   | Type   | Required | Description |
-|---------|--------|:--------:|-------------|
-| `dest`  | string | ✓ | Destination file path (on target) |
-| `group` | string | ✓ | Group name or GID |
-| `owner` | string | ✓ | Owner user name or UID |
-| `perm`  | string | ✓ | File permissions (`0644`, `u=rw,g=r,o=r`, or `rw-r--r--`) |
-| `desc`  | string |   | Human-readable description |
+| Field   | Type   | Required | Description                                                |
+|---------|--------|:--------:|------------------------------------------------------------|
+| `dest`  | string |    ✓     | Destination file path (on target)                          |
+| `group` | string |    ✓     | Group name or GID                                          |
+| `owner` | string |    ✓     | Owner user name or UID                                     |
+| `perm`  | string |    ✓     | File permissions (`0644`, `u=rw,g=r,o=r`, or `rw-r--r--`) |
+| `desc`  | string |          | Human-readable description                                 |
 
 ## How it works
 

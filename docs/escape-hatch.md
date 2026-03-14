@@ -75,11 +75,11 @@ a proper step type.
 
 ## Guarantees summary
 
-| Mode                  | Idempotent | Dry-run | Convergence report |
-|-----------------------|------------|---------|--------------------|
-| check + apply         | Yes (user) | Yes     | Yes                |
-| always + apply        | No         | No      | Always "changed"   |
-| Built-in step types   | Yes (engine)| Yes    | Yes                |
+| Mode                | Idempotent   | Dry-run | Convergence report |
+|---------------------|--------------|---------|--------------------|
+| check + apply       | Yes (user)   | Yes     | Yes                |
+| always + apply      | No           | No      | Always "changed"   |
+| Built-in step types | Yes (engine) | Yes     | Yes                |
 
 ## Migration on-ramp
 

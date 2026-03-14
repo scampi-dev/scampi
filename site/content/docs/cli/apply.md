@@ -15,7 +15,7 @@ the current state differs from the declared state.
 
 ## Flags
 
-| Flag | Description |
-|------|-------------|
-| `--only` | Filter to specific deploy blocks (comma-separated) |
-| `--targets` | Filter to specific targets (comma-separated) |
+| Flag        | Description                                       |
+|-------------|---------------------------------------------------|
+| `--only`    | Filter to specific deploy blocks (comma-separated) |
+| `--targets` | Filter to specific targets (comma-separated)       |

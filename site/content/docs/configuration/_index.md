@@ -32,11 +32,11 @@ target.ssh(
 SSH targets connect to a remote host. Authentication uses your SSH agent or key
 files.
 
-| Field  | Required | Description |
-|--------|:--------:|-------------|
-| `host` | ✓ | Hostname or IP address |
-| `name` | ✓ | Identifier referenced by deploy blocks |
-| `user` | ✓ | SSH user |
+| Field  | Required | Description                            |
+|--------|:--------:|----------------------------------------|
+| `host` |    ✓     | Hostname or IP address                 |
+| `name` |    ✓     | Identifier referenced by deploy blocks |
+| `user` |    ✓     | SSH user                               |
 
 ## Deploy blocks
 
@@ -53,11 +53,11 @@ deploy(
 )
 ```
 
-| Field     | Required | Description |
-|-----------|:--------:|-------------|
-| `name`    | ✓ | Unique identifier for this deploy block |
-| `steps`   | ✓ | Ordered list of steps to execute |
-| `targets` |   | List of target names (omit for local execution) |
+| Field     | Required | Description                                       |
+|-----------|:--------:|---------------------------------------------------|
+| `name`    |    ✓     | Unique identifier for this deploy block            |
+| `steps`   |    ✓     | Ordered list of steps to execute                   |
+| `targets` |          | List of target names (omit for local execution)    |
 
 Steps within a deploy block execute in order. Each step becomes an action in the
 plan.
@@ -96,9 +96,9 @@ secrets(backend="age", path="secrets.age.json")
 
 Currently supported backends:
 
-| Backend | Description |
-|---------|-------------|
-| `file`  | Plain JSON key-value file (unencrypted) |
+| Backend | Description                                                             |
+|---------|-------------------------------------------------------------------------|
+| `file`  | Plain JSON key-value file (unencrypted)                                 |
 | `age`   | Encrypted JSON file using [age encryption](https://age-encryption.org/) |
 
 The `secrets()` call can only appear once per config.

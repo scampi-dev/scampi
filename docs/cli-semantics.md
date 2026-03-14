@@ -6,15 +6,15 @@
 
 ## Color Semantics
 
-| Color | Meaning | When |
-|-------|---------|------|
-| Yellow | Change / Mutation | Something modified system state |
-| Green | Correctness / Stability | System was already correct; no change needed |
-| Red | Failure | An error occurred; execution could not proceed |
-| Blue | Deploy block boundaries | Plan start/finish, deploy block lifecycle |
-| Cyan | Action boundaries | Action headers, kind labels, op counts |
-| Magenta | Plan structure | Plan headers, plan rails |
-| Dim | Detail / Noise | Ops, checks, execution details (higher verbosity) |
+| Color   | Meaning                 | When                                              |
+|---------|-------------------------|---------------------------------------------------|
+| Yellow  | Change / Mutation       | Something modified system state                   |
+| Green   | Correctness / Stability | System was already correct; no change needed      |
+| Red     | Failure                 | An error occurred; execution could not proceed    |
+| Blue    | Deploy block boundaries | Plan start/finish, deploy block lifecycle         |
+| Cyan    | Action boundaries       | Action headers, kind labels, op counts            |
+| Magenta | Plan structure          | Plan headers, plan rails                          |
+| Dim     | Detail / Noise          | Ops, checks, execution details (higher verbosity) |
 
 ---
 
@@ -22,12 +22,12 @@
 
 Verbosity controls **how much explanation** you receive — never *what happened*.
 
-| Level | Shows | Use case |
-|-------|-------|----------|
-| (default) | Outcomes only | Changed actions, final summary |
-| `-v` | *Why* changes happened | Unsatisfied checks, action headers, unchanged actions |
-| `-vv` | *How* changes happened | Execution details, plan lifecycle |
-| `-vvv` | Full operational detail | Satisfied checks, all ops, everything |
+| Level     | Shows                  | Use case                                              |
+|-----------|------------------------|-------------------------------------------------------|
+| (default) | Outcomes only          | Changed actions, final summary                        |
+| `-v`      | *Why* changes happened | Unsatisfied checks, action headers, unchanged actions |
+| `-vv`     | *How* changes happened | Execution details, plan lifecycle                     |
+| `-vvv`    | Full operational detail | Satisfied checks, all ops, everything                |
 
 Increasing verbosity **never removes information** — it only adds context.
 

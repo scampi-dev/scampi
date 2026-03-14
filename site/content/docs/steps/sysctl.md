@@ -6,12 +6,12 @@ Manage kernel parameters via sysctl with optional persistence.
 
 ## Fields
 
-| Field     | Type   | Required | Default  | Description |
-|-----------|--------|:--------:|----------|-------------|
-| `key`     | string | ✓ |          | Sysctl parameter name |
-| `value`   | string | ✓ |          | Desired parameter value |
-| `desc`    | string |   |          | Human-readable description |
-| `persist` | bool   |   | `true`   | Write to `/etc/sysctl.d/` for persistence across reboots |
+| Field     | Type   | Required | Default | Description                                               |
+|-----------|--------|:--------:|---------|-----------------------------------------------------------|
+| `key`     | string |    ✓     |         | Sysctl parameter name                                     |
+| `value`   | string |    ✓     |         | Desired parameter value                                   |
+| `desc`    | string |          |         | Human-readable description                                |
+| `persist` | bool   |          | `true`  | Write to `/etc/sysctl.d/` for persistence across reboots  |
 
 ## How it works
 
@@ -38,10 +38,10 @@ automatically. Scampi only touches its own files — other drop-ins in
 The drop-in filename is derived from the key: dots are replaced with dashes,
 and the file is prefixed with `99-scampi-`. Underscores are preserved.
 
-| Key | Drop-in file |
-|-----|-------------|
-| `net.ipv4.ip_forward` | `/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf` |
-| `vm.swappiness` | `/etc/sysctl.d/99-scampi-vm-swappiness.conf` |
+| Key                           | Drop-in file                                               |
+|-------------------------------|-------------------------------------------------------------|
+| `net.ipv4.ip_forward`         | `/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf`         |
+| `vm.swappiness`               | `/etc/sysctl.d/99-scampi-vm-swappiness.conf`               |
 | `net.ipv4.conf.all.rp_filter` | `/etc/sysctl.d/99-scampi-net-ipv4-conf-all-rp_filter.conf` |
 
 The file content is always `key = value` followed by a newline. The `99-`
