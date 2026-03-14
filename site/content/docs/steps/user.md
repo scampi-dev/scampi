@@ -1,6 +1,5 @@
 ---
 title: user
-weight: 8
 ---
 
 Ensure a user account exists or is absent on the target.

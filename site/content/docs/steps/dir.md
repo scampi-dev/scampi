@@ -1,6 +1,5 @@
 ---
 title: dir
-weight: 2
 ---
 
 Ensure a directory exists on the target, optionally with specific permissions and

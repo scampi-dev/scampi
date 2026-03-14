@@ -1,6 +1,5 @@
 ---
 title: template
-weight: 6
 ---
 
 Render Go templates with data substitution and deploy the result with owner and

@@ -13,6 +13,7 @@ import (
 	"scampi.dev/scampi/step/pkg"
 	"scampi.dev/scampi/step/sharedops/fileops"
 	stepsymlink "scampi.dev/scampi/step/symlink"
+	"scampi.dev/scampi/step/sysctl"
 	"scampi.dev/scampi/step/template"
 	"scampi.dev/scampi/target"
 )
@@ -342,4 +343,163 @@ func TestDrift_Pkg_WantAbsent(t *testing.T) {
 
 	details := collectDrift(t, ops, src, tgt)
 	assertDrift(t, details, "state", "vim: installed", "absent")
+}
+
+// setSysctlOp
+// -----------------------------------------------------------------------------
+
+func sysctlMemTarget(cmdFunc func(string) (target.CommandResult, error)) *target.MemTarget {
+	tgt := target.NewMemTarget()
+	tgt.CommandFunc = cmdFunc
+	return tgt
+}
+
+func TestDrift_Sysctl_ValueDiffers(t *testing.T) {
+	src := source.NewMemSource()
+	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
+		if cmd == "sysctl -n net.ipv4.ip_forward" {
+			return target.CommandResult{Stdout: "0\n"}, nil
+		}
+		return target.CommandResult{ExitCode: 127}, nil
+	})
+
+	ops := planOps(t, sysctl.Sysctl{}, &sysctl.SysctlConfig{
+		Key: "net.ipv4.ip_forward", Value: "1", Persist: false,
+	}, map[string]spec.FieldSpan{
+		"key":   {},
+		"value": {},
+	})
+
+	details := collectDrift(t, ops, src, tgt)
+	assertDrift(t, details, "net.ipv4.ip_forward", "0", "1")
+}
+
+func TestDrift_Sysctl_AlreadySatisfied(t *testing.T) {
+	src := source.NewMemSource()
+	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
+		if cmd == "sysctl -n net.ipv4.ip_forward" {
+			return target.CommandResult{Stdout: "1\n"}, nil
+		}
+		return target.CommandResult{ExitCode: 127}, nil
+	})
+
+	ops := planOps(t, sysctl.Sysctl{}, &sysctl.SysctlConfig{
+		Key: "net.ipv4.ip_forward", Value: "1", Persist: false,
+	}, map[string]spec.FieldSpan{
+		"key":   {},
+		"value": {},
+	})
+
+	details := collectDrift(t, ops, src, tgt)
+	if len(details) != 0 {
+		t.Errorf("expected no drift, got %+v", details)
+	}
+}
+
+// persistSysctlOp
+// -----------------------------------------------------------------------------
+
+func TestDrift_Sysctl_DropInMissing(t *testing.T) {
+	src := source.NewMemSource()
+	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
+		if cmd == "sysctl -n net.ipv4.ip_forward" {
+			return target.CommandResult{Stdout: "1\n"}, nil
+		}
+		return target.CommandResult{ExitCode: 127}, nil
+	})
+
+	ops := planOps(t, sysctl.Sysctl{}, &sysctl.SysctlConfig{
+		Key: "net.ipv4.ip_forward", Value: "1", Persist: true,
+	}, map[string]spec.FieldSpan{
+		"key":   {},
+		"value": {},
+	})
+
+	details := collectDrift(t, ops, src, tgt)
+	assertDrift(
+		t,
+		details,
+		"drop-in",
+		"(absent)",
+		"/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf",
+	)
+}
+
+func TestDrift_Sysctl_DropInContentDiffers(t *testing.T) {
+	src := source.NewMemSource()
+	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
+		if cmd == "sysctl -n net.ipv4.ip_forward" {
+			return target.CommandResult{Stdout: "1\n"}, nil
+		}
+		return target.CommandResult{ExitCode: 127}, nil
+	})
+	tgt.Files["/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf"] = []byte("net.ipv4.ip_forward = 0\n")
+
+	ops := planOps(t, sysctl.Sysctl{}, &sysctl.SysctlConfig{
+		Key: "net.ipv4.ip_forward", Value: "1", Persist: true,
+	}, map[string]spec.FieldSpan{
+		"key":   {},
+		"value": {},
+	})
+
+	details := collectDrift(t, ops, src, tgt)
+	assertDrift(
+		t,
+		details,
+		"drop-in",
+		"net.ipv4.ip_forward = 0\n",
+		"net.ipv4.ip_forward = 1\n",
+	)
+}
+
+// cleanupSysctlOp
+// -----------------------------------------------------------------------------
+
+func TestDrift_Sysctl_CleanupStaleDropIn(t *testing.T) {
+	src := source.NewMemSource()
+	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
+		if cmd == "sysctl -n net.ipv4.ip_forward" {
+			return target.CommandResult{Stdout: "1\n"}, nil
+		}
+		return target.CommandResult{ExitCode: 127}, nil
+	})
+	tgt.Files["/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf"] = []byte("net.ipv4.ip_forward = 1\n")
+
+	ops := planOps(t, sysctl.Sysctl{}, &sysctl.SysctlConfig{
+		Key: "net.ipv4.ip_forward", Value: "1", Persist: false,
+	}, map[string]spec.FieldSpan{
+		"key":   {},
+		"value": {},
+	})
+
+	details := collectDrift(t, ops, src, tgt)
+	assertDrift(
+		t,
+		details,
+		"drop-in",
+		"/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf",
+		"(absent)",
+	)
+}
+
+func TestDrift_Sysctl_CleanupNoDropIn(t *testing.T) {
+	src := source.NewMemSource()
+	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
+		if cmd == "sysctl -n net.ipv4.ip_forward" {
+			return target.CommandResult{Stdout: "1\n"}, nil
+		}
+		return target.CommandResult{ExitCode: 127}, nil
+	})
+
+	ops := planOps(t, sysctl.Sysctl{}, &sysctl.SysctlConfig{
+		Key: "net.ipv4.ip_forward", Value: "1", Persist: false,
+	}, map[string]spec.FieldSpan{
+		"key":   {},
+		"value": {},
+	})
+
+	details := collectDrift(t, ops, src, tgt)
+	if len(details) != 0 {
+		t.Errorf("expected no drift, got %+v", details)
+	}
 }

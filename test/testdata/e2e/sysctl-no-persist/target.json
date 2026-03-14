@@ -1,0 +1,17 @@
+{
+  "files": {},
+  "commands": {
+    "sysctl -n net.ipv4.tcp_keepalive_time": {
+      "exitCode": 0,
+      "stdout": "7200\n",
+      "after": {
+        "exitCode": 0,
+        "stdout": "300\n"
+      }
+    },
+    "sysctl -w net.ipv4.tcp_keepalive_time=300": {
+      "exitCode": 0,
+      "stdout": "net.ipv4.tcp_keepalive_time = 300\n"
+    }
+  }
+}

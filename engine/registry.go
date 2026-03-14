@@ -11,6 +11,7 @@ import (
 	"scampi.dev/scampi/step/run"
 	"scampi.dev/scampi/step/service"
 	"scampi.dev/scampi/step/symlink"
+	"scampi.dev/scampi/step/sysctl"
 	"scampi.dev/scampi/step/template"
 	stepuser "scampi.dev/scampi/step/user"
 	"scampi.dev/scampi/target/local"
@@ -30,6 +31,7 @@ func NewRegistry() *Registry {
 		pkg.Pkg{},
 		run.Run{},
 		service.Service{},
+		sysctl.Sysctl{},
 		symlink.Symlink{},
 		template.Template{},
 		stepuser.User{},

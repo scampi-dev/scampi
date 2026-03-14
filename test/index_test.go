@@ -76,6 +76,12 @@ func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 			wantFields:     []string{"packages", "state"},
 			wantFieldCount: 3, // includes desc
 		},
+		{
+			kind:           "sysctl",
+			wantSummary:    "Manage kernel parameters via sysctl with optional persistence",
+			wantFields:     []string{"key", "value"},
+			wantFieldCount: 4, // includes desc, persist
+		},
 	}
 
 	for _, tt := range tests {
@@ -173,6 +179,7 @@ func TestIndexStep_DefaultsPopulated(t *testing.T) {
 		{"pkg", "state", `"present"`},
 		{"service", "state", `"running"`},
 		{"service", "enabled", `"true"`},
+		{"sysctl", "persist", `"true"`},
 		{"user", "state", `"present"`},
 	}
 

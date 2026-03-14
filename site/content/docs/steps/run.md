@@ -1,6 +1,5 @@
 ---
 title: run
-weight: 7
 ---
 
 Run an arbitrary shell command on the target. This is the escape hatch — use it

@@ -33,6 +33,7 @@ scampi leaves it alone. If you want scampi to manage it, set it explicitly.
   {{< card link="pkg" title="pkg" subtitle="Manage system packages" >}}
   {{< card link="run" title="run" subtitle="Run arbitrary shell commands" >}}
   {{< card link="service" title="service" subtitle="Manage services (systemd, OpenRC, launchctl)" >}}
+  {{< card link="sysctl" title="sysctl" subtitle="Manage kernel parameters" >}}
   {{< card link="symlink" title="symlink" subtitle="Create and manage symbolic links" >}}
   {{< card link="template" title="template" subtitle="Render templates with data substitution" >}}
   {{< card link="user" title="user" subtitle="Manage system user accounts" >}}

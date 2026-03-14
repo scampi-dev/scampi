@@ -1,6 +1,5 @@
 ---
 title: pkg
-weight: 3
 ---
 
 Ensure packages are present, absent, or at the latest version on the target.

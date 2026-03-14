@@ -1,6 +1,5 @@
 ---
 title: group
-weight: 9
 ---
 
 Ensure a group exists or is absent on the target.

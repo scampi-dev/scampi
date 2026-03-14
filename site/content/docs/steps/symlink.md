@@ -1,6 +1,5 @@
 ---
 title: symlink
-weight: 5
 ---
 
 Create and manage symbolic links on the target.

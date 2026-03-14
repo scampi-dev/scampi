@@ -15,6 +15,7 @@ import (
 	"scampi.dev/scampi/step/run"
 	"scampi.dev/scampi/step/service"
 	"scampi.dev/scampi/step/symlink"
+	"scampi.dev/scampi/step/sysctl"
 	"scampi.dev/scampi/step/template"
 	stepuser "scampi.dev/scampi/step/user"
 )
@@ -268,6 +269,52 @@ func builtinService(
 			OnChange: hookIDs,
 			Source:   span,
 			Fields:   kwargsFieldSpans(thread, "name", "state", "enabled", "on_change"),
+		},
+	}, nil
+}
+
+// Step builtin: sysctl
+// -----------------------------------------------------------------------------
+
+func builtinSysctl(
+	thread *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		key         string
+		value       string
+		persist     = true
+		desc        string
+		onChangeVal starlark.Value
+	)
+	if err := starlark.UnpackArgs("sysctl", args, kwargs,
+		"key", &key,
+		"value", &value,
+		"persist?", &persist,
+		"desc?", &desc,
+		"on_change?", &onChangeVal,
+	); err != nil {
+		return nil, err
+	}
+
+	hookIDs, err := unpackOnChange(thread, onChangeVal, "sysctl")
+	if err != nil {
+		return nil, err
+	}
+
+	span := callSpan(thread)
+	return &StarlarkStep{
+		Instance: spec.StepInstance{
+			Desc: desc,
+			Type: sysctl.Sysctl{},
+			Config: &sysctl.SysctlConfig{
+				Desc: desc, Key: key, Value: value, Persist: persist,
+			},
+			OnChange: hookIDs,
+			Source:   span,
+			Fields:   kwargsFieldSpans(thread, "key", "value", "persist", "on_change"),
 		},
 	}, nil
 }

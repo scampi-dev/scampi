@@ -1,0 +1,17 @@
+{
+  "files": {},
+  "commands": {
+    "sysctl -n net.ipv4.ip_forward": {
+      "exitCode": 0,
+      "stdout": "0\n",
+      "after": {
+        "exitCode": 0,
+        "stdout": "1\n"
+      }
+    },
+    "sysctl -w net.ipv4.ip_forward=1": {
+      "exitCode": 0,
+      "stdout": "net.ipv4.ip_forward = 1\n"
+    }
+  }
+}

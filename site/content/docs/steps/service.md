@@ -1,6 +1,5 @@
 ---
 title: service
-weight: 4
 ---
 
 Manage service state: running, stopped, restarted, or reloaded.

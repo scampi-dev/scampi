@@ -1,6 +1,5 @@
 ---
 title: copy
-weight: 1
 ---
 
 Copy files from the local machine to the target with owner and permission
