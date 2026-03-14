@@ -1,5 +1,6 @@
-hugo := "go tool github.com/gohugoio/hugo"
-mdlint := "go tool github.com/shinagawa-web/gomarklint"
+hugo      := "go tool github.com/gohugoio/hugo"
+mdlint    := "go tool github.com/shinagawa-web/gomarklint"
+infra_dir := env("SCAMPI_INFRA", "../scampi-infra")
 
 [default]
 [doc("Build the Hugo site")]
@@ -20,6 +21,11 @@ dist outdir="build/site-dist": build
 [doc("Lint markdown content")]
 lint:
   cd site && {{mdlint}} content/
+
+[doc("Build and deploy site via scampi-infra")]
+deploy: dist
+  cp build/site-dist/site.tar.gz {{infra_dir}}/files/site.tar.gz
+  cd {{infra_dir}} && scampi apply site.star
 
 [doc("Remove all generated files")]
 clean:
