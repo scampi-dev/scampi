@@ -9,18 +9,18 @@ backends: apt (Debian/Ubuntu), pacman (Arch Linux).
 
 ## Fields
 
-| Field      | Type   | Required | Default     | Description                                      |
-|------------|--------|:--------:|-------------|--------------------------------------------------|
-| `packages` | list   |    ✓     |             | Package names to manage                          |
-| `desc`     | string |          |             | Human-readable description                       |
-| `state`    | string |          | `"present"` | Desired state: `present`, `absent`, or `latest`  |
+| Field      | Type   | Required | Default     | Description                                     |
+|------------|--------|:--------:|-------------|-------------------------------------------------|
+| `packages` | list   |    ✓     |             | Package names to manage                         |
+| `desc`     | string |          |             | Human-readable description                      |
+| `state`    | string |          | `"present"` | Desired state: `present`, `absent`, or `latest` |
 
 ## States
 
-| State     | Behavior                                                                       |
-|-----------|--------------------------------------------------------------------------------|
+| State     | Behavior                                                                        |
+|-----------|---------------------------------------------------------------------------------|
 | `present` | Install if not already installed. Don't touch if already present (any version). |
-| `absent`  | Remove if installed. No-op if already absent.                                  |
+| `absent`  | Remove if installed. No-op if already absent.                                   |
 | `latest`  | Install or upgrade to the latest version available in the package index.        |
 
 ## How it works

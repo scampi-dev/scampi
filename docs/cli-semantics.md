@@ -22,12 +22,12 @@
 
 Verbosity controls **how much explanation** you receive — never *what happened*.
 
-| Level     | Shows                  | Use case                                              |
-|-----------|------------------------|-------------------------------------------------------|
-| (default) | Outcomes only          | Changed actions, final summary                        |
-| `-v`      | *Why* changes happened | Unsatisfied checks, action headers, unchanged actions |
-| `-vv`     | *How* changes happened | Execution details, plan lifecycle                     |
-| `-vvv`    | Full operational detail | Satisfied checks, all ops, everything                |
+| Level     | Shows                   | Use case                                              |
+|-----------|-------------------------|-------------------------------------------------------|
+| (default) | Outcomes only           | Changed actions, final summary                        |
+| `-v`      | *Why* changes happened  | Unsatisfied checks, action headers, unchanged actions |
+| `-vv`     | *How* changes happened  | Execution details, plan lifecycle                     |
+| `-vvv`    | Full operational detail | Satisfied checks, all ops, everything                 |
 
 Increasing verbosity **never removes information** — it only adds context.
 

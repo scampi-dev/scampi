@@ -382,7 +382,7 @@ Platform-specific logic belongs in targets, not ops.
 
 ### Source vs Target
 
-| Aspect       | Source                     | Target                       |
+| Aspect       | Source                    | Target                       |
 |--------------|---------------------------|------------------------------|
 | Role         | Data origin               | Change destination           |
 | Read         | Yes                       | Yes                          |

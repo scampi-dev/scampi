@@ -3,16 +3,19 @@
 package test
 
 import (
+	"bufio"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 type capabilityRule struct {
@@ -141,6 +144,10 @@ func TestImportCapabilities(t *testing.T) {
 		},
 		{
 			pattern:        "test/main_test.go",
+			allowedImports: "os",
+		},
+		{
+			pattern:        "test/rules_test.go",
 			allowedImports: "os",
 		},
 		{
@@ -450,5 +457,127 @@ func checkFieldList(
 			break
 		}
 		seen[line] = true
+	}
+}
+
+// Markdown table alignment
+// -----------------------------------------------------------------------------
+
+func TestMarkdownTableAlignment(t *testing.T) {
+	root := ".."
+
+	isTableRow := func(line string) bool {
+		return len(line) >= 3 && line[0] == '|' && line[len(line)-1] == '|'
+	}
+
+	isSeparatorRow := func(line string) bool {
+		for _, c := range line {
+			switch c {
+			case '|', '-', ':', ' ':
+			default:
+				return false
+			}
+		}
+		return true
+	}
+
+	checkTable := func(t *testing.T, rel string, rows []string, startLine int) {
+		t.Helper()
+		if len(rows) < 2 {
+			return
+		}
+		if !isSeparatorRow(rows[1]) {
+			return
+		}
+
+		wantCols := strings.Count(rows[0], "|") - 1
+		wantLen := utf8.RuneCountInString(rows[0])
+
+		for i, row := range rows {
+			lineNum := startLine + i
+
+			gotCols := strings.Count(row, "|") - 1
+			if gotCols != wantCols {
+				t.Errorf(
+					"%s:%d: table row has %d columns, want %d (same as header at line %d)",
+					rel, lineNum, gotCols, wantCols, startLine,
+				)
+				continue
+			}
+
+			gotLen := utf8.RuneCountInString(row)
+			if gotLen != wantLen {
+				t.Errorf(
+					"%s:%d: table row length %d, want %d (same as header at line %d)",
+					rel, lineNum, gotLen, wantLen, startLine,
+				)
+			}
+		}
+	}
+
+	walkFile := func(t *testing.T, rel, abs string) {
+		t.Helper()
+		f, err := os.Open(abs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = f.Close() }()
+
+		var tableRows []string
+		tableStart := 0
+
+		scanner := bufio.NewScanner(f)
+		lineNum := 0
+		for scanner.Scan() {
+			lineNum++
+			line := scanner.Text()
+
+			if isTableRow(line) {
+				if len(tableRows) == 0 {
+					tableStart = lineNum
+				}
+				tableRows = append(tableRows, line)
+			} else {
+				if len(tableRows) > 0 {
+					checkTable(t, rel, tableRows, tableStart)
+					tableRows = tableRows[:0]
+				}
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			t.Fatal(err)
+		}
+		if len(tableRows) > 0 {
+			checkTable(t, rel, tableRows, tableStart)
+		}
+	}
+
+	// Walk site/content/ and docs/
+	for _, dir := range []string{"site/content", "docs"} {
+		abs := filepath.Join(root, dir)
+		err := filepath.WalkDir(abs, func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(p, ".md") {
+				return nil
+			}
+			rel, err := filepath.Rel(root, p)
+			if err != nil {
+				return err
+			}
+			rel = filepath.ToSlash(rel)
+			walkFile(t, rel, p)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Check README.md
+	readme := filepath.Join(root, "README.md")
+	if _, err := os.Stat(readme); err == nil {
+		walkFile(t, "README.md", readme)
 	}
 }

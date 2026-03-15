@@ -16,11 +16,11 @@ Works with systemd, OpenRC, and launchctl.
 
 ## States
 
-| State       | Behavior                                                                                                          |
-|-------------|-----------------------------------------------------------------------------------------------------------------------|
-| `running`   | Start the service if not active. Idempotent.                                                                      |
-| `stopped`   | Stop the service if active. Idempotent.                                                                           |
-| `restarted` | Restart the service unconditionally. Always fires.                                                                |
+| State       | Behavior                                                                                                           |
+|-------------|--------------------------------------------------------------------------------------------------------------------|
+| `running`   | Start the service if not active. Idempotent.                                                                       |
+| `stopped`   | Stop the service if active. Idempotent.                                                                            |
+| `restarted` | Restart the service unconditionally. Always fires.                                                                 |
 | `reloaded`  | Reload the service unconditionally. Falls back to restart if the init system doesn't support reload. Always fires. |
 
 ## How it works

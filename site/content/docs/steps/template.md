@@ -11,7 +11,7 @@ Provide exactly one of:
 
 | Field     | Type   | Description                       |
 |-----------|--------|-----------------------------------|
-| `src`     | string | Source template file path (local)  |
+| `src`     | string | Source template file path (local) |
 | `content` | string | Inline template string            |
 
 | Field    | Type   | Required | Description                                                        |

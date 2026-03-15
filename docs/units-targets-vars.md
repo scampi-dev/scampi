@@ -313,13 +313,13 @@ myproject/
 
 ## CLI Flags
 
-| Flag                   | Meaning                                             |
-|------------------------|-----------------------------------------------------|
-| `--targets <names>`    | Filter to specific target names (comma-separated)   |
-| `--only <blocks>`      | Filter to specific deploy blocks (comma-separated)  |
-| `-v` / `-vv` / `-vvv` | Increase verbosity                                  |
-| `--color <mode>`       | Colorize output: auto, always, never                |
-| `--ascii`              | Force ASCII output (no Unicode glyphs)              |
+| Flag                  | Meaning                                            |
+|-----------------------|----------------------------------------------------|
+| `--targets <names>`   | Filter to specific target names (comma-separated)  |
+| `--only <blocks>`     | Filter to specific deploy blocks (comma-separated) |
+| `-v` / `-vv` / `-vvv` | Increase verbosity                                 |
+| `--color <mode>`      | Colorize output: auto, always, never               |
+| `--ascii`             | Force ASCII output (no Unicode glyphs)             |
 
 ### Examples
 
@@ -381,7 +381,7 @@ inspection is a liability, not an optimization.
 |---------------|-----------------------------------------|---------------------------------|
 | Steps         | Built-in functions (`copy`, `dir`, ...) | Batteries included              |
 | Targets       | `target.local()`, `target.ssh()`        | Pure identity                   |
-| Deploy blocks | `deploy(name, targets, steps)`          | Host-centric: "on X run Y"     |
+| Deploy blocks | `deploy(name, targets, steps)`          | Host-centric: "on X run Y"      |
 | Environment   | `env(key, default?)`                    | Explicit, no precedence         |
 | Secrets       | `secret(key)`                           | Pluggable backend, never logged |
 | Multi-file    | `load()`                                | Standard Starlark               |

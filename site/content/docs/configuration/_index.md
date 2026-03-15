@@ -53,11 +53,11 @@ deploy(
 )
 ```
 
-| Field     | Required | Description                                       |
-|-----------|:--------:|---------------------------------------------------|
-| `name`    |    ✓     | Unique identifier for this deploy block            |
-| `steps`   |    ✓     | Ordered list of steps to execute                   |
-| `targets` |          | List of target names (omit for local execution)    |
+| Field     | Required | Description                                     |
+|-----------|:--------:|-------------------------------------------------|
+| `name`    |    ✓     | Unique identifier for this deploy block         |
+| `steps`   |    ✓     | Ordered list of steps to execute                |
+| `targets` |          | List of target names (omit for local execution) |
 
 Steps within a deploy block execute in order. Each step becomes an action in the
 plan.

@@ -49,7 +49,7 @@ ssh:
 
 [doc("Run code style rule tests")]
 rules:
-  go test -v ./test -run 'TestImportCapabilities|TestFuncSignatureStyle|Test_StepType'
+  go test -v ./test -run 'TestImportCapabilities|TestFuncSignatureStyle|TestMarkdownTableAlignment|Test_StepType'
 
 # Fuzz and benchmarks
 # ##############################################################################
