@@ -8,15 +8,15 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
-// mockAction implements spec.Action for testing
 type mockAction struct {
 	desc string
 	kind string
+	ops  []spec.Op
 }
 
 func (m *mockAction) Desc() string   { return m.desc }
 func (m *mockAction) Kind() string   { return m.kind }
-func (m *mockAction) Ops() []spec.Op { return nil }
+func (m *mockAction) Ops() []spec.Op { return m.ops }
 
 // mockPatherAction implements spec.Action and spec.Pather for testing
 type mockPatherAction struct {

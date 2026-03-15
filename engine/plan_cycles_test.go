@@ -51,24 +51,11 @@ func (o *mockOp) Execute(context.Context, source.Source, target.Target) (spec.Re
 	return spec.Result{}, nil
 }
 
-// mockOpAction
-// -----------------------------------------------------------------------------
-
-type mockOpAction struct {
-	desc string
-	kind string
-	ops  []spec.Op
-}
-
-func (a *mockOpAction) Desc() string   { return a.desc }
-func (a *mockOpAction) Kind() string   { return a.kind }
-func (a *mockOpAction) Ops() []spec.Op { return a.ops }
-
 // Plan cycle tests
 // -----------------------------------------------------------------------------
 
 func TestDetectPlanCycles_NoCycle(t *testing.T) {
-	act := &mockOpAction{desc: "test", kind: "test"}
+	act := &mockAction{desc: "test", kind: "test"}
 	opA := &mockOp{action: act}
 	opB := &mockOp{action: act, deps: []spec.Op{opA}}
 	act.ops = []spec.Op{opA, opB}
@@ -86,7 +73,7 @@ func TestDetectPlanCycles_NoCycle(t *testing.T) {
 }
 
 func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
-	act := &mockOpAction{desc: "test", kind: "test"}
+	act := &mockAction{desc: "test", kind: "test"}
 	opA := &mockOp{action: act}
 	opB := &mockOp{action: act}
 	opA.deps = []spec.Op{opB}

@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"strings"
 	"testing"
 
 	"scampi.dev/scampi/spec"
@@ -92,20 +93,7 @@ func TestActionCyclicDependency_Error(t *testing.T) {
 	}
 
 	// Should contain action descriptions
-	if !contains(errStr, "action-A") || !contains(errStr, "action-B") {
+	if !strings.Contains(errStr, "action-A") || !strings.Contains(errStr, "action-B") {
 		t.Errorf("error should contain action descriptions: %s", errStr)
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsAt(s, substr, 0))
-}
-
-func containsAt(s, substr string, start int) bool {
-	for i := start; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
