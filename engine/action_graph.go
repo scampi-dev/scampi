@@ -59,19 +59,32 @@ func buildActionGraph(actions []spec.Action) []*actionNode {
 		}
 	}
 
-	// Non-Pather actions (e.g. run steps) act as barriers: they depend on
-	// all preceding actions, and all subsequent actions depend on them.
-	// The engine can't see what an opaque command reads or writes, so it
-	// must not reorder anything across it — same idea as a memory fence.
-	for i, n := range nodes {
+	// Fence-based barrier edges
+	// -----------------------------------------------------------------------------
+	// Non-Pather actions act as barriers (memory fences): nothing may reorder
+	// across them. Instead of connecting every barrier to every other node
+	// (O(n²) edges), we chain consecutive barriers and fan edges in/out to
+	// neighboring Pather nodes. This produces identical execution order with
+	// O(n) edges.
+	var lastBarrier *actionNode
+	var pathersSinceBarrier []*actionNode
+
+	for _, n := range nodes {
 		if _, ok := n.action.(spec.Pather); ok {
-			continue
-		}
-		for _, prev := range nodes[:i] {
-			addEdge(prev, n)
-		}
-		for _, next := range nodes[i+1:] {
-			addEdge(n, next)
+			if lastBarrier != nil {
+				addEdge(lastBarrier, n)
+			}
+			pathersSinceBarrier = append(pathersSinceBarrier, n)
+		} else {
+			// n is a barrier
+			if lastBarrier != nil {
+				addEdge(lastBarrier, n)
+			}
+			for _, p := range pathersSinceBarrier {
+				addEdge(p, n)
+			}
+			pathersSinceBarrier = pathersSinceBarrier[:0]
+			lastBarrier = n
 		}
 	}
 

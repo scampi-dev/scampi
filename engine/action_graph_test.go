@@ -76,7 +76,7 @@ func TestBuildActionGraph_PathDependency(t *testing.T) {
 }
 
 func TestBuildActionGraph_NonPatherSequential(t *testing.T) {
-	// Non-Pather actions are barriers — each drains all preceding actions
+	// Consecutive barriers chain: A→B→C (transitive ordering, O(n) edges)
 	actions := []spec.Action{
 		&mockAction{desc: "A"},
 		&mockAction{desc: "B"},
@@ -93,13 +93,13 @@ func TestBuildActionGraph_NonPatherSequential(t *testing.T) {
 	// B: depends on A
 	requiresExactly(t, nodes[1], "B", nodes[0])
 
-	// C: depends on A and B (barrier drains all preceding)
-	requiresExactly(t, nodes[2], "C", nodes[0], nodes[1])
+	// C: depends on B (transitively on A via B→A chain)
+	requiresExactly(t, nodes[2], "C", nodes[1])
 }
 
 func TestBuildActionGraph_NonPatherBarrier(t *testing.T) {
-	// Non-Pather actions are barriers: everything before must complete,
-	// everything after must wait.
+	// Fence semantics: barriers chain and fan in/out to neighboring Pather
+	// nodes. P1→N1→P2→N2 with fan-in edges from Pathers between barriers.
 	actions := []spec.Action{
 		&mockPatherAction{desc: "P1", outputs: []string{"/p1"}},
 		&mockAction{desc: "N1"},
@@ -114,14 +114,14 @@ func TestBuildActionGraph_NonPatherBarrier(t *testing.T) {
 		t.Error("P1 should have no dependencies")
 	}
 
-	// N1: depends on P1 (barrier drains all preceding)
+	// N1: depends on P1 (fan-in from Pathers before this barrier)
 	requiresExactly(t, nodes[1], "N1", nodes[0])
 
-	// P2: depends on N1 (barrier blocks all subsequent)
+	// P2: depends on N1 (fan-out from preceding barrier)
 	requiresExactly(t, nodes[2], "P2", nodes[1])
 
-	// N2: depends on P1, N1, P2 (second barrier drains all preceding)
-	requiresExactly(t, nodes[3], "N2", nodes[0], nodes[1], nodes[2])
+	// N2: depends on N1 (chain) and P2 (fan-in); P1 reached transitively via N1
+	requiresExactly(t, nodes[3], "N2", nodes[1], nodes[2])
 }
 
 func requiresExactly(t *testing.T, n *actionNode, name string, expected ...*actionNode) {
