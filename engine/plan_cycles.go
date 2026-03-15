@@ -52,7 +52,16 @@ func (e CyclicDependencyError) Severity() signal.Severity { return signal.Error 
 func (CyclicDependencyError) Impact() diagnostic.Impact   { return diagnostic.ImpactAbort }
 
 func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
-	cycles := detectPlanCycles(plan)
+	var roots []spec.Op
+	for _, a := range plan.Unit.Actions {
+		roots = append(roots, a.Ops()...)
+	}
+
+	cycles := dedupCycles(
+		detectCycles(roots, func(op spec.Op) []spec.Op { return op.DependsOn() }),
+		ptrKey[spec.Op],
+	)
+
 	if len(cycles) > 0 {
 		var err AbortError
 		for _, cycle := range cycles {
@@ -60,7 +69,7 @@ func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
 			err.Causes = append(err.Causes, cd)
 
 			em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(
-				0, // step index not applicable for cycle detection
+				0,
 				cycle[0].Action().Kind(),
 				cycle[0].Action().Desc(),
 				cd,
@@ -71,97 +80,6 @@ func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
 	}
 
 	return nil
-}
-
-func detectPlanCycles(plan spec.Plan) [][]spec.Op {
-	visited := map[spec.Op]bool{}
-	onStack := map[spec.Op]bool{}
-
-	var stack []spec.Op
-	var cycles [][]spec.Op
-
-	var dfs func(op spec.Op)
-	dfs = func(op spec.Op) {
-		if onStack[op] {
-			// cycle found: extract suffix of stack
-			cycle := extractCycle(stack, op)
-			cycles = append(cycles, cycle)
-			return
-		}
-		if visited[op] {
-			return
-		}
-
-		visited[op] = true
-		onStack[op] = true
-		stack = append(stack, op)
-
-		for _, dep := range op.DependsOn() {
-			dfs(dep)
-		}
-
-		stack = stack[:len(stack)-1]
-		onStack[op] = false
-	}
-
-	for _, a := range plan.Unit.Actions {
-		for _, op := range a.Ops() {
-			if !visited[op] {
-				dfs(op)
-			}
-		}
-	}
-
-	return dedupeCycles(cycles)
-}
-
-func extractCycle(stack []spec.Op, start spec.Op) []spec.Op {
-	for i := len(stack) - 1; i >= 0; i-- {
-		if stack[i] == start {
-			cycle := append([]spec.Op{}, stack[i:]...)
-			cycle = append(cycle, start) // close the loop explicitly
-			return cycle
-		}
-	}
-	panic("cycle start not found in stack (bug)")
-}
-
-func dedupeCycles(cycles [][]spec.Op) [][]spec.Op {
-	seen := map[string]bool{}
-	var out [][]spec.Op
-
-	for _, c := range cycles {
-		key := cycleKey(c)
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		out = append(out, c)
-	}
-	return out
-}
-
-func cycleKey(cycle []spec.Op) string {
-	// ignore final repeated node for keying
-	n := len(cycle) - 1
-
-	// find rotation with minimal pointer string
-	minIdx := 0
-	for i := 1; i < n; i++ {
-		if ptr(cycle[i]) < ptr(cycle[minIdx]) {
-			minIdx = i
-		}
-	}
-
-	var key strings.Builder
-	for i := range n {
-		key.WriteString(ptr(cycle[(minIdx+i)%n]) + ">")
-	}
-	return key.String()
-}
-
-func ptr(op spec.Op) string {
-	return fmt.Sprintf("%p", op)
 }
 
 // ActionCyclicDependencyError represents a cycle in the action dependency graph.
@@ -201,12 +119,73 @@ func (e ActionCyclicDependencyError) EventTemplate() event.Template {
 func (e ActionCyclicDependencyError) Severity() signal.Severity { return signal.Error }
 func (ActionCyclicDependencyError) Impact() diagnostic.Impact   { return diagnostic.ImpactAbort }
 
+// detectHookCycles finds cycles in hook on_change chains using DFS.
+func detectHookCycles(em diagnostic.Emitter, hooks map[string][]spec.StepInstance) error {
+	if len(hooks) == 0 {
+		return nil
+	}
+
+	// Build adjacency: hook ID → hook IDs it references via on_change
+	adj := map[string][]string{}
+	roots := make([]string, 0, len(hooks))
+	for id, steps := range hooks {
+		roots = append(roots, id)
+		for _, step := range steps {
+			adj[id] = append(adj[id], step.OnChange...)
+		}
+	}
+
+	cycles := detectCycles(roots, func(id string) []string { return adj[id] })
+	if len(cycles) > 0 {
+		cycle := cycles[0]
+		source := findCycleEdgeSource(hooks, cycle)
+		err := HookCycleError{Chain: cycle, Source: source}
+		em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(
+			-1,
+			"hook",
+			cycle[0],
+			err,
+		))
+		return AbortError{Causes: []error{err}}
+	}
+
+	return nil
+}
+
+// findCycleEdgeSource locates the on_change field span for the edge that
+// closes the cycle. The cycle slice is [A, ..., X, A] so the closing edge
+// is from X → A.
+func findCycleEdgeSource(hooks map[string][]spec.StepInstance, cycle []string) spec.SourceSpan {
+	from := cycle[len(cycle)-2]
+	to := cycle[len(cycle)-1]
+	for _, step := range hooks[from] {
+		for _, ref := range step.OnChange {
+			if ref == to {
+				if fs, ok := step.Fields["on_change"]; ok {
+					return fs.Value
+				}
+				return step.Source
+			}
+		}
+	}
+	return spec.SourceSpan{}
+}
+
 // DetectActionCycles checks for cycles in the action dependency graph.
 func DetectActionCycles(em diagnostic.Emitter, nodes []*actionNode) error {
-	cycles := detectActionCycles(nodes)
-	if len(cycles) > 0 {
+	rawCycles := dedupCycles(
+		detectCycles(nodes, func(n *actionNode) []*actionNode { return n.requires }),
+		ptrKey[*actionNode],
+	)
+
+	if len(rawCycles) > 0 {
 		var err AbortError
-		for _, cycle := range cycles {
+		for _, raw := range rawCycles {
+			cycle := make([]spec.Action, len(raw))
+			for i, n := range raw {
+				cycle[i] = n.action
+			}
+
 			cd := ActionCyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
 
@@ -222,92 +201,4 @@ func DetectActionCycles(em diagnostic.Emitter, nodes []*actionNode) error {
 	}
 
 	return nil
-}
-
-func detectActionCycles(nodes []*actionNode) [][]spec.Action {
-	visited := map[*actionNode]bool{}
-	onStack := map[*actionNode]bool{}
-
-	var stack []*actionNode
-	var cycles [][]spec.Action
-
-	var dfs func(n *actionNode)
-	dfs = func(n *actionNode) {
-		if onStack[n] {
-			// cycle found: extract suffix of stack
-			cycle := extractActionCycle(stack, n)
-			cycles = append(cycles, cycle)
-			return
-		}
-		if visited[n] {
-			return
-		}
-
-		visited[n] = true
-		onStack[n] = true
-		stack = append(stack, n)
-
-		for _, req := range n.requires {
-			dfs(req)
-		}
-
-		stack = stack[:len(stack)-1]
-		onStack[n] = false
-	}
-
-	for _, n := range nodes {
-		if !visited[n] {
-			dfs(n)
-		}
-	}
-
-	return dedupeActionCycles(cycles)
-}
-
-func extractActionCycle(stack []*actionNode, start *actionNode) []spec.Action {
-	for i := len(stack) - 1; i >= 0; i-- {
-		if stack[i] == start {
-			cycle := make([]spec.Action, 0, len(stack)-i+1)
-			for j := i; j < len(stack); j++ {
-				cycle = append(cycle, stack[j].action)
-			}
-			cycle = append(cycle, start.action) // close the loop explicitly
-			return cycle
-		}
-	}
-	panic("cycle start not found in stack (bug)")
-}
-
-func dedupeActionCycles(cycles [][]spec.Action) [][]spec.Action {
-	seen := map[string]bool{}
-	var out [][]spec.Action
-
-	for _, c := range cycles {
-		key := actionCycleKey(c)
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		out = append(out, c)
-	}
-	return out
-}
-
-func actionCycleKey(cycle []spec.Action) string {
-	// ignore final repeated node for keying
-	n := len(cycle) - 1
-
-	// find rotation with minimal pointer string
-	minIdx := 0
-	for i := 1; i < n; i++ {
-		if fmt.Sprintf("%p", cycle[i]) < fmt.Sprintf("%p", cycle[minIdx]) {
-			minIdx = i
-		}
-	}
-
-	var key strings.Builder
-	for i := range n {
-		key.WriteString(fmt.Sprintf("%p", cycle[(minIdx+i)%n]) + ">")
-	}
-	return key.String()
 }

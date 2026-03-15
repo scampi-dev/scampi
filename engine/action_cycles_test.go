@@ -8,6 +8,23 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
+func detectActionCyclesForTest(nodes []*actionNode) [][]spec.Action {
+	rawCycles := dedupCycles(
+		detectCycles(nodes, func(n *actionNode) []*actionNode { return n.requires }),
+		ptrKey[*actionNode],
+	)
+
+	var cycles [][]spec.Action
+	for _, raw := range rawCycles {
+		cycle := make([]spec.Action, len(raw))
+		for i, n := range raw {
+			cycle[i] = n.action
+		}
+		cycles = append(cycles, cycle)
+	}
+	return cycles
+}
+
 func TestDetectActionCycles_NoCycle(t *testing.T) {
 	// Linear chain: A -> B -> C
 	actions := []spec.Action{
@@ -17,7 +34,7 @@ func TestDetectActionCycles_NoCycle(t *testing.T) {
 	}
 
 	nodes := buildActionGraph(actions)
-	cycles := detectActionCycles(nodes)
+	cycles := detectActionCyclesForTest(nodes)
 
 	if len(cycles) != 0 {
 		t.Errorf("expected no cycles, got %d", len(cycles))
@@ -34,7 +51,7 @@ func TestDetectActionCycles_SimpleCycle(t *testing.T) {
 	}
 
 	nodes := buildActionGraph(actions)
-	cycles := detectActionCycles(nodes)
+	cycles := detectActionCyclesForTest(nodes)
 
 	if len(cycles) != 1 {
 		t.Fatalf("expected 1 cycle, got %d", len(cycles))
@@ -54,7 +71,7 @@ func TestDetectActionCycles_IndependentActions(t *testing.T) {
 	}
 
 	nodes := buildActionGraph(actions)
-	cycles := detectActionCycles(nodes)
+	cycles := detectActionCyclesForTest(nodes)
 
 	if len(cycles) != 0 {
 		t.Errorf("expected no cycles, got %d", len(cycles))
