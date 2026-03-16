@@ -68,10 +68,12 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				_, err := engine.LoadConfig(context.Background(), em, cfgPath, store, src)
+				ctx, cancel := context.WithCancel(context.Background())
+				_, err := engine.LoadConfig(ctx, em, cfgPath, store, src)
 				if err != nil {
 					b.Fatal(err)
 				}
+				cancel()
 			}
 		})
 	}
@@ -132,7 +134,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -145,7 +147,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -154,6 +156,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -193,7 +196,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -206,7 +209,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -215,6 +218,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -253,7 +257,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -266,7 +270,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -275,6 +279,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -324,8 +329,9 @@ deploy(
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := spec.NewSourceStore()
+
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -338,7 +344,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -347,6 +353,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -390,7 +397,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -403,7 +410,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -412,6 +419,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -451,7 +459,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -464,7 +472,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -473,6 +481,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -514,7 +523,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -527,7 +536,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -536,6 +545,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -574,7 +584,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -587,7 +597,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -596,6 +606,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -640,7 +651,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -653,7 +664,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -662,6 +673,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -707,7 +719,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -720,7 +732,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -729,6 +741,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -780,7 +793,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -793,7 +806,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -802,6 +815,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -846,7 +860,7 @@ deploy(
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -859,7 +873,7 @@ deploy(
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -868,6 +882,7 @@ deploy(
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
 	}
@@ -932,7 +947,7 @@ deploy(name="bench", targets=["local"], steps=[
 			store := spec.NewSourceStore()
 
 			for b.Loop() {
-				ctx := context.Background()
+				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -945,7 +960,7 @@ deploy(name="bench", targets=["local"], steps=[
 
 				resolved.Target = mockTargetInstance(tgt)
 
-				e, err := engine.New(ctx, src, resolved, noopEmitter{})
+				e, err := engine.New(ctx, src, resolved, em)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -954,7 +969,9 @@ deploy(name="bench", targets=["local"], steps=[
 					b.Fatal(err)
 				}
 				e.Close()
+				cancel()
 			}
 		})
+
 	}
 }
