@@ -53,9 +53,7 @@ Two extraction backends are available, chosen per-execution:
   runs `tar`/`unzip` on the target, removes the temp file. Probed with
   `command -v tar` / `command -v unzip`.
 - **Go-native** (fallback): parses the archive in Go and writes files
-  individually via the target filesystem. Available for `.tar.gz`, `.tar.bz2`,
-  `.tar`, and `.zip`. Formats requiring external tools (`.tar.xz`, `.tar.zst`)
-  produce an error if the tool is missing.
+  individually via the target filesystem. Available for all supported formats.
 
 ### Recursive unpacking
 
