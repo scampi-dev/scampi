@@ -17,6 +17,11 @@ nav a[href*="docs"] * {
   font-weight: 600 !important;
 }
 
+/* Make footer flex row fill available width so ml-auto works */
+.hextra-footer .hextra-max-footer-width {
+  width: 100%;
+}
+
 /* External link indicator for content area */
 article a[href^="http"]::after,
 .hextra-content a[href^="http"]::after {

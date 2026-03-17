@@ -12,10 +12,13 @@ spdx_header  := "// SPDX-License-Identifier: GPL-3.0-only"
 # Daily drivers
 # ##############################################################################
 
+version  := `git describe --tags --always --dirty 2>/dev/null || echo dev`
+ldflags  := "-s -w -X main.version=" + version
+
 [doc("Build the scampi CLI binary")]
 build:
   mkdir -p {{bin_dir}}
-  go build -o {{bin_path}} ./cmd
+  go build -ldflags '{{ldflags}}' -o {{bin_path}} ./cmd
 
 [doc("Build and run scampi locally")]
 scampi *args:

@@ -2,6 +2,9 @@ hugo      := "go tool github.com/gohugoio/hugo"
 mdlint    := "go tool github.com/shinagawa-web/gomarklint"
 infra_dir := env("SCAMPI_INFRA", "../scampi-infra")
 
+export HUGO_SCAMPI_GIT_REF := `git rev-parse HEAD`
+export HUGO_SCAMPI_VERSION := `git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo ""`
+
 [default]
 [doc("Build the Hugo site")]
 build:

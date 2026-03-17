@@ -17,7 +17,6 @@ publishDir = "../build/site"
   description = "Declarative system convergence engine"
   displayUpdatedDate = false
 
-
   [params.navbar]
     displayTitle = true
     displayLogo = false

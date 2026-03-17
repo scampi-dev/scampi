@@ -27,6 +27,8 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
+var version = "dev"
+
 const (
 	exitOK        = 0 // success
 	exitUserError = 1 // invalid config, failed plan, validation errors
@@ -56,8 +58,10 @@ const (
 
 func main() {
 	scampi := &cli.Command{
-		Name:  "scampi",
-		Usage: "Declarative task execution for local and remote systems",
+		Name:        "scampi",
+		Usage:       "Declarative task execution for local and remote systems",
+		Version:     version,
+		HideVersion: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  flagASCII,
@@ -89,6 +93,7 @@ func main() {
 			indexCmd(),
 			legendCmd(),
 			secretsCmd(),
+			versionCmd(),
 		},
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 			ascii := cmd.Bool(flagASCII)
@@ -549,6 +554,17 @@ func splitComma(s string) []string {
 		}
 	}
 	return result
+}
+
+func versionCmd() *cli.Command {
+	return &cli.Command{
+		Name:  "version",
+		Usage: "Print the scampi version",
+		Action: func(_ context.Context, _ *cli.Command) error {
+			_, _ = fmt.Println("scampi " + version)
+			return nil
+		},
+	}
 }
 
 func recoverAndReport(r any) {

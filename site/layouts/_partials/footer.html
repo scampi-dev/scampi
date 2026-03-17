@@ -1,0 +1,34 @@
+{{- $enableFooterSwitches := .Store.Get "enableFooterSwitches" | default false -}}
+{{- $displayThemeToggle := site.Params.theme.displayToggle | default true -}}
+{{- $footerSwitchesVisible := and $enableFooterSwitches (or hugo.IsMultilingual $displayThemeToggle) -}}
+
+{{- $ref := getenv "HUGO_SCAMPI_GIT_REF" -}}
+{{- $version := getenv "HUGO_SCAMPI_VERSION" -}}
+
+{{- $muted := "hx:text-gray-300 hx:dark:text-gray-700" -}}
+{{- $link := "hx:text-gray-500 hx:dark:text-gray-400 hx:hover:text-gray-700 hx:dark:hover:text-gray-200" -}}
+
+<footer class="hextra-footer hx:bg-gray-100 hx:pb-[env(safe-area-inset-bottom)] hx:dark:bg-neutral-900 hx:print:bg-transparent">
+  <div class="hx:mx-auto hx:flex hx:items-center hx:justify-between hx:py-2 hx:px-4 hextra-max-footer-width">
+    <div class="hx:flex hx:items-center hx:gap-2">
+      {{- if $footerSwitchesVisible -}}
+        {{- partial "language-switch.html" (dict "context" .) -}}
+        {{- with $displayThemeToggle }}{{ partial "theme-toggle.html" }}{{ end -}}
+      {{- end -}}
+    </div>
+    <div class="hx:flex hx:items-center hx:gap-1 hx:text-xs">
+      <span class="{{ $muted }}">scampi</span>
+      {{- if $version -}}
+        <a href="https://codeberg.org/scampi-dev/scampi/releases/tag/v{{ $version }}" target="_blank" rel="noopener noreferrer" class="{{ $link }}">v{{ $version }}</a>
+      {{- else -}}
+        <span class="hx:text-gray-500 hx:dark:text-gray-400">dev</span>
+      {{- end -}}
+      <span class="{{ $muted }}">site</span>
+      {{- if $ref -}}
+        <a href="https://codeberg.org/scampi-dev/scampi/commit/{{ $ref }}" target="_blank" rel="noopener noreferrer" class="{{ $link }}">{{ substr $ref 0 8 }}</a>
+      {{- else -}}
+        <span class="hx:text-gray-500 hx:dark:text-gray-400">dev</span>
+      {{- end -}}
+    </div>
+  </div>
+</footer>
