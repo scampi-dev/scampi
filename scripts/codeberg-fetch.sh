@@ -7,7 +7,6 @@
 # Caches responses under $XDG_CACHE_HOME/scampi/codeberg/ with a 5-minute
 # TTL. Pass --refresh to bypass the cache.
 set -euo pipefail
-: "${CODEBERG_TOKEN:?Set CODEBERG_TOKEN to a Codeberg personal access token}"
 
 url="$1"; shift
 refresh=false
@@ -39,6 +38,11 @@ if [[ "$refresh" == false && -f "$cache_file" ]]; then
   fi
 fi
 
-json=$(curl -sf -H "Authorization: token $CODEBERG_TOKEN" "$url")
+curl_args=(-sf)
+if [[ -n "${CODEBERG_TOKEN:-}" ]]; then
+  curl_args+=(-H "Authorization: token $CODEBERG_TOKEN")
+fi
+
+json=$(curl "${curl_args[@]}" "$url")
 printf '%s' "$json" > "$cache_file"
 printf '%s' "$json"
