@@ -2,7 +2,7 @@
 
 # scampi
 
-[![CI](https://codeberg.org/pskry/scampi/badges/workflows/ci.yml/badge.svg?branch=main)](https://codeberg.org/pskry/scampi/actions?workflow=ci.yml)
+[![CI](https://codeberg.org/scampi-dev/scampi/badges/workflows/ci.yml/badge.svg?branch=main)](https://codeberg.org/scampi-dev/scampi/actions?workflow=ci.yml)
 
 Hi, I'm **scampi** — your friendly infrastructure crustacean. I do IaC convergence, garlic buttery smooth.
 

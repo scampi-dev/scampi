@@ -27,7 +27,7 @@ publishDir = "../build/site"
 
   [params.editURL]
     enable = true
-    base = "https://codeberg.org/pskry/scampi/_edit/main/site/content"
+    base = "https://codeberg.org/scampi-dev/scampi/_edit/main/site/content"
 
 [[menus.main]]
   name = "Docs"
@@ -45,7 +45,7 @@ publishDir = "../build/site"
 
 [[menus.main]]
   name = "Codeberg"
-  url = "https://codeberg.org/pskry/scampi"
+  url = "https://codeberg.org/scampi-dev/scampi"
   weight = 3
   [menus.main.params]
     icon = "codeberg"

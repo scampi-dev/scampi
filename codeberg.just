@@ -1,5 +1,5 @@
 codeberg_api := "https://codeberg.org/api/v1"
-codeberg_repo := "pskry/scampi"
+codeberg_repo := "scampi-dev/scampi"
 
 [doc("Create issues from file or dir (--dry-run to preview)")]
 [positional-arguments]
