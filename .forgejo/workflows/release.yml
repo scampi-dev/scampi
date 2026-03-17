@@ -9,6 +9,13 @@ jobs:
     runs-on: scampi
     steps:
       - uses: actions/checkout@v4
+      - name: Verify tag is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag is not on main — refusing to release"
+            exit 1
+          fi
       - run: just build
       - run: just test race
       - run: just lint
@@ -28,28 +35,63 @@ jobs:
             GOOS="${pair%/*}"
             GOARCH="${pair#*/}"
             BINARY="scampi-${TAG}-${GOOS}-${GOARCH}"
+            echo "==> Building ${BINARY}..."
             GOOS="${GOOS}" GOARCH="${GOARCH}" go build -ldflags "${LDFLAGS}" -o "release/${BINARY}" ./cmd
-            (cd release && sha256sum "${BINARY}" > "${BINARY}.sha256")
+            (cd release && sha256sum "${BINARY}" | tee "${BINARY}.sha256")
+          done
+          echo "==> All binaries built"
+          ls -lh release/
+
+      - name: Create release and upload assets
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          API="https://codeberg.org/api/v1"
+          REPO="scampi-dev/scampi"
+          AUTH="Authorization: token ${RELEASE_TOKEN}"
+
+          # Determine pre-release status
+          PRERELEASE=false
+          case "$TAG" in *-*) PRERELEASE=true ;; esac
+
+          # Create release
+          BODY=$(cat <<EOF
+          ## scampi ${TAG}
+
+          ### Binaries
+
+          | Platform     | Binary                                     |
+          | ------------ | ------------------------------------------ |
+          | Linux x86_64 | \`scampi-${TAG}-linux-amd64\`              |
+          | Linux ARM64  | \`scampi-${TAG}-linux-arm64\`              |
+          | macOS x86_64 | \`scampi-${TAG}-darwin-amd64\`             |
+          | macOS ARM64  | \`scampi-${TAG}-darwin-arm64\`             |
+
+          Each binary has a corresponding \`.sha256\` checksum file.
+          EOF
+          )
+
+          echo "==> Creating release ${TAG}..."
+          RELEASE_ID=$(curl -sf -X POST \
+            -H "$AUTH" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg tag "$TAG" --arg body "$BODY" --argjson pre "$PRERELEASE" \
+              '{tag_name: $tag, name: $tag, body: $body, prerelease: $pre}')" \
+            "$API/repos/$REPO/releases" | jq -r '.id')
+
+          echo "    Release ID: ${RELEASE_ID}"
+
+          # Upload assets
+          for file in release/*; do
+            name=$(basename "$file")
+            echo "==> Uploading ${name}..."
+            curl -sf -X POST \
+              -H "$AUTH" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@${file}" \
+              "$API/repos/$REPO/releases/${RELEASE_ID}/assets?name=${name}"
+            echo ""
           done
 
-      - name: Create release
-        uses: actions/forgejo-release@v2
-        with:
-          direction: upload
-          tag: ${{ github.ref_name }}
-          token: ${{ secrets.RELEASE_TOKEN }}
-          release-dir: release/
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          release-notes: |
-            ## scampi ${{ github.ref_name }}
-
-            ### Binaries
-
-            | Platform     | Binary                                          |
-            | ------------ | ----------------------------------------------- |
-            | Linux x86_64 | `scampi-${{ github.ref_name }}-linux-amd64`     |
-            | Linux ARM64  | `scampi-${{ github.ref_name }}-linux-arm64`     |
-            | macOS x86_64 | `scampi-${{ github.ref_name }}-darwin-amd64`    |
-            | macOS ARM64  | `scampi-${{ github.ref_name }}-darwin-arm64`    |
-
-            Each binary has a corresponding `.sha256` checksum file.
+          echo "==> Release ${TAG} published"
