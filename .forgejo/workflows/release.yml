@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  test:
+    runs-on: scampi
+    steps:
+      - uses: actions/checkout@v4
+      - run: just build
+      - run: just test race
+      - run: just lint
+
+  release:
+    needs: test
+    runs-on: scampi
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release binaries
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          LDFLAGS="-s -w -X main.version=${TAG}"
+          mkdir -p release
+          for pair in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            GOOS="${pair%/*}"
+            GOARCH="${pair#*/}"
+            BINARY="scampi-${TAG}-${GOOS}-${GOARCH}"
+            GOOS="${GOOS}" GOARCH="${GOARCH}" go build -ldflags "${LDFLAGS}" -o "release/${BINARY}" ./cmd
+            (cd release && sha256sum "${BINARY}" > "${BINARY}.sha256")
+          done
+
+      - name: Create release
+        uses: actions/forgejo-release@v2
+        with:
+          direction: upload
+          tag: ${{ github.ref_name }}
+          token: ${{ secrets.RELEASE_TOKEN }}
+          release-dir: release/
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          release-notes: |
+            ## scampi ${{ github.ref_name }}
+
+            ### Binaries
+
+            | Platform     | Binary                                          |
+            | ------------ | ----------------------------------------------- |
+            | Linux x86_64 | `scampi-${{ github.ref_name }}-linux-amd64`     |
+            | Linux ARM64  | `scampi-${{ github.ref_name }}-linux-arm64`     |
+            | macOS x86_64 | `scampi-${{ github.ref_name }}-darwin-amd64`    |
+            | macOS ARM64  | `scampi-${{ github.ref_name }}-darwin-arm64`    |
+
+            Each binary has a corresponding `.sha256` checksum file.
