@@ -25,10 +25,14 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           LDFLAGS="-s -w -X main.version=${TAG}"
           mkdir -p release
-          BINARY="scampi-${TAG}-linux-amd64"
-          echo "==> Building ${BINARY}..."
-          go build -ldflags "${LDFLAGS}" -o "release/${BINARY}" ./cmd
-          (cd release && sha256sum "${BINARY}" | tee "${BINARY}.sha256")
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64; do
+            GOOS="${target%/*}"
+            GOARCH="${target#*/}"
+            BINARY="scampi-${TAG}-${GOOS}-${GOARCH}"
+            echo "==> Building ${BINARY}..."
+            CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags "${LDFLAGS}" -o "release/${BINARY}" ./cmd
+          done
+          (cd release && sha256sum * | tee SHA256SUMS)
           ls -lh release/
 
       - name: Create release and upload assets
