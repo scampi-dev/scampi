@@ -1,0 +1,41 @@
+name: Site Deploy
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: scampi
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build scampi
+        run: just build
+
+      - name: Build and package site
+        run: just site dist
+
+      - uses: actions/checkout@v4
+        with:
+          repository: scampi-dev/scampi-infra
+          path: scampi-infra
+
+      - name: Deploy site via scampi
+        env:
+          SCAMPI_AGE_KEY: ${{ secrets.AGE_KEY }}
+        run: |
+          # Set up SSH key
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.HAL9000_SSH_KEY }}" > ~/.ssh/hal9000
+          chmod 600 ~/.ssh/hal9000
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/hal9000
+
+          # Add host to known_hosts
+          HOST=$(./build/bin/scampi secrets get -f scampi-infra/secrets.age.json vps.host)
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Deploy
+          cp build/site-dist/site.tar.gz scampi-infra/files/site.tar.gz
+          cd scampi-infra && ../build/bin/scampi apply site.star
