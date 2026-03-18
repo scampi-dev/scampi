@@ -677,6 +677,66 @@ func (e *SecretsConfigError) setSource(s spec.SourceSpan) {
 	}
 }
 
+// RemoteURLError is raised when remote() receives an invalid URL.
+type RemoteURLError struct {
+	URL    string
+	Detail string
+	Source spec.SourceSpan
+}
+
+func (e RemoteURLError) Error() string {
+	return fmt.Sprintf("remote: %s", e.Detail)
+}
+
+func (e RemoteURLError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "star.RemoteURLError",
+		Text:   "remote: {{.Detail}}",
+		Hint:   "url must start with http:// or https://",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (RemoteURLError) Severity() signal.Severity { return signal.Error }
+func (RemoteURLError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
+func (e *RemoteURLError) setSource(s spec.SourceSpan) {
+	if e.Source == (spec.SourceSpan{}) {
+		e.Source = s
+	}
+}
+
+// RemoteChecksumError is raised when remote() receives a malformed checksum.
+type RemoteChecksumError struct {
+	Checksum string
+	Detail   string
+	Source   spec.SourceSpan
+}
+
+func (e RemoteChecksumError) Error() string {
+	return fmt.Sprintf("remote: %s", e.Detail)
+}
+
+func (e RemoteChecksumError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "star.RemoteChecksumError",
+		Text:   "remote: {{.Detail}}",
+		Hint:   `checksum must be "algo:hex" (sha256, sha384, sha512, sha1, md5)`,
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (RemoteChecksumError) Severity() signal.Severity { return signal.Error }
+func (RemoteChecksumError) Impact() diagnostic.Impact { return diagnostic.ImpactAbort }
+
+func (e *RemoteChecksumError) setSource(s spec.SourceSpan) {
+	if e.Source == (spec.SourceSpan{}) {
+		e.Source = s
+	}
+}
+
 // PoisonValueError is raised when a declaration builtin's return value is used
 // where a real value is expected (e.g. passed as a kwarg to a step).
 type PoisonValueError struct {

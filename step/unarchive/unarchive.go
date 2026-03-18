@@ -30,6 +30,7 @@ type (
 		desc   string
 		kind   string
 		src    string
+		srcRef spec.SourceRef
 		dest   string
 		depth  int
 		owner  string
@@ -92,6 +93,7 @@ func (u Unarchive) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 		desc:   cfg.Desc,
 		kind:   u.Kind(),
 		src:    cfg.Src.Path,
+		srcRef: cfg.Src,
 		dest:   cfg.Dest,
 		depth:  cfg.Depth,
 		owner:  cfg.Owner,
@@ -126,6 +128,7 @@ func (a *unarchiveAction) Ops() []spec.Op {
 			DestSpan: a.step.Fields["dest"].Value,
 		},
 		src:    a.src,
+		srcRef: a.srcRef,
 		dest:   a.dest,
 		depth:  a.depth,
 		format: a.format,
@@ -133,6 +136,7 @@ func (a *unarchiveAction) Ops() []spec.Op {
 	extract.SetAction(a)
 
 	ops := []spec.Op{extract}
+	ops = append(sharedops.ResolveSourceOps(a.srcRef, extract, a, a.step.Fields["src"].Value), ops...)
 
 	if a.owner != "" && a.group != "" {
 		chown := &fileops.EnsureOwnerOp{

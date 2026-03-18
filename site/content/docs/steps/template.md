@@ -9,7 +9,7 @@ permission management.
 
 | Field    | Type   | Required | Description                                                        |
 |----------|--------|:--------:|--------------------------------------------------------------------|
-| `src`    | source |    ✓     | Source resolver: `local("./path")` or `inline("content")`          |
+| `src`    | source |    ✓     | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
 | `dest`   | string |    ✓     | Output file path (on target)                                       |
 | `group`  | string |    ✓     | Group name or GID                                                  |
 | `owner`  | string |    ✓     | Owner user name or UID                                             |
@@ -23,8 +23,12 @@ permission management.
 The `src` field accepts a source resolver:
 
 - **`local("./path")`** — reads a template file from the local machine
-- **`inline("content")`** — uses the given string as template content (written
-  to a cache file at eval time)
+- **`inline("content")`** — uses the given string as template content
+- **`remote(url="...")`** — downloads a template via HTTP/HTTPS (with optional
+  `checksum` for verification)
+
+See [Source resolvers]({{< relref "../configuration#source-resolvers" >}}) for
+full details.
 
 ### Data fields
 
@@ -133,6 +137,24 @@ In the template, environment variables are accessible under `.env`:
 ```text {filename="app.env.tmpl"}
 APP_NAME={{ .values.app_name }}
 DB_PASSWORD={{ .env.db_password }}
+```
+
+### Remote template
+
+```python
+template(
+    src = remote(url="https://example.com/templates/nginx.conf.tmpl"),
+    dest = "/etc/nginx/nginx.conf",
+    perm = "0644",
+    owner = "root",
+    group = "root",
+    data = {
+        "values": {
+            "server_name": "app.example.com",
+            "upstream_port": 8080,
+        },
+    },
+)
 ```
 
 ### With verify

@@ -9,7 +9,7 @@ ownership, and permissions.
 
 | Field   | Type   | Required | Default | Description                                               |
 |---------|--------|:--------:|:-------:|-----------------------------------------------------------|
-| `src`   | source |    ✓     |         | Source archive: `local("./path.tar.gz")`                  |
+| `src`   | source |    ✓     |         | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
 | `dest`  | string |    ✓     |         | Target directory for extraction                           |
 | `depth` | int    |          |   -1    | Nested archive recursion (-1=unlimited, 0=top-level only) |
 | `owner` | string |          |         | Owner applied recursively after extraction                |
@@ -18,6 +18,17 @@ ownership, and permissions.
 | `desc`  | string |          |         | Human-readable description                                |
 
 If `owner` is set, `group` must also be set (and vice versa).
+
+## Source resolvers
+
+The `src` field accepts a source resolver:
+
+- **`local("./path")`** — reads an archive from the local machine
+- **`remote(url="...")`** — downloads an archive via HTTP/HTTPS (with optional
+  `checksum` for verification)
+
+See [Source resolvers]({{< relref "../configuration#source-resolvers" >}}) for
+full details.
 
 ## Supported formats
 
@@ -102,6 +113,21 @@ unarchive(
     dest = "/opt/release",
     depth = -1,
     desc = "extract release with nested archives",
+)
+```
+
+### Remote archive
+
+```python {filename="deploy.star"}
+unarchive(
+    src = remote(
+        url = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz",
+        checksum = "sha256:a8f23e58ba52c3547e0c0e64be46419e8a8aa52b1bae3eb23c485c3b2a512c55",
+    ),
+    dest = "/opt/caddy",
+    owner = "caddy",
+    group = "caddy",
+    desc = "install caddy binary",
 )
 ```
 

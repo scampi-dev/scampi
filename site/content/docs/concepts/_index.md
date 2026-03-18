@@ -53,6 +53,40 @@ pattern:
 This is what makes scampi idempotent. Running `apply` when reality already
 matches your config is a no-op.
 
+## Sources
+
+A **source** tells a step where its content comes from. Scampi separates
+*where content comes from* (source resolvers) from *what to do with it* (steps).
+The two compose independently:
+
+| Resolver   | Description                       |
+|------------|-----------------------------------|
+| `local()`  | File on the local machine         |
+| `inline()` | String literal embedded in config |
+| `remote()` | URL fetched via HTTP/HTTPS        |
+
+Every step that accepts a `src` field works with every source resolver. You don't
+need a different step to download a file vs. copy a local one — the step declares
+*what* the desired state is, and the source resolver handles *where* the content
+comes from:
+
+```python
+copy(src=remote(url="https://example.com/config"), ...)
+template(src=local("./nginx.conf.tmpl"), ...)
+unarchive(src=remote(url="https://github.com/.../v1.0.tar.gz"), ...)
+copy(src=inline("nameserver 1.1.1.1\n"), ...)
+```
+
+This is a deliberate design choice. Steps and sources scale independently —
+adding a new source type (like `git()` or `s3()`) automatically works with every
+existing step, and adding a new step that reads content automatically works with
+every existing source. No combinatorial explosion, no special cases.
+
+There is no `fetch` step because none is needed. `copy(src=remote(...))` already
+downloads a file to a path — and gets caching, checksums, idempotency, ownership,
+and permission management for free. A `fetch` step would just be `copy` with
+fewer knobs.
+
 ## Targets
 
 A **target** is where ops execute — your local machine or a remote host over

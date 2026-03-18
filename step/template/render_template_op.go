@@ -44,6 +44,9 @@ func (op *renderTemplateOp) Check(
 
 	tmplContent, err := op.getTemplateContent(ctx, src)
 	if err != nil {
+		if result, drift, ok := sharedops.CheckSourcePending(op.srcRef, "content"); ok {
+			return result, drift, nil
+		}
 		return spec.CheckUnsatisfied, nil, err
 	}
 
@@ -108,6 +111,14 @@ func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return spec.Result{}, op.execError(err, string(tmplContent))
+	}
+
+	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
+		return spec.Result{}, DestDirMissingError{
+			Path:   filepath.Dir(op.dest),
+			Err:    err,
+			Source: op.DestSpan,
+		}
 	}
 
 	destData, err := fsTgt.ReadFile(ctx, op.dest)

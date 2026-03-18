@@ -150,9 +150,8 @@ func (a *templateAction) Ops() []spec.Op {
 	chown.AddDependency(render)
 	chmod.AddDependency(render)
 
-	return []spec.Op{
-		render,
-		chown,
-		chmod,
-	}
+	ops := []spec.Op{render, chown, chmod}
+	ops = append(sharedops.ResolveSourceOps(a.srcRef, render, a, a.step.Fields["src"].Value), ops...)
+
+	return ops
 }

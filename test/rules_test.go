@@ -176,7 +176,11 @@ func TestImportCapabilities(t *testing.T) {
 		},
 		{
 			pattern:        "star/resolvers.go",
-			allowedImports: "crypto/sha256",
+			allowedImports: "crypto/sha256, net/url",
+		},
+		{
+			pattern:        "step/sharedops/download_op.go",
+			allowedImports: "crypto/md5, crypto/sha1, crypto/sha256, crypto/sha512, net/http",
 		},
 		{
 			pattern:        "step/unarchive/unarchive_op.go",

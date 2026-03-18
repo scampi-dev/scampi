@@ -1,0 +1,15 @@
+{
+  "abort": true,
+  "diagnostics": [
+    {
+      "id": "star.RemoteChecksumError",
+      "scope": "ScopeEngine",
+      "severity": "Error",
+      "kind": "DiagnosticRaised",
+      "source": {
+        "line": 3,
+        "col": 69
+      }
+    }
+  ]
+}

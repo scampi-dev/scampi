@@ -7,6 +7,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net/url"
+	"path"
+	"strings"
 
 	"go.starlark.net/starlark"
 
@@ -24,6 +27,8 @@ func (s *StarlarkSource) String() string {
 		return fmt.Sprintf("local(%q)", s.Ref.Path)
 	case spec.SourceInline:
 		return fmt.Sprintf("inline(%q)", s.Ref.Content)
+	case spec.SourceRemote:
+		return fmt.Sprintf("remote(%q)", s.Ref.URL)
 	default:
 		return "source(?)"
 	}
@@ -93,4 +98,94 @@ func builtinInline(
 			Content: content,
 		},
 	}, nil
+}
+
+// remote(url, checksum?)
+// -----------------------------------------------------------------------------
+
+func builtinRemote(
+	thread *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var rawURL, checksum string
+	if err := starlark.UnpackArgs("remote", args, kwargs,
+		"url", &rawURL,
+		"checksum?", &checksum,
+	); err != nil {
+		return nil, err
+	}
+
+	urlSpan := resolveArgSpan(thread, "url")
+
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, &RemoteURLError{
+			URL:    rawURL,
+			Detail: fmt.Sprintf("invalid url: %v", err),
+			Source: urlSpan,
+		}
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, &RemoteURLError{
+			URL:    rawURL,
+			Detail: fmt.Sprintf("url scheme must be http or https, got %q", u.Scheme),
+			Source: urlSpan,
+		}
+	}
+
+	if checksum != "" {
+		if detail := validateChecksum(checksum); detail != "" {
+			return nil, &RemoteChecksumError{
+				Checksum: checksum,
+				Detail:   detail,
+				Source:   resolveArgSpan(thread, "checksum"),
+			}
+		}
+	}
+
+	h := sha256.Sum256([]byte(rawURL))
+	dirHash := hex.EncodeToString(h[:16])
+	filename := path.Base(u.Path)
+	if filename == "" || filename == "." || filename == "/" {
+		filename = "download"
+	}
+	cachePath := ".scampi-cache/remote/" + dirHash + "/" + filename
+
+	return &StarlarkSource{
+		Ref: spec.SourceRef{
+			Kind:     spec.SourceRemote,
+			Path:     cachePath,
+			URL:      rawURL,
+			Checksum: checksum,
+		},
+	}, nil
+}
+
+func validateChecksum(s string) string {
+	parts := strings.SplitN(s, ":", 2)
+	if len(parts) != 2 || parts[1] == "" {
+		return fmt.Sprintf("checksum must be \"algo:hex\", got %q", s)
+	}
+	algo := parts[0]
+	switch algo {
+	case "sha256", "sha384", "sha512", "sha1", "md5":
+		return ""
+	default:
+		return fmt.Sprintf("unsupported checksum algorithm %q", algo)
+	}
+}
+
+// resolveArgSpan returns the source span for a kwarg value in a remote() call,
+// falling back to the call site if the AST walk fails.
+func resolveArgSpan(thread *starlark.Thread, name string) spec.SourceSpan {
+	pos := callerPosition(thread)
+	call := findCallFromThread(thread, pos)
+	if call != nil {
+		if vs, ok := kwargValueSpan(call, name); ok {
+			return vs
+		}
+	}
+	return posToSpan(pos)
 }

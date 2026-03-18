@@ -45,6 +45,7 @@ const stateDir = "/var/lib/scampi/unarchive"
 type unarchiveOp struct {
 	sharedops.BaseOp
 	src    string
+	srcRef spec.SourceRef
 	dest   string
 	depth  int
 	format archiveFormat
@@ -72,6 +73,9 @@ func (op *unarchiveOp) Check(
 
 	srcData, err := src.ReadFile(ctx, op.src)
 	if err != nil {
+		if result, drift, ok := sharedops.CheckSourcePending(op.srcRef, "archive"); ok {
+			return result, drift, nil
+		}
 		return spec.CheckUnsatisfied, nil, ArchiveNotFoundError{
 			Path:   op.src,
 			Err:    err,

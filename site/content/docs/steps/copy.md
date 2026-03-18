@@ -8,7 +8,7 @@ Copy files or inline content to the target with owner and permission management.
 
 | Field      | Type   | Required | Description                                                        |
 |------------|--------|:--------:|--------------------------------------------------------------------|
-| `src`      | source |    ✓     | Source resolver: `local("./path")` or `inline("content")`          |
+| `src`      | source |    ✓     | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
 | `dest`     | string |    ✓     | Destination file path (on target)                                  |
 | `group`    | string |    ✓     | Group name or GID                                                  |
 | `owner`    | string |    ✓     | Owner user name or UID                                             |
@@ -22,8 +22,12 @@ The `src` field accepts a source resolver:
 
 - **`local("./path")`** — reads a file from the local machine relative to the
   Starlark file
-- **`inline("content")`** — uses the given string as file content (written to a
-  cache file at eval time)
+- **`inline("content")`** — uses the given string as file content
+- **`remote(url="...")`** — downloads a file via HTTP/HTTPS (with optional
+  `checksum` for verification)
+
+See [Source resolvers]({{< relref "../configuration#source-resolvers" >}}) for
+full details.
 
 ## How it works
 
@@ -111,6 +115,34 @@ copy(
     owner = "root",
     group = "root",
     verify = "nginx -t -c %s",
+)
+```
+
+### Remote file
+
+```python {filename="deploy.star"}
+copy(
+    desc = "download IP lookup config",
+    src = remote(url="https://example.com/config.yaml"),
+    dest = "/etc/app/config.yaml",
+    perm = "0644",
+    owner = "root",
+    group = "root",
+)
+```
+
+### Remote file with checksum
+
+```python {filename="deploy.star"}
+copy(
+    src = remote(
+        url = "https://example.com/ca-bundle.crt",
+        checksum = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ),
+    dest = "/etc/ssl/certs/ca-bundle.crt",
+    perm = "0644",
+    owner = "root",
+    group = "root",
 )
 ```
 

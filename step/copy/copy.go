@@ -142,9 +142,8 @@ func (c *copyAction) Ops() []spec.Op {
 	chown.AddDependency(cp)
 	chmod.AddDependency(cp)
 
-	return []spec.Op{
-		cp,
-		chown,
-		chmod,
-	}
+	ops := []spec.Op{cp, chown, chmod}
+	ops = append(sharedops.ResolveSourceOps(c.srcRef, cp, c, c.step.Fields["src"].Value), ops...)
+
+	return ops
 }

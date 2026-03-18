@@ -23,6 +23,7 @@ func predeclared() starlark.StringDict {
 		"inline":    starlark.NewBuiltin("inline", builtinInline),
 		"local":     starlark.NewBuiltin("local", builtinLocal),
 		"pkg":       starlark.NewBuiltin("pkg", builtinPkg),
+		"remote":    starlark.NewBuiltin("remote", builtinRemote),
 		"run":       starlark.NewBuiltin("run", builtinRun),
 		"service":   starlark.NewBuiltin("service", builtinService),
 		"sysctl":    starlark.NewBuiltin("sysctl", builtinSysctl),

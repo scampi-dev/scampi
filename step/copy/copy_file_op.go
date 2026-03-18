@@ -51,6 +51,9 @@ func (op *copyFileOp) Check(
 
 	srcData, err := op.getContent(ctx, src)
 	if err != nil {
+		if result, drift, ok := sharedops.CheckSourcePending(op.srcRef, "content"); ok {
+			return result, drift, nil
+		}
 		return spec.CheckUnsatisfied, nil, err
 	}
 
@@ -87,6 +90,14 @@ func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target
 	srcData, err := op.getContent(ctx, src)
 	if err != nil {
 		return spec.Result{}, err
+	}
+
+	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
+		return spec.Result{}, CopyDestDirMissingError{
+			Path:   filepath.Dir(op.dest),
+			Err:    err,
+			Source: op.DestSpan,
+		}
 	}
 
 	destData, err := fsTgt.ReadFile(ctx, op.dest)
