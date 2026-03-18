@@ -6,7 +6,7 @@ deploy(
     steps=[
         template(
             desc="render greeting",
-            src="/tmpl/greeting.txt",
+            src=local("/tmpl/greeting.txt"),
             dest="/tmp/greeting.txt",
             data={
                 "values": {

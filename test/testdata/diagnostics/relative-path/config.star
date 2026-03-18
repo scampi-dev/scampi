@@ -6,7 +6,7 @@ deploy(
     steps=[
         copy(
             desc="copy with relative dest",
-            src="/tmp/src.txt",
+            src=local("/tmp/src.txt"),
             dest="./relative/dest.txt",
             perm="0644",
             owner="user",

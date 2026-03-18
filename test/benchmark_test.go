@@ -48,7 +48,7 @@ deploy(
     steps=[
         copy(
             desc="step-%%d" %% i,
-            src="/tmp/src-%%d" %% i,
+            src=local("/tmp/src-%%d" %% i),
             dest="/tmp/dest-%%d" %% i,
             perm="0644",
             owner="user",
@@ -111,7 +111,7 @@ deploy(
     steps=[
         copy(
             desc="step-%%d" %% i,
-            src="/src.txt",
+            src=local("/src.txt"),
             dest="/dest.txt",
             perm="0644",
             owner="perf-owner",
@@ -300,7 +300,7 @@ deploy(
     steps=[
         copy(
             desc="copy-%%d" %% i,
-            src="/src.txt",
+            src=local("/src.txt"),
             dest="/dest.txt",
             perm="0644",
             owner="perf-owner",
@@ -374,7 +374,7 @@ deploy(
     steps=[
         template(
             desc="tmpl-%%d" %% i,
-            content="server {{ .name }} port={{ .port }}",
+            src=inline("server {{ .name }} port={{ .port }}"),
             dest="/out.conf",
             perm="0644",
             owner="perf-owner",
@@ -931,7 +931,7 @@ func benchUnarchiveNoOp(b *testing.B, makeFn func(testing.TB, map[string]string)
 			cfgStr := fmt.Sprintf(`target.local(name="local")
 
 deploy(name="bench", targets=["local"], steps=[
-    unarchive(src="%s", dest="/output", depth=0),
+    unarchive(src=local("%s"), dest="/output", depth=0),
 ])
 `, srcPath)
 

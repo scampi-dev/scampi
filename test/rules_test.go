@@ -175,6 +175,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os/exec",
 		},
 		{
+			pattern:        "star/resolvers.go",
+			allowedImports: "crypto/sha256",
+		},
+		{
 			pattern:        "step/unarchive/unarchive_op.go",
 			allowedImports: "crypto/sha256",
 		},

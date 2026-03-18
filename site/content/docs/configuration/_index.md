@@ -71,7 +71,7 @@ deploy(
     name = "app",
     steps = [
         template(
-            content = "DB_HOST={{ .values.db_host }}",
+            src = inline("DB_HOST={{ .values.db_host }}"),
             dest = "/opt/app/.env",
             perm = "0600", owner = "app", group = "app",
             data = {"values": {"db_host": env("DB_HOST")}},
@@ -107,7 +107,7 @@ The `secrets()` call can only appear once per config.
 
 ```python
 template(
-    content = "DATABASE_URL=postgres://app:{{ .values.db_password }}@db:5432/app",
+    src = inline("DATABASE_URL=postgres://app:{{ .values.db_password }}@db:5432/app"),
     dest = "/opt/app/.env",
     perm = "0600", owner = "app", group = "app",
     data = {"values": {"db_password": secret("db_password")}},

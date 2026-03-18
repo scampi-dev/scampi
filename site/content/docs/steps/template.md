@@ -7,15 +7,9 @@ permission management.
 
 ## Fields
 
-Provide exactly one of:
-
-| Field     | Type   | Description                       |
-|-----------|--------|-----------------------------------|
-| `src`     | string | Source template file path (local) |
-| `content` | string | Inline template string            |
-
 | Field    | Type   | Required | Description                                                        |
 |----------|--------|:--------:|--------------------------------------------------------------------|
+| `src`    | source |    ✓     | Source resolver: `local("./path")` or `inline("content")`          |
 | `dest`   | string |    ✓     | Output file path (on target)                                       |
 | `group`  | string |    ✓     | Group name or GID                                                  |
 | `owner`  | string |    ✓     | Owner user name or UID                                             |
@@ -23,6 +17,14 @@ Provide exactly one of:
 | `data`   | dict   |          | Data sources for template rendering                                |
 | `desc`   | string |          | Human-readable description                                         |
 | `verify` | string |          | Command to validate content before writing (`%s` = temp file path) |
+
+### Source resolvers
+
+The `src` field accepts a source resolver:
+
+- **`local("./path")`** — reads a template file from the local machine
+- **`inline("content")`** — uses the given string as template content (written
+  to a cache file at eval time)
 
 ### Data fields
 
@@ -59,7 +61,7 @@ skip it entirely.
 
 ```python
 template(
-    src = "./templates/nginx.conf.tmpl",
+    src = local("./templates/nginx.conf.tmpl"),
     dest = "/etc/nginx/nginx.conf",
     perm = "0644",
     owner = "root",
@@ -92,12 +94,12 @@ Starlark supports triple-quoted strings for multi-line content:
 
 ```python
 template(
-    content = """\
+    src = inline("""\
 [Service]
 Environment=DB_HOST={{ .values.db_host }}
 Environment=DB_PORT={{ .values.db_port }}
 Environment=DB_NAME={{ .values.db_name }}
-""",
+"""),
     dest = "/etc/systemd/system/app.service.d/env.conf",
     perm = "0644",
     owner = "root",
@@ -114,7 +116,7 @@ Environment=DB_NAME={{ .values.db_name }}
 
 ```python
 template(
-    src = "./app.env.tmpl",
+    src = local("./app.env.tmpl"),
     dest = "/opt/app/.env",
     perm = "0600",
     owner = "app",
@@ -137,7 +139,7 @@ DB_PASSWORD={{ .env.db_password }}
 
 ```python
 template(
-    src = "./templates/nginx.conf.tmpl",
+    src = local("./templates/nginx.conf.tmpl"),
     dest = "/etc/nginx/nginx.conf",
     perm = "0644",
     owner = "root",

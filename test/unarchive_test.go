@@ -99,7 +99,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/site.tar.gz",
+		src = local("/site.tar.gz"),
 		dest = "/var/www/site",
 		depth = 0,
 		desc = "extract site",
@@ -152,7 +152,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/site.tar.gz",
+		src = local("/site.tar.gz"),
 		dest = "/var/www/site",
 		depth = 0,
 	),
@@ -203,7 +203,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/archive.rar",
+		src = local("/archive.rar"),
 		dest = "/output",
 		depth = 0,
 	),
@@ -243,7 +243,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/missing.tar.gz",
+		src = local("/missing.tar.gz"),
 		dest = "/output",
 		depth = 0,
 	),
@@ -283,7 +283,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/site.tar.gz",
+		src = local("/site.tar.gz"),
 		dest = "/var/www/site",
 		owner = "www-data",
 	),
@@ -324,7 +324,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/site.tar.gz",
+		src = local("/site.tar.gz"),
 		dest = "relative/path",
 	),
 ])
@@ -367,7 +367,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/site.tar.gz",
+		src = local("/site.tar.gz"),
 		dest = "/var/www/site",
 		depth = 0,
 		owner = "www-data",
@@ -418,7 +418,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/site.tar.gz",
+		src = local("/site.tar.gz"),
 		dest = "/var/www/site",
 		depth = 0,
 	),
@@ -478,7 +478,7 @@ deploy(
 	targets=["local"],
 	steps=[
 		unarchive(
-			src = "/site.tar.gz",
+			src = local("/site.tar.gz"),
 			dest = "/var/www/site",
 			depth = 0,
 			on_change = ["restart-app"],
@@ -532,7 +532,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/data.tar.gz",
+		src = local("/data.tar.gz"),
 		dest = "/output",
 		depth = 0,
 	),
@@ -594,7 +594,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/site.tar.gz",
+		src = local("/site.tar.gz"),
 		dest = "/output",
 		depth = 0,
 	),
@@ -649,7 +649,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/data.tar.gz",
+		src = local("/data.tar.gz"),
 		dest = "/output",
 	),
 ])
@@ -817,7 +817,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/data.tar.xz",
+		src = local("/data.tar.xz"),
 		dest = "/output",
 		depth = 0,
 	),
@@ -866,7 +866,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	unarchive(
-		src = "/data.tar.zst",
+		src = local("/data.tar.zst"),
 		dest = "/output",
 		depth = 0,
 	),

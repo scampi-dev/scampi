@@ -20,6 +20,8 @@ func predeclared() starlark.StringDict {
 		"dir":       starlark.NewBuiltin("dir", builtinDir),
 		"firewall":  starlark.NewBuiltin("firewall", builtinFirewall),
 		"group":     starlark.NewBuiltin("group", builtinGroup),
+		"inline":    starlark.NewBuiltin("inline", builtinInline),
+		"local":     starlark.NewBuiltin("local", builtinLocal),
 		"pkg":       starlark.NewBuiltin("pkg", builtinPkg),
 		"run":       starlark.NewBuiltin("run", builtinRun),
 		"service":   starlark.NewBuiltin("service", builtinService),

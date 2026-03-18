@@ -49,7 +49,7 @@ target.local(name="local")
 
 deploy(name="demo", targets=["local"], steps=[
     template(
-        content="Hello {{ .user }}! Your shell: {{ .shell }}",
+        src=inline("Hello {{ .user }}! Your shell: {{ .shell }}"),
         dest="/tmp/scampi-hello.txt",
         data={
             "values": {

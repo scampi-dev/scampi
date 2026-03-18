@@ -100,7 +100,7 @@ target.local(name="local")
 deploy(
     name="test",
     targets=["local"],
-    steps=[copy(src="/a", dest="/b", perm="0644", owner="user", group="group")],
+    steps=[copy(src=local("/a"), dest="/b", perm="0644", owner="user", group="group")],
 )
 `, newMinimalTarget())
 }

@@ -19,7 +19,7 @@ deploy(
     targets=["host"],
     steps=[
         copy(
-            src="/tmp/a.txt",
+            src=local("/tmp/a.txt"),
             dest="/tmp/b.txt",
             perm="0644",
             owner="root",

@@ -6,7 +6,7 @@ deploy(
     steps=[
         copy(
             desc="copy with bad permission",
-            src="/src.txt",
+            src=local("/src.txt"),
             dest="/dest.txt",
             perm="invalid",
             owner="testuser",

@@ -6,7 +6,7 @@ deploy(
     steps=[
         copy(
             desc="copy missing file",
-            src="/tmp/nonexistent.txt",
+            src=local("/tmp/nonexistent.txt"),
             dest="/tmp/out.txt",
             perm="0644",
             owner="testuser",

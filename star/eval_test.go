@@ -28,7 +28,7 @@ deploy(
     name="main",
     targets=["myhost"],
     steps=[
-        copy(src="./file.txt", dest="/tmp/file.txt", perm="0644", owner="root", group="root"),
+        copy(src=local("./file.txt"), dest="/tmp/file.txt", perm="0644", owner="root", group="root"),
     ],
 )
 `)
@@ -79,8 +79,8 @@ deploy(
 	if !ok {
 		t.Fatalf("step config type = %T, want *copy.CopyConfig", step.Config)
 	}
-	if cc.Src != "./file.txt" {
-		t.Errorf("copy.Src = %q, want './file.txt'", cc.Src)
+	if cc.Src.Path != "./file.txt" {
+		t.Errorf("copy.Src.Path = %q, want './file.txt'", cc.Src.Path)
 	}
 	if cc.Dest != "/tmp/file.txt" {
 		t.Errorf("copy.Dest = %q, want '/tmp/file.txt'", cc.Dest)
@@ -93,11 +93,11 @@ func TestEvalAllStepTypes(t *testing.T) {
 target.local(name="host")
 
 steps = [
-    copy(src="./a", dest="/tmp/a", perm="0644", owner="u", group="g"),
+    copy(src=local("./a"), dest="/tmp/a", perm="0644", owner="u", group="g"),
     dir(path="/tmp/d", perm="0755", owner="u", group="g"),
     pkg(packages=["curl", "wget"]),
     symlink(target="/tmp/a", link="/tmp/l"),
-    template(dest="/tmp/t", perm="0644", owner="u", group="g", content="hello"),
+    template(src=inline("hello"), dest="/tmp/t", perm="0644", owner="u", group="g"),
 ]
 
 deploy(name="main", targets=["host"], steps=steps)
@@ -312,7 +312,7 @@ deploy(name="main", targets=["host"], steps=[
         perm="0644",
         owner="root",
         group="root",
-        content="hello {{ .Name }}",
+        src=inline("hello {{ .Name }}"),
         data={
             "values": {"Name": "world"},
             "env": {"HOME": "/root"},
@@ -329,8 +329,8 @@ deploy(name="main", targets=["host"], steps=[
 
 	step := cfg.Deploy["main"].Steps[0]
 	tc := step.Config.(*template.TemplateConfig)
-	if tc.Content != "hello {{ .Name }}" {
-		t.Errorf("content = %q", tc.Content)
+	if tc.Src.Content != "hello {{ .Name }}" {
+		t.Errorf("content = %q", tc.Src.Content)
 	}
 	if tc.Data.Values["Name"] != "world" {
 		t.Errorf("data.values.Name = %v, want 'world'", tc.Data.Values["Name"])

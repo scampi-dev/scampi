@@ -25,7 +25,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	copy(
-		content = "hal9000 ALL=(ALL) NOPASSWD:ALL\n",
+		src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
 		dest = "/sudoers-hal9000",
 		perm = "0440",
 		owner = "root",
@@ -79,7 +79,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	copy(
-		content = "INVALID SUDOERS\n",
+		src = inline("INVALID SUDOERS\n"),
 		dest = "/sudoers-bad",
 		perm = "0440",
 		owner = "root",
@@ -128,7 +128,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	copy(
-		content = "test\n",
+		src = inline("test\n"),
 		dest = "/dest.txt",
 		perm = "0644",
 		owner = "root",
@@ -167,7 +167,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	copy(
-		content = "plain content\n",
+		src = inline("plain content\n"),
 		dest = "/dest.txt",
 		perm = "0644",
 		owner = "root",
@@ -208,7 +208,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	template(
-		content = "server_name {{ .host }};",
+		src = inline("server_name {{ .host }};"),
 		dest = "/app.conf",
 		perm = "0644",
 		owner = "root",
@@ -251,7 +251,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	template(
-		content = "bad config {{ .x }}",
+		src = inline("bad config {{ .x }}"),
 		dest = "/bad.conf",
 		perm = "0644",
 		owner = "root",
@@ -301,7 +301,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	template(
-		content = "test",
+		src = inline("test"),
 		dest = "/dest.txt",
 		perm = "0644",
 		owner = "root",
@@ -343,7 +343,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	copy(
-		content = "already there\n",
+		src = inline("already there\n"),
 		dest = "/existing.txt",
 		perm = "0644",
 		owner = "root",
@@ -388,7 +388,7 @@ target.local(name="local")
 
 deploy(name="test", targets=["local"], steps=[
 	copy(
-		content = "test content\n",
+		src = inline("test content\n"),
 		dest = "/verified.txt",
 		perm = "0644",
 		owner = "root",

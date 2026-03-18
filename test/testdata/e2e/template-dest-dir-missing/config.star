@@ -6,7 +6,7 @@ deploy(
     steps=[
         template(
             desc="missing parent dir",
-            content="hello",
+            src=inline("hello"),
             dest="/no/such/dir/out.txt",
             perm="0644",
             owner="testuser",

@@ -17,13 +17,13 @@ type (
 	UnarchiveConfig struct {
 		_ struct{} `summary:"Extract an archive to a target directory with optional recursive unpacking"`
 
-		Desc  string `step:"Human-readable description" optional:"true"`
-		Src   string `step:"Source archive path (local)" example:"./files/site.tar.gz"`
-		Dest  string `step:"Target directory for extraction" example:"/var/www/mysite"`
-		Depth int    `step:"Nested archive recursion (-1=unlimited, 0=top only)" optional:"true" default:"-1"`
-		Owner string `step:"Owner applied recursively after extraction" optional:"true" example:"www-data"`
-		Group string `step:"Group applied recursively after extraction" optional:"true" example:"www-data"`
-		Perm  string `step:"Permissions applied recursively after extraction" optional:"true" example:"0755"`
+		Desc  string         `step:"Human-readable description" optional:"true"`
+		Src   spec.SourceRef `step:"Source archive" example:"local(\"./files/site.tar.gz\")"`
+		Dest  string         `step:"Target directory for extraction" example:"/var/www/mysite"`
+		Depth int            `step:"Nested archive recursion (-1=unlimited, 0=top only)" optional:"true" default:"-1"`
+		Owner string         `step:"Owner applied recursively after extraction" optional:"true" example:"www-data"`
+		Group string         `step:"Group applied recursively after extraction" optional:"true" example:"www-data"`
+		Perm  string         `step:"Permissions applied recursively after extraction" optional:"true" example:"0755"`
 	}
 	unarchiveAction struct {
 		idx    int
@@ -57,10 +57,10 @@ func (u Unarchive) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 		}
 	}
 
-	fmt, ok := detectFormat(cfg.Src)
+	fmt, ok := detectFormat(cfg.Src.Path)
 	if !ok {
 		return nil, UnsupportedArchiveError{
-			Path:   cfg.Src,
+			Path:   cfg.Src.Path,
 			Source: step.Fields["src"].Value,
 		}
 	}
@@ -91,7 +91,7 @@ func (u Unarchive) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 		idx:    idx,
 		desc:   cfg.Desc,
 		kind:   u.Kind(),
-		src:    cfg.Src,
+		src:    cfg.Src.Path,
 		dest:   cfg.Dest,
 		depth:  cfg.Depth,
 		owner:  cfg.Owner,

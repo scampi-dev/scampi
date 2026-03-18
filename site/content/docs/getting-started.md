@@ -76,7 +76,7 @@ deploy(
     steps = [
         dir(path="/tmp/scampi-demo", perm="0755"),
         copy(
-            src = "./message.txt",
+            src = local("./message.txt"),
             dest = "/tmp/scampi-demo/message.txt",
             perm = "0644", owner = "root", group = "root",
         ),

@@ -6,7 +6,7 @@ deploy(
     steps=[
         copy(
             desc="copy already-present file",
-            src="/tmp/src.txt",
+            src=local("/tmp/src.txt"),
             dest="/tmp/dest.txt",
             perm="0644",
             owner="testuser",

@@ -6,7 +6,7 @@ deploy(
     steps=[
         template(
             desc="render inline",
-            content="server={{ .host }}:{{ .port }}",
+            src=inline("server={{ .host }}:{{ .port }}"),
             dest="/tmp/config.txt",
             data={
                 "values": {

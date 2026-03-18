@@ -6,7 +6,7 @@ deploy(
     steps=[
         template(
             desc="bad syntax",
-            content="hello {{.name",
+            src=inline("hello {{.name"),
             dest="/tmp/out.txt",
             perm="0644",
             owner="testuser",

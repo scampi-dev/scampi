@@ -28,13 +28,13 @@ deploy(name="test", targets=["local"], steps=[
 		// valid config with a copy step
 		`target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
-    copy(src="/a", dest="/b", perm="0644", owner="u", group="g"),
+    copy(src=local("/a"), dest="/b", perm="0644", owner="u", group="g"),
 ])`,
 
 		// missing required copy fields
 		`target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
-    copy(src="a", dest="b"),
+    copy(src=local("a"), dest="b"),
 ])`,
 
 		// missing required symlink fields
@@ -46,7 +46,7 @@ deploy(name="test", targets=["local"], steps=[
 		// missing required template fields
 		`target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
-    template(src="a", dest="b"),
+    template(src=local("a"), dest="b"),
 ])`,
 
 		// run step with check/apply

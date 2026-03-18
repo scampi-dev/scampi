@@ -8,7 +8,7 @@ deploy(
     steps=[
         template(
             desc="render with secret",
-            content="dsn=postgres://app:{{.db_pass}}@db:5432/myapp",
+            src=inline("dsn=postgres://app:{{.db_pass}}@db:5432/myapp"),
             dest="/tmp/dsn.txt",
             data={
                 "values": {

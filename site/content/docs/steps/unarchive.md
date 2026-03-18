@@ -9,7 +9,7 @@ ownership, and permissions.
 
 | Field   | Type   | Required | Default | Description                                               |
 |---------|--------|:--------:|:-------:|-----------------------------------------------------------|
-| `src`   | string |    ✓     |         | Source archive path (local)                               |
+| `src`   | source |    ✓     |         | Source archive: `local("./path.tar.gz")`                  |
 | `dest`  | string |    ✓     |         | Target directory for extraction                           |
 | `depth` | int    |          |   -1    | Nested archive recursion (-1=unlimited, 0=top-level only) |
 | `owner` | string |          |         | Owner applied recursively after extraction                |
@@ -75,7 +75,7 @@ entirely. This avoids polluting user directories (git repos, web roots, etc.).
 
 ```python {filename="deploy.star"}
 unarchive(
-    src = "./files/site.tar.gz",
+    src = local("./files/site.tar.gz"),
     dest = "/var/www/mysite",
     depth = 0,
 )
@@ -85,7 +85,7 @@ unarchive(
 
 ```python {filename="deploy.star"}
 unarchive(
-    src = "./files/app.tar.gz",
+    src = local("./files/app.tar.gz"),
     dest = "/opt/myapp",
     owner = "myapp",
     group = "myapp",
@@ -98,7 +98,7 @@ unarchive(
 
 ```python {filename="deploy.star"}
 unarchive(
-    src = "./release.tar.gz",
+    src = local("./release.tar.gz"),
     dest = "/opt/release",
     depth = -1,
     desc = "extract release with nested archives",
@@ -109,7 +109,7 @@ unarchive(
 
 ```python {filename="deploy.star"}
 unarchive(
-    src = "./files/site.tar.gz",
+    src = local("./files/site.tar.gz"),
     dest = "/var/www/scampi.dev",
     depth = 0,
     owner = "www-data",

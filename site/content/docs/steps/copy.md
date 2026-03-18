@@ -6,30 +6,30 @@ Copy files or inline content to the target with owner and permission management.
 
 ## Fields
 
-Provide exactly one of:
+| Field      | Type   | Required | Description                                                        |
+|------------|--------|:--------:|--------------------------------------------------------------------|
+| `src`      | source |    ✓     | Source resolver: `local("./path")` or `inline("content")`          |
+| `dest`     | string |    ✓     | Destination file path (on target)                                  |
+| `group`    | string |    ✓     | Group name or GID                                                  |
+| `owner`    | string |    ✓     | Owner user name or UID                                             |
+| `perm`     | string |    ✓     | File permissions (`0644`, `u=rw,g=r,o=r`, or `rw-r--r--`)          |
+| `desc`     | string |          | Human-readable description                                         |
+| `verify`   | string |          | Command to validate content before writing (`%s` = temp file path) |
 
-| Field     | Type   | Description              |
-|-----------|--------|--------------------------|
-| `src`     | string | Source file path (local) |
-| `content` | string | Inline file content      |
+## Source resolvers
 
-Always required:
+The `src` field accepts a source resolver:
 
-| Field    | Type   | Required | Description                                                        |
-|----------|--------|:--------:|--------------------------------------------------------------------|
-| `dest`   | string |    ✓     | Destination file path (on target)                                  |
-| `group`  | string |    ✓     | Group name or GID                                                  |
-| `owner`  | string |    ✓     | Owner user name or UID                                             |
-| `perm`   | string |    ✓     | File permissions (`0644`, `u=rw,g=r,o=r`, or `rw-r--r--`)          |
-| `desc`   | string |          | Human-readable description                                         |
-| `verify` | string |          | Command to validate content before writing (`%s` = temp file path) |
+- **`local("./path")`** — reads a file from the local machine relative to the
+  Starlark file
+- **`inline("content")`** — uses the given string as file content (written to a
+  cache file at eval time)
 
 ## How it works
 
 The `copy` step produces three ops that form a dependency chain:
 
-1. **Copy file** — copies the source (or inline content) to the destination
-   (compares content bytes)
+1. **Copy file** — copies the source to the destination (compares content bytes)
 2. **Set permissions** — ensures file mode matches (depends on #1)
 3. **Set ownership** — ensures owner and group match (depends on #1)
 
@@ -54,7 +54,7 @@ skip it entirely.
 
 ```python {filename="deploy.star"}
 copy(
-    src = "./nginx.conf",
+    src = local("./nginx.conf"),
     dest = "/etc/nginx/nginx.conf",
     perm = "0644",
     owner = "root",
@@ -66,7 +66,7 @@ copy(
 
 ```python {filename="deploy.star"}
 copy(
-    content = "hal9000 ALL=(ALL) NOPASSWD:ALL\n",
+    src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
     dest = "/etc/sudoers.d/hal9000",
     perm = "0440",
     owner = "root",
@@ -80,7 +80,7 @@ copy(
 ```python {filename="deploy.star"}
 copy(
     desc = "deploy app config",
-    src = "./config.yaml",
+    src = local("./config.yaml"),
     dest = "/opt/myapp/config.yaml",
     perm = "u=rw,g=r,o=",
     owner = "myapp",
@@ -92,7 +92,7 @@ copy(
 
 ```python {filename="deploy.star"}
 copy(
-    content = "hal9000 ALL=(ALL) NOPASSWD:ALL\n",
+    src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
     dest = "/etc/sudoers.d/hal9000",
     perm = "0440",
     owner = "root",
@@ -105,7 +105,7 @@ copy(
 
 ```python {filename="deploy.star"}
 copy(
-    src = "./nginx.conf",
+    src = local("./nginx.conf"),
     dest = "/etc/nginx/nginx.conf",
     perm = "0644",
     owner = "root",
@@ -118,7 +118,7 @@ copy(
 
 ```python {filename="deploy.star"}
 copy(
-    src = "./ssl/server.key",
+    src = local("./ssl/server.key"),
     dest = "/etc/ssl/private/server.key",
     perm = "rw-------",
     owner = "root",

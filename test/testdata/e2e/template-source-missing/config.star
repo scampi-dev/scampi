@@ -6,7 +6,7 @@ deploy(
     steps=[
         template(
             desc="missing source",
-            src="/does/not/exist.tmpl",
+            src=local("/does/not/exist.tmpl"),
             dest="/tmp/out.txt",
             perm="0644",
             owner="testuser",

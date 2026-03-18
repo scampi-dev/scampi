@@ -104,14 +104,14 @@ Planned steps: see `docs/roadmap.md`
 ### Step Builtins
 
 ```python
-copy(src="./app.conf", dest="/etc/app.conf", perm="0644", owner="root", group="root")
+copy(src=local("./app.conf"), dest="/etc/app.conf", perm="0644", owner="root", group="root")
 
 dir(path="/var/app", perm="0755", owner="app", group="app")
 
 symlink(target="/etc/app.conf", link="/opt/app/config")
 
 template(
-    src="./nginx.conf.tmpl",       # or content="inline {{ .template }}"
+    src=local("./nginx.conf.tmpl"),  # or src=inline("{{ .template }}")
     dest="/etc/nginx/nginx.conf",
     perm="0644",
     owner="root",
@@ -135,10 +135,10 @@ deploy(
     name="web",
     targets=["web1", "web2"],
     steps=[
-        copy(src="./motd.txt", dest="/etc/motd", perm="0644", owner="root", group="root"),
+        copy(src=local("./motd.txt"), dest="/etc/motd", perm="0644", owner="root", group="root"),
         pkg(packages=["nginx"]),
         template(
-            src="./nginx.conf.tmpl",
+            src=local("./nginx.conf.tmpl"),
             dest="/etc/nginx/nginx.conf",
             perm="0644",
             owner="root",

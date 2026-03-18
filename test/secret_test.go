@@ -33,7 +33,7 @@ deploy(
     steps=[
         template(
             desc="secret-template",
-            content="pass={{.db_pass}}",
+            src=inline("pass={{.db_pass}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -89,7 +89,7 @@ deploy(
     steps=[
         template(
             desc="missing-secret",
-            content="{{.token}}",
+            src=inline("{{.token}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -146,7 +146,7 @@ deploy(
     steps=[
         template(
             desc="bad-secret",
-            content="{{.x}}",
+            src=inline("{{.x}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -202,7 +202,7 @@ deploy(
     steps=[
         template(
             desc="too-many",
-            content="{{.x}}",
+            src=inline("{{.x}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -241,7 +241,7 @@ deploy(
     steps=[
         template(
             desc="no-backend",
-            content="{{.x}}",
+            src=inline("{{.x}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -302,7 +302,7 @@ deploy(
     steps=[
         template(
             desc="explicit-backend",
-            content="token={{.api_token}}",
+            src=inline("token={{.api_token}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -501,7 +501,7 @@ deploy(
     steps=[
         template(
             desc="age-secret",
-            content="pass={{.db_pass}}",
+            src=inline("pass={{.db_pass}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -562,7 +562,7 @@ deploy(
     steps=[
         template(
             desc="missing-age-secret",
-            content="{{.token}}",
+            src=inline("{{.token}}"),
             dest="/out.txt",
             data={
                 "values": {

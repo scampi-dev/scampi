@@ -56,8 +56,7 @@ func builtinCopy(
 	kwargs []starlark.Tuple,
 ) (starlark.Value, error) {
 	var (
-		src         string
-		content     string
+		srcVal      starlark.Value
 		dest        string
 		perm        string
 		owner       string
@@ -67,16 +66,20 @@ func builtinCopy(
 		onChangeVal starlark.Value
 	)
 	if err := starlark.UnpackArgs("copy", args, kwargs,
+		"src", &srcVal,
 		"dest", &dest,
 		"perm", &perm,
 		"owner", &owner,
 		"group", &group,
-		"src?", &src,
-		"content?", &content,
 		"verify?", &verify,
 		"desc?", &desc,
 		"on_change?", &onChangeVal,
 	); err != nil {
+		return nil, err
+	}
+
+	srcRef, err := unpackSourceRef(srcVal, "copy")
+	if err != nil {
 		return nil, err
 	}
 
@@ -91,7 +94,7 @@ func builtinCopy(
 			Desc: desc,
 			Type: stepcopy.Copy{},
 			Config: &stepcopy.CopyConfig{
-				Desc: desc, Src: src, Content: content,
+				Desc: desc, Src: srcRef,
 				Dest: dest, Perm: perm, Owner: owner, Group: group,
 				Verify: verify,
 			},
@@ -100,7 +103,6 @@ func builtinCopy(
 			Fields: kwargsFieldSpans(
 				thread,
 				"src",
-				"content",
 				"dest",
 				"perm",
 				"owner",
@@ -435,29 +437,32 @@ func builtinTemplate(
 	kwargs []starlark.Tuple,
 ) (starlark.Value, error) {
 	var (
+		srcVal      starlark.Value
 		dest        string
 		perm        string
 		owner       string
 		group       string
-		src         string
-		content     string
 		data        *starlark.Dict
 		verify      string
 		desc        string
 		onChangeVal starlark.Value
 	)
 	if err := starlark.UnpackArgs("template", args, kwargs,
+		"src", &srcVal,
 		"dest", &dest,
 		"perm", &perm,
 		"owner", &owner,
 		"group", &group,
-		"src?", &src,
-		"content?", &content,
 		"data?", &data,
 		"verify?", &verify,
 		"desc?", &desc,
 		"on_change?", &onChangeVal,
 	); err != nil {
+		return nil, err
+	}
+
+	srcRef, err := unpackSourceRef(srcVal, "template")
+	if err != nil {
 		return nil, err
 	}
 
@@ -477,7 +482,7 @@ func builtinTemplate(
 			Desc: desc,
 			Type: template.Template{},
 			Config: &template.TemplateConfig{
-				Desc: desc, Src: src, Content: content, Dest: dest,
+				Desc: desc, Src: srcRef, Dest: dest,
 				Data: dataCfg, Perm: perm, Owner: owner, Group: group,
 				Verify: verify,
 			},
@@ -485,12 +490,11 @@ func builtinTemplate(
 			Source:   span,
 			Fields: kwargsFieldSpans(
 				thread,
+				"src",
 				"dest",
 				"perm",
 				"owner",
 				"group",
-				"src",
-				"content",
 				"verify",
 				"on_change",
 			),
@@ -508,7 +512,7 @@ func builtinUnarchive(
 	kwargs []starlark.Tuple,
 ) (starlark.Value, error) {
 	var (
-		src         string
+		srcVal      starlark.Value
 		dest        string
 		depth       = -1
 		owner       string
@@ -518,7 +522,7 @@ func builtinUnarchive(
 		onChangeVal starlark.Value
 	)
 	if err := starlark.UnpackArgs("unarchive", args, kwargs,
-		"src", &src,
+		"src", &srcVal,
 		"dest", &dest,
 		"depth?", &depth,
 		"owner?", &owner,
@@ -527,6 +531,11 @@ func builtinUnarchive(
 		"desc?", &desc,
 		"on_change?", &onChangeVal,
 	); err != nil {
+		return nil, err
+	}
+
+	srcRef, err := unpackSourceRef(srcVal, "unarchive")
+	if err != nil {
 		return nil, err
 	}
 
@@ -541,7 +550,7 @@ func builtinUnarchive(
 			Desc: desc,
 			Type: unarchive.Unarchive{},
 			Config: &unarchive.UnarchiveConfig{
-				Desc: desc, Src: src, Dest: dest,
+				Desc: desc, Src: srcRef, Dest: dest,
 				Depth: depth, Owner: owner, Group: group,
 				Perm: perm,
 			},
@@ -683,6 +692,18 @@ func builtinGroup(
 
 // Helpers
 // -----------------------------------------------------------------------------
+
+func unpackSourceRef(val starlark.Value, fn string) (spec.SourceRef, error) {
+	src, ok := val.(*StarlarkSource)
+	if !ok {
+		return spec.SourceRef{}, &TypeError{
+			Context:  fn + ": src",
+			Expected: `source resolver, e.g. local("./path") or inline("content")`,
+			Got:      val.Type(),
+		}
+	}
+	return src.Ref, nil
+}
 
 func unpackOnChange(thread *starlark.Thread, val starlark.Value, fn string) ([]string, error) {
 	if val == nil || val == starlark.None {

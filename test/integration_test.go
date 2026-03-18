@@ -59,7 +59,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="copy-test",
-		src="/src.txt",
+		src=local("/src.txt"),
 		dest="/dest.txt",
 		perm="0644",
 		owner="testuser",
@@ -123,7 +123,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="idempotent-copy",
-		src="/src.txt",
+		src=local("/src.txt"),
 		dest="/dest.txt",
 		perm="0644",
 		owner="owner",
@@ -194,7 +194,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="copy-1",
-		src="/src-a.txt",
+		src=local("/src-a.txt"),
 		dest="/dest-a.txt",
 		perm="0644",
 		owner="user",
@@ -202,7 +202,7 @@ deploy(name="test", targets=["local"], steps=[
 	),
 	copy(
 		desc="copy-2",
-		src="/src-b.txt",
+		src=local("/src-b.txt"),
 		dest="/dest-b.txt",
 		perm="0600",
 		owner="user",
@@ -268,7 +268,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="will-fail",
-		src="/src.txt",
+		src=local("/src.txt"),
 		dest="/dest.txt",
 		perm="0644",
 		owner="user",
@@ -317,7 +317,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="source-fail",
-		src="/missing.txt",
+		src=local("/missing.txt"),
 		dest="/dest.txt",
 		perm="0644",
 		owner="user",
@@ -374,7 +374,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="first-fails",
-		src="/src-a.txt",
+		src=local("/src-a.txt"),
 		dest="/dest-a.txt",
 		perm="0644",
 		owner="user",
@@ -382,7 +382,7 @@ deploy(name="test", targets=["local"], steps=[
 	),
 	copy(
 		desc="never-runs",
-		src="/src-b.txt",
+		src=local("/src-b.txt"),
 		dest="/dest-b.txt",
 		perm="0644",
 		owner="user",
@@ -443,7 +443,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="update-content",
-		src="/src.txt",
+		src=local("/src.txt"),
 		dest="/dest.txt",
 		perm="0644",
 		owner="user",
@@ -510,7 +510,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="update-mode",
-		src="/src.txt",
+		src=local("/src.txt"),
 		dest="/dest.txt",
 		perm="0755",
 		owner="user",
@@ -559,7 +559,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="update-owner",
-		src="/src.txt",
+		src=local("/src.txt"),
 		dest="/dest.txt",
 		perm="0644",
 		owner="newuser",
@@ -607,7 +607,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
 	copy(
 		desc="retry-test",
-		src="/src.txt",
+		src=local("/src.txt"),
 		dest="/dest.txt",
 		perm="0644",
 		owner="user",
@@ -677,7 +677,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -730,7 +730,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -783,7 +783,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -841,7 +841,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-a",
-			src="/src-a.txt",
+			src=local("/src-a.txt"),
 			dest="/dest-a.txt",
 			perm="0644",
 			owner="user",
@@ -850,7 +850,7 @@ deploy(
 		),
 		copy(
 			desc="config-b",
-			src="/src-b.txt",
+			src=local("/src-b.txt"),
 			dest="/dest-b.txt",
 			perm="0644",
 			owner="user",
@@ -904,7 +904,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -968,7 +968,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -1035,7 +1035,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -1082,7 +1082,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -1144,7 +1144,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -1207,7 +1207,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -1219,7 +1219,7 @@ deploy(
 		"deploy-app": [
 			copy(
 				desc="app-conf",
-				src="/app.conf",
+				src=local("/app.conf"),
 				dest="/app.conf.deployed",
 				perm="0644",
 				owner="user",
@@ -1275,7 +1275,7 @@ deploy(
 	steps=[
 		copy(
 			desc="config-file",
-			src="/src.txt",
+			src=local("/src.txt"),
 			dest="/dest.txt",
 			perm="0644",
 			owner="user",
@@ -1287,7 +1287,7 @@ deploy(
 		"deploy-app": [
 			copy(
 				desc="app-conf",
-				src="/app.conf",
+				src=local("/app.conf"),
 				dest="/app.conf.deployed",
 				perm="0644",
 				owner="user",

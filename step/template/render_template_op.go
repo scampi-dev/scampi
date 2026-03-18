@@ -23,12 +23,11 @@ const renderTemplateID = "builtin.render-template"
 
 type renderTemplateOp struct {
 	sharedops.BaseOp
-	src         string
-	content     string
-	contentSpan spec.SourceSpan
-	dest        string
-	data        DataConfig
-	verify      string
+	src    string
+	srcRef spec.SourceRef
+	dest   string
+	data   DataConfig
+	verify string
 }
 
 func (op *renderTemplateOp) Check(
@@ -178,10 +177,6 @@ func (op *renderTemplateOp) DestPath() string {
 }
 
 func (op *renderTemplateOp) getTemplateContent(ctx context.Context, src source.Source) ([]byte, error) {
-	if op.content != "" {
-		return []byte(op.content), nil
-	}
-
 	data, err := src.ReadFile(ctx, op.src)
 	if err != nil {
 		return nil, TemplateSourceMissingError{
@@ -238,8 +233,8 @@ func (d renderTemplateDesc) PlanTemplate() spec.PlanTemplate {
 // the offending placeholder inside the template content when possible.
 func (op *renderTemplateOp) execError(err error, tmplContent string) TemplateExecError {
 	span := op.SrcSpan
-	if op.content != "" {
-		if s, ok := tmplErrorSpan(err, tmplContent, op.contentSpan); ok {
+	if op.srcRef.Kind == spec.SourceInline {
+		if s, ok := tmplErrorSpan(err, tmplContent, op.SrcSpan); ok {
 			span = s
 		}
 	} else if op.src != "" {
@@ -375,12 +370,8 @@ func extractMissingKey(err error) string {
 }
 
 func (op *renderTemplateOp) OpDescription() spec.OpDescription {
-	src := op.src
-	if src == "" {
-		src = "(inline)"
-	}
 	return renderTemplateDesc{
-		Src:  src,
+		Src:  op.srcRef.DisplayPath(),
 		Dest: op.dest,
 	}
 }

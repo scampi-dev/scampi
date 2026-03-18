@@ -5,7 +5,7 @@ deploy(name="main", targets=["host"], steps=[
         perm="0644",
         owner="root",
         group="root",
-        content="hello",
+        src=inline("hello"),
         data={"bad_key": "val"},
     ),
 ])

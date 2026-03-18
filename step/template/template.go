@@ -18,66 +18,42 @@ type (
 	TemplateConfig struct {
 		_ struct{} `summary:"Render templates with data substitution and owner/permission management"`
 
-		Desc    string     `step:"Human-readable description" optional:"true"`
-		Src     string     `step:"Source template file" optional:"true" exclusive:"source" example:"./tmpl"`
-		Content string     `step:"Inline template string" optional:"true" exclusive:"source"`
-		Dest    string     `step:"Output file path" example:"/etc/nginx/nginx.conf"`
-		Data    DataConfig `step:"Data sources for template rendering" optional:"true"`
-		Perm    string     `step:"File permissions" example:"0644|u=rw,g=r,o=r|rw-r--r--"`
-		Owner   string     `step:"Owner user name or UID" example:"root"`
-		Group   string     `step:"Group name or GID" example:"root"`
-		Verify  string     `step:"Validation command (%s = temp file)" optional:"true" example:"nginx -t -c %s"`
+		Desc   string         `step:"Human-readable description" optional:"true"`
+		Src    spec.SourceRef `step:"Source" example:"local(\"./tmpl\") | inline(\"content\")"`
+		Dest   string         `step:"Output file path" example:"/etc/nginx/nginx.conf"`
+		Data   DataConfig     `step:"Data sources for template rendering" optional:"true"`
+		Perm   string         `step:"File permissions" example:"0644|u=rw,g=r,o=r|rw-r--r--"`
+		Owner  string         `step:"Owner user name or UID" example:"root"`
+		Group  string         `step:"Group name or GID" example:"root"`
+		Verify string         `step:"Validation command (%s = temp file)" optional:"true" example:"nginx -t -c %s"`
 	}
 	DataConfig struct {
 		Values map[string]any
 		Env    map[string]string
 	}
 	templateAction struct {
-		idx     int
-		desc    string
-		kind    string
-		src     string
-		content string
-		dest    string
-		data    DataConfig
-		mode    fs.FileMode
-		owner   string
-		group   string
-		verify  string
-		step    spec.StepInstance
+		idx    int
+		desc   string
+		kind   string
+		src    string
+		srcRef spec.SourceRef
+		dest   string
+		data   DataConfig
+		mode   fs.FileMode
+		owner  string
+		group  string
+		verify string
+		step   spec.StepInstance
 	}
 )
 
 func (Template) Kind() string   { return "template" }
 func (Template) NewConfig() any { return &TemplateConfig{} }
 
-func (c *TemplateConfig) Validate(step spec.StepInstance) error {
-	hasSrc := c.Src != ""
-	hasContent := c.Content != ""
-	if hasSrc == hasContent {
-		var got []string
-		source := step.Source
-		if hasSrc {
-			got = []string{"src", "content"}
-			source = step.Fields["content"].Value
-		}
-		return MutuallyExclusiveError{
-			Fields: []string{"src", "content"},
-			Got:    got,
-			Source: source,
-		}
-	}
-	return nil
-}
-
 func (t Template) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*TemplateConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &TemplateConfig{}, step.Config)
-	}
-
-	if err := cfg.Validate(step); err != nil {
-		return nil, err
 	}
 
 	if !filepath.IsAbs(cfg.Dest) {
@@ -101,18 +77,18 @@ func (t Template) Plan(idx int, step spec.StepInstance) (spec.Action, error) {
 	}
 
 	return &templateAction{
-		idx:     idx,
-		desc:    cfg.Desc,
-		kind:    t.Kind(),
-		src:     cfg.Src,
-		content: cfg.Content,
-		dest:    cfg.Dest,
-		data:    cfg.Data,
-		mode:    mode,
-		owner:   cfg.Owner,
-		group:   cfg.Group,
-		verify:  cfg.Verify,
-		step:    step,
+		idx:    idx,
+		desc:   cfg.Desc,
+		kind:   t.Kind(),
+		src:    cfg.Src.Path,
+		srcRef: cfg.Src,
+		dest:   cfg.Dest,
+		data:   cfg.Data,
+		mode:   mode,
+		owner:  cfg.Owner,
+		group:  cfg.Group,
+		verify: cfg.Verify,
+		step:   step,
 	}, nil
 }
 
@@ -130,10 +106,7 @@ func (a *templateAction) Inputs() []spec.Resource {
 	return r
 }
 func (a *templateAction) SourcePaths() []string {
-	if a.src != "" {
-		return []string{a.src}
-	}
-	return nil
+	return []string{a.src}
 }
 
 func (a *templateAction) Promises() []spec.Resource {
@@ -146,12 +119,11 @@ func (a *templateAction) Ops() []spec.Op {
 			SrcSpan:  a.step.Fields["src"].Value,
 			DestSpan: a.step.Fields["dest"].Value,
 		},
-		src:         a.src,
-		content:     a.content,
-		contentSpan: a.step.Fields["content"].Value,
-		dest:        a.dest,
-		data:        a.data,
-		verify:      a.verify,
+		src:    a.src,
+		srcRef: a.srcRef,
+		dest:   a.dest,
+		data:   a.data,
+		verify: a.verify,
 	}
 	chown := &fileops.EnsureOwnerOp{
 		BaseOp: sharedops.BaseOp{

@@ -109,7 +109,7 @@ func TestDrift_CopyFile_Missing(t *testing.T) {
 	// dest file doesn't exist
 
 	ops := planOps(t, copy.Copy{}, &copy.CopyConfig{
-		Src: "/src.txt", Dest: "/dest.txt", Perm: "0644",
+		Src: spec.SourceRef{Kind: spec.SourceLocal, Path: "/src.txt"}, Dest: "/dest.txt", Perm: "0644",
 	}, map[string]spec.FieldSpan{
 		"src":  {},
 		"dest": {},
@@ -128,7 +128,7 @@ func TestDrift_CopyFile_ContentDiffers(t *testing.T) {
 	tgt.Modes["/dest.txt"] = 0o644
 
 	ops := planOps(t, copy.Copy{}, &copy.CopyConfig{
-		Src: "/src.txt", Dest: "/dest.txt", Perm: "0644",
+		Src: spec.SourceRef{Kind: spec.SourceLocal, Path: "/src.txt"}, Dest: "/dest.txt", Perm: "0644",
 	}, map[string]spec.FieldSpan{
 		"src":  {},
 		"dest": {},
@@ -148,7 +148,7 @@ func TestDrift_RenderTemplate_Missing(t *testing.T) {
 	tgt := target.NewMemTarget()
 
 	ops := planOps(t, template.Template{}, &template.TemplateConfig{
-		Src:  "/tmpl.txt",
+		Src:  spec.SourceRef{Kind: spec.SourceLocal, Path: "/tmpl.txt"},
 		Dest: "/out.txt",
 		Perm: "0644",
 		Data: template.DataConfig{
@@ -172,7 +172,7 @@ func TestDrift_RenderTemplate_ContentDiffers(t *testing.T) {
 	tgt.Modes["/out.txt"] = 0o644
 
 	ops := planOps(t, template.Template{}, &template.TemplateConfig{
-		Src:  "/tmpl.txt",
+		Src:  spec.SourceRef{Kind: spec.SourceLocal, Path: "/tmpl.txt"},
 		Dest: "/out.txt",
 		Perm: "0644",
 		Data: template.DataConfig{

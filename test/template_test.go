@@ -26,7 +26,7 @@ deploy(
     steps=[
         template(
             desc="inspect-src",
-            src="/tmpl.txt",
+            src=local("/tmpl.txt"),
             dest="/out.txt",
             data={
                 "values": {
@@ -97,7 +97,7 @@ deploy(
     steps=[
         template(
             desc="inspect-inline",
-            content="Port: {{.port}}",
+            src=inline("Port: {{.port}}"),
             dest="/app.conf",
             data={
                 "values": {
@@ -166,7 +166,7 @@ deploy(
     steps=[
         template(
             desc="render-test",
-            src="/tmpl.txt",
+            src=local("/tmpl.txt"),
             dest="/out.txt",
             data={
                 "values": {
@@ -255,7 +255,7 @@ deploy(
     steps=[
         template(
             desc="inline-template",
-            content="Inline: {{.msg}}",
+            src=inline("Inline: {{.msg}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -323,7 +323,7 @@ deploy(
     steps=[
         template(
             desc="env-override",
-            content="Port: {{.port}}",
+            src=inline("Port: {{.port}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -396,7 +396,7 @@ deploy(
     steps=[
         template(
             desc="env-default",
-            content="Port: {{.port}}",
+            src=inline("Port: {{.port}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -468,7 +468,7 @@ deploy(
     steps=[
         template(
             desc="idempotent",
-            content="static content",
+            src=inline("static content"),
             dest="/out.txt",
             perm="0644",
             owner="user",
@@ -545,7 +545,7 @@ deploy(
     steps=[
         template(
             desc="content-change",
-            content="new content",
+            src=inline("new content"),
             dest="/out.txt",
             perm="0644",
             owner="user",
@@ -626,7 +626,7 @@ deploy(
     steps=[
         template(
             desc="parse-error",
-            content="{{.unclosed",
+            src=inline("{{.unclosed"),
             dest="/out.txt",
             perm="0644",
             owner="user",
@@ -693,7 +693,7 @@ deploy(
     steps=[
         template(
             desc="exec-error",
-            content="{{len .missing}}",
+            src=inline("{{len .missing}}"),
             dest="/out.txt",
             perm="0644",
             owner="user",
@@ -759,7 +759,7 @@ deploy(
     steps=[
         template(
             desc="source-missing",
-            src="/nonexistent.txt",
+            src=local("/nonexistent.txt"),
             dest="/out.txt",
             perm="0644",
             owner="user",
@@ -826,7 +826,7 @@ deploy(
     steps=[
         template(
             desc="env-key-missing",
-            content="{{.port}}",
+            src=inline("{{.port}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -901,7 +901,7 @@ deploy(
     steps=[
         template(
             desc="dest-dir-missing",
-            content="content",
+            src=inline("content"),
             dest="/nonexistent/dir/out.txt",
             perm="0644",
             owner="user",
@@ -967,7 +967,7 @@ deploy(
     steps=[
         template(
             desc="mode-change",
-            content="content",
+            src=inline("content"),
             dest="/out.txt",
             perm="0755",
             owner="user",
@@ -1031,7 +1031,7 @@ deploy(
     steps=[
         template(
             desc="owner-change",
-            content="content",
+            src=inline("content"),
             dest="/out.txt",
             perm="0644",
             owner="newuser",
@@ -1096,7 +1096,7 @@ deploy(
     steps=[
         template(
             desc="multi-values",
-            content="{{.host}}:{{.port}} - {{.name}}",
+            src=inline("{{.host}}:{{.port}} - {{.name}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -1162,7 +1162,7 @@ deploy(
     steps=[
         template(
             desc="no-data",
-            content="static template",
+            src=inline("static template"),
             dest="/out.txt",
             perm="0644",
             owner="user",
@@ -1221,7 +1221,7 @@ deploy(
     steps=[
         template(
             desc="nested",
-            content="{{.server.host}}:{{.server.port}}",
+            src=inline("{{.server.host}}:{{.server.port}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -1288,7 +1288,7 @@ deploy(
     steps=[
         template(
             desc="multi-env",
-            content="{{.host}}:{{.port}}",
+            src=inline("{{.host}}:{{.port}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -1359,7 +1359,7 @@ deploy(
     steps=[
         template(
             desc="partial-env",
-            content="{{.host}}:{{.port}}",
+            src=inline("{{.host}}:{{.port}}"),
             dest="/out.txt",
             data={
                 "values": {
@@ -1431,7 +1431,7 @@ deploy(
     steps=[
         template(
             desc="write-fail",
-            content="content",
+            src=inline("content"),
             dest="/out.txt",
             perm="0644",
             owner="user",

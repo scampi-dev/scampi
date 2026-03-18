@@ -22,7 +22,7 @@ deploy(
     name = "webserver",
     steps = [
         pkg(packages=["nginx"], state="present"),
-        copy(src="nginx.conf", dest="/etc/nginx/nginx.conf", perm="0644"),
+        copy(src=local("nginx.conf"), dest="/etc/nginx/nginx.conf", perm="0644"),
         service(name="nginx", state="running", enabled=True),
     ],
 )
@@ -71,9 +71,9 @@ deploy(
     targets = ["web"],
     steps = [
         pkg(packages=["caddy"], state="present"),
-        copy(src="files/app.env", dest="/opt/app/.env", perm="0600", owner="app", group="app"),
+        copy(src=local("files/app.env"), dest="/opt/app/.env", perm="0600", owner="app", group="app"),
         template(
-            src = "templates/Caddyfile.tmpl",
+            src = local("templates/Caddyfile.tmpl"),
             dest = "/etc/caddy/Caddyfile",
             perm = "0644",
             data = {"domain": "app.example.com"},
@@ -126,7 +126,7 @@ deploy(
     targets = ["web"],
     steps = [
         pkg(packages=["nginx", "certbot"], state="present"),
-        copy(src="files/nginx.conf", dest="/etc/nginx/nginx.conf", perm="0644"),
+        copy(src=local("files/nginx.conf"), dest="/etc/nginx/nginx.conf", perm="0644"),
         service(name="nginx", state="running", enabled=True),
     ],
 )
@@ -140,7 +140,7 @@ deploy(
     targets = ["db"],
     steps = [
         pkg(packages=["postgresql-16"], state="present"),
-        copy(src="files/pg_hba.conf", dest="/etc/postgresql/16/main/pg_hba.conf", perm="0640", owner="postgres", group="postgres"),
+        copy(src=local("files/pg_hba.conf"), dest="/etc/postgresql/16/main/pg_hba.conf", perm="0640", owner="postgres", group="postgres"),
         service(name="postgresql", state="running", enabled=True),
     ],
 )
@@ -155,7 +155,7 @@ deploy(
     steps = [
         pkg(packages=["prometheus", "grafana"], state="present"),
         template(
-            src = "templates/prometheus.yml.tmpl",
+            src = local("templates/prometheus.yml.tmpl"),
             dest = "/etc/prometheus/prometheus.yml",
             perm = "0644",
             data = {"targets": ["web.example.com", "db.example.com"]},
@@ -193,7 +193,7 @@ def web_steps(domain):
     return [
         pkg(packages=["nginx"], state="present"),
         template(
-            src = "templates/nginx.conf.tmpl",
+            src = local("templates/nginx.conf.tmpl"),
             dest = "/etc/nginx/nginx.conf",
             perm = "0644",
             data = {"values": {"domain": domain, "upstream_port": 3000}},
