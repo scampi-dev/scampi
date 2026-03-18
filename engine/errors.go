@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"runtime"
@@ -22,6 +23,14 @@ type AbortError struct {
 
 func (AbortError) Error() string {
 	return "execution aborted"
+}
+
+// CancelledError is returned when execution is interrupted by a signal
+// (e.g. Ctrl+C). This is normal control flow, not a bug.
+type CancelledError struct{}
+
+func (CancelledError) Error() string {
+	return "interrupted"
 }
 
 type CapabilityMismatchError struct {
@@ -63,6 +72,9 @@ func panicIfNotAbortError(err error) error {
 	var abort AbortError
 	if errors.As(err, &abort) {
 		return abort
+	}
+	if errors.Is(err, context.Canceled) {
+		return CancelledError{}
 	}
 	// very cold codepath
 	wrap := errs.BUG("Engine failed with non-signal error: %w", err)

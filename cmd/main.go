@@ -15,6 +15,7 @@ import (
 	ossig "os/signal"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/urfave/cli/v3"
 	"scampi.dev/scampi/diagnostic"
@@ -25,6 +26,14 @@ import (
 	clir "scampi.dev/scampi/render/cli"
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/spec"
+)
+
+// interruptHook holds a function called on SIGINT to notify the active
+// displayer. Protected by interruptMu because the signal goroutine and
+// command actions run concurrently.
+var (
+	interruptMu   sync.Mutex
+	interruptHook func()
 )
 
 var version = "dev"
@@ -113,11 +122,19 @@ func main() {
 		},
 	}
 
-	ctx, stop := ossig.NotifyContext(
-		context.Background(),
-		osutil.MainContextSignals...,
-	)
-	defer stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	ossig.Notify(sigCh, osutil.MainContextSignals...)
+	go func() {
+		<-sigCh
+		interruptMu.Lock()
+		if interruptHook != nil {
+			interruptHook()
+		}
+		interruptMu.Unlock()
+		cancel()
+		ossig.Stop(sigCh)
+	}()
 
 	if err := scampi.Run(ctx, os.Args); err != nil {
 		// Flag-parsing errors (missing value, unknown flag) are reported
@@ -176,17 +193,7 @@ changes when the current state differs from the declared state.`,
 			resolveOpts := parseResolveOpts(cmd)
 			em := diagnostic.NewEmitter(pol, displ)
 			err := engine.Apply(ctx, em, cfg, store, resolveOpts)
-			if err != nil {
-				var abort engine.AbortError
-				if !errors.As(err, &abort) {
-					// Engine violated its contract: unexpected error
-					panic(errs.BUG("engine.Apply returned unexpected error: %w", err))
-				}
-
-				return cli.Exit("", exitUserError)
-			}
-
-			return nil
+			return handleEngineError("Apply", err)
 		},
 	}
 }
@@ -236,17 +243,7 @@ the actual system state.`,
 			resolveOpts := parseResolveOpts(cmd)
 			em := diagnostic.NewEmitter(pol, displ)
 			err := engine.Check(ctx, em, cfg, store, resolveOpts)
-			if err != nil {
-				var abort engine.AbortError
-				if !errors.As(err, &abort) {
-					// Engine violated its contract: unexpected error
-					panic(errs.BUG("engine.Check returned unexpected error: %w", err))
-				}
-
-				return cli.Exit("", exitUserError)
-			}
-
-			return nil
+			return handleEngineError("Check", err)
 		},
 	}
 }
@@ -302,12 +299,7 @@ Falls back to plain diff(1).`,
 			stepFilter := cmd.String("step")
 			result, err := engine.Inspect(ctx, em, cfg, store, resolveOpts, stepFilter)
 			if err != nil {
-				var abort engine.AbortError
-				if !errors.As(err, &abort) {
-					panic(errs.BUG("engine.Inspect returned unexpected error: %w", err))
-				}
-
-				return cli.Exit("", exitUserError)
+				return handleEngineError("Inspect", err)
 			}
 
 			tool := osutil.ResolveDiffTool()
@@ -361,17 +353,7 @@ does not inspect or modify the target system.`,
 			em := diagnostic.NewEmitter(pol, displ)
 
 			err := engine.Plan(ctx, em, cfg, store, resolveOpts)
-			if err != nil {
-				var abort engine.AbortError
-				if !errors.As(err, &abort) {
-					// Engine violated its contract: unexpected error
-					panic(errs.BUG("engine.Plan returned unexpected error: %w", err))
-				}
-
-				return cli.Exit("", exitUserError)
-			}
-
-			return nil
+			return handleEngineError("Plan", err)
 		},
 	}
 }
@@ -505,7 +487,7 @@ func mustGlobalOpts(ctx context.Context) globalOpts {
 }
 
 func newDisplayer(opts globalOpts, store *spec.SourceStore) render.Displayer {
-	return clir.New(
+	d := clir.New(
 		clir.Options{
 			ColorMode:  opts.colorMode,
 			Verbosity:  opts.verbosity,
@@ -513,6 +495,10 @@ func newDisplayer(opts globalOpts, store *spec.SourceStore) render.Displayer {
 		},
 		store,
 	)
+	interruptMu.Lock()
+	interruptHook = d.Interrupt
+	interruptMu.Unlock()
+	return d
 }
 
 func resolveFlags() []cli.Flag {
@@ -565,6 +551,21 @@ func versionCmd() *cli.Command {
 			return nil
 		},
 	}
+}
+
+func handleEngineError(name string, err error) error {
+	if err == nil {
+		return nil
+	}
+	var abort engine.AbortError
+	if errors.As(err, &abort) {
+		return cli.Exit("", exitUserError)
+	}
+	var cancelled engine.CancelledError
+	if errors.As(err, &cancelled) {
+		return cli.Exit("", exitUserError)
+	}
+	panic(errs.BUG("engine.%s returned unexpected error: %w", name, err))
 }
 
 func recoverAndReport(r any) {

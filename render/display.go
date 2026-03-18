@@ -21,5 +21,6 @@ type Displayer interface {
 	EmitActionDiagnostic(e event.ActionDiagnostic)
 	EmitOpDiagnostic(e event.OpDiagnostic)
 
+	Interrupt()
 	Close()
 }

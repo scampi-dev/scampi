@@ -603,6 +603,10 @@ func (c *cli) EmitLegend() {
 	c.commitRenderEvents(events)
 }
 
+func (c *cli) Interrupt() {
+	c.render.interrupted.Store(true)
+}
+
 func (c *cli) Close() {
 	c.render.close()
 }
@@ -621,6 +625,18 @@ func (c *cli) renderEngineFinished(e event.EngineEvent) []renderEvent {
 			stream: streamErr,
 			line: c.formatter.fmtfMsg(colEngineFinishedFatal,
 				"[engine]%s failed: %v", glyphR(c.glyphs.fatal), d.Err),
+		}}
+	}
+
+	if d.Cancelled {
+		var parts []string
+		parts = append(parts, fmt.Sprintf("%d changed", d.ChangedCount))
+		parts = append(parts, fmt.Sprintf("%d step%s completed", d.TotalCount, layout.Plural(d.TotalCount)))
+		parts = append(parts, d.Duration.String())
+		summary := strings.Join(parts, ", ")
+		return []renderEvent{{
+			stream: streamOut,
+			line:   c.formatter.fmtfMsg(colEngineFinishedChanged, "[engine] interrupted (%s)", summary),
 		}}
 	}
 

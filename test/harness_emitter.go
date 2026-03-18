@@ -100,6 +100,8 @@ func (r *recordingDisplayer) EmitIndexStep(e event.IndexStepEvent) {
 
 func (r *recordingDisplayer) EmitLegend() {}
 
+func (r *recordingDisplayer) Interrupt() {}
+
 func (r *recordingDisplayer) Close() {}
 
 func (r *recordingDisplayer) String() string {

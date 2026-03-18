@@ -107,3 +107,51 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 	// panicIfNotAbortError should trigger
 	_ = err
 }
+
+// Cancellation
+// -----------------------------------------------------------------------------
+
+func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
+	src := source.LocalPosixSource{}
+	tgt := local.POSIXTarget{}
+	em := noopEmitter{}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cfg := spec.ResolvedConfig{
+		Target: mockTargetInstance(tgt),
+	}
+
+	e, err := engine.New(ctx, src, cfg, em)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+	defer e.Close()
+
+	op := &fakeOp{
+		name: "slow-op",
+		checkFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+			return spec.CheckUnsatisfied, nil, nil
+		},
+		execFn: func(ctx context.Context, _ source.Source, _ target.Target) (spec.Result, error) {
+			cancel()
+			return spec.Result{}, ctx.Err()
+		},
+	}
+
+	plan := spec.Plan{
+		Unit: spec.Unit{
+			ID:   "fakeUnit",
+			Desc: "fakeUnit description",
+			Actions: []spec.Action{
+				mkAction(op),
+			},
+		},
+	}
+
+	_, err = e.ExecutePlan(ctx, plan)
+
+	var cancelled engine.CancelledError
+	if !errors.As(err, &cancelled) {
+		t.Fatalf("expected CancelledError, got %T: %v", err, err)
+	}
+}

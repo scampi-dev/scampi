@@ -11,6 +11,7 @@ import (
 
 type EngineFinishedDetail struct {
 	CheckOnly        bool // true for check command, false for apply
+	Cancelled        bool // true when interrupted by signal
 	ChangedCount     int
 	WouldChangeCount int
 	FailedCount      int

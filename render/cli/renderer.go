@@ -6,6 +6,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"sync/atomic"
 	"time"
 
 	"scampi.dev/scampi/render/ansi"
@@ -60,6 +61,7 @@ type renderer struct {
 	glyphs    glyphSet
 	formatter *formatter
 
+	interrupted   atomic.Bool
 	active        []activeAction
 	spinnerTick   int
 	lastLiveLines int
@@ -180,11 +182,16 @@ func (r *renderer) drawLive() {
 		visible = visible[:maxVisibleSpinners]
 	}
 
+	interrupted := r.interrupted.Load()
+
 	lines := 0
 	for _, a := range visible {
 		line := r.formatter.fmtfMsg(colSpinner, "%s [%s]", frame, a.id)
 		if a.desc != "" {
 			line += r.formatter.fmtfMsg(colSpinner, " %s", a.desc)
+		}
+		if interrupted {
+			line += r.formatter.fmtfMsg(colSpinner, " — interrupted, finishing...")
 		}
 		_, _ = fmt.Fprintln(r.out, line+ansi.Reset)
 		lines++

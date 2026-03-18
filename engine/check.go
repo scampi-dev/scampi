@@ -4,6 +4,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"scampi.dev/scampi/diagnostic"
@@ -34,6 +35,10 @@ func (e *Engine) Check(ctx context.Context) error {
 
 	rep, promisedPaths, err := e.CheckPlan(ctx, p)
 	if err != nil {
+		var cancelled CancelledError
+		if errors.As(err, &cancelled) {
+			e.em.EmitEngineLifecycle(diagnostic.EngineCancelled(rep, time.Since(start)))
+		}
 		return err
 	}
 

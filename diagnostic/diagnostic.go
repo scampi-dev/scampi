@@ -158,6 +158,37 @@ func EngineFinished(
 	return e
 }
 
+func EngineCancelled(rep model.ExecutionReport, dur time.Duration) event.EngineEvent {
+	e := event.EngineEvent{
+		Time:       time.Now(),
+		Kind:       event.EngineFinished,
+		Severity:   signal.Notice,
+		Chattiness: event.Subtle,
+		Detail: &event.EngineFinishedDetail{
+			Cancelled: true,
+			Duration:  dur,
+		},
+	}
+
+	for _, ar := range rep.Actions {
+		if ar.Action == nil {
+			continue
+		}
+		e.Detail.TotalCount++
+		s := ar.Summary
+		switch {
+		case s.Failed > 0 || s.Aborted > 0:
+			e.Detail.FailedCount++
+		case s.Changed > 0:
+			e.Detail.ChangedCount++
+		case s.WouldChange > 0:
+			e.Detail.WouldChangeCount++
+		}
+	}
+
+	return e
+}
+
 // Plan lifecycle
 // -----------------------------------------------------------------------------
 
