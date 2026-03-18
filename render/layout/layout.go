@@ -81,6 +81,38 @@ func getANSI(s string) (seq string, ok bool) {
 	return "", false
 }
 
+// WrapText splits plain text into lines of at most maxLen visible characters,
+// breaking at word boundaries.
+func WrapText(text string, maxLen int) []string {
+	if maxLen <= 0 || runewidth.StringWidth(text) <= maxLen {
+		return []string{text}
+	}
+
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return []string{""}
+	}
+
+	var lines []string
+	current := words[0]
+	currentWidth := runewidth.StringWidth(current)
+
+	for _, word := range words[1:] {
+		wordWidth := runewidth.StringWidth(word)
+		if currentWidth+1+wordWidth > maxLen {
+			lines = append(lines, current)
+			current = word
+			currentWidth = wordWidth
+		} else {
+			current += " " + word
+			currentWidth += 1 + wordWidth
+		}
+	}
+	lines = append(lines, current)
+
+	return lines
+}
+
 // Plural returns "s" if n != 1, empty string otherwise.
 func Plural(n int) string {
 	if n == 1 {

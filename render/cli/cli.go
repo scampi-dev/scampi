@@ -222,13 +222,28 @@ func (c *cli) EmitIndexAll(e event.IndexAllEvent) {
 
 	for _, step := range e.Steps {
 		kind := c.formatter.fmtMsg(ansi.BrightCyan().Bold(), step.Kind)
-		desc := c.formatter.fmtMsg(ansi.White(), step.Desc)
 		pad := kindWidth - layout.VisibleLen(kind)
 		if pad < 0 {
 			pad = 0
 		}
-		line := "  " + kind + strings.Repeat(" ", pad) + "  " + desc
-		events = append(events, renderEvent{line: line, stream: streamOut})
+		prefix := "  " + kind + strings.Repeat(" ", pad) + "  "
+		indent := 2 + kindWidth + 2
+
+		descWidth := c.width - indent
+		if descWidth <= 10 || c.width <= 0 {
+			line := prefix + c.formatter.fmtMsg(ansi.White(), step.Desc)
+			events = append(events, renderEvent{line: line, stream: streamOut, wrap: true})
+		} else {
+			for i, dl := range layout.WrapText(step.Desc, descWidth) {
+				var line string
+				if i == 0 {
+					line = prefix + c.formatter.fmtMsg(ansi.White(), dl)
+				} else {
+					line = strings.Repeat(" ", indent) + c.formatter.fmtMsg(ansi.White(), dl)
+				}
+				events = append(events, renderEvent{line: line, stream: streamOut, wrap: true})
+			}
+		}
 	}
 
 	events = append(events, renderEvent{line: "", stream: streamOut})
@@ -255,10 +270,18 @@ func (c *cli) EmitIndexStep(e event.IndexStepEvent) {
 
 	if doc.Summary != "" {
 		events = append(events, renderEvent{line: "", stream: streamOut})
-		events = append(events, renderEvent{
-			line:   c.formatter.fmtMsg(ansi.White(), "  "+doc.Summary),
-			stream: streamOut,
-		})
+		summaryWidth := c.width - 2
+		if summaryWidth <= 10 || c.width <= 0 {
+			events = append(events, renderEvent{
+				line: c.formatter.fmtMsg(ansi.White(), "  "+doc.Summary), stream: streamOut, wrap: true,
+			})
+		} else {
+			for _, sl := range layout.WrapText(doc.Summary, summaryWidth) {
+				events = append(events, renderEvent{
+					line: c.formatter.fmtMsg(ansi.White(), "  "+sl), stream: streamOut, wrap: true,
+				})
+			}
+		}
 	}
 
 	if len(doc.Fields) > 0 {
@@ -384,15 +407,33 @@ func (c *cli) renderFieldRows(fields []spec.FieldDoc) []renderEvent {
 		}
 	}
 
+	indent := 2 + nameW + 3 + typeW + 3
+
 	var events []renderEvent
 	for _, f := range fields {
-		line := "  " +
+		prefix := "  " +
 			c.formatter.fmtMsg(ansi.Cyan(), fmt.Sprintf("%-*s", nameW, f.Name)) +
 			"   " +
 			c.formatter.fmtMsg(ansi.BrightBlack(), fmt.Sprintf("%-*s", typeW, f.Type)) +
-			"   " +
-			c.formatter.fmtMsg(ansi.White(), fieldDescWithDefault(f))
-		events = append(events, renderEvent{line: line, stream: streamOut})
+			"   "
+
+		desc := fieldDescWithDefault(f)
+		descWidth := c.width - indent
+		if descWidth <= 10 || c.width <= 0 {
+			events = append(events, renderEvent{
+				line: prefix + c.formatter.fmtMsg(ansi.White(), desc), stream: streamOut, wrap: true,
+			})
+		} else {
+			for i, dl := range layout.WrapText(desc, descWidth) {
+				var line string
+				if i == 0 {
+					line = prefix + c.formatter.fmtMsg(ansi.White(), dl)
+				} else {
+					line = strings.Repeat(" ", indent) + c.formatter.fmtMsg(ansi.White(), dl)
+				}
+				events = append(events, renderEvent{line: line, stream: streamOut, wrap: true})
+			}
+		}
 	}
 	return events
 }
