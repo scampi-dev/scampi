@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Generate release notes from closed issues since the last tag.
-# Usage: release-notes.sh <api> <repo> [--refresh]
+# Usage: release-notes.sh <api> <repo> [--head] [--refresh]
 #
 # Groups issues by label into sections:
 #   Kind/Feature     -> Features
@@ -17,9 +17,11 @@ api="$1"; repo="$2"; shift 2
 dir="$(cd "$(dirname "$0")" && pwd)"
 
 refresh_flag=""
+head_flag=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --refresh) refresh_flag="--refresh"; shift ;;
+    --head) head_flag=true; shift ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -27,14 +29,18 @@ done
 # Find tag range
 current_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD")
 
-# Find the previous tag (the one before current_tag)
-prev_tag=$(git tag -l 'v*' --sort=-version:refname \
-  | awk -v cur="$current_tag" 'found{print;exit} $0==cur{found=1}')
-
-if [[ -n "$prev_tag" ]]; then
-  range="${prev_tag}..${current_tag}"
+if [[ "$head_flag" == true ]]; then
+  range="${current_tag}..HEAD"
 else
-  range="$current_tag"
+  # Pipeline mode: range between the two most recent tags
+  prev_tag=$(git tag -l 'v*' --sort=-version:refname \
+    | awk -v cur="$current_tag" 'found{print;exit} $0==cur{found=1}')
+
+  if [[ -n "$prev_tag" ]]; then
+    range="${prev_tag}..${current_tag}"
+  else
+    range="$current_tag"
+  fi
 fi
 
 # Collect issue numbers
