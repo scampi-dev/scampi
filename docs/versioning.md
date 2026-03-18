@@ -62,7 +62,7 @@ wins:
 
 If no qualifying issues are found, the bump defaults to patch.
 
-Run `just codeberg next-version` to calculate the next tag automatically.
+Run `just cb next-version` to calculate the next tag automatically.
 It inspects the git log since the last tag, queries Codeberg for issue
 labels, and prints the next version. Pass `--pre-release alpha` (or
 `beta`, `rc`) to append a pre-release suffix with auto-incrementing

@@ -42,7 +42,7 @@ lint:
 mod site
 
 [doc("Codeberg repo management")]
-mod codeberg
+mod cb 'codeberg.just'
 
 [doc("Install external build/lint dependencies")]
 setup:

@@ -19,11 +19,11 @@ update-issue number *args:
 
 [doc("Close an issue")]
 close-issue number:
-  just codeberg update-issue {{number}} --state closed
+  just cb update-issue {{number}} --state closed
 
 [doc("Reopen an issue")]
 reopen-issue number:
-  just codeberg update-issue {{number}} --state open
+  just cb update-issue {{number}} --state open
 
 [doc("List open issues (optional: --label 'Kind/Bug')")]
 [positional-arguments]
