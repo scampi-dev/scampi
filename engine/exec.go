@@ -22,7 +22,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const actionTimeout = 5 * time.Second
+const actionTimeout = 5 * time.Minute
 
 const opOutcomeUnknown = model.OpOutcome(0xff)
 

@@ -7,15 +7,15 @@ ownership, and permissions.
 
 ## Fields
 
-| Field   | Type   | Required | Default | Description                                               |
-|---------|--------|:--------:|:-------:|-----------------------------------------------------------|
+| Field   | Type   | Required | Default | Description                                                           |
+|---------|--------|:--------:|:-------:|-----------------------------------------------------------------------|
 | `src`   | source |    ✓     |         | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
-| `dest`  | string |    ✓     |         | Target directory for extraction                           |
-| `depth` | int    |          |   -1    | Nested archive recursion (-1=unlimited, 0=top-level only) |
-| `owner` | string |          |         | Owner applied recursively after extraction                |
-| `group` | string |          |         | Group applied recursively after extraction                |
-| `perm`  | string |          |         | Permissions applied recursively after extraction          |
-| `desc`  | string |          |         | Human-readable description                                |
+| `dest`  | string |    ✓     |         | Target directory for extraction                                       |
+| `depth` | int    |          |   -1    | Nested archive recursion (-1=unlimited, 0=top-level only)             |
+| `owner` | string |          |         | Owner applied recursively after extraction                            |
+| `group` | string |          |         | Group applied recursively after extraction                            |
+| `perm`  | string |          |         | Permissions applied recursively after extraction                      |
+| `desc`  | string |          |         | Human-readable description                                            |
 
 If `owner` is set, `group` must also be set (and vice versa).
 
