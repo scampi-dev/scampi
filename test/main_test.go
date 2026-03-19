@@ -15,8 +15,12 @@ func TestMain(m *testing.M) {
 			_, _ = fmt.Fprintf(os.Stderr, "Failed to start test container: %v\n", err)
 			os.Exit(1)
 		}
-		defer stopSharedContainer()
 	}
 
-	os.Exit(m.Run())
+	code := m.Run()
+
+	// os.Exit does not run deferred functions, so clean up explicitly.
+	stopSharedContainer()
+
+	os.Exit(code)
 }
