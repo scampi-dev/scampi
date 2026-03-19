@@ -23,23 +23,22 @@ func (Local) Create(ctx context.Context, _ source.Source, _ spec.TargetInstance)
 	tgt := &POSIXTarget{}
 	tgt.Runner = tgt.RunCommand
 
-	// OS detection for package manager support.
-	// Phase 1: kernel via uname -s
-	var osInfo pkgmgr.OSInfo
+	// OS detection for package manager and platform-specific dispatch.
+	var osInfo target.OSInfo
 	if result, err := tgt.RunCommand(ctx, "uname -s"); err == nil {
-		osInfo.Kernel = strings.TrimSpace(result.Stdout)
-	}
+		kernel := strings.TrimSpace(result.Stdout)
+		osInfo.Platform = target.ParseKernel(kernel)
 
-	// Phase 2: distro detection (Linux only) via /etc/os-release
-	if osInfo.Kernel == pkgmgr.KernelLinux {
-		if content, err := tgt.ReadFile(ctx, "/etc/os-release"); err == nil {
-			osInfo = pkgmgr.ParseOSRelease(content)
-			osInfo.Kernel = pkgmgr.KernelLinux
+		// Linux needs distro detection via /etc/os-release.
+		if kernel == "Linux" {
+			if content, err := tgt.ReadFile(ctx, "/etc/os-release"); err == nil {
+				osInfo = target.ResolveLinuxPlatform(content)
+			}
 		}
 	}
 
 	tgt.OSInfo = osInfo
-	tgt.PkgBackend = pkgmgr.Detect(osInfo)
+	tgt.PkgBackend = pkgmgr.Detect(osInfo.Platform)
 
 	// Init system detection for service management.
 	tgt.SvcBackend = svcmgr.Detect(func(cmd string) (int, error) {

@@ -19,7 +19,7 @@ import (
 // and set Runner to their command execution function.
 type Base struct {
 	Runner     func(ctx context.Context, cmd string) (target.CommandResult, error)
-	OSInfo     pkgmgr.OSInfo
+	OSInfo     target.OSInfo
 	PkgBackend *pkgmgr.Backend
 	SvcBackend svcmgr.Backend
 	Escalate   string

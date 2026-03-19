@@ -133,22 +133,20 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 	}
 	sshTgt.Runner = sshTgt.RunCommand
 
-	// OS detection for package manager support.
-	// Phase 1: kernel via uname -s
+	// OS detection for package manager and platform-specific dispatch.
 	if result, err := sshTgt.RunCommand(ctx, "uname -s"); err == nil {
-		sshTgt.OSInfo.Kernel = strings.TrimSpace(result.Stdout)
-	}
+		kernel := strings.TrimSpace(result.Stdout)
+		sshTgt.OSInfo.Platform = target.ParseKernel(kernel)
 
-	// Phase 2: distro detection (Linux only) via /etc/os-release
-	if sshTgt.OSInfo.Kernel == pkgmgr.KernelLinux {
-		if osRelease, err := sshTgt.ReadFile(ctx, "/etc/os-release"); err == nil {
-			info := pkgmgr.ParseOSRelease(osRelease)
-			info.Kernel = pkgmgr.KernelLinux
-			sshTgt.OSInfo = info
+		// Linux needs distro detection via /etc/os-release.
+		if kernel == "Linux" {
+			if osRelease, err := sshTgt.ReadFile(ctx, "/etc/os-release"); err == nil {
+				sshTgt.OSInfo = target.ResolveLinuxPlatform(osRelease)
+			}
 		}
 	}
 
-	sshTgt.PkgBackend = pkgmgr.Detect(sshTgt.OSInfo)
+	sshTgt.PkgBackend = pkgmgr.Detect(sshTgt.OSInfo.Platform)
 
 	// Init system detection for service management.
 	sshTgt.SvcBackend = svcmgr.Detect(func(cmd string) (int, error) {

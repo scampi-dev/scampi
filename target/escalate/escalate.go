@@ -22,18 +22,52 @@ import (
 // BSD format: stat -f '%Xp %z %m %N'
 // Both produce: hex-mode size mtime-epoch name
 
+// Stat runs an escalated stat, picking GNU or BSD format for the platform.
+func Stat(
+	ctx context.Context, run target.Command, p target.Platform,
+	tool, path string, followSymlinks bool,
+) (fs.FileInfo, error) {
+	switch {
+	case p.IsGNU():
+		return GNUStat(ctx, run, tool, path, followSymlinks)
+	case p.IsBSD():
+		return BSDStat(ctx, run, tool, path, followSymlinks)
+	default:
+		panic(errs.BUG("escalated stat: unsupported platform %q", p))
+	}
+}
+
+// GetOwner runs an escalated stat to retrieve file ownership.
+func GetOwner(
+	ctx context.Context, run target.Command, p target.Platform,
+	tool, path string,
+) (target.Owner, error) {
+	switch {
+	case p.IsGNU():
+		return GNUGetOwner(ctx, run, tool, path)
+	case p.IsBSD():
+		return BSDGetOwner(ctx, run, tool, path)
+	default:
+		panic(errs.BUG("escalated get-owner: unsupported platform %q", p))
+	}
+}
+
+// GNUStat uses GNU stat format (local target, build-tagged).
 func GNUStat(ctx context.Context, run target.Command, tool, path string, followSymlinks bool) (fs.FileInfo, error) {
 	return stat(ctx, run, tool, path, followSymlinks, "-c", "%f %s %Y %n")
 }
 
+// BSDStat uses BSD stat format (local target, build-tagged).
 func BSDStat(ctx context.Context, run target.Command, tool, path string, followSymlinks bool) (fs.FileInfo, error) {
 	return stat(ctx, run, tool, path, followSymlinks, "-f", "%Xp %z %m %N")
 }
 
+// GNUGetOwner uses GNU stat format (local target, build-tagged).
 func GNUGetOwner(ctx context.Context, run target.Command, tool, path string) (target.Owner, error) {
 	return getOwner(ctx, run, tool, path, "-c", "%U %G")
 }
 
+// BSDGetOwner uses BSD stat format (local target, build-tagged).
 func BSDGetOwner(ctx context.Context, run target.Command, tool, path string) (target.Owner, error) {
 	return getOwner(ctx, run, tool, path, "-f", "%Su %Sg")
 }

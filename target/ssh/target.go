@@ -20,7 +20,6 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/target"
 	"scampi.dev/scampi/target/escalate"
-	"scampi.dev/scampi/target/pkgmgr"
 	"scampi.dev/scampi/target/posix"
 )
 
@@ -359,28 +358,14 @@ func (t *SSHTarget) escalatedStat(
 	path string,
 	followSymlinks bool,
 ) (fs.FileInfo, error) {
-	switch t.OSInfo.Kernel {
-	case pkgmgr.KernelLinux:
-		return escalate.GNUStat(ctx, t, t.Escalate, path, followSymlinks)
-	case pkgmgr.KernelDarwin, pkgmgr.KernelFreeBSD:
-		return escalate.BSDStat(ctx, t, t.Escalate, path, followSymlinks)
-	default:
-		panic(errs.BUG("escalated stat: unsupported kernel %q", t.OSInfo.Kernel))
-	}
+	return escalate.Stat(ctx, t, t.OSInfo.Platform, t.Escalate, path, followSymlinks)
 }
 
 func (t *SSHTarget) escalatedGetOwner(
 	ctx context.Context,
 	path string,
 ) (target.Owner, error) {
-	switch t.OSInfo.Kernel {
-	case pkgmgr.KernelLinux:
-		return escalate.GNUGetOwner(ctx, t, t.Escalate, path)
-	case pkgmgr.KernelDarwin, pkgmgr.KernelFreeBSD:
-		return escalate.BSDGetOwner(ctx, t, t.Escalate, path)
-	default:
-		panic(errs.BUG("escalated stat: unsupported kernel %q", t.OSInfo.Kernel))
-	}
+	return escalate.GetOwner(ctx, t, t.OSInfo.Platform, t.Escalate, path)
 }
 
 func (t *SSHTarget) escalatedReadFile(ctx context.Context, path string) ([]byte, error) {
