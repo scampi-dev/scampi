@@ -95,7 +95,7 @@ target.local(name="host")
 steps = [
     copy(src=local("./a"), dest="/tmp/a", perm="0644", owner="u", group="g"),
     dir(path="/tmp/d", perm="0755", owner="u", group="g"),
-    pkg(packages=["curl", "wget"]),
+    pkg(packages=["curl", "wget"], source=system()),
     symlink(target="/tmp/a", link="/tmp/l"),
     template(src=inline("hello"), dest="/tmp/t", perm="0644", owner="u", group="g"),
 ]
@@ -398,7 +398,7 @@ func TestEvalPkgStateAbsent(t *testing.T) {
 	src.Files["/config.star"] = []byte(`
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
-    pkg(packages=["vim"], state="absent"),
+    pkg(packages=["vim"], state="absent", source=system()),
 ])
 `)
 

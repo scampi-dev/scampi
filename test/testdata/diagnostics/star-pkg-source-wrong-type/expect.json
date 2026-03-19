@@ -1,0 +1,14 @@
+{
+  "abort": true,
+  "diagnostics": [
+    {
+      "id": "star.TypeError",
+      "scope": "ScopeEngine",
+      "severity": "Error",
+      "kind": "DiagnosticRaised",
+      "source": {
+        "line": 3
+      }
+    }
+  ]
+}

@@ -8,6 +8,7 @@ deploy(
             desc="remove packages",
             packages=["tree"],
             state="absent",
+            source=system(),
         ),
     ],
 )

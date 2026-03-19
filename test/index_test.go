@@ -73,8 +73,8 @@ func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 		{
 			kind:           "pkg",
 			wantSummary:    "Ensure packages are present, absent, or at the latest version on the target",
-			wantFields:     []string{"packages", "state"},
-			wantFieldCount: 3, // includes desc
+			wantFields:     []string{"packages", "state", "source"},
+			wantFieldCount: 4, // includes desc
 		},
 		{
 			kind:           "firewall",

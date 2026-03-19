@@ -44,6 +44,9 @@ func (t *SSHTarget) Capabilities() capability.Capability {
 		if t.pkgBackend.SupportsUpgrade() {
 			caps |= capability.PkgUpdate
 		}
+		if t.pkgBackend.SupportsRepoSetup() {
+			caps |= capability.PkgRepo
+		}
 	}
 	if t.svcBackend != nil {
 		caps |= capability.Service

@@ -16,8 +16,10 @@ import (
 
 func predeclared() starlark.StringDict {
 	return starlark.StringDict{
+		"apt_repo":  starlark.NewBuiltin("apt_repo", builtinAptRepo),
 		"copy":      starlark.NewBuiltin("copy", builtinCopy),
 		"dir":       starlark.NewBuiltin("dir", builtinDir),
+		"dnf_repo":  starlark.NewBuiltin("dnf_repo", builtinDnfRepo),
 		"firewall":  starlark.NewBuiltin("firewall", builtinFirewall),
 		"group":     starlark.NewBuiltin("group", builtinGroup),
 		"inline":    starlark.NewBuiltin("inline", builtinInline),
@@ -26,6 +28,7 @@ func predeclared() starlark.StringDict {
 		"remote":    starlark.NewBuiltin("remote", builtinRemote),
 		"run":       starlark.NewBuiltin("run", builtinRun),
 		"service":   starlark.NewBuiltin("service", builtinService),
+		"system":    starlark.NewBuiltin("system", builtinSystem),
 		"sysctl":    starlark.NewBuiltin("sysctl", builtinSysctl),
 		"symlink":   starlark.NewBuiltin("symlink", builtinSymlink),
 		"template":  starlark.NewBuiltin("template", builtinTemplate),

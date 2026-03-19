@@ -1,0 +1,9 @@
+{
+  "files": {},
+  "pkgs": {
+    "example-pkg": true
+  },
+  "repos": {
+    "example-com-repo": true
+  }
+}

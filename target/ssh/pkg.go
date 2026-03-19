@@ -24,7 +24,7 @@ func (t *SSHTarget) IsInstalled(ctx context.Context, pkg string) (bool, error) {
 
 func (t *SSHTarget) InstallPkgs(ctx context.Context, pkgs []string) error {
 	if t.pkgBackend.NeedsRoot && !t.isRoot && t.escalate == "" {
-		return target.NoEscalationError{Op: t.pkgBackend.Name + " install"}
+		return target.NoEscalationError{Op: t.pkgBackend.Kind.String() + " install"}
 	}
 	quoted := make([]string, len(pkgs))
 	for i, p := range pkgs {
@@ -50,7 +50,7 @@ func (t *SSHTarget) InstallPkgs(ctx context.Context, pkgs []string) error {
 
 func (t *SSHTarget) RemovePkgs(ctx context.Context, pkgs []string) error {
 	if t.pkgBackend.NeedsRoot && !t.isRoot && t.escalate == "" {
-		return target.NoEscalationError{Op: t.pkgBackend.Name + " remove"}
+		return target.NoEscalationError{Op: t.pkgBackend.Kind.String() + " remove"}
 	}
 	quoted := make([]string, len(pkgs))
 	for i, p := range pkgs {
@@ -79,11 +79,11 @@ func (t *SSHTarget) UpdateCache(ctx context.Context) error {
 		return errs.BUG(
 			"%s backend does not support upgrade checks"+
 				" — capability should have prevented this call",
-			t.pkgBackend.Name,
+			t.pkgBackend.Kind.String(),
 		)
 	}
 	if t.pkgBackend.CacheNeedsRoot && !t.isRoot && t.escalate == "" {
-		return target.NoEscalationError{Op: t.pkgBackend.Name + " update-cache"}
+		return target.NoEscalationError{Op: t.pkgBackend.Kind.String() + " update-cache"}
 	}
 	cmd := t.pkgBackend.UpdateCache
 	if t.pkgBackend.CacheNeedsRoot && t.escalate != "" {
@@ -107,7 +107,7 @@ func (t *SSHTarget) IsUpgradable(ctx context.Context, pkg string) (bool, error) 
 		return false, errs.BUG(
 			"%s backend does not support upgrade checks"+
 				" — capability should have prevented this call",
-			t.pkgBackend.Name,
+			t.pkgBackend.Kind.String(),
 		)
 	}
 	cmd := fmt.Sprintf(t.pkgBackend.IsUpgradable, target.ShellQuote(pkg))

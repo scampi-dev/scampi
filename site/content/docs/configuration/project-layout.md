@@ -21,7 +21,7 @@ target.local(name="dev")
 deploy(
     name = "webserver",
     steps = [
-        pkg(packages=["nginx"], state="present"),
+        pkg(packages=["nginx"], state="present", source=system()),
         copy(src=local("nginx.conf"), dest="/etc/nginx/nginx.conf", perm="0644"),
         service(name="nginx", state="running", enabled=True),
     ],
@@ -70,7 +70,7 @@ deploy(
     name = "app",
     targets = ["web"],
     steps = [
-        pkg(packages=["caddy"], state="present"),
+        pkg(packages=["caddy"], state="present", source=system()),
         copy(src=local("files/app.env"), dest="/opt/app/.env", perm="0600", owner="app", group="app"),
         template(
             src = local("templates/Caddyfile.tmpl"),
@@ -125,7 +125,7 @@ deploy(
     name = "web",
     targets = ["web"],
     steps = [
-        pkg(packages=["nginx", "certbot"], state="present"),
+        pkg(packages=["nginx", "certbot"], state="present", source=system()),
         copy(src=local("files/nginx.conf"), dest="/etc/nginx/nginx.conf", perm="0644"),
         service(name="nginx", state="running", enabled=True),
     ],
@@ -139,7 +139,7 @@ deploy(
     name = "database",
     targets = ["db"],
     steps = [
-        pkg(packages=["postgresql-16"], state="present"),
+        pkg(packages=["postgresql-16"], state="present", source=system()),
         copy(src=local("files/pg_hba.conf"), dest="/etc/postgresql/16/main/pg_hba.conf", perm="0640", owner="postgres", group="postgres"),
         service(name="postgresql", state="running", enabled=True),
     ],
@@ -153,7 +153,7 @@ deploy(
     name = "monitoring",
     targets = ["mon"],
     steps = [
-        pkg(packages=["prometheus", "grafana"], state="present"),
+        pkg(packages=["prometheus", "grafana"], state="present", source=system()),
         template(
             src = local("templates/prometheus.yml.tmpl"),
             dest = "/etc/prometheus/prometheus.yml",
@@ -191,7 +191,7 @@ target.ssh(name="staging-web", host="web.staging.example.com", user="deploy")
 ```python {filename="shared/web.star"}
 def web_steps(domain):
     return [
-        pkg(packages=["nginx"], state="present"),
+        pkg(packages=["nginx"], state="present", source=system()),
         template(
             src = local("templates/nginx.conf.tmpl"),
             dest = "/etc/nginx/nginx.conf",

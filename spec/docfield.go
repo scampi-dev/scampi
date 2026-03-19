@@ -105,8 +105,14 @@ func extractFields(rt reflect.Type) []FieldDoc {
 }
 
 func goKindToDocType(t reflect.Type) string {
-	if t == reflect.TypeOf(SourceRef{}) {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t == reflect.TypeFor[SourceRef]() {
 		return "source"
+	}
+	if t == reflect.TypeFor[PkgSourceRef]() {
+		return "pkg_source"
 	}
 	switch t.Kind() {
 	case reflect.String:

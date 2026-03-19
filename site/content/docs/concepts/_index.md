@@ -21,12 +21,12 @@ A **step** is a declarative work item in your Starlark config. It says *what*
 you want, not *how* to get there:
 
 ```python
-pkg(packages=["nginx"], state="present")
+pkg(packages=["nginx"], state="present", source=system())
 ```
 
-Each step has a **kind** — `pkg`, `copy`, `dir`, `template`, `service`,
-`symlink`, or `run`. The kind determines which Go handler (called a **step
-type**) processes it.
+Each step has a **kind** (`pkg`, `copy`, `service`, etc.) that determines which
+Go handler (called a **step type**) processes it. See the
+[Step Reference]({{< relref "../steps" >}}) for all built-in kinds.
 
 ## Actions
 

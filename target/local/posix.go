@@ -23,6 +23,7 @@ import (
 )
 
 type POSIXTarget struct {
+	osInfo     pkgmgr.OSInfo
 	pkgBackend *pkgmgr.Backend
 	svcBackend svcmgr.Backend
 	escalate   string // "sudo", "doas", or "" (none)
@@ -227,6 +228,9 @@ func (t POSIXTarget) Capabilities() capability.Capability {
 		caps |= capability.Pkg
 		if t.pkgBackend.SupportsUpgrade() {
 			caps |= capability.PkgUpdate
+		}
+		if t.pkgBackend.SupportsRepoSetup() {
+			caps |= capability.PkgRepo
 		}
 	}
 	if t.svcBackend != nil {

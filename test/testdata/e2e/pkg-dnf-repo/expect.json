@@ -1,0 +1,13 @@
+{
+  "target": {
+    "files": {},
+    "pkgs": {
+      "example-pkg": true
+    },
+    "repos": {
+      "example-com-repo": true
+    }
+  },
+  "changed": 2,
+  "memOnly": true
+}

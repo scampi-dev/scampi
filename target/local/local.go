@@ -36,6 +36,7 @@ func (Local) Create(ctx context.Context, _ source.Source, _ spec.TargetInstance)
 		}
 	}
 
+	tgt.osInfo = osInfo
 	tgt.pkgBackend = pkgmgr.Detect(osInfo)
 
 	// Init system detection for service management.

@@ -8,10 +8,11 @@ import (
 
 func TestParseOSRelease(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantID   string
-		wantLike []string
+		name         string
+		input        string
+		wantID       string
+		wantLike     []string
+		wantCodename string
 	}{
 		{
 			name: "ubuntu",
@@ -21,9 +22,11 @@ ID=ubuntu
 ID_LIKE=debian
 PRETTY_NAME="Ubuntu 22.04.3 LTS"
 VERSION_ID="22.04"
+VERSION_CODENAME=jammy
 `,
-			wantID:   "ubuntu",
-			wantLike: []string{"debian"},
+			wantID:       "ubuntu",
+			wantLike:     []string{"debian"},
+			wantCodename: "jammy",
 		},
 		{
 			name: "alpine",
@@ -91,6 +94,16 @@ PRETTY_NAME="openSUSE Leap 15.5"
 			wantID:   "",
 			wantLike: nil,
 		},
+		{
+			name: "debian with codename",
+			input: `ID=debian
+ID_LIKE=""
+VERSION_CODENAME=bookworm
+VERSION_ID="12"
+`,
+			wantID:       "debian",
+			wantCodename: "bookworm",
+		},
 	}
 
 	for _, tt := range tests {
@@ -102,6 +115,9 @@ PRETTY_NAME="openSUSE Leap 15.5"
 			if !stringSliceEqual(info.IDLike, tt.wantLike) {
 				t.Errorf("IDLike: got %v, want %v", info.IDLike, tt.wantLike)
 			}
+			if info.VersionCodename != tt.wantCodename {
+				t.Errorf("VersionCodename: got %q, want %q", info.VersionCodename, tt.wantCodename)
+			}
 		})
 	}
 }
@@ -110,99 +126,99 @@ func TestDetect(t *testing.T) {
 	tests := []struct {
 		name     string
 		info     OSInfo
-		wantName string // empty string means nil backend
+		wantKind Kind // zero value means nil backend
 	}{
 		{
 			name:     "darwin",
 			info:     OSInfo{Kernel: KernelDarwin},
-			wantName: "brew",
+			wantKind: Brew,
 		},
 		{
 			name:     "freebsd",
 			info:     OSInfo{Kernel: KernelFreeBSD},
-			wantName: "pkg",
+			wantKind: Pkg,
 		},
 		{
 			name:     "debian",
 			info:     OSInfo{Kernel: KernelLinux, ID: "debian"},
-			wantName: "apt",
+			wantKind: Apt,
 		},
 		{
 			name:     "ubuntu direct",
 			info:     OSInfo{Kernel: KernelLinux, ID: "ubuntu", IDLike: []string{"debian"}},
-			wantName: "apt",
+			wantKind: Apt,
 		},
 		{
 			name:     "alpine",
 			info:     OSInfo{Kernel: KernelLinux, ID: "alpine"},
-			wantName: "apk",
+			wantKind: Apk,
 		},
 		{
 			name:     "fedora",
 			info:     OSInfo{Kernel: KernelLinux, ID: "fedora"},
-			wantName: "dnf",
+			wantKind: Dnf,
 		},
 		{
 			name:     "arch",
 			info:     OSInfo{Kernel: KernelLinux, ID: "arch"},
-			wantName: "pacman",
+			wantKind: Pacman,
 		},
 		{
 			name:     "rhel",
 			info:     OSInfo{Kernel: KernelLinux, ID: "rhel"},
-			wantName: "dnf",
+			wantKind: Dnf,
 		},
 		{
 			name:     "suse",
 			info:     OSInfo{Kernel: KernelLinux, ID: "suse"},
-			wantName: "zypper",
+			wantKind: Zypper,
 		},
 		{
 			name:     "ID_LIKE fallback ubuntu to debian",
 			info:     OSInfo{Kernel: KernelLinux, ID: "linuxmint", IDLike: []string{"debian", "ubuntu"}},
-			wantName: "apt",
+			wantKind: Apt,
 		},
 		{
 			name:     "ID_LIKE fallback rocky to rhel",
 			info:     OSInfo{Kernel: KernelLinux, ID: "rocky", IDLike: []string{"rhel", "centos", "fedora"}},
-			wantName: "dnf",
+			wantKind: Dnf,
 		},
 		{
 			name:     "ID_LIKE fallback opensuse to suse",
 			info:     OSInfo{Kernel: KernelLinux, ID: "opensuse-leap", IDLike: []string{"suse", "opensuse"}},
-			wantName: "zypper",
+			wantKind: Zypper,
 		},
 		{
 			name:     "unknown linux distro",
 			info:     OSInfo{Kernel: KernelLinux, ID: "nixos"},
-			wantName: "",
+			wantKind: 0,
 		},
 		{
 			name:     "unknown kernel",
 			info:     OSInfo{Kernel: "NetBSD"},
-			wantName: "",
+			wantKind: 0,
 		},
 		{
 			name:     "empty info",
 			info:     OSInfo{},
-			wantName: "",
+			wantKind: 0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			backend := Detect(tt.info)
-			if tt.wantName == "" {
+			if tt.wantKind == 0 {
 				if backend != nil {
-					t.Errorf("expected nil backend, got %q", backend.Name)
+					t.Errorf("expected nil backend, got %s", backend.Kind)
 				}
 				return
 			}
 			if backend == nil {
-				t.Fatalf("expected backend %q, got nil", tt.wantName)
+				t.Fatalf("expected backend %s, got nil", tt.wantKind)
 			}
-			if backend.Name != tt.wantName {
-				t.Errorf("backend name: got %q, want %q", backend.Name, tt.wantName)
+			if backend.Kind != tt.wantKind {
+				t.Errorf("backend kind: got %s, want %s", backend.Kind, tt.wantKind)
 			}
 		})
 	}

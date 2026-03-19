@@ -47,7 +47,7 @@ deploy(
     name = "webserver",
     targets = ["web"],
     steps = [
-        pkg(packages=["nginx"], state="present"),
+        pkg(packages=["nginx"], state="present", source=system()),
         service(name="nginx", state="running", enabled=True),
     ],
 )

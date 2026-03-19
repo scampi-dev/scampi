@@ -362,7 +362,7 @@ func TestWriteFile_NoEscalationErrorWhenNoTool(t *testing.T) {
 func TestInstallPkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 	tgt := POSIXTarget{
 		pkgBackend: &pkgmgr.Backend{
-			Name:      "apk",
+			Kind:      pkgmgr.Apk,
 			Install:   "apk add %s",
 			NeedsRoot: true,
 		},
@@ -383,7 +383,7 @@ func TestInstallPkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 func TestRemovePkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 	tgt := POSIXTarget{
 		pkgBackend: &pkgmgr.Backend{
-			Name:      "apt",
+			Kind:      pkgmgr.Apt,
 			Remove:    "apt-get remove -y %s",
 			NeedsRoot: true,
 		},
@@ -476,7 +476,7 @@ func TestInstallPkgs_NoEscalationWithoutNeedsRoot(t *testing.T) {
 func TestUpdateCache_NoEscalationErrorWhenNoTool(t *testing.T) {
 	tgt := POSIXTarget{
 		pkgBackend: &pkgmgr.Backend{
-			Name:           "apt",
+			Kind:           pkgmgr.Apt,
 			UpdateCache:    "apt-get update -qq",
 			IsUpgradable:   "apt list --upgradable %s",
 			CacheNeedsRoot: true,
@@ -534,7 +534,7 @@ func TestUpdateCache_NoEscalationWithoutCacheNeedsRoot(t *testing.T) {
 func TestUpdateCache_NoUpgradeSupport(t *testing.T) {
 	tgt := POSIXTarget{
 		pkgBackend: &pkgmgr.Backend{
-			Name:        "minimal",
+			Kind:        pkgmgr.Apt,
 			IsInstalled: "dpkg -s %s",
 			Install:     "apt-get install -y %s",
 			Remove:      "apt-get remove -y %s",

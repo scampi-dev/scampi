@@ -119,7 +119,7 @@ template(
     data={"values": {"workers": 4, "port": 80}},
 )
 
-pkg(packages=["nginx", "curl"], state="present")  # present | latest | absent
+pkg(packages=["nginx", "curl"], state="present", source=system())  # present | latest | absent
 ```
 
 Every step accepts an optional `desc` keyword for human-readable descriptions.
@@ -136,7 +136,7 @@ deploy(
     targets=["web1", "web2"],
     steps=[
         copy(src=local("./motd.txt"), dest="/etc/motd", perm="0644", owner="root", group="root"),
-        pkg(packages=["nginx"]),
+        pkg(packages=["nginx"], source=system()),
         template(
             src=local("./nginx.conf.tmpl"),
             dest="/etc/nginx/nginx.conf",

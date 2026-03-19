@@ -304,6 +304,7 @@ func TestDrift_Pkg_NotInstalled(t *testing.T) {
 	ops := planOps(t, pkg.Pkg{}, &pkg.PkgConfig{
 		Packages: []string{"vim"},
 		State:    "present",
+		Source:   spec.PkgSourceRef{Kind: spec.PkgSourceNative},
 	}, map[string]spec.FieldSpan{
 		"packages": {},
 	})
@@ -321,6 +322,7 @@ func TestDrift_Pkg_Upgradable(t *testing.T) {
 	ops := planOps(t, pkg.Pkg{}, &pkg.PkgConfig{
 		Packages: []string{"vim"},
 		State:    "latest",
+		Source:   spec.PkgSourceRef{Kind: spec.PkgSourceNative},
 	}, map[string]spec.FieldSpan{
 		"packages": {},
 	})
@@ -337,6 +339,7 @@ func TestDrift_Pkg_WantAbsent(t *testing.T) {
 	ops := planOps(t, pkg.Pkg{}, &pkg.PkgConfig{
 		Packages: []string{"vim"},
 		State:    "absent",
+		Source:   spec.PkgSourceRef{Kind: spec.PkgSourceNative},
 	}, map[string]spec.FieldSpan{
 		"packages": {},
 	})

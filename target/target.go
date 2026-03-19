@@ -120,6 +120,27 @@ type (
 		CreateGroup(ctx context.Context, info GroupInfo) error
 		DeleteGroup(ctx context.Context, name string) error
 	}
+	RepoConfig struct {
+		Name       string // slug for filenames
+		URL        string
+		KeyData    []byte   // downloaded+dearmored key content (apt) or raw key (dnf)
+		KeyPath    string   // deterministic path on target
+		ConfigPath string   // deterministic path on target
+		Suite      string   // apt: codename
+		Components []string // apt: components list
+	}
+	RepoManager interface {
+		HasRepo(ctx context.Context, name string) (bool, error)
+		HasRepoKey(ctx context.Context, name string) (bool, error)
+		InstallRepoKey(ctx context.Context, cfg RepoConfig) error
+		WriteRepoConfig(ctx context.Context, cfg RepoConfig) error
+		RemoveRepo(ctx context.Context, name string) error
+		RepoKeyPath(name string) string
+		RepoConfigPath(name string) string
+	}
+	OSInfoProvider interface {
+		VersionCodename() string
+	}
 )
 
 func IsNotExist(err error) bool        { return errors.Is(err, ErrNotExist) }

@@ -123,6 +123,18 @@ func (d *MemDriver) Setup(t *testing.T, initial E2EFiles) (target.Target, spec.T
 		}
 	}
 
+	for name, installed := range initial.Repos {
+		if installed {
+			d.tgt.Repos[name] = target.RepoConfig{Name: name}
+		}
+	}
+	for name, installed := range initial.RepoKeys {
+		d.tgt.RepoKeys[name] = installed
+	}
+	if initial.VersionCodename != "" {
+		d.tgt.Codename = initial.VersionCodename
+	}
+
 	for name, info := range initial.Users {
 		d.tgt.Users[name] = target.UserInfo{
 			Name:     name,
@@ -256,6 +268,20 @@ func (d *MemDriver) Verify(t *testing.T, expect E2EFiles) {
 
 	// Verify absent users (users listed in expect but with empty info means "should not exist")
 	// We verify existence via the Users map directly
+
+	// Verify repos
+	for name, wantConfigured := range expect.Repos {
+		_, gotConfigured := d.tgt.Repos[name]
+		if gotConfigured != wantConfigured {
+			t.Errorf("repo %q: got configured=%v, want configured=%v", name, gotConfigured, wantConfigured)
+		}
+	}
+	for name, wantInstalled := range expect.RepoKeys {
+		gotInstalled := d.tgt.RepoKeys[name]
+		if gotInstalled != wantInstalled {
+			t.Errorf("repo key %q: got installed=%v, want installed=%v", name, gotInstalled, wantInstalled)
+		}
+	}
 
 	// Verify groups
 	for name, wantInfo := range expect.Groups {

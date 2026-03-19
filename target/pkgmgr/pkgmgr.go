@@ -3,10 +3,25 @@
 // Package pkgmgr provides package manager detection and command templates.
 package pkgmgr
 
+//go:generate stringer -type=Kind -linecomment
+
+// Kind identifies a package manager backend.
+type Kind uint8
+
+const (
+	Brew   Kind = iota + 1 // brew
+	Pkg                    // pkg
+	Apt                    // apt
+	Dnf                    // dnf
+	Apk                    // apk
+	Pacman                 // pacman
+	Zypper                 // zypper
+)
+
 // Backend holds command templates for a package manager.
 // Each template contains a single %s verb for the package name(s).
 type Backend struct {
-	Name           string
+	Kind           Kind
 	IsInstalled    string // exit 0 = installed
 	Install        string
 	Remove         string
@@ -21,11 +36,15 @@ func (b *Backend) SupportsUpgrade() bool {
 	return b.UpdateCache != "" && b.IsUpgradable != ""
 }
 
+func (b *Backend) SupportsRepoSetup() bool {
+	return b.Kind == Apt || b.Kind == Dnf
+}
+
 // backendsByFamily maps os-release ID/ID_LIKE values (and lowercased kernel
 // names like "darwin") to backends.
 var backendsByFamily = map[string]Backend{
 	"darwin": {
-		Name:           "brew",
+		Kind:           Brew,
 		IsInstalled:    "brew list %s",
 		Install:        "brew install %s",
 		Remove:         "brew uninstall %s",
@@ -36,7 +55,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -f %m \"$(brew --repository)/.git/HEAD\" 2>/dev/null",
 	},
 	"freebsd": {
-		Name:           "pkg",
+		Kind:           Pkg,
 		IsInstalled:    "pkg info %s",
 		Install:        "pkg install -y %s",
 		Remove:         "pkg remove -y %s",
@@ -47,7 +66,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -f %m /var/db/pkg/repo-FreeBSD.sqlite 2>/dev/null",
 	},
 	"debian": {
-		Name:           "apt",
+		Kind:           Apt,
 		IsInstalled:    "dpkg -s %s 2>/dev/null | grep -q '^Status:.* installed$'",
 		Install:        "DEBIAN_FRONTEND=noninteractive apt-get install -y %s",
 		Remove:         "DEBIAN_FRONTEND=noninteractive apt-get remove -y %s",
@@ -58,7 +77,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -c %Y /var/cache/apt/pkgcache.bin 2>/dev/null",
 	},
 	"ubuntu": {
-		Name:           "apt",
+		Kind:           Apt,
 		IsInstalled:    "dpkg -s %s 2>/dev/null | grep -q '^Status:.* installed$'",
 		Install:        "DEBIAN_FRONTEND=noninteractive apt-get install -y %s",
 		Remove:         "DEBIAN_FRONTEND=noninteractive apt-get remove -y %s",
@@ -69,7 +88,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -c %Y /var/cache/apt/pkgcache.bin 2>/dev/null",
 	},
 	"alpine": {
-		Name:           "apk",
+		Kind:           Apk,
 		IsInstalled:    "apk info -e %s",
 		Install:        "apk add %s",
 		Remove:         "apk del %s",
@@ -80,7 +99,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -c %Y /var/cache/apk/APKINDEX.*.tar.gz 2>/dev/null | sort -n | tail -1",
 	},
 	"fedora": {
-		Name:           "dnf",
+		Kind:           Dnf,
 		IsInstalled:    "rpm -q %s",
 		Install:        "dnf install -y %s",
 		Remove:         "dnf remove -y %s",
@@ -91,7 +110,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -c %Y /var/cache/dnf/*/repodata/repomd.xml 2>/dev/null | sort -n | tail -1",
 	},
 	"rhel": {
-		Name:           "dnf",
+		Kind:           Dnf,
 		IsInstalled:    "rpm -q %s",
 		Install:        "dnf install -y %s",
 		Remove:         "dnf remove -y %s",
@@ -102,7 +121,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -c %Y /var/cache/dnf/*/repodata/repomd.xml 2>/dev/null | sort -n | tail -1",
 	},
 	"arch": {
-		Name:           "pacman",
+		Kind:           Pacman,
 		IsInstalled:    "pacman -Q %s",
 		Install:        "pacman -S --noconfirm %s",
 		Remove:         "pacman -R --noconfirm %s",
@@ -113,7 +132,7 @@ var backendsByFamily = map[string]Backend{
 		CheckCacheAge:  "stat -c %Y /var/lib/pacman/sync/core.db 2>/dev/null",
 	},
 	"suse": {
-		Name:           "zypper",
+		Kind:           Zypper,
 		IsInstalled:    "rpm -q %s",
 		Install:        "zypper install -y %s",
 		Remove:         "zypper remove -y %s",

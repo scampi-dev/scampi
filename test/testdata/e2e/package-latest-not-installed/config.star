@@ -8,6 +8,7 @@ deploy(
             desc="install missing package at latest",
             packages=["nginx"],
             state="latest",
+            source=system(),
         ),
     ],
 )

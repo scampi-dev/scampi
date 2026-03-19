@@ -93,6 +93,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,os/exec,os/user,crypto/rand",
 		},
 		{
+			pattern:        "target/local/repo.go",
+			allowedImports: "os",
+		},
+		{
 			pattern:        "target/local/stat_linux.go",
 			allowedImports: "os,os/user,syscall",
 		},
@@ -179,8 +183,16 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "crypto/sha256, net/url",
 		},
 		{
+			pattern:        "star/pkgsources.go",
+			allowedImports: "crypto/sha256, net/url",
+		},
+		{
 			pattern:        "step/sharedops/download_op.go",
 			allowedImports: "crypto/md5, crypto/sha1, crypto/sha256, crypto/sha512, net/http",
+		},
+		{
+			pattern:        "step/pkg/pkg.go",
+			allowedImports: "crypto/sha256",
 		},
 		{
 			pattern:        "step/unarchive/unarchive_op.go",

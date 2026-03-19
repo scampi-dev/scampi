@@ -15,9 +15,10 @@ const (
 
 // OSInfo holds identification data for a target operating system.
 type OSInfo struct {
-	Kernel string   // "Linux", "Darwin", etc. (from uname -s)
-	ID     string   // e.g. "ubuntu", "alpine", "fedora" (from os-release)
-	IDLike []string // e.g. ["debian"] for ubuntu (from os-release)
+	Kernel          string   // "Linux", "Darwin", etc. (from uname -s)
+	ID              string   // e.g. "ubuntu", "alpine", "fedora" (from os-release)
+	IDLike          []string // e.g. ["debian"] for ubuntu (from os-release)
+	VersionCodename string   // e.g. "bookworm", "jammy" (from os-release)
 }
 
 // ParseOSRelease parses /etc/os-release content into an OSInfo.
@@ -42,6 +43,8 @@ func ParseOSRelease(content []byte) OSInfo {
 			info.ID = val
 		case "ID_LIKE":
 			info.IDLike = strings.Fields(val)
+		case "VERSION_CODENAME":
+			info.VersionCodename = val
 		}
 	}
 	return info

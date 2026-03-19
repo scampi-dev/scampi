@@ -72,7 +72,7 @@ func TestKwargFieldSpans_SingleLine(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/config.star"] = []byte(`target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
-    pkg(packages=["vim", "curl"]),
+    pkg(packages=["vim", "curl"], source=system()),
 ])
 `)
 

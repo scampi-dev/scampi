@@ -8,6 +8,7 @@ deploy(
             desc="upgrade packages",
             packages=["nginx"],
             state="latest",
+            source=system(),
         ),
     ],
 )

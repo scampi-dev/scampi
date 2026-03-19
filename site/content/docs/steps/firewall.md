@@ -96,6 +96,7 @@ firewall(
 pkg(
     packages=["ufw"],
     state="present",
+    source=system(),
     desc="install firewall",
 )
 

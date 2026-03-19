@@ -217,18 +217,25 @@ func builtinPkg(
 		packages    *starlark.List
 		state       = "present"
 		desc        string
+		sourceVal   starlark.Value
 		onChangeVal starlark.Value
 	)
 	if err := starlark.UnpackArgs("pkg", args, kwargs,
 		"packages", &packages,
-		"state?", &state,
+		"source", &sourceVal,
 		"desc?", &desc,
+		"state?", &state,
 		"on_change?", &onChangeVal,
 	); err != nil {
 		return nil, err
 	}
 
 	pkgs, err := stringList(packages, "pkg", "packages")
+	if err != nil {
+		return nil, err
+	}
+
+	pkgSource, err := unpackPkgSource(sourceVal)
 	if err != nil {
 		return nil, err
 	}
@@ -243,12 +250,24 @@ func builtinPkg(
 		Instance: spec.StepInstance{
 			Desc:     desc,
 			Type:     pkg.Pkg{},
-			Config:   &pkg.PkgConfig{Desc: desc, Packages: pkgs, State: state},
+			Config:   &pkg.PkgConfig{Desc: desc, Packages: pkgs, State: state, Source: pkgSource},
 			OnChange: hookIDs,
 			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "packages", "state", "on_change"),
+			Fields:   kwargsFieldSpans(thread, "packages", "source", "state", "on_change"),
 		},
 	}, nil
+}
+
+func unpackPkgSource(val starlark.Value) (spec.PkgSourceRef, error) {
+	src, ok := val.(*StarlarkPkgSource)
+	if !ok {
+		return spec.PkgSourceRef{}, &TypeError{
+			Context:  "pkg: source",
+			Expected: `pkg source, e.g. apt_repo(url=..., key_url=...)`,
+			Got:      val.Type(),
+		}
+	}
+	return src.Ref, nil
 }
 
 // Step builtin: run

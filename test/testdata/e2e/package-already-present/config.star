@@ -7,6 +7,7 @@ deploy(
         pkg(
             desc="packages already installed",
             packages=["nginx", "curl"],
+            source=system(),
         ),
     ],
 )

@@ -36,6 +36,7 @@ fmt:
 lint:
   go tool golangci-lint run
   go tool gomarklint
+  go test -run TestMarkdownTableAlignment ./test/
   shellcheck scripts/*.sh
   just license-check
 

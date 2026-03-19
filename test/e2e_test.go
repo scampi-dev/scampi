@@ -44,6 +44,9 @@ type E2EFiles struct {
 	CacheStale      bool                        `json:"cacheStale,omitempty"`      // simulate stale package cache
 	Users           map[string]E2EUserInfo      `json:"users,omitempty"`           // username -> user info
 	Groups          map[string]E2EGroupInfo     `json:"groups,omitempty"`          // group name -> group info
+	Repos           map[string]bool             `json:"repos,omitempty"`           // repo name -> configured
+	RepoKeys        map[string]bool             `json:"repoKeys,omitempty"`        // repo name -> key installed
+	VersionCodename string                      `json:"versionCodename,omitempty"` // e.g. "bookworm"
 }
 
 // E2EOwner represents file ownership.

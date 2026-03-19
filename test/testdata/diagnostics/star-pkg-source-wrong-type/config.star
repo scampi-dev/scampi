@@ -1,4 +1,4 @@
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
-    pkg(packages=[42], source=system()),
+    pkg(packages=["nginx"], source="not-a-source"),
 ])

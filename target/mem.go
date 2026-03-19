@@ -39,6 +39,10 @@ type MemTarget struct {
 	Users  map[string]UserInfo  // name -> info
 	Groups map[string]GroupInfo // name -> info
 
+	Repos    map[string]RepoConfig // name -> config
+	RepoKeys map[string]bool       // name -> installed
+	Codename string                // for OSInfoProvider
+
 	Commands    []commandCall
 	CommandFunc func(cmd string) (CommandResult, error)
 }
@@ -59,6 +63,8 @@ func NewMemTarget() *MemTarget {
 		Reloads:         make(map[string]int),
 		Users:           make(map[string]UserInfo),
 		Groups:          make(map[string]GroupInfo),
+		Repos:           make(map[string]RepoConfig),
+		RepoKeys:        make(map[string]bool),
 	}
 }
 
@@ -339,7 +345,7 @@ func (m *MemTarget) Remove(_ context.Context, path string) error {
 
 func (m *MemTarget) Capabilities() capability.Capability {
 	return capability.POSIX |
-		capability.Pkg | capability.PkgUpdate |
+		capability.Pkg | capability.PkgUpdate | capability.PkgRepo |
 		capability.Service |
 		capability.User | capability.Group
 }
@@ -542,6 +548,59 @@ func (m *MemTarget) DeleteGroup(_ context.Context, name string) error {
 	defer m.mu.Unlock()
 	delete(m.Groups, name)
 	return nil
+}
+
+// RepoManager
+// -----------------------------------------------------------------------------
+
+func (m *MemTarget) HasRepo(_ context.Context, name string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, ok := m.Repos[name]
+	return ok, nil
+}
+
+func (m *MemTarget) HasRepoKey(_ context.Context, name string) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.RepoKeys[name], nil
+}
+
+func (m *MemTarget) InstallRepoKey(_ context.Context, cfg RepoConfig) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.RepoKeys[cfg.Name] = true
+	return nil
+}
+
+func (m *MemTarget) WriteRepoConfig(_ context.Context, cfg RepoConfig) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.Repos[cfg.Name] = cfg
+	return nil
+}
+
+func (m *MemTarget) RemoveRepo(_ context.Context, name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.Repos, name)
+	delete(m.RepoKeys, name)
+	return nil
+}
+
+func (m *MemTarget) RepoKeyPath(name string) string {
+	return "/usr/share/keyrings/" + name + ".gpg"
+}
+
+func (m *MemTarget) RepoConfigPath(name string) string {
+	return "/etc/apt/sources.list.d/scampi-" + name + ".sources"
+}
+
+// OSInfoProvider
+// -----------------------------------------------------------------------------
+
+func (m *MemTarget) VersionCodename() string {
+	return m.Codename
 }
 
 type memFileInfo struct {

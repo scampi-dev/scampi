@@ -25,6 +25,7 @@ const (
 	Command                             // RunCommand
 	User                                // UserExists, CreateUser, ModifyUser, DeleteUser, GetUser
 	Group                               // GroupExists, CreateGroup, DeleteGroup, GetGroup
+	PkgRepo                             // HasRepo, HasRepoKey, InstallRepoKey, WriteRepoConfig
 )
 
 const (
@@ -79,6 +80,9 @@ func (c Capability) String() string {
 	}
 	if c&Group != 0 {
 		parts = append(parts, "Group")
+	}
+	if c&PkgRepo != 0 {
+		parts = append(parts, "PkgRepo")
 	}
 
 	// If no known flags matched, show raw value

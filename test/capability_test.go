@@ -67,7 +67,7 @@ target.local(name="local")
 deploy(
     name="test",
     targets=["local"],
-    steps=[pkg(packages=["foo"], state="latest")],
+    steps=[pkg(packages=["foo"], state="latest", source=system())],
 )
 `, newPkgOnlyTarget())
 }
