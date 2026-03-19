@@ -3,6 +3,7 @@ bin_dir         := f"{{build_dir}}/bin"
 bin_path        := f"{{bin_dir}}/scampi"
 spdx_header     := "// SPDX-License-Identifier: GPL-3.0-only"
 required_tools  := "shellcheck jq curl"
+cross_targets   := "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64 freebsd/arm64"
 
 
 [default]
@@ -20,6 +21,19 @@ ldflags  := "-s -w -X main.version=" + version
 build:
   mkdir -p {{bin_dir}}
   go build -ldflags '{{ldflags}}' -o {{bin_path}} ./cmd
+
+[doc("Cross-compile for all supported platforms (outdir=DIR prefix=NAME)")]
+cross outdir=bin_dir prefix="scampi":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p "{{outdir}}"
+  for pair in {{cross_targets}}; do
+    os="${pair%/*}"
+    arch="${pair#*/}"
+    out="{{outdir}}/{{prefix}}-${os}-${arch}"
+    printf "  %-20s → %s\n" "${os}/${arch}" "$out"
+    CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -ldflags '{{ldflags}}' -o "$out" ./cmd
+  done
 
 [doc("Build and run scampi locally")]
 scampi *args:
