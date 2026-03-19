@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const writeRepoConfigOpID = "builtin.write-repo-config"
+const writeRepoConfigID = "builtin.write-repo-config"
 
 type writeRepoConfigOp struct {
 	sharedops.BaseOp
@@ -24,7 +24,7 @@ func (op *writeRepoConfigOp) Check(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	rm := target.Must[target.RepoManager](writeRepoConfigOpID, tgt)
+	rm := target.Must[target.RepoManager](writeRepoConfigID, tgt)
 
 	has, err := rm.HasRepo(ctx, op.source.Name)
 	if err != nil {
@@ -45,7 +45,7 @@ func (op *writeRepoConfigOp) Execute(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.Result, error) {
-	rm := target.Must[target.RepoManager](writeRepoConfigOpID, tgt)
+	rm := target.Must[target.RepoManager](writeRepoConfigID, tgt)
 
 	suite := op.source.Suite
 	if suite == "" && op.source.Kind == spec.PkgSourceApt {
@@ -103,7 +103,7 @@ type writeRepoConfigDesc struct {
 
 func (d writeRepoConfigDesc) PlanTemplate() spec.PlanTemplate {
 	return spec.PlanTemplate{
-		ID:   writeRepoConfigOpID,
+		ID:   writeRepoConfigID,
 		Text: `configure repo source "{{.Name}}"`,
 		Data: d,
 	}

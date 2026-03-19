@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const installKeyOpID = "builtin.install-repo-key"
+const installKeyID = "builtin.install-repo-key"
 
 type installKeyOp struct {
 	sharedops.BaseOp
@@ -25,7 +25,7 @@ func (op *installKeyOp) Check(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	rm := target.Must[target.RepoManager](installKeyOpID, tgt)
+	rm := target.Must[target.RepoManager](installKeyID, tgt)
 
 	has, err := rm.HasRepoKey(ctx, op.source.Name)
 	if err != nil {
@@ -46,7 +46,7 @@ func (op *installKeyOp) Execute(
 	src source.Source,
 	tgt target.Target,
 ) (spec.Result, error) {
-	rm := target.Must[target.RepoManager](installKeyOpID, tgt)
+	rm := target.Must[target.RepoManager](installKeyID, tgt)
 
 	cachePath := keyCachePath(op.source.KeyURL)
 	keyData, err := src.ReadFile(ctx, cachePath)
@@ -84,7 +84,7 @@ type installKeyDesc struct {
 
 func (d installKeyDesc) PlanTemplate() spec.PlanTemplate {
 	return spec.PlanTemplate{
-		ID:   installKeyOpID,
+		ID:   installKeyID,
 		Text: `install signing key for "{{.Name}}"`,
 		Data: d,
 	}

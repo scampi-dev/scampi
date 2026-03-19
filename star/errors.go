@@ -271,40 +271,6 @@ func (e *DuplicateDeployError) setSource(s spec.SourceSpan) {
 	}
 }
 
-// MissingArgError is raised when a required argument is not provided.
-type MissingArgError struct {
-	Func   string
-	Arg    string
-	Source spec.SourceSpan
-}
-
-func (e MissingArgError) Error() string {
-	return fmt.Sprintf("%s() missing required argument %q", e.Func, e.Arg)
-}
-
-func (e MissingArgError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "star.MissingArg",
-		Text:   `{{.Func}}() missing required argument "{{.Arg}}"`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
-func (e MissingArgError) Severity() signal.Severity {
-	return signal.Error
-}
-
-func (e MissingArgError) Impact() diagnostic.Impact {
-	return diagnostic.ImpactAbort
-}
-
-func (e *MissingArgError) setSource(s spec.SourceSpan) {
-	if e.Source == (spec.SourceSpan{}) {
-		e.Source = s
-	}
-}
-
 // EnvVarRequiredError is raised when a required env var is unset.
 type EnvVarRequiredError struct {
 	Key    string

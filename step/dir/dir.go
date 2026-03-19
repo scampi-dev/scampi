@@ -15,7 +15,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const id = "builtin.dir"
+const ensureDirID = "builtin.dir"
 
 type (
 	Dir       struct{}
@@ -156,7 +156,7 @@ func (op *ensureDirOp) Check(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	fsTgt := target.Must[target.Filesystem](id, tgt)
+	fsTgt := target.Must[target.Filesystem](ensureDirID, tgt)
 
 	info, err := fsTgt.Stat(ctx, op.path)
 	if err != nil {
@@ -184,7 +184,7 @@ func (op *ensureDirOp) Execute(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.Result, error) {
-	fsTgt := target.Must[target.Filesystem](id, tgt)
+	fsTgt := target.Must[target.Filesystem](ensureDirID, tgt)
 
 	info, err := fsTgt.Stat(ctx, op.path)
 	if err == nil {

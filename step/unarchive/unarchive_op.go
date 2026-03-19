@@ -27,7 +27,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const opID = "builtin.unarchive"
+const unarchiveID = "builtin.unarchive"
 
 const maxStderrLines = 10
 
@@ -69,7 +69,7 @@ func (op *unarchiveOp) Check(
 	src source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	fsTgt := target.Must[target.Filesystem](opID, tgt)
+	fsTgt := target.Must[target.Filesystem](unarchiveID, tgt)
 
 	srcData, err := src.ReadFile(ctx, op.src)
 	if err != nil {
@@ -113,8 +113,8 @@ func (op *unarchiveOp) Execute(
 	src source.Source,
 	tgt target.Target,
 ) (spec.Result, error) {
-	fsTgt := target.Must[target.Filesystem](opID, tgt)
-	cmdTgt := target.Must[target.Command](opID, tgt)
+	fsTgt := target.Must[target.Filesystem](unarchiveID, tgt)
+	cmdTgt := target.Must[target.Command](unarchiveID, tgt)
 
 	srcData, err := src.ReadFile(ctx, op.src)
 	if err != nil {
@@ -439,7 +439,7 @@ type unarchiveDesc struct {
 
 func (d unarchiveDesc) PlanTemplate() spec.PlanTemplate {
 	return spec.PlanTemplate{
-		ID:   opID,
+		ID:   unarchiveID,
 		Text: `unarchive "{{.Src}}" -> "{{.Dest}}"`,
 		Data: d,
 	}

@@ -15,7 +15,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const id = "builtin.symlink"
+const ensureSymlinkID = "builtin.symlink"
 
 type (
 	Symlink       struct{}
@@ -71,32 +71,26 @@ func (a *symlinkAction) Inputs() []spec.Resource {
 func (a *symlinkAction) Promises() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.link)}
 }
-func (op *ensureSymlinkOp) Action() spec.Action  { return op.action }
-func (op *ensureSymlinkOp) DependsOn() []spec.Op { return op.deps }
-
 func (a *symlinkAction) Ops() []spec.Op {
 	op := &ensureSymlinkOp{
-		targetSpan: a.step.Fields["target"].Value,
-		linkSpan:   a.step.Fields["link"].Value,
-		target:     a.target,
-		link:       a.link,
+		BaseOp: sharedops.BaseOp{
+			SrcSpan:  a.step.Fields["target"].Value,
+			DestSpan: a.step.Fields["link"].Value,
+		},
+		target: a.target,
+		link:   a.link,
 	}
 
-	op.action = a
+	op.SetAction(a)
 
 	return []spec.Op{op}
 }
 
-type (
-	ensureSymlinkOp struct {
-		target     string
-		link       string
-		action     spec.Action
-		deps       []spec.Op
-		targetSpan spec.SourceSpan
-		linkSpan   spec.SourceSpan
-	}
-)
+type ensureSymlinkOp struct {
+	sharedops.BaseOp
+	target string
+	link   string
+}
 
 // resolveTarget computes the symlink target path.
 // If target is absolute, it's used as-is.
@@ -130,13 +124,13 @@ func (op *ensureSymlinkOp) Check(
 	t := target.Must[interface {
 		target.Filesystem
 		target.Symlink
-	}](id, tgt)
+	}](ensureSymlinkID, tgt)
 
 	if _, err := t.Stat(ctx, filepath.Dir(op.link)); err != nil {
 		return spec.CheckUnsatisfied, nil, LinkDirMissingError{
 			Path:   filepath.Dir(op.link),
 			Err:    err,
-			Source: op.linkSpan,
+			Source: op.DestSpan,
 		}
 	}
 
@@ -145,7 +139,7 @@ func (op *ensureSymlinkOp) Check(
 		return spec.CheckUnsatisfied, nil, LinkReadError{
 			Path:   op.link,
 			Err:    err,
-			Source: op.linkSpan,
+			Source: op.DestSpan,
 		}
 	}
 
@@ -161,14 +155,14 @@ func (op *ensureSymlinkOp) Check(
 		return spec.CheckUnsatisfied, nil, LinkReadError{
 			Path:   op.link,
 			Err:    err,
-			Source: op.linkSpan,
+			Source: op.DestSpan,
 		}
 	}
 
 	if info.Mode()&fs.ModeSymlink == 0 {
 		return spec.CheckUnsatisfied, nil, NotASymlinkError{
 			Path:   op.link,
-			Source: op.linkSpan,
+			Source: op.DestSpan,
 		}
 	}
 
@@ -177,7 +171,7 @@ func (op *ensureSymlinkOp) Check(
 		return spec.CheckUnsatisfied, nil, LinkReadError{
 			Path:   op.link,
 			Err:    err,
-			Source: op.linkSpan,
+			Source: op.DestSpan,
 		}
 	}
 
@@ -196,7 +190,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 	t := target.Must[interface {
 		target.Filesystem
 		target.Symlink
-	}](id, tgt)
+	}](ensureSymlinkID, tgt)
 
 	relTarget, err := resolveTarget(op.target, op.link)
 	if err != nil {
@@ -209,7 +203,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 			// Dest exists but is not a symlink, we won't touch those
 			return spec.Result{}, NotASymlinkError{
 				Path:   op.link,
-				Source: op.linkSpan,
+				Source: op.DestSpan,
 			}
 		}
 
@@ -224,7 +218,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 			if target.IsPermission(err) {
 				return spec.Result{}, sharedops.PermissionDeniedError{
 					Operation: "remove " + op.link,
-					Source:    op.linkSpan,
+					Source:    op.DestSpan,
 					Err:       err,
 				}
 			}
@@ -237,7 +231,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedops.PermissionDeniedError{
 				Operation: "symlink " + op.link,
-				Source:    op.linkSpan,
+				Source:    op.DestSpan,
 				Err:       err,
 			}
 		}

@@ -26,7 +26,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const downloadOpID = "builtin.download"
+const downloadID = "builtin.download"
 
 // DownloadOp fetches a remote URL to the source cache. It runs source-side
 // only — no target capabilities required.
@@ -225,7 +225,7 @@ type downloadDesc struct {
 
 func (d downloadDesc) PlanTemplate() spec.PlanTemplate {
 	return spec.PlanTemplate{
-		ID:   downloadOpID,
+		ID:   downloadID,
 		Text: `download "{{.URL}}" -> "{{.Dest}}"`,
 		Data: d,
 	}

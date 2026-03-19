@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const runOpID = "builtin.run"
+const runID = "builtin.run"
 
 type runOp struct {
 	sharedops.BaseOp
@@ -31,7 +31,7 @@ func (op *runOp) Check(
 		return spec.CheckUnsatisfied, nil, nil
 	}
 
-	cmdr := target.Must[target.Command](runOpID, tgt)
+	cmdr := target.Must[target.Command](runID, tgt)
 	result, err := cmdr.RunCommand(ctx, op.check)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, err
@@ -57,7 +57,7 @@ func (op *runOp) Execute(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.Result, error) {
-	cmdr := target.Must[target.Command](runOpID, tgt)
+	cmdr := target.Must[target.Command](runID, tgt)
 
 	result, err := cmdr.RunCommand(ctx, op.apply)
 	if err != nil {
@@ -117,7 +117,7 @@ type runOpDesc struct {
 
 func (d runOpDesc) PlanTemplate() spec.PlanTemplate {
 	return spec.PlanTemplate{
-		ID:   runOpID,
+		ID:   runID,
 		Text: `run{{if .Always}} (always){{end}}: {{.Apply}}`,
 		Data: d,
 	}

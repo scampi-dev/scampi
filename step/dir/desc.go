@@ -12,7 +12,7 @@ type ensureDirDesc struct {
 
 func (d ensureDirDesc) PlanTemplate() spec.PlanTemplate {
 	return spec.PlanTemplate{
-		ID:   id,
+		ID:   ensureDirID,
 		Text: `ensure directory "{{.Path}}"`,
 		Data: d,
 	}
