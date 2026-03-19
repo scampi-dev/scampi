@@ -33,7 +33,7 @@ Action (planned execution)
 Ops (execution graph)
         |
         v
-Source + Target (read state, apply mutations)
+Source + Target (source-side data, target-side mutations)
 ```
 
 Every name in the codebase exists to make this flow obvious.
@@ -435,7 +435,7 @@ engine/        # Planning and execution engine
 spec/          # Core domain interfaces and types
 star/          # Starlark evaluator and builtins
 step/          # StepType implementations (one per kind)
-source/        # Read-only system state inspection
+source/        # Source-side access: configs, env, and local cache
 target/        # Execution environments (write-side mutations)
 capability/    # Capability system for target/op matching
 diagnostic/    # Event emission (observational only, no control flow)

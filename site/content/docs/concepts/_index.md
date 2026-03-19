@@ -87,10 +87,20 @@ downloads a file to a path — and gets caching, checksums, idempotency, ownersh
 and permission management for free. A `fetch` step would just be `copy` with
 fewer knobs.
 
-## Targets
+## Source machine and targets
 
-A **target** is where ops execute — your local machine or a remote host over
-SSH. Targets expose **capabilities** that describe what they can do: filesystem
+Scampi distinguishes between two sides:
+
+- **Source side**: where scampi runs and where your configs, templates, secrets,
+  and cached downloads live.
+- **Target side**: where ops execute — the system being converged.
+
+With `target.ssh(...)`, these are different machines. With `target.local()`
+(the default), they're the same machine — but the engine still treats them as
+separate concerns internally: source access reads configs and caches data,
+target access performs convergence mutations.
+
+Targets expose **capabilities** that describe what they can do: filesystem
 operations, package management, service control, etc.
 
 Steps declare what capabilities they need. If a target doesn't have the right
