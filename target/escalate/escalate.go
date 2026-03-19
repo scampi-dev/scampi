@@ -24,8 +24,11 @@ import (
 
 // Stat runs an escalated stat, picking GNU or BSD format for the platform.
 func Stat(
-	ctx context.Context, run target.Command, p target.Platform,
-	tool, path string, followSymlinks bool,
+	ctx context.Context,
+	run target.Command,
+	p target.Platform,
+	tool, path string,
+	followSymlinks bool,
 ) (fs.FileInfo, error) {
 	switch {
 	case p.IsGNU():
@@ -39,7 +42,9 @@ func Stat(
 
 // GetOwner runs an escalated stat to retrieve file ownership.
 func GetOwner(
-	ctx context.Context, run target.Command, p target.Platform,
+	ctx context.Context,
+	run target.Command,
+	p target.Platform,
 	tool, path string,
 ) (target.Owner, error) {
 	switch {

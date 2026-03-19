@@ -47,14 +47,15 @@ func (op *reloadOp) Execute(
 ) (spec.Result, error) {
 	sm := target.Must[target.ServiceManager](reloadID, tgt)
 
-	if op.fallbackToRestart {
-		if err := sm.DaemonReload(ctx); err != nil {
-			return spec.Result{}, DaemonReloadError{
-				Name:   op.name,
-				Stderr: err.Error(),
-				Source: op.nameSource,
-			}
+	if err := sm.DaemonReload(ctx); err != nil {
+		return spec.Result{}, DaemonReloadError{
+			Name:   op.name,
+			Stderr: err.Error(),
+			Source: op.nameSource,
 		}
+	}
+
+	if op.fallbackToRestart {
 		if err := sm.Restart(ctx, op.name); err != nil {
 			return spec.Result{}, ServiceCommandError{
 				Op:     "restart",
