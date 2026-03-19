@@ -21,6 +21,9 @@ publishDir = "../build/site"
     displayTitle = true
     displayLogo = false
 
+  [params.banner]
+    message = "🚧 scampi is in early development — expect breaking changes"
+
   [params.footer]
     displayPoweredBy = false
 

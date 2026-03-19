@@ -1,0 +1,11 @@
+{{- $version := getenv "HUGO_SCAMPI_VERSION" -}}
+{{- $prerelease := findRE "-" $version -}}
+{{- $pillClass := cond (gt (len $prerelease) 0) "scampi-version-pill prerelease" "scampi-version-pill stable" -}}
+<div class="hx:flex hx:items-center hx:ltr:mr-auto hx:rtl:ml-auto hx:gap-2">
+  <a class="hx:flex hx:items-center hx:hover:opacity-75" href="{{ .Site.Home.RelPermalink }}">
+    <span class="hx:font-extrabold hx:inline hx:select-none">{{- .Site.Title -}}</span>
+  </a>
+  {{- with $version }}
+  <a href="https://codeberg.org/scampi-dev/scampi/releases/tag/{{ $version }}" target="_blank" rel="noopener noreferrer" class="{{ $pillClass }}">{{ $version }}</a>
+  {{- end }}
+</div>

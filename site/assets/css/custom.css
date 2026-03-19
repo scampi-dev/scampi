@@ -17,6 +17,35 @@ nav a[href*="docs"] * {
   font-weight: 600 !important;
 }
 
+/* Version pill in navbar */
+.scampi-version-pill {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.scampi-version-pill.prerelease {
+  background: hsl(35 80% 50% / 0.15);
+  color: hsl(35 80% 45%);
+}
+.dark .scampi-version-pill.prerelease {
+  background: hsl(35 80% 50% / 0.2);
+  color: hsl(35 80% 60%);
+}
+
+.scampi-version-pill.stable {
+  background: hsl(140 60% 40% / 0.15);
+  color: hsl(140 60% 35%);
+}
+.dark .scampi-version-pill.stable {
+  background: hsl(140 60% 40% / 0.2);
+  color: hsl(140 60% 55%);
+}
+
 /* Make footer flex row fill available width so ml-auto works */
 .hextra-footer .hextra-max-footer-width {
   width: 100%;
