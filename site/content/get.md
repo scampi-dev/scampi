@@ -36,17 +36,23 @@ linkTitle: Install
 
 ## One-liner
 
-```sh
+```bash
 curl -fsSL get.scampi.dev | sh
 ```
 
-Downloads the latest release, verifies the SHA256 checksum, and installs to `~/.local/bin`.
+Downloads the latest release, verifies the SHA256 checksum, and installs to `~/.local/bin` (or `/usr/local/bin` if it doesn't exist).
+
+**Custom path:**
+
+```bash
+curl -fsSL get.scampi.dev | sh -s -- -o ~/.local/bin/myname
+```
 
 Supported platforms: Linux, macOS, and FreeBSD (amd64/arm64).
 
 ## Go
 
-```sh
+```bash
 go install scampi.dev/scampi/cmd/scampi@latest
 ```
 
@@ -61,7 +67,7 @@ Download the binary for your platform, verify against `SHA256SUMS`, and place it
 
 ## Build from source
 
-```sh
+```bash
 git clone https://codeberg.org/scampi-dev/scampi.git
 cd scampi
 just build

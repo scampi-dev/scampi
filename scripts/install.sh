@@ -3,10 +3,28 @@
 # Install scampi — https://scampi.dev
 #
 #   curl -fsSL get.scampi.dev | sh
+#   curl -fsSL get.scampi.dev | sh -s -- -o ~/.local/bin/myname
 #
 set -eu
 
-BIN_NAME="${BIN_NAME:-scampi}"
+BIN_NAME="scampi"
+DEST_DIR=""
+
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    -o | --output)
+      [ $# -lt 2 ] && fatal "-o requires a path argument"
+      DEST_DIR="$(dirname "$2")"
+      BIN_NAME="$(basename "$2")"
+      shift 2
+      ;;
+    *)
+      fatal "unknown option: $1"
+      ;;
+    esac
+  done
+}
 REPO="scampi-dev/scampi"
 API="https://codeberg.org/api/v1/repos/${REPO}"
 DL="https://codeberg.org/${REPO}/releases/download"
@@ -35,6 +53,7 @@ fatal() {
 }
 
 main() {
+  parse_args "$@"
   setup_colors
   # shellcheck disable=SC2059
   printf "\n  ${ORANGE}${B}<('◡')⚙  get scampi${R} ${DIM}— https://scampi.dev${R}\n\n"
@@ -161,7 +180,10 @@ confirm_overwrite() {
       read -r answer </dev/tty
       case "${answer}" in
       [yY]) ;;
-      *) echo "aborted."; exit 0 ;;
+      *)
+        echo "aborted."
+        exit 0
+        ;;
       esac
     fi
   fi
@@ -170,8 +192,17 @@ confirm_overwrite() {
 install_binary() {
   chmod +x "${TMPDIR}/${BIN_NAME}"
 
-  # Prefer ~/.local/bin, fall back to /usr/local/bin with escalation
-  if [ -d "${HOME}/.local/bin" ]; then
+  if [ -n "${DEST_DIR}" ]; then
+    # Explicit path via -o
+    DEST="${DEST_DIR}/${BIN_NAME}"
+    confirm_overwrite "${DEST}"
+    if [ -w "${DEST_DIR}" ]; then
+      mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
+    else
+      info "installing to ${DEST} (requires sudo)"
+      sudo mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
+    fi
+  elif [ -d "${HOME}/.local/bin" ]; then
     DEST="${HOME}/.local/bin/${BIN_NAME}"
     confirm_overwrite "${DEST}"
     mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
@@ -193,4 +224,4 @@ install_binary() {
   esac
 }
 
-main
+main "$@"
