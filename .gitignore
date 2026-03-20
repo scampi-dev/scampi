@@ -13,6 +13,7 @@
 # Build and debug artifacts
 /build/
 site/static/scampi.png
+site/static/install.sh
 __debug*
 *.zip
 *.out

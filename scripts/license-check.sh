@@ -1,25 +1,39 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only
 set -euo pipefail
 
-header="$1"
+spdx="SPDX-License-Identifier: GPL-3.0-only"
 missing=()
 wrong=()
 stray=()
 
-while IFS= read -r f; do
-  first=$(head -1 "$f")
-  if [[ "$first" != "$header" ]]; then
+check_file() {
+  local f="$1" line="$2"
+  local actual
+  actual=$(sed -n "${line}p" "$f")
+  if [[ "$actual" != *"$spdx"* ]]; then
     if grep -q 'SPDX-License-Identifier' "$f"; then
-      wrong+=("$f  (line 1: $first)")
+      wrong+=("$f  (line ${line}: $actual)")
     else
       missing+=("$f")
     fi
   fi
-  count=$(grep -c 'SPDX-License-Identifier' "$f")
+  local count
+  count=$(grep -c 'SPDX-License-Identifier' "$f" || true)
   if [[ "$count" -gt 1 ]]; then
     stray+=("$f  (${count} occurrences)")
   fi
+}
+
+# Go files: SPDX on line 1
+while IFS= read -r f; do
+  check_file "$f" 1
 done < <(find . -name '*.go' -not -path './vendor/*')
+
+# Shell scripts: SPDX on line 2 (after shebang)
+while IFS= read -r f; do
+  check_file "$f" 2
+done < <(find . -name '*.sh' -not -path './vendor/*' -not -path './build/*' -not -path './site/static/*' -not -path './.dev/*' -not -name 'license-check.sh')
 
 ok=true
 if [[ ${#missing[@]} -gt 0 ]]; then
@@ -38,7 +52,8 @@ if [[ ${#stray[@]} -gt 0 ]]; then
   ok=false
 fi
 if [[ "$ok" == true ]]; then
-  n=$(find . -name '*.go' -not -path './vendor/*' | wc -l)
-  echo "✓ All ${n// /} files have correct SPDX headers"
+  n_go=$(find . -name '*.go' -not -path './vendor/*' | wc -l)
+  n_sh=$(find . -name '*.sh' -not -path './vendor/*' -not -path './build/*' -not -path './site/static/*' -not -path './.dev/*' | wc -l)
+  echo "✓ All $((n_go + n_sh)) files have correct SPDX headers"
 fi
 [[ "$ok" == true ]]

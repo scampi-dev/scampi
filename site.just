@@ -2,17 +2,20 @@ hugo      := "go tool github.com/gohugoio/hugo"
 mdlint    := "go tool github.com/shinagawa-web/gomarklint"
 infra_dir := env("SCAMPI_INFRA", "../scampi-infra")
 
-export HUGO_SCAMPI_VERSION := `git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo ""`
+export HUGO_SCAMPI_VERSION := env("HUGO_SCAMPI_VERSION", `git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo ""`)
+export HUGO_SCAMPI_GO_VERSION := `grep '^go ' go.mod | awk '{print $2}'`
 
 [default]
 [doc("Build the Hugo site")]
 build:
   cp scampi.png site/static/scampi.png
+  cp scripts/install.sh site/static/install.sh
   cd site && {{hugo}} --minify
 
 [doc("Local dev server")]
 dev *args:
   cp scampi.png site/static/scampi.png
+  cp scripts/install.sh site/static/install.sh
   cd site && {{hugo}} server -D -e production {{args}}
 
 [doc("Package site for deployment")]

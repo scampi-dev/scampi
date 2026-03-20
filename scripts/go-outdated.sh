@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only
 set -euo pipefail
 direct=$(grep -E '^\t[^ ]+ v' go.mod \
   | grep -v '// indirect' | awk '{print $1}')

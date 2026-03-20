@@ -111,7 +111,7 @@ _patch-license-headers:
 
 [doc("Check SPDX license headers")]
 license-check:
-  ./scripts/license-check.sh "{{spdx_header}}"
+  ./scripts/license-check.sh
 
 [doc("Check for outdated direct dependencies")]
 outdated:

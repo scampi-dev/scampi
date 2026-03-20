@@ -9,9 +9,9 @@ layout: hextra-home
 {{< /hextra/hero-badge >}}
 
 <style>
-.hero-row { display: flex; align-items: center; justify-content: center; gap: 2rem; }
-.hero-mascot { height: 160px; flex-shrink: 0; }
-@media (max-width: 640px) { .hero-mascot { display: none; } }
+.hero-row { display: flex; align-items: center; justify-content: center; position: relative; }
+.hero-mascot { height: 360px; position: absolute; right: -360px; top: 0%; transform: translateY(-0%); }
+@media (max-width: 768px) { .hero-mascot { display: none; } }
 .home-code pre { overflow-x: auto; max-width: 100%; }
 .home-code { overflow: hidden; max-width: 100%; }
 </style>

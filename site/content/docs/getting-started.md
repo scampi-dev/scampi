@@ -8,15 +8,7 @@ configuration.
 
 ## Install
 
-Build from source (requires Go 1.25+):
-
-```bash
-git clone https://codeberg.org/scampi-dev/scampi.git
-cd scampi
-just build
-```
-
-The binary lands at `./build/bin/scampi`.
+See the [Install page]({{< relref "/get" >}}) for all options (one-liner, `go install`, manual download, build from source).
 
 ## Your first config
 
