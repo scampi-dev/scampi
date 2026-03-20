@@ -21,9 +21,6 @@ publishDir = "../build/site"
     displayTitle = true
     displayLogo = false
 
-  [params.banner]
-    message = "🚧 scampi is in early development — expect breaking changes"
-
   [params.footer]
     displayPoweredBy = false
 
@@ -40,14 +37,22 @@ publishDir = "../build/site"
     icon = "book-open"
 
 [[menus.main]]
-  name = "Search"
+  name = "Install"
+  pageRef = "/get"
   weight = 2
+  [menus.main.params]
+    type = "link"
+    icon = "download"
+
+[[menus.main]]
+  name = "Search"
+  weight = 3
   [menus.main.params]
     type = "search"
 
 [[menus.main]]
   name = "Codeberg"
   url = "https://codeberg.org/scampi-dev/scampi"
-  weight = 3
+  weight = 4
   [menus.main.params]
     icon = "codeberg"

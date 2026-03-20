@@ -1,6 +1,9 @@
 {{- $version := getenv "HUGO_SCAMPI_VERSION" -}}
-{{- $prerelease := findRE "-" $version -}}
-{{- $pillClass := cond (gt (len $prerelease) 0) "scampi-version-pill prerelease" "scampi-version-pill stable" -}}
+{{- $stable := findRE "^v[0-9]+\\.[0-9]+\\.[0-9]+$" $version -}}
+{{- $prerelease := findRE "^v[0-9]+\\.[0-9]+\\.[0-9]+-(alpha|beta|rc)\\." $version -}}
+{{- $pillClass := "scampi-version-pill unknown" -}}
+{{- if gt (len $stable) 0 }}{{ $pillClass = "scampi-version-pill stable" }}{{ end -}}
+{{- if gt (len $prerelease) 0 }}{{ $pillClass = "scampi-version-pill prerelease" }}{{ end -}}
 <div class="hx:flex hx:items-center hx:ltr:mr-auto hx:rtl:ml-auto hx:gap-2">
   <a class="hx:flex hx:items-center hx:hover:opacity-75" href="{{ .Site.Home.RelPermalink }}">
     <span class="hx:font-extrabold hx:inline hx:select-none">{{- .Site.Title -}}</span>

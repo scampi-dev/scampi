@@ -46,9 +46,49 @@ nav a[href*="docs"] * {
   color: hsl(140 60% 55%);
 }
 
-/* Make footer flex row fill available width so ml-auto works */
-.hextra-footer .hextra-max-footer-width {
-  width: 100%;
+.scampi-version-pill.unknown {
+  background: hsl(0 0% 50% / 0.15);
+  color: hsl(0 0% 45%);
+}
+.dark .scampi-version-pill.unknown {
+  background: hsl(0 0% 50% / 0.2);
+  color: hsl(0 0% 60%);
+}
+
+/* 404 page */
+.scampi-404 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+.scampi-404-img {
+  width: 360px;
+  height: auto;
+  margin-bottom: 1.5rem;
+}
+
+.scampi-404 h1 {
+  font-size: 4rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+  color: hsl(0 60% 50%);
+}
+.dark .scampi-404 h1 {
+  color: hsl(0 60% 60%);
+}
+
+.scampi-404 p {
+  font-size: 1.1rem;
+  margin: 0 0 1.5rem;
+  color: hsl(0 0% 45%);
+}
+.dark .scampi-404 p {
+  color: hsl(0 0% 60%);
 }
 
 /* External link indicator for content area */
