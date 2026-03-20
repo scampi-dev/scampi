@@ -34,8 +34,6 @@ linkTitle: Install
   Pick your method. Be converging in seconds.
 {{< /hextra/hero-subtitle >}}
 
-</div>
-
 ## One-liner
 
 ```sh
