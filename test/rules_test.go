@@ -61,7 +61,7 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: allowAll(),
 		},
 		{
-			pattern:        "cmd/main.go",
+			pattern:        "cmd/scampi/main.go",
 			allowedImports: "os,os/signal,runtime/debug",
 		},
 		{
@@ -167,15 +167,15 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
-			pattern:        "cmd/secrets.go",
+			pattern:        "cmd/scampi/secrets.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "cmd/usage_test.go",
+			pattern:        "cmd/scampi/usage_test.go",
 			allowedImports: "os,os/exec",
 		},
 		{
-			pattern:        "cmd/fuzz_test.go",
+			pattern:        "cmd/scampi/fuzz_test.go",
 			allowedImports: "os/exec",
 		},
 		{

@@ -20,7 +20,7 @@ ldflags  := "-s -w -X main.version=" + version
 [doc("Build the scampi CLI binary")]
 build:
   mkdir -p {{bin_dir}}
-  go build -ldflags '{{ldflags}}' -o {{bin_path}} ./cmd
+  go build -ldflags '{{ldflags}}' -o {{bin_path}} ./cmd/scampi
 
 [doc("Cross-compile for all supported platforms (outdir=DIR prefix=NAME)")]
 cross outdir=bin_dir prefix="scampi":
@@ -32,12 +32,12 @@ cross outdir=bin_dir prefix="scampi":
     arch="${pair#*/}"
     out="{{outdir}}/{{prefix}}-${os}-${arch}"
     printf "  %-20s → %s\n" "${os}/${arch}" "$out"
-    CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -ldflags '{{ldflags}}' -o "$out" ./cmd
+    CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -ldflags '{{ldflags}}' -o "$out" ./cmd/scampi
   done
 
 [doc("Build and run scampi locally")]
 scampi *args:
-  go run ./cmd {{args}}
+  go run ./cmd/scampi {{args}}
 
 [doc("Run tests (just test --list for subcommands)")]
 mod test
