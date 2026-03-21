@@ -16,9 +16,8 @@ const reloadID = "builtin.reload-service"
 
 type reloadOp struct {
 	sharedops.BaseOp
-	name              string
-	nameSource        spec.SourceSpan
-	fallbackToRestart bool
+	name       string
+	nameSource spec.SourceSpan
 }
 
 func (op *reloadOp) Check(
@@ -30,7 +29,6 @@ func (op *reloadOp) Check(
 
 	desired := StateReloaded.String()
 	if !sm.SupportsReload() {
-		op.fallbackToRestart = true
 		desired = "restarted (reload not supported)"
 	}
 
@@ -55,7 +53,7 @@ func (op *reloadOp) Execute(
 		}
 	}
 
-	if op.fallbackToRestart {
+	if !sm.SupportsReload() {
 		if err := sm.Restart(ctx, op.name); err != nil {
 			return spec.Result{}, ServiceCommandError{
 				Op:     "restart",
