@@ -144,6 +144,13 @@ func (f *faultyTarget) Mkdir(ctx context.Context, path string, mode fs.FileMode)
 	return target.Must[target.Filesystem]("faultyTarget", f.Target).Mkdir(ctx, path, mode)
 }
 
+func (f *faultyTarget) ReadDir(ctx context.Context, path string) ([]fs.DirEntry, error) {
+	if err := f.getFault("ReadDir", path); err != nil {
+		return nil, err
+	}
+	return target.Must[target.Filesystem]("faultyTarget", f.Target).ReadDir(ctx, path)
+}
+
 func (f *faultyTarget) Chmod(ctx context.Context, path string, mode fs.FileMode) error {
 	if err := f.getFault("Chmod", path); err != nil {
 		return err

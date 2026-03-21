@@ -39,6 +39,7 @@ type (
 	}
 	Filesystem interface {
 		Stat(ctx context.Context, path string) (fs.FileInfo, error)
+		ReadDir(ctx context.Context, path string) ([]fs.DirEntry, error)
 		ReadFile(ctx context.Context, path string) ([]byte, error)
 		WriteFile(ctx context.Context, path string, data []byte) error
 		Remove(ctx context.Context, path string) error

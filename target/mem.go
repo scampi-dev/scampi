@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,6 +81,36 @@ func (m *MemTarget) ReadFile(_ context.Context, path string) ([]byte, error) {
 	cp := make([]byte, len(data))
 	copy(cp, data)
 	return cp, nil
+}
+
+func (m *MemTarget) ReadDir(_ context.Context, path string) ([]fs.DirEntry, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if _, ok := m.Dirs[path]; !ok {
+		if _, ok := m.Files[path]; !ok {
+			return nil, errs.WrapErrf(ErrNotExist, "%q", path)
+		}
+	}
+
+	prefix := path + "/"
+	var entries []fs.DirEntry
+	seen := map[string]bool{}
+
+	for p := range m.Files {
+		if name, ok := directChild(p, prefix); ok && !seen[name] {
+			seen[name] = true
+			entries = append(entries, memDirEntry{name: name, dir: false})
+		}
+	}
+	for p := range m.Dirs {
+		if name, ok := directChild(p, prefix); ok && !seen[name] {
+			seen[name] = true
+			entries = append(entries, memDirEntry{name: name, dir: true})
+		}
+	}
+
+	return entries, nil
 }
 
 func (m *MemTarget) WriteFile(_ context.Context, path string, data []byte) error {
@@ -624,3 +655,24 @@ func (i memFileInfo) Mode() fs.FileMode  { return i.mode }
 func (i memFileInfo) ModTime() time.Time { return i.modTime }
 func (i memFileInfo) IsDir() bool        { return i.isDir }
 func (i memFileInfo) Sys() any           { return i.sys }
+
+type memDirEntry struct {
+	name string
+	dir  bool
+}
+
+func (e memDirEntry) Name() string               { return e.name }
+func (e memDirEntry) IsDir() bool                { return e.dir }
+func (e memDirEntry) Type() fs.FileMode          { return 0 }
+func (e memDirEntry) Info() (fs.FileInfo, error) { return nil, nil }
+
+func directChild(path, prefix string) (string, bool) {
+	if len(path) <= len(prefix) || path[:len(prefix)] != prefix {
+		return "", false
+	}
+	rest := path[len(prefix):]
+	if i := strings.Index(rest, "/"); i >= 0 {
+		return "", false
+	}
+	return rest, true
+}

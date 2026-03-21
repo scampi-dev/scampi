@@ -65,6 +65,18 @@ func (t *SSHTarget) ReadFile(ctx context.Context, path string) ([]byte, error) {
 	return res, normalizeError(err)
 }
 
+func (t *SSHTarget) ReadDir(_ context.Context, path string) ([]fs.DirEntry, error) {
+	infos, err := t.sftp.ReadDir(path)
+	if err != nil {
+		return nil, normalizeError(err)
+	}
+	entries := make([]fs.DirEntry, len(infos))
+	for i, info := range infos {
+		entries[i] = fs.FileInfoToDirEntry(info)
+	}
+	return entries, nil
+}
+
 func (t *SSHTarget) WriteFile(ctx context.Context, path string, data []byte) error {
 	f, err := t.sftp.Create(path)
 	if err != nil {

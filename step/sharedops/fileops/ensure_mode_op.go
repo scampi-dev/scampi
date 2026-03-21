@@ -31,23 +31,36 @@ func (op *EnsureModeOp) Check(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	if op.Recursive {
-		return op.checkRecursive(ctx, tgt)
-	}
-
 	fsTgt := target.Must[target.Filesystem](ensureModeID, tgt)
 
-	info, err := fsTgt.Stat(ctx, op.Path)
+	res, drift, err := op.checkPath(ctx, fsTgt, op.Path)
+	if res != spec.CheckSatisfied || err != nil {
+		return res, drift, err
+	}
+
+	if op.Recursive {
+		return op.checkTree(ctx, fsTgt, op.Path)
+	}
+
+	return spec.CheckSatisfied, nil, nil
+}
+
+func (op *EnsureModeOp) checkPath(
+	ctx context.Context,
+	fsTgt target.Filesystem,
+	path string,
+) (spec.CheckResult, []spec.DriftDetail, error) {
+	info, err := fsTgt.Stat(ctx, path)
 	if err != nil {
 		if target.IsNotExist(err) {
 			return spec.CheckUnsatisfied, []spec.DriftDetail{{
 				Field:   "perm",
-				Desired: op.Mode.String(),
+				Desired: op.Mode.Perm().String(),
 			}}, nil
 		}
 
 		return spec.CheckUnsatisfied, nil, modeReadError{
-			Path:   op.Path,
+			Path:   path,
 			Err:    err,
 			Source: op.DestSpan,
 		}
@@ -64,33 +77,32 @@ func (op *EnsureModeOp) Check(
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (op *EnsureModeOp) checkRecursive(
+func (op *EnsureModeOp) checkTree(
 	ctx context.Context,
-	tgt target.Target,
+	fsTgt target.Filesystem,
+	dir string,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	fsTgt := target.Must[target.Filesystem](ensureModeID, tgt)
-
-	info, err := fsTgt.Stat(ctx, op.Path)
+	entries, err := fsTgt.ReadDir(ctx, dir)
 	if err != nil {
-		if target.IsNotExist(err) {
-			return spec.CheckUnsatisfied, []spec.DriftDetail{{
-				Field:   "perm",
-				Desired: op.Mode.Perm().String(),
-			}}, nil
-		}
 		return spec.CheckUnsatisfied, nil, modeReadError{
-			Path:   op.Path,
+			Path:   dir,
 			Err:    err,
 			Source: op.DestSpan,
 		}
 	}
 
-	if info.Mode().Perm() != op.Mode.Perm() {
-		return spec.CheckUnsatisfied, []spec.DriftDetail{{
-			Field:   "perm",
-			Current: info.Mode().Perm().String(),
-			Desired: op.Mode.Perm().String(),
-		}}, nil
+	for _, entry := range entries {
+		child := dir + "/" + entry.Name()
+		res, drift, err := op.checkPath(ctx, fsTgt, child)
+		if res != spec.CheckSatisfied || err != nil {
+			return res, drift, err
+		}
+		if entry.IsDir() {
+			res, drift, err = op.checkTree(ctx, fsTgt, child)
+			if res != spec.CheckSatisfied || err != nil {
+				return res, drift, err
+			}
+		}
 	}
 
 	return spec.CheckSatisfied, nil, nil

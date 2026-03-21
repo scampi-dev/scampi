@@ -37,6 +37,10 @@ func (t POSIXTarget) ReadFile(ctx context.Context, path string) ([]byte, error) 
 	return data, err
 }
 
+func (t POSIXTarget) ReadDir(_ context.Context, path string) ([]fs.DirEntry, error) {
+	return os.ReadDir(path)
+}
+
 func (t POSIXTarget) WriteFile(ctx context.Context, path string, data []byte) error {
 	err := os.WriteFile(path, data, 0o644)
 	if os.IsPermission(err) {

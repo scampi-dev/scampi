@@ -51,11 +51,24 @@ func (op *EnsureOwnerOp) Check(
 		}
 	}
 
-	if op.Recursive {
-		return op.checkRecursive(ctx, tgt, desired)
+	res, drift, err := op.checkPath(ctx, owTgt, op.Path, desired)
+	if res != spec.CheckSatisfied || err != nil {
+		return res, drift, err
 	}
 
-	have, err := owTgt.GetOwner(ctx, op.Path)
+	if op.Recursive {
+		return op.checkTree(ctx, tgt, op.Path, desired)
+	}
+
+	return spec.CheckSatisfied, nil, nil
+}
+
+func (op *EnsureOwnerOp) checkPath(
+	ctx context.Context,
+	owTgt target.Ownership,
+	path, desired string,
+) (spec.CheckResult, []spec.DriftDetail, error) {
+	have, err := owTgt.GetOwner(ctx, path)
 	if err != nil {
 		if target.IsNotExist(err) {
 			return spec.CheckUnsatisfied, []spec.DriftDetail{{
@@ -65,7 +78,7 @@ func (op *EnsureOwnerOp) Check(
 		}
 
 		return spec.CheckUnsatisfied, nil, ownerReadError{
-			Path:   op.Path,
+			Path:   path,
 			Err:    err,
 			Source: op.DestSpan,
 		}
@@ -82,34 +95,35 @@ func (op *EnsureOwnerOp) Check(
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (op *EnsureOwnerOp) checkRecursive(
+func (op *EnsureOwnerOp) checkTree(
 	ctx context.Context,
 	tgt target.Target,
-	desired string,
+	dir, desired string,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
+	fsTgt := target.Must[target.Filesystem](ensureOwnerID, tgt)
 	owTgt := target.Must[target.Ownership](ensureOwnerID, tgt)
 
-	have, err := owTgt.GetOwner(ctx, op.Path)
+	entries, err := fsTgt.ReadDir(ctx, dir)
 	if err != nil {
-		if target.IsNotExist(err) {
-			return spec.CheckUnsatisfied, []spec.DriftDetail{{
-				Field:   "owner:group",
-				Desired: desired,
-			}}, nil
-		}
 		return spec.CheckUnsatisfied, nil, ownerReadError{
-			Path:   op.Path,
+			Path:   dir,
 			Err:    err,
 			Source: op.DestSpan,
 		}
 	}
 
-	if have.User != op.Owner || have.Group != op.Group {
-		return spec.CheckUnsatisfied, []spec.DriftDetail{{
-			Field:   "owner:group",
-			Current: have.User + ":" + have.Group,
-			Desired: desired,
-		}}, nil
+	for _, entry := range entries {
+		child := dir + "/" + entry.Name()
+		res, drift, err := op.checkPath(ctx, owTgt, child, desired)
+		if res != spec.CheckSatisfied || err != nil {
+			return res, drift, err
+		}
+		if entry.IsDir() {
+			res, drift, err = op.checkTree(ctx, tgt, child, desired)
+			if res != spec.CheckSatisfied || err != nil {
+				return res, drift, err
+			}
+		}
 	}
 
 	return spec.CheckSatisfied, nil, nil
