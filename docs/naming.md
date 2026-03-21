@@ -408,7 +408,7 @@ Platform-specific logic belongs in targets, not ops.
 ### Source vs Target
 
 | Aspect       | Source                    | Target                       |
-|--------------|---------------------------|------------------------------|
+| ------------ | ------------------------- | ---------------------------- |
 | Role         | Data origin               | Change destination           |
 | Read         | Yes                       | Yes                          |
 | Write        | For caching only          | For mutations                |
@@ -471,7 +471,7 @@ Extensibility is achieved by **clear boundaries**, not abstractions.
 ## Summary
 
 | Concept              | Starlark                    | Go                                    |
-|----------------------|-----------------------------|---------------------------------------|
+| -------------------- | --------------------------- | ------------------------------------- |
 | Declarative work     | step builtin (copy, dir, …) | StepInstance                          |
 | Semantic category    | kind                        | StepType                              |
 | Target definition    | target.ssh / target.local   | TargetInstance                        |

@@ -7,7 +7,7 @@ Manage firewall rules via UFW or firewalld.
 ## Fields
 
 | Field    | Type   | Required | Default   | Description                               |
-|----------|--------|:--------:|-----------|-------------------------------------------|
+| -------- | ------ | :------: | --------- | ----------------------------------------- |
 | `port`   | string |    ✓     |           | Port/protocol string                      |
 | `action` | string |          | `"allow"` | Rule action: `allow`, `deny`, or `reject` |
 | `desc`   | string |          |           | Human-readable description                |
@@ -45,7 +45,7 @@ The `--permanent` + `--reload` pattern ensures rules persist across reboots.
 ### Action mapping
 
 | Action   | UFW command         | firewalld command       |
-|----------|---------------------|-------------------------|
+| -------- | ------------------- | ----------------------- |
 | `allow`  | `ufw allow 22/tcp`  | `--add-port=22/tcp`     |
 | `deny`   | `ufw deny 22/tcp`   | rich rule with `drop`   |
 | `reject` | `ufw reject 22/tcp` | rich rule with `reject` |
@@ -55,7 +55,7 @@ The `--permanent` + `--reload` pattern ensures rules persist across reboots.
 The `port` field accepts:
 
 | Format                  | Example         | Description |
-|-------------------------|-----------------|-------------|
+| ----------------------- | --------------- | ----------- |
 | `<port>/<proto>`        | `22/tcp`        | Single port |
 | `<start>:<end>/<proto>` | `6000:6007/tcp` | Port range  |
 

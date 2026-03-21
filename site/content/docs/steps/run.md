@@ -10,12 +10,12 @@ when no built-in step type fits your needs.
 Provide exactly one of:
 
 | Field    | Type   | Default | Description                                        |
-|----------|--------|---------|----------------------------------------------------|
+| -------- | ------ | ------- | -------------------------------------------------- |
 | `check`  | string |         | Shell command that exits 0 if apply is unnecessary |
 | `always` | bool   | `false` | Always run apply, skip check                       |
 
 | Field   | Type   | Required | Description                |
-|---------|--------|:--------:|----------------------------|
+| ------- | ------ | :------: | -------------------------- |
 | `apply` | string |    ✓     | Shell command to execute   |
 | `desc`  | string |          | Human-readable description |
 
@@ -34,7 +34,7 @@ Commands run under `/bin/sh -c` with the target's environment.
 ## Guarantees
 
 | Mode               | Idempotent | Dry-run accurate | Convergence reported |
-|--------------------|------------|------------------|----------------------|
+| ------------------ | ---------- | ---------------- | -------------------- |
 | `check` + `apply`  | yes        | yes              | yes                  |
 | `always` + `apply` | no         | no               | no                   |
 | Built-in steps     | yes        | yes              | yes                  |

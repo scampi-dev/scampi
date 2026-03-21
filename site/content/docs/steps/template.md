@@ -8,7 +8,7 @@ permission management.
 ## Fields
 
 | Field    | Type   | Required | Description                                                           |
-|----------|--------|:--------:|-----------------------------------------------------------------------|
+| -------- | ------ | :------: | --------------------------------------------------------------------- |
 | `src`    | source |    ✓     | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
 | `dest`   | string |    ✓     | Output file path (on target)                                          |
 | `group`  | string |    ✓     | Group name or GID                                                     |
@@ -35,7 +35,7 @@ full details.
 The `data` dict supports:
 
 | Key      | Type                 | Description                                          |
-|----------|----------------------|------------------------------------------------------|
+| -------- | -------------------- | ---------------------------------------------------- |
 | `values` | dict (string→any)    | Arbitrary key-value pairs accessible in the template |
 | `env`    | dict (string→string) | Map template variable names to environment variables |
 

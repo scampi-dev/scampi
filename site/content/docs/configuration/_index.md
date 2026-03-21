@@ -33,7 +33,7 @@ SSH targets connect to a remote host. Authentication uses your SSH agent or key
 files.
 
 | Field  | Required | Description                            |
-|--------|:--------:|----------------------------------------|
+| ------ | :------: | -------------------------------------- |
 | `host` |    ✓     | Hostname or IP address                 |
 | `name` |    ✓     | Identifier referenced by deploy blocks |
 | `user` |    ✓     | SSH user                               |
@@ -54,7 +54,7 @@ deploy(
 ```
 
 | Field     | Required | Description                                     |
-|-----------|:--------:|-------------------------------------------------|
+| --------- | :------: | ----------------------------------------------- |
 | `name`    |    ✓     | Unique identifier for this deploy block         |
 | `steps`   |    ✓     | Ordered list of steps to execute                |
 | `targets` |          | List of target names (omit for local execution) |
@@ -107,10 +107,10 @@ copy(
 )
 ```
 
-| Parameter  | Required | Description                               |
-|------------|:--------:|-------------------------------------------|
-| `url`      |    ✓     | HTTP or HTTPS URL                         |
-| `checksum` |          | Expected digest in `algo:hex` format      |
+| Parameter  | Required | Description                          |
+| ---------- | :------: | ------------------------------------ |
+| `url`      |    ✓     | HTTP or HTTPS URL                    |
+| `checksum` |          | Expected digest in `algo:hex` format |
 
 Supported checksum algorithms: `sha256`, `sha384`, `sha512`, `sha1`, `md5`.
 
@@ -167,7 +167,7 @@ secrets(backend="age", path="secrets.age.json")
 Currently supported backends:
 
 | Backend | Description                                                             |
-|---------|-------------------------------------------------------------------------|
+| ------- | ----------------------------------------------------------------------- |
 | `file`  | Plain JSON key-value file (unencrypted)                                 |
 | `age`   | Encrypted JSON file using [age encryption](https://age-encryption.org/) |
 

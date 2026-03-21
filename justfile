@@ -45,6 +45,7 @@ mod test
 [doc("Format all code")]
 fmt:
   go fmt ./...
+  ./scripts/fix-markdown-tables.py
 
 [doc("Lint project")]
 lint:

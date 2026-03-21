@@ -18,6 +18,6 @@ the desired state.
 ## Flags
 
 | Flag        | Description                                        |
-|-------------|----------------------------------------------------|
+| ----------- | -------------------------------------------------- |
 | `--only`    | Filter to specific deploy blocks (comma-separated) |
 | `--targets` | Filter to specific targets (comma-separated)       |

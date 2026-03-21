@@ -9,7 +9,7 @@ the convergence workflow.
 ## Subcommands
 
 | Command             | Description                                            |
-|---------------------|--------------------------------------------------------|
+| ------------------- | ------------------------------------------------------ |
 | [apply](apply)      | Converge system state to match the configuration       |
 | [check](check)      | Inspect actual system state against the configuration  |
 | [plan](plan)        | Show the execution plan without touching targets       |
@@ -23,7 +23,7 @@ the convergence workflow.
 These flags apply to all subcommands:
 
 | Flag      | Description                                                  |
-|-----------|--------------------------------------------------------------|
+| --------- | ------------------------------------------------------------ |
 | `-v`      | Increase verbosity (`-v` why, `-vv` how, `-vvv` everything)  |
 | `--color` | Colorize output: `auto`, `always`, `never` (default: `auto`) |
 | `--ascii` | Force ASCII output — disable Unicode glyphs                  |
@@ -31,7 +31,7 @@ These flags apply to all subcommands:
 ## Exit codes
 
 | Code | Meaning                                                     |
-|------|-------------------------------------------------------------|
+| ---- | ----------------------------------------------------------- |
 | 0    | Success                                                     |
 | 1    | User error — invalid config, failed plan, validation errors |
 | 2    | Internal bug — panic or unexpected error                    |
@@ -44,7 +44,7 @@ decorative, and verbosity controls how much detail you see.
 ### Colors
 
 | Color   | Meaning                                        |
-|---------|------------------------------------------------|
+| ------- | ---------------------------------------------- |
 | Yellow  | Mutation — something changed                   |
 | Green   | Already correct — no change needed             |
 | Red     | Failure                                        |
@@ -60,7 +60,7 @@ the outcome — the color tells you.
 ### Verbosity
 
 | Flag   | Level | Shows                                                               |
-|--------|-------|---------------------------------------------------------------------|
+| ------ | ----- | ------------------------------------------------------------------- |
 | (none) | 0     | Outcomes only — what changed, what was already correct, what failed |
 | `-v`   | 1     | *Why* — reasons for changes and skip decisions                      |
 | `-vv`  | 2     | *How* — command output, diff details                                |
@@ -73,7 +73,7 @@ previous level.
 ### Display options
 
 | Flag      | Description                                                 |
-|-----------|-------------------------------------------------------------|
+| --------- | ----------------------------------------------------------- |
 | `--color` | Force color output on or off (`--color=false` for no color) |
 | `--ascii` | Use ASCII glyphs instead of Unicode symbols                 |
 

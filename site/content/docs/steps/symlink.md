@@ -7,7 +7,7 @@ Create and manage symbolic links on the target.
 ## Fields
 
 | Field    | Type   | Required | Description                                           |
-|----------|--------|:--------:|-------------------------------------------------------|
+| -------- | ------ | :------: | ----------------------------------------------------- |
 | `link`   | string |    ✓     | Path where the symlink is created                     |
 | `target` | string |    ✓     | Path the symlink points to (the file being linked to) |
 | `desc`   | string |          | Human-readable description                            |

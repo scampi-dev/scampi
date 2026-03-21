@@ -7,7 +7,7 @@ Manage kernel parameters via sysctl with optional persistence.
 ## Fields
 
 | Field     | Type   | Required | Default | Description                                              |
-|-----------|--------|:--------:|---------|----------------------------------------------------------|
+| --------- | ------ | :------: | ------- | -------------------------------------------------------- |
 | `key`     | string |    ✓     |         | Sysctl parameter name                                    |
 | `value`   | string |    ✓     |         | Desired parameter value                                  |
 | `desc`    | string |          |         | Human-readable description                               |
@@ -39,7 +39,7 @@ The drop-in filename is derived from the key: dots are replaced with dashes,
 and the file is prefixed with `99-scampi-`. Underscores are preserved.
 
 | Key                           | Drop-in file                                               |
-|-------------------------------|------------------------------------------------------------|
+| ----------------------------- | ---------------------------------------------------------- |
 | `net.ipv4.ip_forward`         | `/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf`         |
 | `vm.swappiness`               | `/etc/sysctl.d/99-scampi-vm-swappiness.conf`               |
 | `net.ipv4.conf.all.rp_filter` | `/etc/sysctl.d/99-scampi-net-ipv4-conf-all-rp_filter.conf` |

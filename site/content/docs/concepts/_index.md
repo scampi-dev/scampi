@@ -60,7 +60,7 @@ A **source** tells a step where its content comes from. Scampi separates
 The two compose independently:
 
 | Resolver   | Description                       |
-|------------|-----------------------------------|
+| ---------- | --------------------------------- |
 | `local()`  | File on the local machine         |
 | `inline()` | String literal embedded in config |
 | `remote()` | URL fetched via HTTP/HTTPS        |

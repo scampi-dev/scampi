@@ -8,7 +8,7 @@ ownership. Creates parent directories as needed.
 ## Fields
 
 | Field   | Type   | Required | Description                                                  |
-|---------|--------|:--------:|--------------------------------------------------------------|
+| ------- | ------ | :------: | ------------------------------------------------------------ |
 | `path`  | string |    ✓     | Absolute path to ensure exists (creates parents)             |
 | `desc`  | string |          | Human-readable description                                   |
 | `group` | string |          | Group name or GID                                            |

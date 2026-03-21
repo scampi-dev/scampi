@@ -8,7 +8,7 @@ ownership, and permissions.
 ## Fields
 
 | Field   | Type   | Required | Default | Description                                                           |
-|---------|--------|:--------:|:-------:|-----------------------------------------------------------------------|
+| ------- | ------ | :------: | :-----: | --------------------------------------------------------------------- |
 | `src`   | source |    ✓     |         | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
 | `dest`  | string |    ✓     |         | Target directory for extraction                                       |
 | `depth` | int    |          |    0    | Nested archive recursion (-1=unlimited, 0=top-level only)             |
@@ -34,14 +34,14 @@ full details.
 
 Format is detected by extension (case-insensitive, longest match first):
 
-| Extension             | Command                       |
-|-----------------------|-------------------------------|
-| `.tar.gz`, `.tgz`     | `tar xzf FILE -C DEST`        |
-| `.tar.bz2`, `.tbz2`   | `tar xjf FILE -C DEST`        |
-| `.tar.xz`, `.txz`     | `tar xJf FILE -C DEST`        |
-| `.tar.zst`, `.tzst`   | `tar --zstd -xf FILE -C DEST` |
-| `.tar`                | `tar xf FILE -C DEST`         |
-| `.zip`                | `unzip -o FILE -d DEST`       |
+| Extension           | Command                       |
+| ------------------- | ----------------------------- |
+| `.tar.gz`, `.tgz`   | `tar xzf FILE -C DEST`        |
+| `.tar.bz2`, `.tbz2` | `tar xjf FILE -C DEST`        |
+| `.tar.xz`, `.txz`   | `tar xJf FILE -C DEST`        |
+| `.tar.zst`, `.tzst` | `tar --zstd -xf FILE -C DEST` |
+| `.tar`              | `tar xf FILE -C DEST`         |
+| `.zip`              | `unzip -o FILE -d DEST`       |
 
 Unsupported extensions produce a config error at plan time.
 

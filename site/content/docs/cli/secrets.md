@@ -49,7 +49,7 @@ scampi secrets init [--force]
 Generate an age keypair for encrypting secrets.
 
 | Flag      | Description                 |
-|-----------|-----------------------------|
+| --------- | --------------------------- |
 | `--force` | Overwrite existing key file |
 
 ## pubkey
@@ -69,7 +69,7 @@ scampi secrets set [flags] <key> [value]
 Encrypt and store a secret value. If `value` is omitted, it is read from stdin.
 
 | Flag                | Description                                                     |
-|---------------------|-----------------------------------------------------------------|
+| ------------------- | --------------------------------------------------------------- |
 | `-f`, `--file`      | Path to the secrets JSON file (default: `$SCAMPI_SECRETS_FILE`) |
 | `-r`, `--recipient` | Additional age recipient public key (repeatable)                |
 
@@ -82,7 +82,7 @@ scampi secrets get [flags] <key>
 Decrypt and print a secret value.
 
 | Flag           | Description                                                     |
-|----------------|-----------------------------------------------------------------|
+| -------------- | --------------------------------------------------------------- |
 | `-f`, `--file` | Path to the secrets JSON file (default: `$SCAMPI_SECRETS_FILE`) |
 
 ## del
@@ -94,5 +94,5 @@ scampi secrets del [flags] <key>
 Remove a secret from the store.
 
 | Flag           | Description                                                     |
-|----------------|-----------------------------------------------------------------|
+| -------------- | --------------------------------------------------------------- |
 | `-f`, `--file` | Path to the secrets JSON file (default: `$SCAMPI_SECRETS_FILE`) |

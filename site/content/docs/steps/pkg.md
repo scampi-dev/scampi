@@ -11,7 +11,7 @@ zypper (openSUSE), pkg (FreeBSD), brew (macOS).
 ## Fields
 
 | Field      | Type         | Required | Default     | Description                                     |
-|------------|--------------|:--------:|-------------|-------------------------------------------------|
+| ---------- | ------------ | :------: | ----------- | ----------------------------------------------- |
 | `packages` | list         |    ✓     |             | Package names to manage                         |
 | `source`   | `pkg_source` |    ✓     |             | Package source (see [below](#package-sources))  |
 | `desc`     | string       |          |             | Human-readable description                      |
@@ -20,7 +20,7 @@ zypper (openSUSE), pkg (FreeBSD), brew (macOS).
 ## States
 
 | State     | Behavior                                                                        |
-|-----------|---------------------------------------------------------------------------------|
+| --------- | ------------------------------------------------------------------------------- |
 | `present` | Install if not already installed. Don't touch if already present (any version). |
 | `absent`  | Remove if installed. No-op if already absent.                                   |
 | `latest`  | Install or upgrade to the latest version available in the package index.        |
@@ -32,7 +32,7 @@ target's built-in package manager, or a typed source function for third-party
 repositories:
 
 | Source       | Description                                  |
-|--------------|----------------------------------------------|
+| ------------ | -------------------------------------------- |
 | `system()`   | System package manager (apt, dnf, apk, etc.) |
 | `apt_repo()` | Third-party APT repository (Debian/Ubuntu)   |
 | `dnf_repo()` | Third-party DNF repository (Fedora/RHEL)     |
@@ -44,21 +44,21 @@ configuration, and cache refresh automatically before installing packages.
 
 Configure an APT repository (Debian/Ubuntu).
 
-| Field        | Type   | Required | Description                                            |
-|--------------|--------|:--------:|--------------------------------------------------------|
-| `url`        | string |    ✓     | Repository URL                                         |
-| `key_url`    | string |    ✓     | URL to the GPG signing key                             |
-| `components` | list   |          | Repository components (defaults to `["main"]`)         |
-| `suite`      | string |          | Distribution codename (auto-detected from target)      |
+| Field        | Type   | Required | Description                                       |
+| ------------ | ------ | :------: | ------------------------------------------------- |
+| `url`        | string |    ✓     | Repository URL                                    |
+| `key_url`    | string |    ✓     | URL to the GPG signing key                        |
+| `components` | list   |          | Repository components (defaults to `["main"]`)    |
+| `suite`      | string |          | Distribution codename (auto-detected from target) |
 
 ### `dnf_repo()`
 
 Configure a DNF repository (Fedora/RHEL).
 
-| Field     | Type   | Required | Description                                               |
-|-----------|--------|:--------:|-----------------------------------------------------------|
-| `url`     | string |    ✓     | Repository base URL                                       |
-| `key_url` | string |          | URL to the GPG signing key (optional for unsigned repos)  |
+| Field     | Type   | Required | Description                                              |
+| --------- | ------ | :------: | -------------------------------------------------------- |
+| `url`     | string |    ✓     | Repository base URL                                      |
+| `key_url` | string |          | URL to the GPG signing key (optional for unsigned repos) |
 
 ### Op chain
 

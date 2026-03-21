@@ -8,7 +8,7 @@ Works with systemd, OpenRC, and launchctl.
 ## Fields
 
 | Field     | Type   | Required | Default     | Description                              |
-|-----------|--------|:--------:|-------------|------------------------------------------|
+| --------- | ------ | :------: | ----------- | ---------------------------------------- |
 | `name`    | string |    ✓     |             | Service name                             |
 | `desc`    | string |          |             | Human-readable description               |
 | `enabled` | bool   |          | `true`      | Whether the service should start at boot |
@@ -17,7 +17,7 @@ Works with systemd, OpenRC, and launchctl.
 ## States
 
 | State       | Behavior                                                                                                           |
-|-------------|--------------------------------------------------------------------------------------------------------------------|
+| ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | `running`   | Start the service if not active. Idempotent.                                                                       |
 | `stopped`   | Stop the service if active. Idempotent.                                                                            |
 | `restarted` | Restart the service unconditionally. Always fires.                                                                 |

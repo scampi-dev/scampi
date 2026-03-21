@@ -14,7 +14,7 @@ against what currently exists on the target.
 ## Flags
 
 | Flag        | Description                                                        |
-|-------------|--------------------------------------------------------------------|
+| ----------- | ------------------------------------------------------------------ |
 | `--only`    | Filter to specific deploy blocks (comma-separated)                 |
 | `--targets` | Filter to specific targets (comma-separated)                       |
 | `--step`    | Filter to a specific file op by destination path (substring match) |
