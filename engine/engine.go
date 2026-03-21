@@ -81,7 +81,7 @@ func (e *Engine) storeSourcePaths(ctx context.Context, p spec.Plan) {
 	}
 }
 
-func runForEachResolved(
+func forEachResolved(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,

@@ -31,7 +31,7 @@ func Inspect(
 ) (*InspectResult, error) {
 	var result *InspectResult
 
-	err := runForEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+	err := forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
 		r, err := e.Inspect(ctx, stepFilter)
 		if err != nil {
 			return err
