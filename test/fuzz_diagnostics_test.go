@@ -11,7 +11,6 @@ import (
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
@@ -198,7 +197,7 @@ frobnicate(name="test")`,
 
 		rec := &recordingDisplayer{}
 		em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-		store := spec.NewSourceStore()
+		store := diagnostic.NewSourceStore()
 
 		// ---- Hard invariant: user input must not panic ----
 		defer func() {

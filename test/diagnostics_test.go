@@ -13,7 +13,6 @@ import (
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 )
 
 func TestDiagnostics(t *testing.T) {
@@ -57,7 +56,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 

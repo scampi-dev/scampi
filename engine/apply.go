@@ -15,7 +15,7 @@ func Apply(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 ) error {
 	return runForEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {

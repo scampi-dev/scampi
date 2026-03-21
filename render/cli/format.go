@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/render/ansi"
 	"scampi.dev/scampi/render/template"
@@ -26,10 +27,10 @@ type sourceLine struct {
 type formatter struct {
 	glyphs   glyphSet
 	useColor bool
-	store    *spec.SourceStore
+	store    *diagnostic.SourceStore
 }
 
-func newFormatter(glyphs glyphSet, useColor bool, store *spec.SourceStore) *formatter {
+func newFormatter(glyphs glyphSet, useColor bool, store *diagnostic.SourceStore) *formatter {
 	return &formatter{glyphs: glyphs, useColor: useColor, store: store}
 }
 

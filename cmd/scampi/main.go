@@ -182,7 +182,7 @@ changes when the current state differs from the declared state.`,
 				Verbosity:        opts.verbosity,
 			}
 
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			displ, cleanup := withDisplayer(opts, store)
 			defer cleanup()
@@ -229,7 +229,7 @@ the actual system state.`,
 				Verbosity:        opts.verbosity,
 			}
 
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			displ, cleanup := withDisplayer(opts, store)
 			defer cleanup()
@@ -279,7 +279,7 @@ Falls back to plain diff(1).`,
 				Verbosity:        opts.verbosity,
 			}
 
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			displ, cleanup := withDisplayer(opts, store)
 			defer cleanup()
@@ -332,7 +332,7 @@ does not inspect or modify the target system.`,
 				Verbosity:        opts.verbosity,
 			}
 
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			displ, cleanup := withDisplayer(opts, store)
 			defer cleanup()
@@ -471,7 +471,7 @@ func mustGlobalOpts(ctx context.Context) globalOpts {
 	return ctx.Value(ctxGlobalOpts).(globalOpts)
 }
 
-func newDisplayer(opts globalOpts, store *spec.SourceStore) render.Displayer {
+func newDisplayer(opts globalOpts, store *diagnostic.SourceStore) render.Displayer {
 	d := clir.New(
 		clir.Options{
 			ColorMode:  opts.colorMode,
@@ -489,7 +489,7 @@ func newDisplayer(opts globalOpts, store *spec.SourceStore) render.Displayer {
 // withDisplayer creates a displayer and returns a cleanup function that
 // should be deferred. The cleanup function closes the displayer and
 // recovers from panics.
-func withDisplayer(opts globalOpts, store *spec.SourceStore) (render.Displayer, func()) {
+func withDisplayer(opts globalOpts, store *diagnostic.SourceStore) (render.Displayer, func()) {
 	d := newDisplayer(opts, store)
 	return d, func() {
 		d.Close()

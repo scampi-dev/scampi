@@ -21,7 +21,7 @@ func LoadConfig(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 	src source.Source,
 ) (spec.Config, error) {
 	cfgPath, absErr := filepath.Abs(cfgPath)

@@ -25,7 +25,7 @@ func Inspect(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 	stepFilter string,
 ) (*InspectResult, error) {

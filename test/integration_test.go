@@ -12,7 +12,6 @@ import (
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
@@ -24,7 +23,7 @@ func loadAndResolve(
 	src source.Source,
 	tgt target.Target,
 	em diagnostic.Emitter,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 ) (*engine.Engine, error) {
 	t.Helper()
 
@@ -74,7 +73,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -143,7 +142,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -218,7 +217,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -288,7 +287,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -338,7 +337,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -402,7 +401,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -463,7 +462,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -530,7 +529,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -579,7 +578,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -626,7 +625,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -644,7 +643,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec2 := &recordingDisplayer{}
 	em2 := diagnostic.NewEmitter(diagnostic.Policy{}, rec2)
-	store2 := spec.NewSourceStore()
+	store2 := diagnostic.NewSourceStore()
 
 	e2, err := loadAndResolve(t, cfgStr, src, tgt, em2, store2)
 	if err != nil {
@@ -702,7 +701,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -755,7 +754,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -812,7 +811,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -876,7 +875,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -936,7 +935,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -993,7 +992,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1051,7 +1050,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1114,7 +1113,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1170,7 +1169,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1243,7 +1242,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1318,7 +1317,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1360,7 +1359,7 @@ deploy(name="test", targets=["local"], steps=[
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {

@@ -13,7 +13,6 @@ import (
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
@@ -65,7 +64,7 @@ deploy(
 			src := source.LocalPosixSource{}
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -131,7 +130,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -193,7 +192,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -254,7 +253,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -328,7 +327,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -394,7 +393,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -456,7 +455,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -520,7 +519,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -581,7 +580,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -648,7 +647,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -716,7 +715,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -790,7 +789,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -857,7 +856,7 @@ deploy(
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
@@ -944,7 +943,7 @@ deploy(name="bench", targets=["local"], steps=[
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := spec.NewSourceStore()
+			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())

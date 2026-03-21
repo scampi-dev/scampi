@@ -14,7 +14,6 @@ import (
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/secret"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/star"
 	"scampi.dev/scampi/target"
 )
@@ -54,7 +53,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -109,7 +108,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -165,7 +164,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -221,7 +220,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -260,7 +259,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -323,7 +322,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -358,7 +357,7 @@ deploy(name="test", targets=["local"], steps=[])
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -380,7 +379,7 @@ deploy(name="test", targets=["local"], steps=[])
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -404,7 +403,7 @@ deploy(name="test", targets=["local"], steps=[])
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -426,7 +425,7 @@ deploy(name="test", targets=["local"], steps=[])
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -448,7 +447,7 @@ deploy(name="test", targets=["local"], steps=[])
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -525,7 +524,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -583,7 +582,7 @@ deploy(
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -628,7 +627,7 @@ deploy(name="test", targets=["local"], steps=[])
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
@@ -670,7 +669,7 @@ deploy(name="test", targets=["local"], steps=[])
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)

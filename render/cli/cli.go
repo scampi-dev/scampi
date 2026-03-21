@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/x/term"
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/model"
@@ -31,7 +32,7 @@ type cli struct {
 	opts    Options
 	render  *renderer
 	glyphs  glyphSet
-	store   *spec.SourceStore
+	store   *diagnostic.SourceStore
 	actions sync.Map // map[string]*actionState
 
 	isTTY bool
@@ -46,7 +47,7 @@ type actionState struct {
 }
 
 // New creates a new CLI renderer.
-func New(opts Options, store *spec.SourceStore) render.Displayer {
+func New(opts Options, store *diagnostic.SourceStore) render.Displayer {
 	glyphs := fancyGlyphs
 	if opts.ForceASCII {
 		glyphs = asciiGlyphs

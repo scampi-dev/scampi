@@ -10,6 +10,7 @@ import (
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 )
@@ -29,7 +30,7 @@ var fileOptions = &syntax.FileOptions{
 func Eval(
 	ctx context.Context,
 	cfgPath string,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 	src source.Source,
 ) (spec.Config, error) {
 	data, err := src.ReadFile(ctx, cfgPath)
@@ -76,7 +77,7 @@ func makeLoad(
 	ctx context.Context,
 	basePath string,
 	src source.Source,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 ) func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
 	var (
 		mu      sync.Mutex
@@ -135,7 +136,7 @@ func execModule(
 	parentThread *starlark.Thread,
 	absPath string,
 	src source.Source,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 ) (starlark.StringDict, error) {
 	data, err := src.ReadFile(ctx, absPath)
 	if err != nil {

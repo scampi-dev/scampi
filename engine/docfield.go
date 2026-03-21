@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package spec
+package engine
 
 import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"scampi.dev/scampi/spec"
 )
 
-// DocFromConfig builds a full StepDoc from the struct tags on a config struct.
+// docFromConfig builds a full StepDoc from the struct tags on a config struct.
 //
 // The struct must have an unexported blank field with a `summary` tag for the
 // step-level description. Every exported field must carry a `step` tag.
@@ -25,9 +27,9 @@ import (
 //	default:"present"              — display default (implies optional)
 //	example:"/etc/app/config.yaml" — example value (pipe-delimited for multiple)
 //	exclusive:"group-name"         — mutual exclusion group (fields sharing a name are alternatives)
-func DocFromConfig(kind string, cfg any) StepDoc {
+func docFromConfig(kind string, cfg any) spec.StepDoc {
 	rt := reflectStruct(cfg)
-	return StepDoc{
+	return spec.StepDoc{
 		Kind:    kind,
 		Summary: extractSummary(rt),
 		Fields:  extractFields(rt),
@@ -41,7 +43,7 @@ func reflectStruct(cfg any) reflect.Type {
 	}
 	rt := rv.Type()
 	if rt.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("DocFromConfig: expected struct, got %s", rt.Kind()))
+		panic(fmt.Sprintf("docFromConfig: expected struct, got %s", rt.Kind()))
 	}
 	return rt
 }
@@ -57,13 +59,13 @@ func extractSummary(rt reflect.Type) string {
 		}
 	}
 	panic(fmt.Sprintf(
-		"DocFromConfig(%s): no unexported field with summary tag",
+		"docFromConfig(%s): no unexported field with summary tag",
 		rt.Name(),
 	))
 }
 
-func extractFields(rt reflect.Type) []FieldDoc {
-	fields := make([]FieldDoc, 0, rt.NumField())
+func extractFields(rt reflect.Type) []spec.FieldDoc {
+	fields := make([]spec.FieldDoc, 0, rt.NumField())
 	for i := range rt.NumField() {
 		sf := rt.Field(i)
 		if !sf.IsExported() {
@@ -73,12 +75,12 @@ func extractFields(rt reflect.Type) []FieldDoc {
 		desc, ok := sf.Tag.Lookup("step")
 		if !ok {
 			panic(fmt.Sprintf(
-				"DocFromConfig(%s): field %q has no step tag",
+				"docFromConfig(%s): field %q has no step tag",
 				rt.Name(), sf.Name,
 			))
 		}
 
-		fd := FieldDoc{
+		fd := spec.FieldDoc{
 			Name:     strings.ToLower(sf.Name),
 			Type:     goKindToDocType(sf.Type),
 			Desc:     desc,
@@ -108,10 +110,10 @@ func goKindToDocType(t reflect.Type) string {
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
-	if t == reflect.TypeFor[SourceRef]() {
+	if t == reflect.TypeFor[spec.SourceRef]() {
 		return "source"
 	}
-	if t == reflect.TypeFor[PkgSourceRef]() {
+	if t == reflect.TypeFor[spec.PkgSourceRef]() {
 		return "pkg_source"
 	}
 	switch t.Kind() {

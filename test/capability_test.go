@@ -10,7 +10,6 @@ import (
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
@@ -22,7 +21,7 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)

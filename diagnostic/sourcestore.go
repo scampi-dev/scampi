@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package spec
+package diagnostic
 
 import (
 	"strings"
 )
 
+// SourceStore caches source file contents so the renderer can display
+// source-context lines in diagnostic error messages.
 type SourceStore struct {
 	files map[string][]byte
 }

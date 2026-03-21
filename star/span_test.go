@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/star"
 )
 
@@ -29,7 +29,7 @@ deploy(
 )
 `)
 
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
@@ -76,7 +76,7 @@ deploy(name="main", targets=["host"], steps=[
 ])
 `)
 
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
@@ -108,7 +108,7 @@ deploy(name="main", targets=["remote"], steps=[
 ])
 `)
 
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
@@ -156,7 +156,7 @@ target.local(name="host")
 deploy(name="main", targets=["host"], steps=steps)
 `)
 
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
@@ -182,7 +182,7 @@ deploy(name="main", targets=["host"], steps=[
 ])
 `)
 
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)

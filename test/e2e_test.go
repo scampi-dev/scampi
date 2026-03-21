@@ -12,7 +12,6 @@ import (
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
 )
 
 // E2EScenario defines a data-driven E2E test case.
@@ -174,7 +173,7 @@ func runE2EScenarioWithDriver(t *testing.T, dir string, cfgFilename string, driv
 	// Run engine
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := spec.NewSourceStore()
+	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
 

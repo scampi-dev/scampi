@@ -16,7 +16,7 @@ type Engine struct {
 	tgt   target.Target
 	cfg   spec.ResolvedConfig
 	em    diagnostic.Emitter
-	store *spec.SourceStore
+	store *diagnostic.SourceStore
 }
 
 func New(ctx context.Context, src source.Source, cfg spec.ResolvedConfig, em diagnostic.Emitter) (*Engine, error) {
@@ -85,7 +85,7 @@ func runForEachResolved(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
-	store *spec.SourceStore,
+	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 	run func(ctx context.Context, e *Engine) error,
 ) error {

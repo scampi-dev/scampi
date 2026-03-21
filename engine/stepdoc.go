@@ -15,5 +15,5 @@ func LoadStepDoc(kind string) spec.StepDoc {
 	if !ok {
 		panic(errs.BUG("LoadStepDoc called with unregistered kind: %s", kind))
 	}
-	return spec.DocFromConfig(st.Kind(), st.NewConfig())
+	return docFromConfig(st.Kind(), st.NewConfig())
 }
