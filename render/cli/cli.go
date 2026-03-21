@@ -665,82 +665,50 @@ func (c *cli) renderEngineFinished(e event.EngineEvent) []renderEvent {
 	}}
 }
 
-func (c *cli) renderActionFinished(e event.ActionEvent) []renderEvent {
-	fmtActionSummary := func(s model.ActionSummary) string {
-		switch {
-		case s.Failed > 0 || s.Aborted > 0:
-			return fmt.Sprintf("failed after %d/%d ops (%d failed, %d aborted)",
-				s.Succeeded+s.Failed, s.Total, s.Failed, s.Aborted)
-		case s.Changed > 0:
-			return fmt.Sprintf("%d/%d ops changed", s.Changed, s.Total)
-		case s.WouldChange > 0:
-			return fmt.Sprintf("%d/%d ops would change", s.WouldChange, s.Total)
-		default:
-			return "up-to-date"
-		}
-	}
-
-	d := *e.Detail
-	smry := d.Summary
-	st := c.ensureActionFromStep(e.Step)
-
-	var color ansi.ANSI
-	var glyph string
-
+func fmtSummary(s model.ActionSummary) string {
 	switch {
-	case smry.Failed > 0 || smry.Aborted > 0:
-		color = colActionFinishedFailed
-		glyph = c.glyphs.fatal
-	case smry.Changed > 0 || smry.WouldChange > 0:
-		color = colActionFinishedChanged
-		glyph = c.glyphs.change
+	case s.Failed > 0 || s.Aborted > 0:
+		return fmt.Sprintf("failed (%d failed, %d aborted)", s.Failed, s.Aborted)
+	case s.Changed > 0:
+		return fmt.Sprintf("%d/%d ops changed", s.Changed, s.Total)
+	case s.WouldChange > 0:
+		return fmt.Sprintf("%d/%d ops would change", s.WouldChange, s.Total)
 	default:
-		color = colActionFinishedUnchanged
-		glyph = c.glyphs.ok
+		return "up-to-date"
 	}
+}
+
+func (c *cli) summaryStyle(s model.ActionSummary) (ansi.ANSI, string) {
+	switch {
+	case s.Failed > 0 || s.Aborted > 0:
+		return colActionFinishedFailed, c.glyphs.fatal
+	case s.Changed > 0 || s.WouldChange > 0:
+		return colActionFinishedChanged, c.glyphs.change
+	default:
+		return colActionFinishedUnchanged, c.glyphs.ok
+	}
+}
+
+func (c *cli) renderActionFinished(e event.ActionEvent) []renderEvent {
+	d := *e.Detail
+	st := c.ensureActionFromStep(e.Step)
+	color, glyph := c.summaryStyle(d.Summary)
 
 	line := c.formatter.fmtfMsg(color, "[%s]%s", st.id, glyphR(glyph))
 	if e.Step.StepDesc != "" {
 		line += c.formatter.fmtfMsg(color, " %s %s", e.Step.StepDesc, c.glyphs.emDash)
 	}
-	line += c.formatter.fmtfMsg(color, " %s (%s)", fmtActionSummary(smry), d.Duration)
+	line += c.formatter.fmtfMsg(color, " %s (%s)", fmtSummary(d.Summary), d.Duration)
 
 	return []renderEvent{{stream: streamOut, line: line}}
 }
 
 func (c *cli) renderHookTriggered(e event.ActionEvent) []renderEvent {
 	h := e.HookDetail
-	smry := h.Summary
-
-	fmtSummary := func() string {
-		switch {
-		case smry.Failed > 0 || smry.Aborted > 0:
-			return fmt.Sprintf("failed (%d failed, %d aborted)", smry.Failed, smry.Aborted)
-		case smry.Changed > 0:
-			return fmt.Sprintf("%d/%d ops changed", smry.Changed, smry.Total)
-		case smry.WouldChange > 0:
-			return fmt.Sprintf("%d/%d ops would change", smry.WouldChange, smry.Total)
-		default:
-			return "up-to-date"
-		}
-	}
-
-	var color ansi.ANSI
-	var glyph string
-	switch {
-	case smry.Failed > 0 || smry.Aborted > 0:
-		color = colActionFinishedFailed
-		glyph = c.glyphs.fatal
-	case smry.Changed > 0 || smry.WouldChange > 0:
-		color = colActionFinishedChanged
-		glyph = c.glyphs.change
-	default:
-		color = colActionFinishedUnchanged
-		glyph = c.glyphs.ok
-	}
+	color, glyph := c.summaryStyle(h.Summary)
 
 	line := c.formatter.fmtfMsg(color, "[hook:%s]%s %s %s %s (%s)",
-		h.HookID, glyphR(glyph), h.TriggerBy, c.glyphs.emDash, fmtSummary(), h.Duration)
+		h.HookID, glyphR(glyph), h.TriggerBy, c.glyphs.emDash, fmtSummary(h.Summary), h.Duration)
 
 	return []renderEvent{{stream: streamOut, line: line}}
 }
