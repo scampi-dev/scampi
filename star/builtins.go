@@ -9,6 +9,7 @@ import (
 	"filippo.io/age"
 	"go.starlark.net/starlark"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/secret"
 	"scampi.dev/scampi/spec"
 )
@@ -481,7 +482,7 @@ func buildSecretBackend(
 
 	}
 
-	panic("unreachable: backend validated before buildSecretBackend")
+	panic(errs.BUG("unreachable: backend validated before buildSecretBackend"))
 }
 
 // parseRecipientStrings extracts age recipient public keys from a Starlark list value.
