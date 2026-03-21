@@ -64,94 +64,19 @@ func plan(
 	unitID := spec.UnitID(cfg.DeployName)
 	em.EmitPlanLifecycle(diagnostic.PlanStarted(unitID))
 
-	var (
-		causes  []error
-		impacts []diagnostic.Impact
-	)
+	actions, onChange, causes, impacts := planSteps(cfg.Steps, em, tgtCaps)
+	hookActions, hookCauses, hookImpacts := planHooks(cfg.Hooks, em, tgtCaps)
+	causes = append(causes, hookCauses...)
+	impacts = append(impacts, hookImpacts...)
 
 	p := spec.Plan{
 		Unit: spec.Unit{
-			ID:   unitID,
-			Desc: cfg.DeployName,
+			ID:      unitID,
+			Desc:    cfg.DeployName,
+			Actions: actions,
 		},
 	}
-
-	hp := &hookPlan{
-		actions:  make(map[string][]spec.Action),
-		onChange: make(map[int][]string),
-	}
-
-	for i, step := range cfg.Steps {
-		act, err := step.Type.Plan(step)
-		if err != nil {
-			impact, _ := emitPlanDiagnostic(em, i, step.Type.Kind(), step.Desc, err)
-			impacts = append(impacts, impact)
-			causes = append(causes, err)
-			continue
-		}
-
-		reqCaps := collectRequiredCaps(act)
-		if misCaps := reqCaps &^ tgtCaps; misCaps != 0 {
-			err := CapabilityMismatchError{
-				StepIndex:    i,
-				StepKind:     act.Kind(),
-				RequiredCaps: reqCaps,
-				MissingCaps:  misCaps,
-				ProvidedCaps: tgtCaps,
-				Source:       step.Source,
-			}
-			impact, _ := emitPlanDiagnostic(em, i, step.Type.Kind(), step.Desc, err)
-			impacts = append(impacts, impact)
-			causes = append(causes, err)
-			continue
-		}
-
-		actionIdx := len(p.Unit.Actions)
-		p.Unit.Actions = append(p.Unit.Actions, act)
-		em.EmitPlanLifecycle(diagnostic.StepPlanned(i, act.Desc(), step.Type.Kind()))
-
-		if len(step.OnChange) > 0 {
-			hp.onChange[actionIdx] = step.OnChange
-		}
-	}
-
-	// Plan hooks
-	for id, steps := range cfg.Hooks {
-		var hookActions []spec.Action
-		hookFailed := false
-		for _, step := range steps {
-			act, err := step.Type.Plan(step)
-			if err != nil {
-				impact, _ := emitPlanDiagnostic(em, -1, step.Type.Kind(), step.Desc, err)
-				impacts = append(impacts, impact)
-				causes = append(causes, err)
-				hookFailed = true
-				break
-			}
-
-			reqCaps := collectRequiredCaps(act)
-			if misCaps := reqCaps &^ tgtCaps; misCaps != 0 {
-				err := CapabilityMismatchError{
-					StepIndex:    -1,
-					StepKind:     act.Kind(),
-					RequiredCaps: reqCaps,
-					MissingCaps:  misCaps,
-					ProvidedCaps: tgtCaps,
-					Source:       step.Source,
-				}
-				impact, _ := emitPlanDiagnostic(em, -1, step.Type.Kind(), step.Desc, err)
-				impacts = append(impacts, impact)
-				causes = append(causes, err)
-				hookFailed = true
-				break
-			}
-
-			hookActions = append(hookActions, act)
-		}
-		if !hookFailed {
-			hp.actions[id] = hookActions
-		}
-	}
+	hp := &hookPlan{actions: hookActions, onChange: onChange}
 
 	em.EmitPlanLifecycle(diagnostic.PlanFinished(
 		p.Unit.ID,
@@ -162,17 +87,13 @@ func plan(
 
 	for _, impact := range impacts {
 		if impact.ShouldAbort() {
-			return spec.Plan{}, nil, nil, AbortError{
-				Causes: causes,
-			}
+			return spec.Plan{}, nil, nil, AbortError{Causes: causes}
 		}
 	}
 
-	// Validate on_change references and detect hook cycles
 	if err := validateHooks(em, cfg, hp); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
-
 	if err := DetectPlanCycles(em, p); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
@@ -182,9 +103,92 @@ func plan(
 		return spec.Plan{}, nil, nil, err
 	}
 
-	actionDeps := extractActionDeps(nodes)
+	return p, extractActionDeps(nodes), hp, nil
+}
 
-	return p, actionDeps, hp, nil
+func planOneStep(
+	step spec.StepInstance,
+	stepIdx int,
+	tgtCaps capability.Capability,
+) (spec.Action, error) {
+	act, err := step.Type.Plan(step)
+	if err != nil {
+		return nil, err
+	}
+	reqCaps := collectRequiredCaps(act)
+	if misCaps := reqCaps &^ tgtCaps; misCaps != 0 {
+		return nil, CapabilityMismatchError{
+			StepIndex:    stepIdx,
+			StepKind:     act.Kind(),
+			RequiredCaps: reqCaps,
+			MissingCaps:  misCaps,
+			ProvidedCaps: tgtCaps,
+			Source:       step.Source,
+		}
+	}
+	return act, nil
+}
+
+func planSteps(
+	steps []spec.StepInstance,
+	em diagnostic.Emitter,
+	tgtCaps capability.Capability,
+) ([]spec.Action, map[int][]string, []error, []diagnostic.Impact) {
+	var actions []spec.Action
+	onChange := make(map[int][]string)
+	var causes []error
+	var impacts []diagnostic.Impact
+
+	for i, step := range steps {
+		act, err := planOneStep(step, i, tgtCaps)
+		if err != nil {
+			impact, _ := emitPlanDiagnostic(em, i, step.Type.Kind(), step.Desc, err)
+			impacts = append(impacts, impact)
+			causes = append(causes, err)
+			continue
+		}
+
+		actionIdx := len(actions)
+		actions = append(actions, act)
+		em.EmitPlanLifecycle(diagnostic.StepPlanned(i, act.Desc(), step.Type.Kind()))
+
+		if len(step.OnChange) > 0 {
+			onChange[actionIdx] = step.OnChange
+		}
+	}
+
+	return actions, onChange, causes, impacts
+}
+
+func planHooks(
+	hooks map[string][]spec.StepInstance,
+	em diagnostic.Emitter,
+	tgtCaps capability.Capability,
+) (map[string][]spec.Action, []error, []diagnostic.Impact) {
+	actions := make(map[string][]spec.Action)
+	var causes []error
+	var impacts []diagnostic.Impact
+
+	for id, steps := range hooks {
+		var hookActions []spec.Action
+		hookFailed := false
+		for _, step := range steps {
+			act, err := planOneStep(step, -1, tgtCaps)
+			if err != nil {
+				impact, _ := emitPlanDiagnostic(em, -1, step.Type.Kind(), step.Desc, err)
+				impacts = append(impacts, impact)
+				causes = append(causes, err)
+				hookFailed = true
+				break
+			}
+			hookActions = append(hookActions, act)
+		}
+		if !hookFailed {
+			actions[id] = hookActions
+		}
+	}
+
+	return actions, causes, impacts
 }
 
 // validateHooks checks that all on_change references point to defined hooks
