@@ -41,7 +41,7 @@ func Eval(
 		store.AddFile(cfgPath, data)
 	}
 
-	collector := newCollector(cfgPath, src)
+	collector := newCollector(ctx, cfgPath, src)
 
 	thread := &starlark.Thread{
 		Name: cfgPath,

@@ -3,7 +3,6 @@
 package star
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
@@ -427,7 +426,7 @@ func buildSecretBackend(
 ) (secret.Backend, error) {
 	switch backend {
 	case "file":
-		data, err := c.src.ReadFile(context.Background(), path)
+		data, err := c.src.ReadFile(c.ctx, path)
 		if err != nil {
 			return nil, &SecretsConfigError{
 				Detail: fmt.Sprintf("reading secrets file %q: %s", path, err),
@@ -450,7 +449,7 @@ func buildSecretBackend(
 		}
 
 		readFile := func(path string) ([]byte, error) {
-			return c.src.ReadFile(context.Background(), path)
+			return c.src.ReadFile(c.ctx, path)
 		}
 		identities, err := secret.ResolveIdentities(
 			c.src.LookupEnv,
@@ -463,7 +462,7 @@ func buildSecretBackend(
 			}
 		}
 
-		data, err := c.src.ReadFile(context.Background(), path)
+		data, err := c.src.ReadFile(c.ctx, path)
 		if err != nil {
 			return nil, &SecretsConfigError{
 				Detail: fmt.Sprintf("reading secrets file %q: %s", path, err),

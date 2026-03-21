@@ -3,6 +3,8 @@
 package star
 
 import (
+	"context"
+
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 
@@ -16,6 +18,7 @@ const collectorKey = "collector"
 
 // Collector accumulates targets and deploy blocks during Starlark evaluation.
 type Collector struct {
+	ctx               context.Context
 	path              string
 	targets           map[string]spec.TargetInstance
 	deploy            map[string]spec.DeployBlock
@@ -24,8 +27,9 @@ type Collector struct {
 	secretsConfigured bool
 }
 
-func newCollector(path string, src source.Source) *Collector {
+func newCollector(ctx context.Context, path string, src source.Source) *Collector {
 	return &Collector{
+		ctx:     ctx,
 		path:    path,
 		targets: make(map[string]spec.TargetInstance),
 		deploy:  make(map[string]spec.DeployBlock),

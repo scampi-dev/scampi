@@ -3,7 +3,6 @@
 package star
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -83,11 +82,10 @@ func builtinInline(
 	hexHash := hex.EncodeToString(h[:])
 	cachePath := ".scampi-cache/inline/" + hexHash
 
-	ctx := context.Background()
-	if err := c.src.EnsureDir(ctx, ".scampi-cache/inline"); err != nil {
+	if err := c.src.EnsureDir(c.ctx, ".scampi-cache/inline"); err != nil {
 		return nil, fmt.Errorf("inline: creating cache dir: %w", err)
 	}
-	if err := c.src.WriteFile(ctx, cachePath, []byte(content)); err != nil {
+	if err := c.src.WriteFile(c.ctx, cachePath, []byte(content)); err != nil {
 		return nil, fmt.Errorf("inline: writing cache file: %w", err)
 	}
 
