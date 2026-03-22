@@ -3,6 +3,8 @@
 package container
 
 import (
+	"strings"
+
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
@@ -57,6 +59,7 @@ type (
 		Env     map[string]string `step:"Environment variables" optional:"true" example:"{\"DB_HOST\": \"db.local\"}"`
 		Mounts  []target.Mount    `step:"Bind mounts (host:container[:ro])" optional:"true" example:"[\"/data:/data\"]"`
 		Args    []string          `step:"Arguments for container entrypoint" optional:"true" example:"[\"--verbose\"]"`
+		Labels  map[string]string `step:"Container labels" optional:"true" example:"{\"app\": \"myapp\"}"`
 	}
 	instanceAction struct {
 		desc    string
@@ -68,6 +71,7 @@ type (
 		env     map[string]string
 		mounts  []target.Mount
 		args    []string
+		labels  map[string]string
 		step    spec.StepInstance
 	}
 )
@@ -95,6 +99,7 @@ func (Instance) Plan(step spec.StepInstance) (spec.Action, error) {
 		env:     cfg.Env,
 		mounts:  cfg.Mounts,
 		args:    cfg.Args,
+		labels:  cfg.Labels,
 		step:    step,
 	}, nil
 }
@@ -150,6 +155,23 @@ func (c *InstanceConfig) validate(step spec.StepInstance) error {
 		}
 	}
 
+	for k := range c.Labels {
+		if k == "" {
+			return InvalidLabelError{
+				Key:    k,
+				Reason: "label key must not be empty",
+				Source: step.Fields["labels"].Value,
+			}
+		}
+		if strings.ContainsAny(k, " \t") {
+			return InvalidLabelError{
+				Key:    k,
+				Reason: "label key must not contain whitespace",
+				Source: step.Fields["labels"].Value,
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -176,6 +198,7 @@ func (a *instanceAction) Ops() []spec.Op {
 		env:     a.env,
 		mounts:  a.mounts,
 		args:    a.args,
+		labels:  a.labels,
 		step:    a.step,
 	}
 	op.SetAction(a)

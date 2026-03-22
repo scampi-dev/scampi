@@ -39,6 +39,7 @@ func builtinContainerInstance(
 		envVal      *starlark.Dict
 		mountsVal   *starlark.List
 		argsVal     *starlark.List
+		labelsVal   *starlark.Dict
 		desc        string
 		onChangeVal starlark.Value
 	)
@@ -51,6 +52,7 @@ func builtinContainerInstance(
 		"env?", &envVal,
 		"mounts?", &mountsVal,
 		"args?", &argsVal,
+		"labels?", &labelsVal,
 		"desc?", &desc,
 		"on_change?", &onChangeVal,
 	); err != nil {
@@ -97,8 +99,16 @@ func builtinContainerInstance(
 		}
 	}
 
+	var labels map[string]string
+	if labelsVal != nil {
+		labels, err = starlarkDictToStringMap(labelsVal, "container.instance labels")
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	span := callSpan(thread)
-	fields := kwargsFieldSpans(thread, "name", "image", "state", "restart", "ports", "env", "mounts", "args")
+	fields := kwargsFieldSpans(thread, "name", "image", "state", "restart", "ports", "env", "mounts", "args", "labels")
 
 	return &StarlarkStep{
 		Instance: spec.StepInstance{
@@ -108,6 +118,7 @@ func builtinContainerInstance(
 				Desc: desc, Name: name, Image: image,
 				State: state, Restart: restart, Ports: ports,
 				Env: env, Mounts: mounts, Args: ctrArgs,
+				Labels: labels,
 			},
 			OnChange: hookIDs,
 			Source:   span,

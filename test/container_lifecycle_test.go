@@ -246,6 +246,39 @@ deploy(name="test", targets=["local"], steps=[
 	}
 }
 
+func TestContainerLifecycle_Labels(t *testing.T) {
+	name := containerName(t)
+	tgt := setupContainerTest(t, name)
+
+	cfgStr := fmt.Sprintf(`
+target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+	container.instance(
+		name="%s",
+		image="traefik/whoami",
+		labels={"app": "myapp", "env": "test"},
+	),
+])
+`, name)
+
+	applyContainerConfig(t, cfgStr, tgt)
+
+	cm := tgt.(target.ContainerManager)
+	info, exists, err := cm.InspectContainer(context.Background(), name)
+	if err != nil {
+		t.Fatalf("inspect: %v", err)
+	}
+	if !exists {
+		t.Fatal("container should exist")
+	}
+	if info.Labels["app"] != "myapp" {
+		t.Errorf("label app: got %q, want %q", info.Labels["app"], "myapp")
+	}
+	if info.Labels["env"] != "test" {
+		t.Errorf("label env: got %q, want %q", info.Labels["env"], "test")
+	}
+}
+
 func TestContainerLifecycle_Args(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)

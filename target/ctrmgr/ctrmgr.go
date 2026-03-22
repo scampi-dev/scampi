@@ -48,6 +48,16 @@ func (b *Backend) CmdCreate(opts CreateOpts) string {
 			parts = append(parts, "--env", target.ShellQuote(k+"="+opts.Env[k]))
 		}
 	}
+	if len(opts.Labels) > 0 {
+		keys := make([]string, 0, len(opts.Labels))
+		for k := range opts.Labels {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			parts = append(parts, "--label", target.ShellQuote(k+"="+opts.Labels[k]))
+		}
+	}
 	parts = append(parts, target.ShellQuote(opts.Image))
 	for _, a := range opts.Args {
 		parts = append(parts, target.ShellQuote(a))
@@ -80,4 +90,5 @@ type CreateOpts struct {
 	Env     map[string]string
 	Mounts  []target.Mount
 	Args    []string
+	Labels  map[string]string
 }

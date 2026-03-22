@@ -6,8 +6,7 @@ Manage container lifecycle: running, stopped, or absent. See the
 [container module overview](../) for supported runtimes.
 
 > [!TIP]
-> This is the MVP surface.
-> Named volumes, networks, labels and healthchecks are planned for future releases.
+> Named volumes, networks and healthchecks are planned for future releases.
 
 ## Fields
 
@@ -22,6 +21,7 @@ Manage container lifecycle: running, stopped, or absent. See the
 | `env`     | dict   |          |                    | Environment variables                 |
 | `mounts`  | list   |          |                    | Bind mounts (`"host:container[:ro]"`) |
 | `args`    | list   |          |                    | Arguments for container entrypoint    |
+| `labels`  | dict   |          |                    | Container labels                      |
 
 [^1]: Required when state is `running` or `stopped`, optional when `absent`.
 
@@ -158,6 +158,19 @@ container.instance(
 Arguments are passed to the container's entrypoint. If `args` is not
 declared, the image's default command is left untouched and not checked
 for drift.
+
+### Add labels
+
+```python
+container.instance(
+    name = "app",
+    image = "myapp:latest",
+    labels = {"app": "myapp", "env": "production"},
+)
+```
+
+Only declared labels are checked for drift — labels added by the base
+image are ignored.
 
 ### Remove a container
 

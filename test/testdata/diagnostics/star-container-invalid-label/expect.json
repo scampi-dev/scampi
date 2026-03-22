@@ -1,0 +1,19 @@
+{
+  "abort": true,
+  "diagnostics": [
+    {
+      "id": "builtin.container.InvalidLabel",
+      "scope": "ScopePlan",
+      "severity": "Error",
+      "kind": "DiagnosticRaised",
+      "source": {
+        "line": 3,
+        "col": 66
+      },
+      "step": {
+        "index": 0,
+        "kind": "container.instance"
+      }
+    }
+  ]
+}

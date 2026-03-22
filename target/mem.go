@@ -521,6 +521,7 @@ func (m *MemTarget) CreateContainer(_ context.Context, opts ContainerInfo) error
 		Env:     opts.Env,
 		Mounts:  opts.Mounts,
 		Args:    opts.Args,
+		Labels:  opts.Labels,
 	}
 	return nil
 }

@@ -93,6 +93,27 @@ func (e InvalidMountError) EventTemplate() event.Template {
 	}
 }
 
+type InvalidLabelError struct {
+	diagnostic.FatalError
+	Key    string
+	Reason string
+	Source spec.SourceSpan
+}
+
+func (e InvalidLabelError) Error() string {
+	return fmt.Sprintf("invalid label key %q: %s", e.Key, e.Reason)
+}
+
+func (e InvalidLabelError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "builtin.container.InvalidLabel",
+		Text:   `invalid label key "{{.Key}}"`,
+		Hint:   "{{.Reason}}",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
 type MountSourceMissingError struct {
 	diagnostic.FatalError
 	Path   string

@@ -123,6 +123,125 @@ deploy(name="test", targets=["local"], steps=[
 	}
 }
 
+func TestContainer_WithLabels(t *testing.T) {
+	cfgStr := `
+target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+	container.instance(
+		name="app",
+		image="nginx:1.25",
+		labels={"app": "myapp", "env": "prod"},
+	),
+])
+`
+	src := source.NewMemSource()
+	tgt := target.NewMemTarget()
+	rec := &recordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := diagnostic.NewSourceStore()
+
+	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	defer e.Close()
+
+	if err := e.Apply(context.Background()); err != nil {
+		t.Fatalf("Apply: %v\n%s", err, rec)
+	}
+
+	info, ok := tgt.Containers["app"]
+	if !ok {
+		t.Fatal("container not created")
+	}
+	if info.Labels["app"] != "myapp" {
+		t.Errorf("label app: got %q, want %q", info.Labels["app"], "myapp")
+	}
+	if info.Labels["env"] != "prod" {
+		t.Errorf("label env: got %q, want %q", info.Labels["env"], "prod")
+	}
+}
+
+func TestContainer_LabelsIdempotent(t *testing.T) {
+	cfgStr := `
+target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+	container.instance(
+		name="app",
+		image="nginx:1.25",
+		labels={"app": "myapp"},
+	),
+])
+`
+	src := source.NewMemSource()
+	tgt := target.NewMemTarget()
+	tgt.Containers["app"] = target.ContainerInfo{
+		Name: "app", Image: "nginx:1.25", Running: true,
+		Restart: "unless-stopped",
+		Labels:  map[string]string{"app": "myapp", "org.opencontainers.image.title": "nginx"},
+	}
+	rec := &recordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := diagnostic.NewSourceStore()
+
+	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	defer e.Close()
+
+	if err := e.Apply(context.Background()); err != nil {
+		t.Fatalf("Apply: %v\n%s", err, rec)
+	}
+
+	for _, ev := range rec.opEvents {
+		if ev.Kind == event.OpExecuted {
+			t.Error("expected no op executions on idempotent run")
+		}
+	}
+}
+
+func TestContainer_LabelDrift_Recreates(t *testing.T) {
+	cfgStr := `
+target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+	container.instance(
+		name="app",
+		image="nginx:1.25",
+		labels={"env": "staging"},
+	),
+])
+`
+	src := source.NewMemSource()
+	tgt := target.NewMemTarget()
+	tgt.Containers["app"] = target.ContainerInfo{
+		Name: "app", Image: "nginx:1.25", Running: true,
+		Restart: "unless-stopped",
+		Labels:  map[string]string{"env": "prod"},
+	}
+	rec := &recordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := diagnostic.NewSourceStore()
+
+	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	defer e.Close()
+
+	if err := e.Apply(context.Background()); err != nil {
+		t.Fatalf("Apply: %v\n%s", err, rec)
+	}
+
+	info := tgt.Containers["app"]
+	if info.Labels["env"] != "staging" {
+		t.Errorf("label env: got %q, want %q", info.Labels["env"], "staging")
+	}
+	if !info.Running {
+		t.Error("container should be running after recreate")
+	}
+}
+
 func TestContainer_WithArgs(t *testing.T) {
 	cfgStr := `
 target.local(name="local")

@@ -108,6 +108,7 @@ type (
 		Env     map[string]string
 		Mounts  []Mount
 		Args    []string
+		Labels  map[string]string
 	}
 	ContainerManager interface {
 		InspectContainer(ctx context.Context, name string) (ContainerInfo, bool, error)
