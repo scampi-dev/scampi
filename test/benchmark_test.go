@@ -441,6 +441,7 @@ deploy(
             desc="pkg-%%d" %% i,
             packages=["nginx"],
             state="present",
+            source=system(),
         )
         for i in range(%d)
     ],
@@ -852,6 +853,72 @@ deploy(
 					return target.CommandResult{ExitCode: 0}, nil
 				}
 				return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil
+			}
+
+			rec := &recordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := diagnostic.NewSourceStore()
+
+			for b.Loop() {
+				ctx, cancel := context.WithCancel(context.Background())
+				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = mockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, em)
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if err := e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+				cancel()
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for container.instance (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Container(b *testing.B) {
+	sizes := []int{1, 10, 100, 1000, 10000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`target.local(name="local")
+
+deploy(
+    name="bench",
+    targets=["local"],
+    steps=[
+        container.instance(
+            name="app-%%d" %% i,
+            image="nginx:1.25",
+        )
+        for i in range(%d)
+    ],
+)
+`, size)
+
+			src := source.NewMemSource()
+			tgt := target.NewMemTarget()
+
+			src.Files["/config.star"] = []byte(cfgStr)
+			for i := range size {
+				tgt.Containers[fmt.Sprintf("app-%d", i)] = target.ContainerInfo{
+					Name: fmt.Sprintf("app-%d", i), Image: "nginx:1.25",
+					Running: true, Restart: "unless-stopped",
+				}
 			}
 
 			rec := &recordingDisplayer{}

@@ -81,13 +81,13 @@ deploy(name="test", targets=["local"], steps=[
 		// pkg step
 		`target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
-    pkg(packages=["nginx"], state="present"),
+    pkg(packages=["nginx"], state="present", source=system()),
 ])`,
 
 		// pkg step with invalid state
 		`target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
-    pkg(packages=["nginx"], state="bogus"),
+    pkg(packages=["nginx"], state="bogus", source=system()),
 ])`,
 
 		// service step
@@ -160,6 +160,59 @@ deploy(name="test", targets=["local"], steps=[
 		`target.local(name="local")
 deploy(name="test", targets=["local"], steps=[
     firewall(port="22/tcp", action="bogus"),
+])`,
+
+		// unarchive step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    unarchive(src=local("/data.tar.gz"), dest="/output"),
+])`,
+
+		// unarchive step missing required fields
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    unarchive(src=local("/data.tar.gz")),
+])`,
+
+		// container.instance step
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    container.instance(name="app", image="nginx:1.25"),
+])`,
+
+		// container.instance step with all options
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    container.instance(
+        name="app",
+        image="nginx:1.25",
+        state="running",
+        restart="always",
+        ports=["8080:80"],
+        env={"FOO": "bar"},
+        mounts=["/host:/container:ro"],
+        args=["--flag"],
+        labels={"app": "test"},
+        healthcheck=container.healthcheck.cmd(cmd="curl -f http://localhost/"),
+    ),
+])`,
+
+		// container.instance stopped
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    container.instance(name="app", state="absent"),
+])`,
+
+		// container.instance missing name
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    container.instance(image="nginx:1.25"),
+])`,
+
+		// container.instance invalid state
+		`target.local(name="local")
+deploy(name="test", targets=["local"], steps=[
+    container.instance(name="app", image="nginx:1.25", state="bogus"),
 ])`,
 
 		// syntax error: unclosed paren
