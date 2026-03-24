@@ -29,7 +29,7 @@ func InspectList(
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 ) error {
-	return forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+	return forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
 		return e.emitInspect(ctx)
 	})
 }
@@ -44,7 +44,7 @@ func InspectDiffPaths(
 ) ([]string, error) {
 	var paths []string
 
-	err := forEachResolved(ctx, em, cfgPath, store, opts, func(_ context.Context, e *Engine) error {
+	err := forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(_ context.Context, e *Engine) error {
 		p, _, _, planErr := plan(e.cfg, e.em, e.tgt.Capabilities())
 		if planErr != nil {
 			return planErr

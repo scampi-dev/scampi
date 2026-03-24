@@ -11,12 +11,13 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[EngineStarted-0]
-	_ = x[EngineFinished-1]
+	_ = x[EngineConnecting-1]
+	_ = x[EngineFinished-2]
 }
 
-const _EngineKind_name = "EngineStartedEngineFinished"
+const _EngineKind_name = "EngineStartedEngineConnectingEngineFinished"
 
-var _EngineKind_index = [...]uint8{0, 13, 27}
+var _EngineKind_index = [...]uint8{0, 13, 29, 43}
 
 func (i EngineKind) String() string {
 	if i >= EngineKind(len(_EngineKind_index)-1) {

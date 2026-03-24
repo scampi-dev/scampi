@@ -22,11 +22,17 @@ type StepDetail struct {
 }
 
 type EngineEvent struct {
-	Time       time.Time
-	Kind       EngineKind
-	Detail     *EngineFinishedDetail
-	Severity   signal.Severity
-	Chattiness Chattiness
+	Time             time.Time
+	Kind             EngineKind
+	Detail           *EngineFinishedDetail
+	ConnectingDetail *EngineConnectingDetail
+	Severity         signal.Severity
+	Chattiness       Chattiness
+}
+
+type EngineConnectingDetail struct {
+	TargetName string
+	TargetKind string
 }
 
 type PlanEvent struct {
@@ -132,6 +138,7 @@ type EngineKind uint8
 
 const (
 	EngineStarted EngineKind = iota
+	EngineConnecting
 	EngineFinished
 )
 

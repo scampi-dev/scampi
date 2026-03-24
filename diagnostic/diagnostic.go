@@ -111,6 +111,19 @@ func EngineStarted() event.EngineEvent {
 	}
 }
 
+func EngineConnecting(targetName, targetKind string) event.EngineEvent {
+	return event.EngineEvent{
+		Time: time.Now(),
+		Kind: event.EngineConnecting,
+		ConnectingDetail: &event.EngineConnectingDetail{
+			TargetName: targetName,
+			TargetKind: targetKind,
+		},
+		Severity:   signal.Info,
+		Chattiness: event.Subtle,
+	}
+}
+
 func EngineFinished(
 	rep model.ExecutionReport,
 	hooksFired int,

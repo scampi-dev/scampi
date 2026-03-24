@@ -5,6 +5,7 @@ package engine
 import (
 	"context"
 
+	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
@@ -20,6 +21,7 @@ type Engine struct {
 }
 
 func New(ctx context.Context, src source.Source, cfg spec.ResolvedConfig, em diagnostic.Emitter) (*Engine, error) {
+	em.EmitEngineLifecycle(diagnostic.EngineConnecting(cfg.TargetName, cfg.Target.Type.Kind()))
 	tgt, err := cfg.Target.Type.Create(ctx, src, cfg.Target)
 	if err != nil {
 		if impact, ok := emitEngineDiagnostic(em, cfg.Path, err); ok {
@@ -79,6 +81,50 @@ func (e *Engine) storeSourcePaths(ctx context.Context, p spec.Plan) {
 			}
 		}
 	}
+}
+
+// forEachResolvedOffline is like forEachResolved but skips target creation.
+// Used by plan and inspect (list mode) which never touch the target.
+func forEachResolvedOffline(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *diagnostic.SourceStore,
+	opts spec.ResolveOptions,
+	run func(ctx context.Context, e *Engine) error,
+) error {
+	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
+	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
+	if err != nil {
+		return err
+	}
+
+	resolved, err := ResolveMultiple(cfg, opts)
+	if err != nil {
+		if impact, ok := emitEngineDiagnostic(em, cfgPath, err); ok {
+			if impact.ShouldAbort() {
+				return AbortError{Causes: []error{err}}
+			}
+		}
+		return err
+	}
+
+	allCaps := capabilityTarget{caps: capability.All}
+	for _, res := range resolved {
+		e, err := NewWithTarget(ctx, src, res, em, allCaps)
+		if err != nil {
+			return err
+		}
+		e.store = store
+
+		if err := run(ctx, e); err != nil {
+			e.Close()
+			return err
+		}
+		e.Close()
+	}
+
+	return nil
 }
 
 func forEachResolved(

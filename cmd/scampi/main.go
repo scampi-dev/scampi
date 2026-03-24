@@ -278,10 +278,13 @@ Falls back to plain diff(1).`,
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			opts := mustGlobalOpts(ctx)
 
+			isDiff := cmd.Bool("diff")
+			diffPath := cmd.Args().Get(0)
+
 			pol := diagnostic.Policy{
 				WarningsAsErrors: false,
 				Verbosity:        opts.verbosity,
-				SuppressPlan:     true,
+				SuppressPlan:     isDiff && diffPath == "",
 			}
 
 			store := diagnostic.NewSourceStore()
@@ -292,8 +295,7 @@ Falls back to plain diff(1).`,
 			resolveOpts := parseResolveOpts(cmd)
 			em := diagnostic.NewEmitter(pol, displ)
 
-			if cmd.Bool("diff") {
-				diffPath := cmd.Args().Get(0)
+			if isDiff {
 				return inspectDiff(ctx, em, cfg, store, resolveOpts, diffPath)
 			}
 

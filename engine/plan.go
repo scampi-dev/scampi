@@ -22,11 +22,7 @@ func Plan(
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 ) error {
-	return forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
-		// Plan must NEVER touch target, not even reads
-		e.tgt = capabilityTarget{
-			caps: capability.All,
-		}
+	return forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
 		return e.Plan(ctx)
 	})
 }

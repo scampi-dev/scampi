@@ -118,6 +118,8 @@ func (c *cli) EmitEngineLifecycle(e event.EngineEvent) {
 	switch e.Kind {
 	case event.EngineStarted:
 		c.commitRenderEvents(c.renderEngineStarted(e))
+	case event.EngineConnecting:
+		c.commitRenderEvents(c.renderEngineConnecting(e))
 	case event.EngineFinished:
 		c.commitRenderEvents(c.renderEngineFinished(e))
 	default:
@@ -651,6 +653,14 @@ func (c *cli) renderEngineStarted(_ event.EngineEvent) []renderEvent {
 	return []renderEvent{{
 		stream: streamOut,
 		line:   c.formatter.fmtfMsg(colEngineStarted, "[engine] started"),
+	}}
+}
+
+func (c *cli) renderEngineConnecting(e event.EngineEvent) []renderEvent {
+	d := e.ConnectingDetail
+	return []renderEvent{{
+		stream: streamOut,
+		line:   c.formatter.fmtfMsg(colEngineStarted, "[engine] connecting to %s (%s)", d.TargetName, d.TargetKind),
 	}}
 }
 
