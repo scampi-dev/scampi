@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	gotmpl "text/template"
@@ -387,4 +388,27 @@ func (op *renderTemplateOp) OpDescription() spec.OpDescription {
 		Src:  op.srcRef.DisplayPath(),
 		Dest: op.dest,
 	}
+}
+
+func (op *renderTemplateOp) Inspect() []spec.InspectField {
+	fields := []spec.InspectField{
+		{Label: "src", Value: op.srcRef.DisplayPath()},
+		{Label: "dest", Value: op.dest},
+	}
+	if len(op.data.Values) > 0 {
+		keys := make([]string, 0, len(op.data.Values))
+		for k := range op.data.Values {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		pairs := make([]string, 0, len(keys))
+		for _, k := range keys {
+			pairs = append(pairs, k+"="+fmt.Sprint(op.data.Values[k]))
+		}
+		fields = append(fields, spec.InspectField{Label: "data", Value: strings.Join(pairs, ", ")})
+	}
+	if op.verify != "" {
+		fields = append(fields, spec.InspectField{Label: "verify", Value: op.verify})
+	}
+	return fields
 }

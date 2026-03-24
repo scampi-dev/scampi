@@ -75,6 +75,26 @@ type IndexStepEvent struct {
 	Chattiness Chattiness
 }
 
+type InspectEvent struct {
+	Time       time.Time
+	Detail     InspectDetail
+	Severity   signal.Severity
+	Chattiness Chattiness
+}
+
+type InspectDetail struct {
+	DeployName string
+	TargetName string
+	Entries    []InspectEntry
+}
+
+type InspectEntry struct {
+	Index  int
+	Kind   string
+	Desc   string
+	Fields []spec.InspectField
+}
+
 type EngineDiagnostic struct {
 	Time       time.Time
 	CfgPath    string

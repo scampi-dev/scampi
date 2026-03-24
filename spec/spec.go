@@ -149,12 +149,22 @@ type (
 	OpTimeout interface {
 		Timeout() time.Duration
 	}
-	// Inspectable is an optional interface that ops producing file content
-	// can implement to support `scampi inspect`.
-	Inspectable interface {
+	// Diffable is an optional interface that ops producing file content
+	// can implement to support `scampi inspect --diff`.
+	Diffable interface {
 		DesiredContent(ctx context.Context, src source.Source) ([]byte, error)
 		CurrentContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error)
 		DestPath() string
+	}
+	// InspectField is a single label/value pair exposed by OpInspector.
+	InspectField struct {
+		Label string
+		Value string
+	}
+	// OpInspector is an optional interface that ops can implement to expose
+	// their resolved state for `scampi inspect`.
+	OpInspector interface {
+		Inspect() []InspectField
 	}
 	OpDescriber interface {
 		OpDescription() OpDescription

@@ -129,3 +129,16 @@ func (op *runOp) OpDescription() spec.OpDescription {
 		Always: op.always,
 	}
 }
+
+func (op *runOp) Inspect() []spec.InspectField {
+	fields := []spec.InspectField{
+		{Label: "apply", Value: op.apply},
+	}
+	if op.check != "" {
+		fields = append(fields, spec.InspectField{Label: "check", Value: op.check})
+	}
+	if op.always {
+		fields = append(fields, spec.InspectField{Label: "always", Value: "true"})
+	}
+	return fields
+}

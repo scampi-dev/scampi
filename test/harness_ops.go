@@ -173,7 +173,7 @@ func (s *stubStepType) Plan(_ spec.StepInstance) (spec.Action, error) {
 	return s.action, nil
 }
 
-// inspectableFakeOp is a fakeOp that also implements spec.Inspectable.
+// inspectableFakeOp is a fakeOp that also implements spec.Diffable.
 type inspectableFakeOp struct {
 	fakeOp
 	desired []byte

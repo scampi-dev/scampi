@@ -25,3 +25,10 @@ func (op *ensureSymlinkOp) OpDescription() spec.OpDescription {
 		Link:   op.link,
 	}
 }
+
+func (op *ensureSymlinkOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "target", Value: op.target},
+		{Label: "link", Value: op.link},
+	}
+}

@@ -69,7 +69,7 @@ deploy(
 	}
 	defer e.Close()
 
-	result, err := e.Inspect(ctx, "")
+	result, err := e.InspectDiffFile(ctx, "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -138,7 +138,7 @@ deploy(
 	}
 	defer e.Close()
 
-	result, err := e.Inspect(ctx, "")
+	result, err := e.InspectDiffFile(ctx, "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}

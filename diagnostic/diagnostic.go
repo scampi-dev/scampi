@@ -60,6 +60,7 @@ type (
 
 		EmitIndexAll(e event.IndexAllEvent)
 		EmitIndexStep(e event.IndexStepEvent)
+		EmitInspect(e event.InspectEvent)
 
 		EmitEngineDiagnostic(e event.EngineDiagnostic)
 		EmitPlanDiagnostic(e event.PlanDiagnostic)
@@ -325,6 +326,18 @@ func PlanProduced(plan spec.Plan, actionDeps ActionDeps) event.PlanEvent {
 		Detail:     &detail,
 		Severity:   signal.Notice,
 		Chattiness: event.Subtle,
+	}
+}
+
+// Inspect
+// -----------------------------------------------------------------------------
+
+func InspectProduced(detail event.InspectDetail) event.InspectEvent {
+	return event.InspectEvent{
+		Time:       time.Now(),
+		Detail:     detail,
+		Severity:   signal.Notice,
+		Chattiness: event.Normal,
 	}
 }
 

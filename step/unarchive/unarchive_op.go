@@ -451,3 +451,10 @@ func (op *unarchiveOp) OpDescription() spec.OpDescription {
 		Dest: op.dest,
 	}
 }
+
+func (op *unarchiveOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "src", Value: op.srcRef.DisplayPath()},
+		{Label: "dest", Value: op.dest},
+	}
+}

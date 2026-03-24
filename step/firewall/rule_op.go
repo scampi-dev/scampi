@@ -252,6 +252,13 @@ func (ensureRuleOp) RequiredCapabilities() capability.Capability {
 	return capability.Command
 }
 
+func (op *ensureRuleOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "port", Value: op.port.String()},
+		{Label: "action", Value: op.action.String()},
+	}
+}
+
 // OpDescription
 // -----------------------------------------------------------------------------
 

@@ -89,3 +89,10 @@ func (d removeUserDesc) PlanTemplate() spec.PlanTemplate {
 func (op *removeUserOp) OpDescription() spec.OpDescription {
 	return removeUserDesc{Name: op.name}
 }
+
+func (op *removeUserOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "name", Value: op.name},
+		{Label: "state", Value: "absent"},
+	}
+}

@@ -14,25 +14,67 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-// InspectResult holds the content pair extracted by Inspect.
-type InspectResult struct {
+// InspectDiffResult holds the content pair for diff mode.
+type InspectDiffResult struct {
 	DestPath string
 	Current  []byte // nil when the file does not yet exist on target
 	Desired  []byte
 }
 
-func Inspect(
+// InspectList emits resolved state for all steps through the emitter.
+func InspectList(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-	stepFilter string,
-) (*InspectResult, error) {
-	var result *InspectResult
+) error {
+	return forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+		return e.emitInspect(ctx)
+	})
+}
+
+// InspectDiffPaths returns destination paths of all diffable ops.
+func InspectDiffPaths(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *diagnostic.SourceStore,
+	opts spec.ResolveOptions,
+) ([]string, error) {
+	var paths []string
+
+	err := forEachResolved(ctx, em, cfgPath, store, opts, func(_ context.Context, e *Engine) error {
+		p, _, _, planErr := plan(e.cfg, e.em, e.tgt.Capabilities())
+		if planErr != nil {
+			return planErr
+		}
+		for _, act := range p.Unit.Actions {
+			for _, op := range act.Ops() {
+				if d, ok := op.(spec.Diffable); ok {
+					paths = append(paths, d.DestPath())
+				}
+			}
+		}
+		return nil
+	})
+
+	return paths, err
+}
+
+// InspectDiff returns desired vs current content for a specific file op (diff mode).
+func InspectDiff(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *diagnostic.SourceStore,
+	opts spec.ResolveOptions,
+	destPath string,
+) (*InspectDiffResult, error) {
+	var result *InspectDiffResult
 
 	err := forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
-		r, err := e.Inspect(ctx, stepFilter)
+		r, err := e.InspectDiffFile(ctx, destPath)
 		if err != nil {
 			return err
 		}
@@ -43,29 +85,59 @@ func Inspect(
 	return result, err
 }
 
-func (e *Engine) Inspect(ctx context.Context, stepFilter string) (*InspectResult, error) {
+func (e *Engine) emitInspect(ctx context.Context) error {
+	p, _, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+	if err != nil {
+		return err
+	}
+	e.storeSourcePaths(ctx, p)
+
+	detail := event.InspectDetail{
+		DeployName: e.cfg.DeployName,
+		TargetName: e.cfg.TargetName,
+	}
+
+	for i, act := range p.Unit.Actions {
+		entry := event.InspectEntry{
+			Index: i,
+			Kind:  act.Kind(),
+			Desc:  act.Desc(),
+		}
+		for _, op := range act.Ops() {
+			if insp, ok := op.(spec.OpInspector); ok {
+				entry.Fields = append(entry.Fields, insp.Inspect()...)
+			}
+		}
+		detail.Entries = append(detail.Entries, entry)
+	}
+
+	e.em.EmitInspect(diagnostic.InspectProduced(detail))
+	return nil
+}
+
+// InspectDiffFile returns desired vs current content for a specific file op.
+func (e *Engine) InspectDiffFile(ctx context.Context, destPath string) (*InspectDiffResult, error) {
 	p, _, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return nil, err
 	}
 	e.storeSourcePaths(ctx, p)
 
-	var found []inspectableOp
+	var found []diffableOp
 	for _, act := range p.Unit.Actions {
 		for _, op := range act.Ops() {
-			insp, ok := op.(spec.Inspectable)
+			d, ok := op.(spec.Diffable)
 			if !ok {
 				continue
 			}
-			if stepFilter != "" && !strings.Contains(insp.DestPath(), stepFilter) {
-				continue
+			if strings.Contains(d.DestPath(), destPath) {
+				found = append(found, diffableOp{diff: d, src: e.src, tgt: e.tgt})
 			}
-			found = append(found, inspectableOp{insp: insp, src: e.src, tgt: e.tgt})
 		}
 	}
 
 	if len(found) == 0 {
-		err := noInspectableOpsError{CfgPath: e.cfg.Path, Filter: stepFilter}
+		err := noDiffableOpsError{CfgPath: e.cfg.Path, Filter: destPath}
 		emitEngineDiagnostic(e.em, e.cfg.Path, err)
 		return nil, AbortError{Causes: []error{err}}
 	}
@@ -73,21 +145,21 @@ func (e *Engine) Inspect(ctx context.Context, stepFilter string) (*InspectResult
 	if len(found) > 1 {
 		paths := make([]string, len(found))
 		for i, f := range found {
-			paths[i] = f.insp.DestPath()
+			paths[i] = f.diff.DestPath()
 		}
-		err := multipleInspectableOpsError{CfgPath: e.cfg.Path, Count: len(found), Paths: paths}
+		err := multipleDiffableOpsError{CfgPath: e.cfg.Path, Count: len(found), Paths: paths}
 		emitEngineDiagnostic(e.em, e.cfg.Path, err)
 		return nil, AbortError{Causes: []error{err}}
 	}
 
-	iop := found[0]
+	dop := found[0]
 
-	desired, err := iop.insp.DesiredContent(ctx, iop.src)
+	desired, err := dop.diff.DesiredContent(ctx, dop.src)
 	if err != nil {
 		return nil, err
 	}
 
-	current, err := iop.insp.CurrentContent(ctx, iop.src, iop.tgt)
+	current, err := dop.diff.CurrentContent(ctx, dop.src, dop.tgt)
 	if err != nil {
 		if target.IsNotExist(err) {
 			current = nil
@@ -96,15 +168,15 @@ func (e *Engine) Inspect(ctx context.Context, stepFilter string) (*InspectResult
 		}
 	}
 
-	return &InspectResult{
-		DestPath: iop.insp.DestPath(),
+	return &InspectDiffResult{
+		DestPath: dop.diff.DestPath(),
 		Current:  current,
 		Desired:  desired,
 	}, nil
 }
 
-type inspectableOp struct {
-	insp spec.Inspectable
+type diffableOp struct {
+	diff spec.Diffable
 	src  source.Source
 	tgt  target.Target
 }
@@ -112,50 +184,40 @@ type inspectableOp struct {
 // Diagnostics
 // -----------------------------------------------------------------------------
 
-type noInspectableOpsError struct {
+type noDiffableOpsError struct {
 	diagnostic.FatalError
 	CfgPath string
 	Filter  string
 }
 
-func (e noInspectableOpsError) Error() string {
-	if e.Filter != "" {
-		return fmt.Sprintf("no inspectable ops matching %q", e.Filter)
-	}
-	return "no inspectable ops found"
+func (e noDiffableOpsError) Error() string {
+	return fmt.Sprintf("no diffable ops matching %q", e.Filter)
 }
 
-func (e noInspectableOpsError) EventTemplate() event.Template {
-	if e.Filter != "" {
-		return event.Template{
-			ID:   "engine.inspect.NoInspectableOps",
-			Text: `no inspectable ops matching "{{.Filter}}"`,
-			Hint: "check the --step filter value",
-			Data: e,
-		}
-	}
+func (e noDiffableOpsError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "engine.inspect.NoInspectableOps",
-		Text: "no inspectable ops found in config",
-		Hint: "inspect requires at least one file-content op (e.g. copy)",
+		ID:   "engine.inspect.NoDiffableOps",
+		Text: `no diffable ops matching "{{.Filter}}"`,
+		Hint: "use scampi inspect <config> --diff to list available paths",
+		Data: e,
 	}
 }
 
-type multipleInspectableOpsError struct {
+type multipleDiffableOpsError struct {
 	diagnostic.FatalError
 	CfgPath string
 	Count   int
 	Paths   []string
 }
 
-func (e multipleInspectableOpsError) Error() string {
-	return fmt.Sprintf("found %d inspectable ops, expected exactly one", e.Count)
+func (e multipleDiffableOpsError) Error() string {
+	return fmt.Sprintf("found %d diffable ops, expected exactly one", e.Count)
 }
 
-func (e multipleInspectableOpsError) EventTemplate() event.Template {
+func (e multipleDiffableOpsError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "engine.inspect.MultipleInspectableOps",
-		Text: `found {{.Count}} inspectable ops — use --step to pick one`,
+		ID:   "engine.inspect.MultipleDiffableOps",
+		Text: `found {{.Count}} diffable ops — narrow your filter`,
 		Hint: "destinations:\n{{range .Paths}}  {{.}}\n{{end}}",
 		Data: e,
 	}

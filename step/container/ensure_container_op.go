@@ -585,6 +585,48 @@ func (op ensureContainerOp) RequiredCapabilities() capability.Capability {
 	return caps
 }
 
+func (op *ensureContainerOp) Inspect() []spec.InspectField {
+	fields := []spec.InspectField{
+		{Label: "name", Value: op.name},
+	}
+	if op.image != "" {
+		fields = append(fields, spec.InspectField{Label: "image", Value: op.image})
+	}
+	fields = append(fields, spec.InspectField{Label: "state", Value: op.state.String()})
+	if op.restart != "" {
+		fields = append(fields, spec.InspectField{Label: "restart", Value: op.restart})
+	}
+	for _, p := range op.ports {
+		fields = append(fields, spec.InspectField{Label: "port", Value: p.String()})
+	}
+	keys := make([]string, 0, len(op.env))
+	for k := range op.env {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		fields = append(fields, spec.InspectField{Label: "env", Value: k + "=" + op.env[k]})
+	}
+	for _, m := range op.mounts {
+		fields = append(fields, spec.InspectField{Label: "mount", Value: m.String()})
+	}
+	if len(op.args) > 0 {
+		fields = append(fields, spec.InspectField{Label: "args", Value: strings.Join(op.args, " ")})
+	}
+	labelKeys := make([]string, 0, len(op.labels))
+	for k := range op.labels {
+		labelKeys = append(labelKeys, k)
+	}
+	sort.Strings(labelKeys)
+	for _, k := range labelKeys {
+		fields = append(fields, spec.InspectField{Label: "label", Value: k + "=" + op.labels[k]})
+	}
+	if op.healthcheck != nil {
+		fields = append(fields, spec.InspectField{Label: "healthcheck", Value: op.healthcheck.Cmd})
+	}
+	return fields
+}
+
 func slicesEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

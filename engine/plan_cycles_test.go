@@ -26,6 +26,7 @@ func (noopEmitter) EmitActionLifecycle(event.ActionEvent)       {}
 func (noopEmitter) EmitOpLifecycle(event.OpEvent)               {}
 func (noopEmitter) EmitIndexAll(event.IndexAllEvent)            {}
 func (noopEmitter) EmitIndexStep(event.IndexStepEvent)          {}
+func (noopEmitter) EmitInspect(event.InspectEvent)              {}
 func (noopEmitter) EmitEngineDiagnostic(event.EngineDiagnostic) {}
 func (noopEmitter) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
 func (noopEmitter) EmitActionDiagnostic(event.ActionDiagnostic) {}

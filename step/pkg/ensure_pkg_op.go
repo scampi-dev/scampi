@@ -170,6 +170,13 @@ func (ensurePkgOp) RequiredCapabilities() capability.Capability {
 	return capability.Pkg
 }
 
+func (op *ensurePkgOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "packages", Value: strings.Join(op.packages, ", ")},
+		{Label: "state", Value: op.state.String()},
+	}
+}
+
 // ensureLatestPkgOp
 // -----------------------------------------------------------------------------
 
@@ -273,6 +280,12 @@ func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt t
 
 func (ensureLatestPkgOp) RequiredCapabilities() capability.Capability {
 	return capability.Pkg | capability.PkgUpdate
+}
+
+func (op *ensureLatestPkgOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "packages", Value: strings.Join(op.packages, ", ")},
+	}
 }
 
 func (op *ensureLatestPkgOp) OpDescription() spec.OpDescription {

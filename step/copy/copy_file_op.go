@@ -158,6 +158,17 @@ func (op *copyFileOp) OpDescription() spec.OpDescription {
 	}
 }
 
+func (op *copyFileOp) Inspect() []spec.InspectField {
+	fields := []spec.InspectField{
+		{Label: "src", Value: op.srcRef.DisplayPath()},
+		{Label: "dest", Value: op.dest},
+	}
+	if op.verify != "" {
+		fields = append(fields, spec.InspectField{Label: "verify", Value: op.verify})
+	}
+	return fields
+}
+
 // Errors
 // -----------------------------------------------------------------------------
 

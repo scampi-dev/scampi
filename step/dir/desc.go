@@ -23,3 +23,9 @@ func (op *ensureDirOp) OpDescription() spec.OpDescription {
 		Path: op.path,
 	}
 }
+
+func (op *ensureDirOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "path", Value: op.path},
+	}
+}

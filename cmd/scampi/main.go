@@ -248,14 +248,14 @@ func inspectCmd() *cli.Command {
 
 	return &cli.Command{
 		Name:                   "inspect",
-		Usage:                  "Compare desired file content against the current target state",
+		Usage:                  "Show resolved state for all steps, or diff file content",
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,
 		OnUsageError:           onUsageError,
-		Flags: append(resolveFlags(), &cli.StringFlag{
-			Name:  "step",
-			Usage: "filter to a specific file op by destination path (substring match)",
+		Flags: append(resolveFlags(), &cli.BoolFlag{
+			Name:  "diff",
+			Usage: "diff file content (add a path argument to select which file)",
 		}),
 		Arguments: []cli.Argument{
 			&cli.StringArg{
@@ -264,20 +264,24 @@ func inspectCmd() *cli.Command {
 				Destination: &cfg,
 			},
 		},
-		ArgsUsage: "<config>",
-		Description: `Reads a declarative configuration file, extracts file content
-from inspectable ops (e.g. copy), and opens a diff tool to compare
-the desired state against what currently exists on the target.
+		ArgsUsage: "<config> [path]",
+		Description: `Reads a declarative configuration file and shows the resolved state
+of all steps after Starlark evaluation.
+
+Use --diff to compare file content against the current target state:
+  scampi inspect config.star --diff             # list diffable paths
+  scampi inspect config.star --diff nginx.conf  # diff that file
 
 Set SCAMPI_DIFFTOOL, DIFFTOOL, or EDITOR to choose your diff tool.
 Falls back to plain diff(1).`,
-		Before: requireArgs(1),
+		Before: requireArgsRange(1, 2),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			opts := mustGlobalOpts(ctx)
 
 			pol := diagnostic.Policy{
 				WarningsAsErrors: false,
 				Verbosity:        opts.verbosity,
+				SuppressPlan:     true,
 			}
 
 			store := diagnostic.NewSourceStore()
@@ -288,16 +292,59 @@ Falls back to plain diff(1).`,
 			resolveOpts := parseResolveOpts(cmd)
 			em := diagnostic.NewEmitter(pol, displ)
 
-			stepFilter := cmd.String("step")
-			result, err := engine.Inspect(ctx, em, cfg, store, resolveOpts, stepFilter)
-			if err != nil {
-				return handleEngineError("Inspect", err)
+			if cmd.Bool("diff") {
+				diffPath := cmd.Args().Get(0)
+				return inspectDiff(ctx, em, cfg, store, resolveOpts, diffPath)
 			}
 
-			tool := osutil.ResolveDiffTool()
-			return osutil.RunDiffTool(ctx, tool, result.DestPath, result.Current, result.Desired)
+			return inspectList(ctx, em, cfg, store, resolveOpts)
 		},
 	}
+}
+
+func inspectList(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *diagnostic.SourceStore,
+	resolveOpts spec.ResolveOptions,
+) error {
+	if err := engine.InspectList(ctx, em, cfgPath, store, resolveOpts); err != nil {
+		return handleEngineError("InspectList", err)
+	}
+	return nil
+}
+
+func inspectDiff(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *diagnostic.SourceStore,
+	opts spec.ResolveOptions,
+	destPath string,
+) error {
+	if destPath == "" {
+		paths, err := engine.InspectDiffPaths(ctx, em, cfgPath, store, opts)
+		if err != nil {
+			return handleEngineError("InspectDiffPaths", err)
+		}
+		if len(paths) == 0 {
+			_, _ = fmt.Fprintln(os.Stdout, "no diffable file ops found")
+			return nil
+		}
+		for _, p := range paths {
+			_, _ = fmt.Fprintln(os.Stdout, p)
+		}
+		return nil
+	}
+
+	result, err := engine.InspectDiff(ctx, em, cfgPath, store, opts, destPath)
+	if err != nil {
+		return handleEngineError("InspectDiff", err)
+	}
+
+	tool := osutil.ResolveDiffTool()
+	return osutil.RunDiffTool(ctx, tool, result.DestPath, result.Current, result.Desired)
 }
 
 func planCmd() *cli.Command {
@@ -432,6 +479,16 @@ func requireMaxArgs(n int) func(context.Context, *cli.Command) (context.Context,
 func requireArgs(n int) func(context.Context, *cli.Command) (context.Context, error) {
 	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		if cmd.Args().Len() != n {
+			cli.ShowSubcommandHelpAndExit(cmd, exitUserError)
+		}
+		return ctx, nil
+	}
+}
+
+func requireArgsRange(lo, hi int) func(context.Context, *cli.Command) (context.Context, error) {
+	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		n := cmd.Args().Len()
+		if n < lo || n > hi {
 			cli.ShowSubcommandHelpAndExit(cmd, exitUserError)
 		}
 		return ctx, nil

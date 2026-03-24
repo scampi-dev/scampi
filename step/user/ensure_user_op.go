@@ -158,6 +158,25 @@ func (op *ensureUserOp) OpDescription() spec.OpDescription {
 	return ensureUserDesc{Name: op.name}
 }
 
+func (op *ensureUserOp) Inspect() []spec.InspectField {
+	fields := []spec.InspectField{
+		{Label: "name", Value: op.name},
+	}
+	if op.shell != "" {
+		fields = append(fields, spec.InspectField{Label: "shell", Value: op.shell})
+	}
+	if op.home != "" {
+		fields = append(fields, spec.InspectField{Label: "home", Value: op.home})
+	}
+	if len(op.groups) > 0 {
+		fields = append(fields, spec.InspectField{Label: "groups", Value: strings.Join(op.groups, ", ")})
+	}
+	if op.system {
+		fields = append(fields, spec.InspectField{Label: "system", Value: "true"})
+	}
+	return fields
+}
+
 func groupsEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

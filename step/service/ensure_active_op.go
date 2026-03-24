@@ -119,3 +119,10 @@ func (op *ensureActiveOp) OpDescription() spec.OpDescription {
 		State: op.state,
 	}
 }
+
+func (op *ensureActiveOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "name", Value: op.name},
+		{Label: "state", Value: op.state.String()},
+	}
+}

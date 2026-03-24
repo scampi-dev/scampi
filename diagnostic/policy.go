@@ -12,6 +12,7 @@ type (
 	Policy struct {
 		WarningsAsErrors bool
 		Verbosity        signal.Verbosity
+		SuppressPlan     bool // suppress plan lifecycle events (used by inspect)
 	}
 	policyEmitter struct {
 		pol Policy
@@ -40,6 +41,9 @@ func (p *policyEmitter) EmitEngineLifecycle(ev event.EngineEvent) {
 }
 
 func (p *policyEmitter) EmitPlanLifecycle(ev event.PlanEvent) {
+	if p.pol.SuppressPlan {
+		return
+	}
 	ev.Severity = p.pol.apply(ev.Severity)
 	p.out.EmitPlanLifecycle(ev)
 }
@@ -62,6 +66,11 @@ func (p *policyEmitter) EmitIndexAll(ev event.IndexAllEvent) {
 func (p *policyEmitter) EmitIndexStep(ev event.IndexStepEvent) {
 	ev.Severity = p.pol.apply(ev.Severity)
 	p.out.EmitIndexStep(ev)
+}
+
+func (p *policyEmitter) EmitInspect(ev event.InspectEvent) {
+	ev.Severity = p.pol.apply(ev.Severity)
+	p.out.EmitInspect(ev)
 }
 
 func (p *policyEmitter) EmitEngineDiagnostic(ev event.EngineDiagnostic) {

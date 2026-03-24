@@ -62,7 +62,7 @@ func TestUsageError_GlobalFlagMissingValue(t *testing.T) {
 }
 
 func TestUsageError_SubcommandFlagMissingValue(t *testing.T) {
-	out, code := run("inspect", "--step")
+	out, code := run("inspect", "--only")
 
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
@@ -70,8 +70,8 @@ func TestUsageError_SubcommandFlagMissingValue(t *testing.T) {
 	if !strings.Contains(out, "Incorrect Usage") {
 		t.Errorf("expected 'Incorrect Usage' in output, got:\n%s", out)
 	}
-	if !strings.Contains(out, "--step") {
-		t.Errorf("expected '--step' in output, got:\n%s", out)
+	if !strings.Contains(out, "--only") {
+		t.Errorf("expected '--only' in output, got:\n%s", out)
 	}
 	// Subcommand flag error should show subcommand help with OPTIONS.
 	if !strings.Contains(out, "OPTIONS") {

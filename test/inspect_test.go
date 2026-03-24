@@ -60,7 +60,7 @@ func TestInspect_SingleOp(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	result, err := e.Inspect(ctx, "")
+	result, err := e.InspectDiffFile(ctx, "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestInspect_NoInspectableOps(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	_, err := e.Inspect(ctx, "")
+	_, err := e.InspectDiffFile(ctx, "")
 	var abort engine.AbortError
 	if !errors.As(err, &abort) {
 		t.Fatalf("expected AbortError, got %v", err)
@@ -114,7 +114,7 @@ func TestInspect_MultipleOps(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	_, err := e.Inspect(ctx, "")
+	_, err := e.InspectDiffFile(ctx, "")
 	var abort engine.AbortError
 	if !errors.As(err, &abort) {
 		t.Fatalf("expected AbortError, got %v", err)
@@ -135,7 +135,7 @@ func TestInspect_CurrentNotExist(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	result, err := e.Inspect(ctx, "")
+	result, err := e.InspectDiffFile(ctx, "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -169,14 +169,14 @@ func TestInspect_StepFilter(t *testing.T) {
 	defer e.Close()
 
 	// Without filter: multiple ops → abort.
-	_, err := e.Inspect(ctx, "")
+	_, err := e.InspectDiffFile(ctx, "")
 	var abort engine.AbortError
 	if !errors.As(err, &abort) {
 		t.Fatalf("expected AbortError without filter, got %v", err)
 	}
 
 	// With filter: narrows to one.
-	result, err := e.Inspect(ctx, "a.conf")
+	result, err := e.InspectDiffFile(ctx, "a.conf")
 	if err != nil {
 		t.Fatalf("Inspect with filter: %v", err)
 	}

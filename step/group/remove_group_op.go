@@ -89,3 +89,10 @@ func (d removeGroupDesc) PlanTemplate() spec.PlanTemplate {
 func (op *removeGroupOp) OpDescription() spec.OpDescription {
 	return removeGroupDesc{Name: op.name}
 }
+
+func (op *removeGroupOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "name", Value: op.name},
+		{Label: "state", Value: "absent"},
+	}
+}

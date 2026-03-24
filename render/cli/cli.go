@@ -256,6 +256,41 @@ func (c *cli) EmitIndexAll(e event.IndexAllEvent) {
 	c.commitRenderEvents(events)
 }
 
+func (c *cli) EmitInspect(e event.InspectEvent) {
+	f := c.formatter
+	var out []renderEvent
+
+	header := f.fmtfMsg(
+		ansi.Blue().Bold(),
+		"deploy %q → %s",
+		e.Detail.DeployName,
+		e.Detail.TargetName,
+	)
+	out = append(out,
+		renderEvent{stream: streamOut, line: header},
+		renderEvent{stream: streamOut, line: ""},
+	)
+
+	for _, entry := range e.Detail.Entries {
+		line := "  " + f.fmtMsg(ansi.Cyan().Bold(), entry.Kind)
+		if entry.Desc != "" {
+			line += " " + f.fmtMsg(ansi.Cyan(), entry.Desc)
+		}
+		out = append(out, renderEvent{stream: streamOut, line: line})
+
+		for _, field := range entry.Fields {
+			label := f.fmtfMsg(ansi.BrightBlack(), "%-12s", field.Label)
+			out = append(out, renderEvent{
+				stream: streamOut,
+				line:   "      " + label + " " + field.Value,
+			})
+		}
+		out = append(out, renderEvent{stream: streamOut, line: ""})
+	}
+
+	c.commitRenderEvents(out)
+}
+
 func (c *cli) EmitIndexStep(e event.IndexStepEvent) {
 	if !c.shouldRender(e.Chattiness) {
 		return

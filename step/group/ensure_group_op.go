@@ -4,6 +4,7 @@ package group
 
 import (
 	"context"
+	"strconv"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
@@ -95,4 +96,17 @@ func (d ensureGroupDesc) PlanTemplate() spec.PlanTemplate {
 
 func (op *ensureGroupOp) OpDescription() spec.OpDescription {
 	return ensureGroupDesc{Name: op.name}
+}
+
+func (op *ensureGroupOp) Inspect() []spec.InspectField {
+	fields := []spec.InspectField{
+		{Label: "name", Value: op.name},
+	}
+	if op.gid > 0 {
+		fields = append(fields, spec.InspectField{Label: "gid", Value: strconv.Itoa(op.gid)})
+	}
+	if op.system {
+		fields = append(fields, spec.InspectField{Label: "system", Value: "true"})
+	}
+	return fields
 }

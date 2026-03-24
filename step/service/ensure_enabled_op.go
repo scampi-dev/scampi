@@ -115,3 +115,14 @@ func (op *ensureEnabledOp) OpDescription() spec.OpDescription {
 		Enabled: fmt.Sprintf("%v", op.enabled),
 	}
 }
+
+func (op *ensureEnabledOp) Inspect() []spec.InspectField {
+	v := "false"
+	if op.enabled {
+		v = "true"
+	}
+	return []spec.InspectField{
+		{Label: "name", Value: op.name},
+		{Label: "enabled", Value: v},
+	}
+}

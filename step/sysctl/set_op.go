@@ -105,3 +105,10 @@ func (d setSysctlDesc) PlanTemplate() spec.PlanTemplate {
 func (op *setSysctlOp) OpDescription() spec.OpDescription {
 	return setSysctlDesc{Key: op.key, Value: op.value}
 }
+
+func (op *setSysctlOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "key", Value: op.key},
+		{Label: "value", Value: op.value},
+	}
+}
