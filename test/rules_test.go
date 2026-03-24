@@ -73,6 +73,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,os/exec",
 		},
 		{
+			pattern:        "osutil/fuzzy.go",
+			allowedImports: "os,os/exec",
+		},
+		{
 			pattern:        "engine/errors.go",
 			allowedImports: "runtime",
 		},
