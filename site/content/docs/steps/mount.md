@@ -1,6 +1,5 @@
 ---
 title: mount
-weight: 60
 ---
 
 Manage filesystem mounts and `/etc/fstab` entries.

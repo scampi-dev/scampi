@@ -102,7 +102,7 @@ func (c BearerAuthConfig) Transport(base http.RoundTripper) http.RoundTripper {
 
 type bearerTransport struct {
 	base          http.RoundTripper
-	tokenEndpoint string // full URL, set by RESTTarget after base URL is known
+	tokenEndpoint string // full URL (resolved by RESTTarget.Create)
 	identity      string
 	secret        string
 
@@ -115,7 +115,8 @@ var errTokenFetch = errs.New("bearer token fetch")
 
 func (t *bearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Skip auth for the token endpoint itself to avoid recursion.
-	if req.URL.Path == t.tokenEndpoint {
+	reqURL := req.URL.String()
+	if reqURL == t.tokenEndpoint {
 		return t.base.RoundTrip(req)
 	}
 
@@ -164,9 +165,7 @@ func (t *bearerTransport) ensureToken(origReq *http.Request) error {
 		return errs.WrapErrf(errTokenFetch, "marshal credentials: %v", err)
 	}
 
-	// Build token request using the base URL from the original request.
-	tokenURL := origReq.URL.Scheme + "://" + origReq.URL.Host + t.tokenEndpoint
-	tokenReq, err := http.NewRequestWithContext(origReq.Context(), http.MethodPost, tokenURL, bytes.NewReader(body))
+	tokenReq, err := http.NewRequestWithContext(origReq.Context(), http.MethodPost, t.tokenEndpoint, bytes.NewReader(body))
 	if err != nil {
 		return errs.WrapErrf(errTokenFetch, "build request: %v", err)
 	}

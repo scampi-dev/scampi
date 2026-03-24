@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -496,6 +497,258 @@ func TestRESTTarget_BearerAuth_ReauthOn401(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("expected 200 after re-auth, got %d", resp.StatusCode)
 	}
+}
+
+// rest.request step
+// -----------------------------------------------------------------------------
+
+func TestRestRequest_POST_WithStatusCheck(t *testing.T) {
+	var created bool
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/items":
+			if created {
+				w.WriteHeader(http.StatusOK)
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		case r.Method == "POST" && r.URL.Path == "/items":
+			created = true
+			w.WriteHeader(http.StatusCreated)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.request(
+        desc="create item",
+        method="POST",
+        path="/items",
+        body=rest.body.json({"name": "test"}),
+        check=rest.status(code=200),
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+
+	if !created {
+		t.Fatal("POST was not executed")
+	}
+	if rec.countChangedOps() != 1 {
+		t.Fatalf("expected 1 changed op, got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestRequest_POST_AlreadySatisfied(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/items" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.request(
+        desc="create item",
+        method="POST",
+        path="/items",
+        check=rest.status(code=200),
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+
+	if rec.countChangedOps() != 0 {
+		t.Fatalf("expected 0 changed ops (already satisfied), got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestRequest_WithJQCheck(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/hosts" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"domain": "other.com"}]`))
+			return
+		}
+		if r.Method == "POST" && r.URL.Path == "/hosts" {
+			w.WriteHeader(http.StatusCreated)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.request(
+        desc="create host",
+        method="POST",
+        path="/hosts",
+        body=rest.body.json({"domain": "example.com"}),
+        check=rest.jq(expr='.[] | select(.domain == "example.com")'),
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+
+	if rec.countChangedOps() != 1 {
+		t.Fatalf("expected 1 changed op, got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestRequest_JQCheck_AlreadySatisfied(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/hosts" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"domain": "example.com"}]`))
+			return
+		}
+		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.request(
+        desc="create host",
+        method="POST",
+        path="/hosts",
+        check=rest.jq(expr='.[] | select(.domain == "example.com")'),
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+
+	if rec.countChangedOps() != 0 {
+		t.Fatalf("expected 0 changed ops (already satisfied), got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestRequest_NoCheck_AlwaysExecutes(t *testing.T) {
+	var called bool
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" && r.URL.Path == "/config" {
+			called = true
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.request(
+        desc="update config",
+        method="PUT",
+        path="/config",
+        body=rest.body.json({"key": "value"}),
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+
+	if !called {
+		t.Fatal("PUT was not executed")
+	}
+	if rec.countChangedOps() != 1 {
+		t.Fatalf("expected 1 changed op, got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestRequest_ExecuteError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("server error"))
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.request(
+        method="POST",
+        path="/items",
+        check=rest.status(code=200),
+    ),
+])
+`, srv.URL)
+
+	_, err := applyREST(t, cfgStr, srv.URL)
+	if err == nil {
+		t.Fatal("expected error from 500 response")
+	}
+}
+
+func applyREST(t *testing.T, cfgStr, baseURL string) (*recordingDisplayer, error) {
+	t.Helper()
+
+	src := source.NewMemSource()
+	src.Files["/config.star"] = []byte(cfgStr)
+
+	tgt := createRESTTarget(t, &rest.Config{BaseURL: baseURL})
+
+	rec := &recordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := diagnostic.NewSourceStore()
+
+	ctx := context.Background()
+	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	if err != nil {
+		return rec, err
+	}
+
+	resolved, err := engine.Resolve(cfg, "", "")
+	if err != nil {
+		return rec, err
+	}
+
+	resolved.Target = mockTargetInstance(tgt)
+
+	e, err := engine.NewWithTarget(ctx, src, resolved, em, tgt)
+	if err != nil {
+		return rec, err
+	}
+	defer e.Close()
+
+	return rec, e.Apply(ctx)
 }
 
 // Helpers

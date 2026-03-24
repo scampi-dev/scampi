@@ -32,7 +32,9 @@ scampi leaves it alone. If you want scampi to manage it, set it explicitly.
   {{< card link="dir" title="dir" subtitle="Ensure a directory exists" >}}
   {{< card link="firewall" title="firewall" subtitle="Manage firewall rules via UFW or firewalld" >}}
   {{< card link="group" title="group" subtitle="Manage system groups" >}}
+  {{< card link="mount" title="mount" subtitle="Manage filesystem mounts and fstab entries" >}}
   {{< card link="pkg" title="pkg" subtitle="Manage system packages" >}}
+  {{< card link="rest" title="rest" subtitle="HTTP requests against a REST API" >}}
   {{< card link="run" title="run" subtitle="Run arbitrary shell commands" >}}
   {{< card link="service" title="service" subtitle="Manage services (systemd, OpenRC, launchctl)" >}}
   {{< card link="sysctl" title="sysctl" subtitle="Manage kernel parameters" >}}

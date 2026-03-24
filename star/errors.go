@@ -736,6 +736,32 @@ func (e *InlineCacheError) setSource(s spec.SourceSpan) {
 	}
 }
 
+// JQCompileError
+// -----------------------------------------------------------------------------
+
+type JQCompileError struct {
+	diagnostic.FatalError
+	Expr   string
+	Source spec.SourceSpan
+	Err    error
+}
+
+func (e JQCompileError) Error() string {
+	return fmt.Sprintf("invalid jq expression %q: %s", e.Expr, e.Err)
+}
+
+func (e JQCompileError) Unwrap() error { return e.Err }
+
+func (e JQCompileError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     "star.JQCompile",
+		Text:   `invalid jq expression "{{.Expr}}"`,
+		Hint:   "check the jq syntax",
+		Source: &e.Source,
+		Data:   e,
+	}
+}
+
 // CACertReadError
 // -----------------------------------------------------------------------------
 

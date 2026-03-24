@@ -36,6 +36,13 @@ func (REST) Create(_ context.Context, _ source.Source, tgt spec.TargetInstance) 
 	// Normalize base URL: strip trailing slash.
 	cfg.BaseURL = strings.TrimRight(cfg.BaseURL, "/")
 
+	// Resolve bearer token endpoint relative to base URL before building
+	// the transport, so the auth layer has the full URL.
+	if bearer, ok := cfg.Auth.(BearerAuthConfig); ok {
+		bearer.TokenEndpoint = cfg.BaseURL + bearer.TokenEndpoint
+		cfg.Auth = bearer
+	}
+
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = cfg.TLS.TLSClientConfig()
 	var base http.RoundTripper = transport

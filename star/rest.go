@@ -4,10 +4,13 @@ package star
 
 import (
 	"crypto/x509"
+	"fmt"
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 
+	"scampi.dev/scampi/spec"
+	steprest "scampi.dev/scampi/step/rest"
 	"scampi.dev/scampi/target/rest"
 )
 
@@ -16,10 +19,14 @@ func restModule() *starlarkstruct.Module {
 	return &starlarkstruct.Module{
 		Name: "rest",
 		Members: starlark.StringDict{
+			"request": starlark.NewBuiltin("rest.request", builtinRestRequest),
+			"status":  starlark.NewBuiltin("rest.status", builtinRestStatus),
+			"jq":      starlark.NewBuiltin("rest.jq", builtinRestJQ),
 			"no_auth": starlark.NewBuiltin("rest.no_auth", builtinRestNoAuth),
 			"basic":   starlark.NewBuiltin("rest.basic", builtinRestBasic),
 			"bearer":  starlark.NewBuiltin("rest.bearer", builtinRestBearer),
 			"header":  starlark.NewBuiltin("rest.header", builtinRestHeader),
+			"body":    restBodyModule(),
 			"tls":     restTLSModule(),
 		},
 	}
@@ -163,6 +170,237 @@ func builtinRestTLSCACert(
 	}
 
 	return starlarkTLS{config: rest.CACertTLSConfig{Pool: pool}}, nil
+}
+
+// Steps
+// -----------------------------------------------------------------------------
+
+// rest.request(method, path, body?, headers?, check?, desc?, on_change?)
+func builtinRestRequest(
+	thread *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		method      string
+		path        string
+		bodyVal     starlark.Value
+		headersVal  *starlark.Dict
+		checkVal    starlark.Value
+		desc        string
+		onChangeVal starlark.Value
+	)
+	if err := starlark.UnpackArgs("rest.request", args, kwargs,
+		"method", &method,
+		"path", &path,
+		"body?", &bodyVal,
+		"headers?", &headersVal,
+		"check?", &checkVal,
+		"desc?", &desc,
+		"on_change?", &onChangeVal,
+	); err != nil {
+		return nil, err
+	}
+
+	hookIDs, err := unpackOnChange(thread, onChangeVal, "rest.request")
+	if err != nil {
+		return nil, err
+	}
+
+	var body steprest.BodyConfig
+	if bodyVal != nil && bodyVal != starlark.None {
+		sb, ok := bodyVal.(starlarkBody)
+		if !ok {
+			span := callSpan(thread)
+			return nil, &TypeError{
+				Context:  "rest.request: body",
+				Expected: "rest.body.json() or rest.body.string()",
+				Got:      bodyVal.Type(),
+				Source:   span,
+			}
+		}
+		body = sb.config
+	}
+
+	var headers map[string]string
+	if headersVal != nil {
+		headers = make(map[string]string, headersVal.Len())
+		for _, item := range headersVal.Items() {
+			k, ok1 := starlark.AsString(item[0])
+			v, ok2 := starlark.AsString(item[1])
+			if !ok1 || !ok2 {
+				return nil, &TypeError{
+					Context:  "rest.request: headers",
+					Expected: "dict[string, string]",
+					Got:      fmt.Sprintf("dict[%s, %s]", item[0].Type(), item[1].Type()),
+				}
+			}
+			headers[k] = v
+		}
+	}
+
+	var check steprest.CheckConfig
+	if checkVal != nil && checkVal != starlark.None {
+		sc, ok := checkVal.(starlarkCheck)
+		if !ok {
+			span := callSpan(thread)
+			return nil, &TypeError{
+				Context:  "rest.request: check",
+				Expected: "rest.status() or rest.jq()",
+				Got:      checkVal.Type(),
+				Source:   span,
+			}
+		}
+		check = sc.config
+	}
+
+	span := callSpan(thread)
+	return &StarlarkStep{
+		Instance: spec.StepInstance{
+			Desc: desc,
+			Type: steprest.Request{},
+			Config: &steprest.RequestConfig{
+				Desc:    desc,
+				Method:  method,
+				Path:    path,
+				Headers: headers,
+				Body:    body,
+				Check:   check,
+			},
+			OnChange: hookIDs,
+			Source:   span,
+			Fields:   kwargsFieldSpans(thread, "method", "path", "body", "headers", "check", "on_change"),
+		},
+	}, nil
+}
+
+// Bodies
+// -----------------------------------------------------------------------------
+
+func restBodyModule() *starlarkstruct.Module {
+	return &starlarkstruct.Module{
+		Name: "rest.body",
+		Members: starlark.StringDict{
+			"json":   starlark.NewBuiltin("rest.body.json", builtinRestBodyJSON),
+			"string": starlark.NewBuiltin("rest.body.string", builtinRestBodyString),
+		},
+	}
+}
+
+type starlarkBody struct {
+	config steprest.BodyConfig
+}
+
+func (s starlarkBody) String() string        { return "<rest.body:" + s.config.Kind() + ">" }
+func (s starlarkBody) Type() string          { return "rest.body" }
+func (s starlarkBody) Freeze()               {}
+func (s starlarkBody) Truth() starlark.Bool  { return starlark.True }
+func (s starlarkBody) Hash() (uint32, error) { return 0, nil }
+
+// rest.body.json(data)
+func builtinRestBodyJSON(
+	_ *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var dataVal starlark.Value
+	if err := starlark.UnpackArgs("rest.body.json", args, kwargs,
+		"data", &dataVal,
+	); err != nil {
+		return nil, err
+	}
+	return starlarkBody{config: steprest.JSONBody{Data: starlarkToGo(dataVal)}}, nil
+}
+
+// rest.body.string(content)
+func builtinRestBodyString(
+	_ *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var content string
+	if err := starlark.UnpackArgs("rest.body.string", args, kwargs,
+		"content", &content,
+	); err != nil {
+		return nil, err
+	}
+	return starlarkBody{config: steprest.StringBody{Content: content}}, nil
+}
+
+// Checks
+// -----------------------------------------------------------------------------
+
+type starlarkCheck struct {
+	config steprest.CheckConfig
+}
+
+func (s starlarkCheck) String() string        { return "<rest.check:" + s.config.Kind() + ">" }
+func (s starlarkCheck) Type() string          { return "rest.check" }
+func (s starlarkCheck) Freeze()               {}
+func (s starlarkCheck) Truth() starlark.Bool  { return starlark.True }
+func (s starlarkCheck) Hash() (uint32, error) { return 0, nil }
+
+// rest.status(code, path?, method?)
+func builtinRestStatus(
+	_ *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		status int
+		path   string
+		method string
+	)
+	if err := starlark.UnpackArgs("rest.status", args, kwargs,
+		"code", &status,
+		"path?", &path,
+		"method?", &method,
+	); err != nil {
+		return nil, err
+	}
+	return starlarkCheck{config: steprest.StatusCheck{
+		Status: status,
+		Path:   path,
+		Method: method,
+	}}, nil
+}
+
+// rest.jq(expr, path?, method?)
+func builtinRestJQ(
+	thread *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		expr   string
+		path   string
+		method string
+	)
+	if err := starlark.UnpackArgs("rest.jq", args, kwargs,
+		"expr", &expr,
+		"path?", &path,
+		"method?", &method,
+	); err != nil {
+		return nil, err
+	}
+
+	compiled, err := steprest.CompileJQ(expr)
+	if err != nil {
+		span := callSpan(thread)
+		return nil, &JQCompileError{Expr: expr, Source: span, Err: err}
+	}
+
+	return starlarkCheck{config: &steprest.JQCheck{
+		Expr:     expr,
+		Path:     path,
+		Method:   method,
+		Compiled: compiled,
+	}}, nil
 }
 
 // rest.header(name, value)

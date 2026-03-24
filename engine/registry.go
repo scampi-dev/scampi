@@ -11,6 +11,7 @@ import (
 	"scampi.dev/scampi/step/group"
 	"scampi.dev/scampi/step/mount"
 	"scampi.dev/scampi/step/pkg"
+	steprest "scampi.dev/scampi/step/rest"
 	"scampi.dev/scampi/step/run"
 	"scampi.dev/scampi/step/service"
 	"scampi.dev/scampi/step/symlink"
@@ -37,6 +38,7 @@ func NewRegistry() *Registry {
 		group.Group{},
 		mount.Mount{},
 		pkg.Pkg{},
+		steprest.Request{},
 		run.Run{},
 		service.Service{},
 		sysctl.Sysctl{},
