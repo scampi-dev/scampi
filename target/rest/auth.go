@@ -165,7 +165,12 @@ func (t *bearerTransport) ensureToken(origReq *http.Request) error {
 		return errs.WrapErrf(errTokenFetch, "marshal credentials: %v", err)
 	}
 
-	tokenReq, err := http.NewRequestWithContext(origReq.Context(), http.MethodPost, t.tokenEndpoint, bytes.NewReader(body))
+	tokenReq, err := http.NewRequestWithContext(
+		origReq.Context(),
+		http.MethodPost,
+		t.tokenEndpoint,
+		bytes.NewReader(body),
+	)
 	if err != nil {
 		return errs.WrapErrf(errTokenFetch, "build request: %v", err)
 	}

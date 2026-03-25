@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.1.0-alpha.4 — 2026-03-25
+
+### Features
+- Step: mount (NFS/CIFS) (#17)
+- REST target + auth (#2)
+- REST escape hatch steps (#3)
+- Docker container step (#4)
+- container.instance: add env field (#84)
+- container.instance: add mounts field for bind mounts (#85)
+- container.instance: add healthcheck support (#87)
+- container.instance: add args field for CLI arguments (#88)
+- container.instance: add labels field (#89)
+- revisit scampi inspect: show planned state before apply (#93)
+
+### Enhancements
+- Per-op timeouts instead of blanket action timeout (#58)
+- Move SourceStore and DocFromConfig out of spec/ (#74)
+- Remove unused idx field from action structs (#76)
+- Deduplicate engine scheduling and Check/Apply command methods (#77)
+- Deduplicate render summary formatting and fileops check paths (#78)
+- Design debt: plan() complexity, registry allocation, sharedops boundaries (#79)
+- Minor code quality sweep (#80)
+- container.instance: replace raw port strings with domain type (#90)
+- replace raw checksum strings with domain type (#91)
+- firewall: replace raw port/proto strings with domain type (#92)
+- lint: ban fmt.Errorf in user-facing error paths (#96)
+- Built-in fuzzy finder for inspect --diff (#99)
+
+### Bug Fixes
+- Thread context through Starlark builtins instead of context.Background() (#72)
+- Hardcoded Unicode bypasses glyphSet — breaks ASCII fallback (#73)
+- reloadOp: eliminate mutable state between Check and Execute (#75)
+- Recursive Check only inspects root path, not children (#81)
+
+### Other
+- Lazy target creation for plan and inspect list mode (#98)
+
 ## v0.1.0-alpha.3 — 2026-03-20
 
 ### Features
