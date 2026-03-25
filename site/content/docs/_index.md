@@ -21,4 +21,5 @@ idempotent operations to make reality match.
   {{< card link="targets" title="Target Reference" subtitle="Local, SSH, and REST target types" >}}
   {{< card link="steps" title="Step Reference" subtitle="Every built-in step type, with fields and examples" >}}
   {{< card link="cli" title="CLI" subtitle="Subcommands, flags, output semantics, and exit codes" >}}
+  {{< card link="philosophy" title="Philosophy" subtitle="Why convergence, why Starlark, why opinions over options" >}}
 {{< /cards >}}
