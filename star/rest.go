@@ -19,15 +19,16 @@ func restModule() *starlarkstruct.Module {
 	return &starlarkstruct.Module{
 		Name: "rest",
 		Members: starlark.StringDict{
-			"request": starlark.NewBuiltin("rest.request", builtinRestRequest),
-			"status":  starlark.NewBuiltin("rest.status", builtinRestStatus),
-			"jq":      starlark.NewBuiltin("rest.jq", builtinRestJQ),
-			"no_auth": starlark.NewBuiltin("rest.no_auth", builtinRestNoAuth),
-			"basic":   starlark.NewBuiltin("rest.basic", builtinRestBasic),
-			"bearer":  starlark.NewBuiltin("rest.bearer", builtinRestBearer),
-			"header":  starlark.NewBuiltin("rest.header", builtinRestHeader),
-			"body":    restBodyModule(),
-			"tls":     restTLSModule(),
+			"request":  starlark.NewBuiltin("rest.request", builtinRestRequest),
+			"resource": starlark.NewBuiltin("rest.resource", builtinRestResource),
+			"status":   starlark.NewBuiltin("rest.status", builtinRestStatus),
+			"jq":       starlark.NewBuiltin("rest.jq", builtinRestJQ),
+			"no_auth":  starlark.NewBuiltin("rest.no_auth", builtinRestNoAuth),
+			"basic":    starlark.NewBuiltin("rest.basic", builtinRestBasic),
+			"bearer":   starlark.NewBuiltin("rest.bearer", builtinRestBearer),
+			"header":   starlark.NewBuiltin("rest.header", builtinRestHeader),
+			"body":     restBodyModule(),
+			"tls":      restTLSModule(),
 		},
 	}
 }
@@ -418,4 +419,150 @@ func builtinRestHeader(
 		return nil, err
 	}
 	return starlarkAuth{config: rest.HeaderAuthConfig{Name: name, Value: value}}, nil
+}
+
+// Resource
+// -----------------------------------------------------------------------------
+
+// rest.resource(query, missing?, found?, bindings?, state?, desc?, on_change?)
+func builtinRestResource(
+	thread *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		queryVal    starlark.Value
+		missingVal  starlark.Value
+		foundVal    starlark.Value
+		bindingsVal *starlark.Dict
+		stateVal    *starlark.Dict
+		desc        string
+		onChangeVal starlark.Value
+	)
+	if err := starlark.UnpackArgs("rest.resource", args, kwargs,
+		"query", &queryVal,
+		"missing?", &missingVal,
+		"found?", &foundVal,
+		"bindings?", &bindingsVal,
+		"state?", &stateVal,
+		"desc?", &desc,
+		"on_change?", &onChangeVal,
+	); err != nil {
+		return nil, err
+	}
+
+	span := callSpan(thread)
+
+	hookIDs, err := unpackOnChange(thread, onChangeVal, "rest.resource")
+	if err != nil {
+		return nil, err
+	}
+
+	query, err := unwrapRequestConfig(queryVal, "rest.resource: query", span)
+	if err != nil {
+		return nil, err
+	}
+
+	var missing *steprest.RequestConfig
+	if missingVal != nil && missingVal != starlark.None {
+		missing, err = unwrapRequestConfig(missingVal, "rest.resource: missing", span)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var found *steprest.RequestConfig
+	if foundVal != nil && foundVal != starlark.None {
+		found, err = unwrapRequestConfig(foundVal, "rest.resource: found", span)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var state map[string]any
+	if stateVal != nil {
+		state, err = starlarkDictToMap(stateVal, "rest.resource: state")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var bindings map[string]*steprest.JQBinding
+	if bindingsVal != nil && bindingsVal.Len() > 0 {
+		bindings = make(map[string]*steprest.JQBinding, bindingsVal.Len())
+		for _, item := range bindingsVal.Items() {
+			name, ok := starlark.AsString(item[0])
+			if !ok {
+				return nil, &TypeError{
+					Context:  "rest.resource: bindings key",
+					Expected: "string",
+					Got:      item[0].Type(),
+					Source:   span,
+				}
+			}
+			sc, ok := item[1].(starlarkCheck)
+			if !ok {
+				return nil, &TypeError{
+					Context:  fmt.Sprintf("rest.resource: bindings[%q]", name),
+					Expected: "rest.jq()",
+					Got:      item[1].Type(),
+					Source:   span,
+				}
+			}
+			jqc, ok := sc.config.(*steprest.JQCheck)
+			if !ok {
+				return nil, &TypeError{
+					Context:  fmt.Sprintf("rest.resource: bindings[%q]", name),
+					Expected: "rest.jq()",
+					Got:      sc.config.Kind(),
+					Source:   span,
+				}
+			}
+			bindings[name] = &steprest.JQBinding{
+				Expr:     jqc.Expr,
+				Compiled: jqc.Compiled,
+			}
+		}
+	}
+
+	return &StarlarkStep{
+		Instance: spec.StepInstance{
+			Desc: desc,
+			Type: steprest.Resource{},
+			Config: &steprest.ResourceConfig{
+				Desc:     desc,
+				Query:    query,
+				Missing:  missing,
+				Found:    found,
+				Bindings: bindings,
+				State:    state,
+			},
+			OnChange: hookIDs,
+			Source:   span,
+			Fields:   kwargsFieldSpans(thread, "query", "missing", "found", "bindings", "state", "on_change"),
+		},
+	}, nil
+}
+
+func unwrapRequestConfig(val starlark.Value, ctx string, span spec.SourceSpan) (*steprest.RequestConfig, error) {
+	step, ok := val.(*StarlarkStep)
+	if !ok {
+		return nil, &TypeError{
+			Context:  ctx,
+			Expected: "rest.request()",
+			Got:      val.Type(),
+			Source:   span,
+		}
+	}
+	cfg, ok := step.Instance.Config.(*steprest.RequestConfig)
+	if !ok {
+		return nil, &TypeError{
+			Context:  ctx,
+			Expected: "rest.request()",
+			Got:      fmt.Sprintf("step(%T)", step.Instance.Config),
+			Source:   span,
+		}
+	}
+	return cfg, nil
 }

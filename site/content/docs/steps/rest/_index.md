@@ -15,4 +15,5 @@ mutation if the desired state already exists.
 
 {{< cards >}}
   {{< card link="request" title="request" subtitle="Make HTTP requests with optional idempotency checks" >}}
+  {{< card link="resource" title="resource" subtitle="Declarative REST resource management with query/found/missing" >}}
 {{< /cards >}}

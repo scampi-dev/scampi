@@ -52,3 +52,28 @@ func (e HTTPError) EventTemplate() event.Template {
 		Data: e,
 	}
 }
+
+// Resource errors
+// -----------------------------------------------------------------------------
+
+type ResourceQueryError struct {
+	diagnostic.FatalError
+	Method string
+	Path   string
+	Err    error
+}
+
+func (e ResourceQueryError) Error() string {
+	return fmt.Sprintf("resource query %s %s: %s", e.Method, e.Path, e.Err)
+}
+
+func (e ResourceQueryError) Unwrap() error { return e.Err }
+
+func (e ResourceQueryError) EventTemplate() event.Template {
+	return event.Template{
+		ID:   "rest.ResourceQueryError",
+		Text: "resource query {{.Method}} {{.Path}} failed",
+		Hint: "{{.Err}}",
+		Data: e,
+	}
+}

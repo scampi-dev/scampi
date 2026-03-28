@@ -39,6 +39,7 @@ func NewRegistry() *Registry {
 		mount.Mount{},
 		pkg.Pkg{},
 		steprest.Request{},
+		steprest.Resource{},
 		run.Run{},
 		service.Service{},
 		sysctl.Sysctl{},

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -801,4 +802,411 @@ func (r *restOnlyTarget) Capabilities() capability.Capability {
 
 func (r *restOnlyTarget) Do(_ context.Context, _ target.HTTPRequest) (*target.HTTPResponse, error) {
 	return nil, errors.New("not implemented in test")
+}
+
+// rest.resource step
+// -----------------------------------------------------------------------------
+
+func TestRestResource_CreatesWhenAbsent(t *testing.T) {
+	var postReceived bool
+	var postBody []byte
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[]`))
+		case r.Method == "POST" && r.URL.Path == "/hosts":
+			postReceived = true
+			postBody, _ = io.ReadAll(r.Body)
+			w.WriteHeader(http.StatusCreated)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        desc="test host",
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"name": "test", "port": 80},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if !postReceived {
+		t.Fatal("POST was not executed")
+	}
+	if rec.countChangedOps() != 1 {
+		t.Fatalf("expected 1 changed op, got %d", rec.countChangedOps())
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(postBody, &body); err != nil {
+		t.Fatalf("POST body is not valid JSON: %v", err)
+	}
+	if body["name"] != "test" {
+		t.Fatalf("expected name=test, got %v", body["name"])
+	}
+}
+
+func TestRestResource_NoopWhenSatisfied(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/hosts" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"name": "test", "port": 80}]`))
+			return
+		}
+		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"name": "test", "port": 80},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if rec.countChangedOps() != 0 {
+		t.Fatalf("expected 0 changed ops (satisfied), got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestResource_UpdatesOnDrift(t *testing.T) {
+	var putPath string
+	var putBody []byte
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id": 42, "name": "test", "port": 8080}]`))
+		case r.Method == "PUT":
+			putPath = r.URL.Path
+			putBody, _ = io.ReadAll(r.Body)
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        found=rest.request(method="PUT", path="/hosts/{id}"),
+        bindings={"id": rest.jq(expr=".id")},
+        state={"name": "test", "port": 80},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if rec.countChangedOps() != 1 {
+		t.Fatalf("expected 1 changed op, got %d", rec.countChangedOps())
+	}
+	if putPath != "/hosts/42" {
+		t.Fatalf("expected PUT to /hosts/42, got %s", putPath)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(putBody, &body); err != nil {
+		t.Fatalf("PUT body is not valid JSON: %v", err)
+	}
+	if body["port"] != float64(80) {
+		t.Fatalf("expected port=80, got %v", body["port"])
+	}
+}
+
+func TestRestResource_FoundWithoutState_FiresUnconditionally(t *testing.T) {
+	var deleteReceived bool
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id": 7, "name": "test"}]`))
+		case r.Method == "DELETE" && r.URL.Path == "/hosts/7":
+			deleteReceived = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        found=rest.request(method="DELETE", path="/hosts/{id}"),
+        bindings={"id": rest.jq(expr=".id")},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if !deleteReceived {
+		t.Fatal("DELETE was not executed")
+	}
+	if rec.countChangedOps() != 1 {
+		t.Fatalf("expected 1 changed op, got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestResource_MissingOnly_IgnoresFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/hosts" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"name": "test", "port": 9999}]`))
+			return
+		}
+		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"name": "test", "port": 80},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if rec.countChangedOps() != 0 {
+		t.Fatalf("expected 0 changed ops (no found handler), got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestResource_QueryFails_Aborts(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("server error"))
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"name": "test"},
+    ),
+])
+`, srv.URL)
+
+	_, err := applyREST(t, cfgStr, srv.URL)
+	if err == nil {
+		t.Fatal("expected error from query failure")
+	}
+}
+
+func TestRestResource_CreateFails_Aborts(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[]`))
+		case r.Method == "POST":
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("create failed"))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"name": "test"},
+    ),
+])
+`, srv.URL)
+
+	_, err := applyREST(t, cfgStr, srv.URL)
+	if err == nil {
+		t.Fatal("expected error from create failure")
+	}
+}
+
+func TestRestResource_IntFloat_Comparison(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/hosts" {
+			w.Header().Set("Content-Type", "application/json")
+			// JSON numbers are float64, Starlark integers are int64.
+			_, _ = w.Write([]byte(`[{"name": "test", "port": 80, "ssl": true}]`))
+			return
+		}
+		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"name": "test", "port": 80, "ssl": True},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if rec.countChangedOps() != 0 {
+		t.Fatalf("expected 0 changed ops (int/float should match), got %d", rec.countChangedOps())
+	}
+}
+
+func TestRestResource_Idempotent_SecondApplyNoop(t *testing.T) {
+	var created bool
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			if created {
+				_, _ = w.Write([]byte(`[{"name": "test", "port": 80}]`))
+			} else {
+				_, _ = w.Write([]byte(`[]`))
+			}
+		case r.Method == "POST" && r.URL.Path == "/hosts":
+			created = true
+			w.WriteHeader(http.StatusCreated)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET",
+            path="/hosts",
+            check=rest.jq(expr='.[] | select(.name == "test")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"name": "test", "port": 80},
+    ),
+])
+`, srv.URL)
+
+	// First apply: creates.
+	rec1, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("First apply failed: %v\n%s", err, rec1)
+	}
+	if rec1.countChangedOps() != 1 {
+		t.Fatalf("first apply: expected 1 changed op, got %d", rec1.countChangedOps())
+	}
+
+	// Second apply: noop.
+	rec2, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Second apply failed: %v\n%s", err, rec2)
+	}
+	if rec2.countChangedOps() != 0 {
+		t.Fatalf("second apply: expected 0 changed ops, got %d", rec2.countChangedOps())
+	}
+}
+
+func TestRestResource_ConfigLoads(t *testing.T) {
+	cfgStr := `
+target.rest(name="api", base_url="http://localhost/api")
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        desc="test resource",
+        query=rest.request(
+            method="GET",
+            path="/items",
+            check=rest.jq(expr='.[] | select(.name == "x")'),
+        ),
+        missing=rest.request(method="POST", path="/items"),
+        found=rest.request(method="PUT", path="/items/{id}"),
+        bindings={"id": rest.jq(expr=".id")},
+        state={"name": "x", "value": 1},
+    ),
+])
+`
+	cfg := loadConfig(t, cfgStr)
+	if len(cfg.Deploy) == 0 {
+		t.Fatal("expected at least one deploy block")
+	}
 }
