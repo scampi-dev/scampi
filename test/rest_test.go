@@ -1210,3 +1210,319 @@ deploy(name="test", targets=["api"], steps=[
 		t.Fatal("expected at least one deploy block")
 	}
 }
+
+// ref() tests
+// -----------------------------------------------------------------------------
+
+func TestRef_CreatesWithResolvedValue(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		// Cert queries and creation.
+		case r.Method == "GET" && r.URL.Path == "/certs":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[]`))
+		case r.Method == "POST" && r.URL.Path == "/certs":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id": 42, "domain": "app.example.com"}`))
+		// Host queries and creation.
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[]`))
+		case r.Method == "POST" && r.URL.Path == "/hosts":
+			body, _ := io.ReadAll(r.Body)
+			var data map[string]any
+			if err := json.Unmarshal(body, &data); err != nil {
+				t.Fatalf("invalid JSON body: %v", err)
+			}
+			// cert_id should be resolved from the cert step's output.
+			if data["cert_id"] != float64(42) {
+				t.Fatalf("expected cert_id=42, got %v (%T)", data["cert_id"], data["cert_id"])
+			}
+			w.WriteHeader(http.StatusCreated)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+
+cert = rest.resource(
+    query=rest.request(
+        method="GET", path="/certs",
+        check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
+    ),
+    missing=rest.request(method="POST", path="/certs"),
+    state={"domain": "app.example.com"},
+)
+
+deploy(name="test", targets=["api"], steps=[
+    cert,
+    rest.resource(
+        query=rest.request(
+            method="GET", path="/hosts",
+            check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"domain": "app.example.com", "cert_id": ref(cert, ".id")},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if rec.countChangedOps() != 2 {
+		t.Fatalf("expected 2 changed ops, got %d", rec.countChangedOps())
+	}
+}
+
+func TestRef_ResolvesFromQueryResult(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/certs":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id": 9, "domain": "app.example.com"}]`))
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"domain": "app.example.com", "cert_id": 9}]`))
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+
+cert = rest.resource(
+    query=rest.request(
+        method="GET", path="/certs",
+        check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
+    ),
+    missing=rest.request(method="POST", path="/certs"),
+    state={"domain": "app.example.com"},
+)
+
+deploy(name="test", targets=["api"], steps=[
+    cert,
+    rest.resource(
+        query=rest.request(
+            method="GET", path="/hosts",
+            check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"domain": "app.example.com", "cert_id": ref(cert, ".id")},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if rec.countChangedOps() != 0 {
+		t.Fatalf("expected 0 changed ops (both satisfied), got %d", rec.countChangedOps())
+	}
+}
+
+func TestRef_InvalidJQExpr(t *testing.T) {
+	cfgStr := `
+target.rest(name="api", base_url="http://localhost/api")
+
+cert = rest.resource(
+    query=rest.request(
+        method="GET", path="/certs",
+        check=rest.jq(expr='.[] | select(.domain == "x")'),
+    ),
+    missing=rest.request(method="POST", path="/certs"),
+    state={"domain": "x"},
+)
+
+deploy(name="test", targets=["api"], steps=[
+    cert,
+    rest.resource(
+        query=rest.request(
+            method="GET", path="/hosts",
+            check=rest.jq(expr='.[] | select(.domain == "x")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"cert_id": ref(cert, "[invalid jq")},
+    ),
+])
+`
+	src := source.NewMemSource()
+	src.Files["/config.star"] = []byte(cfgStr)
+
+	rec := &recordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := diagnostic.NewSourceStore()
+
+	_, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	if err == nil {
+		t.Fatal("expected error for invalid jq expression in ref()")
+	}
+}
+
+func TestRef_UpdatesWithResolvedValue(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/certs":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id": 9, "domain": "app.example.com"}]`))
+		case r.Method == "GET" && r.URL.Path == "/hosts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id": 5, "domain": "app.example.com", "cert_id": 7, "port": 80}]`))
+		case r.Method == "PUT" && r.URL.Path == "/hosts/5":
+			body, _ := io.ReadAll(r.Body)
+			var data map[string]any
+			if err := json.Unmarshal(body, &data); err != nil {
+				t.Fatalf("invalid JSON body: %v", err)
+			}
+			if data["cert_id"] != float64(9) {
+				t.Fatalf("expected cert_id=9, got %v", data["cert_id"])
+			}
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+
+cert = rest.resource(
+    query=rest.request(
+        method="GET", path="/certs",
+        check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
+    ),
+    missing=rest.request(method="POST", path="/certs"),
+    state={"domain": "app.example.com"},
+)
+
+deploy(name="test", targets=["api"], steps=[
+    cert,
+    rest.resource(
+        query=rest.request(
+            method="GET", path="/hosts",
+            check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        found=rest.request(method="PUT", path="/hosts/{id}"),
+        bindings={"id": rest.jq(expr=".id")},
+        state={"domain": "app.example.com", "cert_id": ref(cert, ".id"), "port": 80},
+    ),
+])
+`, srv.URL)
+
+	rec, err := applyREST(t, cfgStr, srv.URL)
+	if err != nil {
+		t.Fatalf("Apply failed: %v\n%s", err, rec)
+	}
+	if rec.countChangedOps() != 1 {
+		t.Fatalf("expected 1 changed op (update), got %d", rec.countChangedOps())
+	}
+}
+
+func TestRef_MissingFromStepsList(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == "/hosts" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
+target.rest(name="api", base_url=%q)
+
+cert = rest.resource(
+    query=rest.request(
+        method="GET", path="/certs",
+        check=rest.jq(expr='.[] | select(.domain == "x")'),
+    ),
+    missing=rest.request(method="POST", path="/certs"),
+    state={"domain": "x"},
+)
+
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET", path="/hosts",
+            check=rest.jq(expr='.[] | select(.domain == "x")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"domain": "x", "cert_id": ref(cert, ".id")},
+    ),
+])
+`, srv.URL)
+
+	_, err := applyREST(t, cfgStr, srv.URL)
+	if err == nil {
+		t.Fatal("expected error when ref target step is not in steps list")
+	}
+}
+
+func TestRef_NonStepArgument(t *testing.T) {
+	cfgStr := `
+target.rest(name="api", base_url="http://localhost/api")
+deploy(name="test", targets=["api"], steps=[
+    rest.resource(
+        query=rest.request(
+            method="GET", path="/hosts",
+            check=rest.jq(expr='.[] | select(.domain == "x")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"cert_id": ref("not-a-step", ".id")},
+    ),
+])
+`
+	src := source.NewMemSource()
+	src.Files["/config.star"] = []byte(cfgStr)
+
+	rec := &recordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+	store := diagnostic.NewSourceStore()
+
+	_, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	if err == nil {
+		t.Fatal("expected error when ref() receives non-step argument")
+	}
+}
+
+func TestRef_ConfigLoads(t *testing.T) {
+	cfgStr := `
+target.rest(name="api", base_url="http://localhost/api")
+
+cert = rest.resource(
+    query=rest.request(
+        method="GET", path="/certs",
+        check=rest.jq(expr='.[] | select(.domain == "x")'),
+    ),
+    missing=rest.request(method="POST", path="/certs"),
+    state={"domain": "x"},
+)
+
+deploy(name="test", targets=["api"], steps=[
+    cert,
+    rest.resource(
+        query=rest.request(
+            method="GET", path="/hosts",
+            check=rest.jq(expr='.[] | select(.domain == "x")'),
+        ),
+        missing=rest.request(method="POST", path="/hosts"),
+        state={"domain": "x", "cert_id": ref(cert, ".id")},
+    ),
+])
+`
+	cfg := loadConfig(t, cfgStr)
+	if len(cfg.Deploy) == 0 {
+		t.Fatal("expected at least one deploy block")
+	}
+}

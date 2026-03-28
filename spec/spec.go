@@ -19,6 +19,7 @@ const (
 	ResourcePath ResourceKind = iota
 	ResourceUser
 	ResourceGroup
+	ResourceRef
 )
 
 // Resource is a typed key for a promised or deferred resource.
@@ -73,6 +74,7 @@ type (
 		Desc string
 	}
 	StepInstance struct {
+		ID       StepID // unique identifier, assigned during Starlark eval
 		Desc     string // optional human description
 		Type     StepType
 		Config   any
@@ -168,6 +170,12 @@ type (
 	}
 	OpDescriber interface {
 		OpDescription() OpDescription
+	}
+	// OutputProvider is an optional interface that ops can implement to
+	// expose their settled state after execution. The engine captures this
+	// for ref() resolution in downstream steps.
+	OutputProvider interface {
+		Output() any
 	}
 	OpDescription interface {
 		PlanTemplate() PlanTemplate

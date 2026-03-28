@@ -318,6 +318,8 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 		Actions: make([]model.ActionReport, len(nodes)),
 	}
 
+	outputs := newStepOutputs()
+
 	var mu sync.Mutex
 	promised := map[spec.Resource]bool{}
 	grp, gctx := errgroup.WithContext(ctx)
@@ -332,12 +334,29 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 				return err
 			}
 
+			// Resolve ref() markers before check (output available
+			// from already-checked upstream steps).
+			if r, ok := n.action.(refResolvable); ok {
+				if err := r.ResolveRefs(buildRefResolver(outputs)); err != nil {
+					emitActionDiagnostic(e.em, n.idx, n.action.Kind(), n.action.Desc(), err)
+					abortErr := AbortError{Causes: []error{err}}
+					mu.Lock()
+					defer mu.Unlock()
+					rep.Err = abortErr
+					return abortErr
+				}
+			}
+
 			res, err := e.checkAction(gctx, n.idx, n.action, snap)
 
 			mu.Lock()
 			defer mu.Unlock()
 
 			rep.Actions[n.idx] = res
+
+			// Capture step output for downstream refs.
+			captureStepOutput(n.action, res, outputs)
+
 			if err != nil {
 				rep.Err = err
 				return err
@@ -480,6 +499,8 @@ func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.Executi
 		Actions: make([]model.ActionReport, len(nodes)),
 	}
 
+	outputs := newStepOutputs()
+
 	var mu sync.Mutex
 	grp, gctx := errgroup.WithContext(ctx)
 
@@ -490,12 +511,28 @@ func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.Executi
 				return err
 			}
 
+			// Resolve ref() markers before execution.
+			if r, ok := n.action.(refResolvable); ok {
+				if err := r.ResolveRefs(buildRefResolver(outputs)); err != nil {
+					emitActionDiagnostic(e.em, n.idx, n.action.Kind(), n.action.Desc(), err)
+					abortErr := AbortError{Causes: []error{err}}
+					mu.Lock()
+					defer mu.Unlock()
+					rep.Err = abortErr
+					return abortErr
+				}
+			}
+
 			res, err := e.executeAction(gctx, n.idx, n.action)
 
 			mu.Lock()
 			defer mu.Unlock()
 
 			rep.Actions[n.idx] = res
+
+			// Capture step output for downstream refs.
+			captureStepOutput(n.action, res, outputs)
+
 			if err != nil {
 				rep.Err = err
 				return err
@@ -527,6 +564,23 @@ func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.Executi
 	}
 
 	return rep, err
+}
+
+// captureStepOutput stores a step's settled state in the output registry
+// if the action has a step ID and any of its ops implement OutputProvider.
+func captureStepOutput(act spec.Action, report model.ActionReport, outputs *stepOutputs) {
+	id, ok := act.(stepIdentifier)
+	if !ok {
+		return
+	}
+	for _, opReport := range report.Ops {
+		if provider, ok := opReport.Op.(spec.OutputProvider); ok {
+			if out := provider.Output(); out != nil {
+				outputs.Store(id.StepID(), out)
+				return
+			}
+		}
+	}
 }
 
 func (e *Engine) executeAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {

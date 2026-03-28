@@ -257,23 +257,21 @@ func builtinRestRequest(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: steprest.Request{},
-			Config: &steprest.RequestConfig{
-				Desc:    desc,
-				Method:  method,
-				Path:    path,
-				Headers: headers,
-				Body:    body,
-				Check:   check,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "method", "path", "body", "headers", "check", "on_change"),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: steprest.Request{},
+		Config: &steprest.RequestConfig{
+			Desc:    desc,
+			Method:  method,
+			Path:    path,
+			Headers: headers,
+			Body:    body,
+			Check:   check,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "method", "path", "body", "headers", "check", "on_change"),
+	}), nil
 }
 
 // Bodies
@@ -526,23 +524,21 @@ func builtinRestResource(
 		}
 	}
 
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: steprest.Resource{},
-			Config: &steprest.ResourceConfig{
-				Desc:     desc,
-				Query:    query,
-				Missing:  missing,
-				Found:    found,
-				Bindings: bindings,
-				State:    state,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "query", "missing", "found", "bindings", "state", "on_change"),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: steprest.Resource{},
+		Config: &steprest.ResourceConfig{
+			Desc:     desc,
+			Query:    query,
+			Missing:  missing,
+			Found:    found,
+			Bindings: bindings,
+			State:    state,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "query", "missing", "found", "bindings", "state", "on_change"),
+	}), nil
 }
 
 func unwrapRequestConfig(val starlark.Value, ctx string, span spec.SourceSpan) (*steprest.RequestConfig, error) {

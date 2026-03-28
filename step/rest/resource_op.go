@@ -45,8 +45,9 @@ type resourceOp struct {
 	state    map[string]any
 
 	// Set during Check, consumed during Execute.
-	queryResult any
-	mode        resourceMode
+	queryResult  any
+	mode         resourceMode
+	settledState any // exposed via OutputProvider for ref() resolution
 }
 
 func (op *resourceOp) Check(
@@ -108,6 +109,7 @@ func (op *resourceOp) Check(
 
 	// Resource found.
 	op.queryResult = result
+	op.settledState = result
 
 	if op.found == nil {
 		op.mode = resourceNoop
@@ -180,6 +182,7 @@ func (op *resourceOp) executeMissing(
 			Body:   string(resp.Body),
 		}
 	}
+	op.captureResponse(resp.Body)
 	return spec.Result{Changed: true}, nil
 }
 
@@ -224,6 +227,7 @@ func (op *resourceOp) executeFound(
 			Body:   string(resp.Body),
 		}
 	}
+	op.captureResponse(resp.Body)
 	return spec.Result{Changed: true}, nil
 }
 
@@ -249,6 +253,21 @@ func mergeHeaders(base, override map[string]string) map[string]string {
 	maps.Copy(headers, override)
 	return headers
 }
+
+// captureResponse parses a JSON response body and stores it as the
+// settled state for ref() resolution.
+func (op *resourceOp) captureResponse(body []byte) {
+	if len(body) == 0 {
+		return
+	}
+	var parsed any
+	if json.Unmarshal(body, &parsed) == nil {
+		op.settledState = parsed
+	}
+}
+
+// Output implements spec.OutputProvider.
+func (op *resourceOp) Output() any { return op.settledState }
 
 func (resourceOp) RequiredCapabilities() capability.Capability {
 	return capability.REST
@@ -337,13 +356,10 @@ func valuesEqual(desired, current any) bool {
 		return true
 	}
 
-	// Maps.
+	// Maps — only compare keys present in desired (API may return extra fields).
 	dMap, dOk := desired.(map[string]any)
 	cMap, cOk := current.(map[string]any)
 	if dOk && cOk {
-		if len(dMap) != len(cMap) {
-			return false
-		}
 		for k, dv := range dMap {
 			cv, exists := cMap[k]
 			if !exists || !valuesEqual(dv, cv) {

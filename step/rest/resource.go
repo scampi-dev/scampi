@@ -79,3 +79,70 @@ func (a *resourceAction) Ops() []spec.Op {
 	op.SetAction(a)
 	return []spec.Op{op}
 }
+
+// StepID returns this action's step ID for output registry keying.
+func (a *resourceAction) StepID() spec.StepID { return a.step.ID }
+
+// Promiser
+// -----------------------------------------------------------------------------
+
+func (a *resourceAction) Promises() []spec.Resource {
+	return []spec.Resource{spec.RefResource(a.step.ID)}
+}
+
+func (a *resourceAction) Inputs() []spec.Resource {
+	return collectRefs(a.cfg.State)
+}
+
+// ResolveRefs replaces spec.Ref markers in the state dict with concrete
+// values from previously executed steps.
+func (a *resourceAction) ResolveRefs(resolve spec.RefResolver) error {
+	return resolveMapRefs(a.cfg.State, resolve)
+}
+
+func collectRefs(m map[string]any) []spec.Resource {
+	var refs []spec.Resource
+	for _, v := range m {
+		switch val := v.(type) {
+		case spec.Ref:
+			refs = append(refs, spec.RefResource(val.TargetID))
+		case map[string]any:
+			refs = append(refs, collectRefs(val)...)
+		case []any:
+			for _, elem := range val {
+				if ref, ok := elem.(spec.Ref); ok {
+					refs = append(refs, spec.RefResource(ref.TargetID))
+				}
+			}
+		}
+	}
+	return refs
+}
+
+func resolveMapRefs(m map[string]any, resolve spec.RefResolver) error {
+	for k, v := range m {
+		switch val := v.(type) {
+		case spec.Ref:
+			resolved, err := resolve(val)
+			if err != nil {
+				return err
+			}
+			m[k] = resolved
+		case map[string]any:
+			if err := resolveMapRefs(val, resolve); err != nil {
+				return err
+			}
+		case []any:
+			for i, elem := range val {
+				if ref, ok := elem.(spec.Ref); ok {
+					resolved, err := resolve(ref)
+					if err != nil {
+						return err
+					}
+					val[i] = resolved
+				}
+			}
+		}
+	}
+	return nil
+}

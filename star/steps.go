@@ -4,6 +4,7 @@ package star
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"go.starlark.net/starlark"
 
@@ -23,9 +24,21 @@ import (
 	stepuser "scampi.dev/scampi/step/user"
 )
 
+var stepIDCounter atomic.Uint64
+
+func nextStepID() spec.StepID {
+	return spec.StepID(stepIDCounter.Add(1))
+}
+
 // StarlarkStep wraps a spec.StepInstance as an opaque Starlark value.
 type StarlarkStep struct {
 	Instance spec.StepInstance
+}
+
+// newStarlarkStep creates a StarlarkStep with a unique ID.
+func newStarlarkStep(inst spec.StepInstance) *StarlarkStep {
+	inst.ID = nextStepID()
+	return &StarlarkStep{Instance: inst}
 }
 
 func (s *StarlarkStep) String() string {
@@ -90,29 +103,28 @@ func builtinCopy(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: stepcopy.Copy{},
-			Config: &stepcopy.CopyConfig{
-				Desc: desc, Src: srcRef,
-				Dest: dest, Perm: perm, Owner: owner, Group: group,
-				Verify: verify,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields: kwargsFieldSpans(
-				thread,
-				"src",
-				"dest",
-				"perm",
-				"owner",
-				"group",
-				"verify",
-				"on_change",
-			),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: stepcopy.Copy{},
+		Config: &stepcopy.CopyConfig{
+			Desc: desc, Src: srcRef,
+			Dest: dest, Perm: perm, Owner: owner, Group: group,
+			Verify: verify,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields: kwargsFieldSpans(
+			thread,
+			"src",
+			"dest",
+			"perm",
+			"owner",
+			"group",
+			"verify",
+			"on_change",
+		),
+	},
+	), nil
 }
 
 // Step builtin: dir
@@ -149,16 +161,15 @@ func builtinDir(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc:     desc,
-			Type:     dir.Dir{},
-			Config:   &dir.DirConfig{Desc: desc, Path: path, Perm: perm, Owner: owner, Group: group},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "path", "perm", "owner", "group", "on_change"),
-		},
-	}, nil
+	return newStarlarkStep(spec.StepInstance{
+		Desc:     desc,
+		Type:     dir.Dir{},
+		Config:   &dir.DirConfig{Desc: desc, Path: path, Perm: perm, Owner: owner, Group: group},
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "path", "perm", "owner", "group", "on_change"),
+	},
+	), nil
 }
 
 // Step builtin: firewall
@@ -191,18 +202,17 @@ func builtinFirewall(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: firewall.Firewall{},
-			Config: &firewall.FirewallConfig{
-				Desc: desc, Port: port, Action: action,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "port", "action", "on_change"),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: firewall.Firewall{},
+		Config: &firewall.FirewallConfig{
+			Desc: desc, Port: port, Action: action,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "port", "action", "on_change"),
+	},
+	), nil
 }
 
 // Step builtin: mount
@@ -241,19 +251,18 @@ func builtinMount(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: stepmount.Mount{},
-			Config: &stepmount.MountConfig{
-				Desc: desc, Src: src, Dest: dest,
-				Type: fstype, Opts: opts, State: state,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "src", "dest", "type", "opts", "state", "on_change"),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: stepmount.Mount{},
+		Config: &stepmount.MountConfig{
+			Desc: desc, Src: src, Dest: dest,
+			Type: fstype, Opts: opts, State: state,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "src", "dest", "type", "opts", "state", "on_change"),
+	},
+	), nil
 }
 
 // Step builtin: pkg
@@ -298,16 +307,15 @@ func builtinPkg(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc:     desc,
-			Type:     pkg.Pkg{},
-			Config:   &pkg.PkgConfig{Desc: desc, Packages: pkgs, State: state, Source: pkgSource},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "packages", "source", "state", "on_change"),
-		},
-	}, nil
+	return newStarlarkStep(spec.StepInstance{
+		Desc:     desc,
+		Type:     pkg.Pkg{},
+		Config:   &pkg.PkgConfig{Desc: desc, Packages: pkgs, State: state, Source: pkgSource},
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "packages", "source", "state", "on_change"),
+	},
+	), nil
 }
 
 func unpackPkgSource(val starlark.Value) (spec.PkgSourceRef, error) {
@@ -354,16 +362,15 @@ func builtinRun(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc:     desc,
-			Type:     run.Run{},
-			Config:   &run.RunConfig{Desc: desc, Apply: apply, Check: check, Always: always},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "apply", "check", "always", "on_change"),
-		},
-	}, nil
+	return newStarlarkStep(spec.StepInstance{
+		Desc:     desc,
+		Type:     run.Run{},
+		Config:   &run.RunConfig{Desc: desc, Apply: apply, Check: check, Always: always},
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "apply", "check", "always", "on_change"),
+	},
+	), nil
 }
 
 // Step builtin: service
@@ -398,16 +405,15 @@ func builtinService(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc:     desc,
-			Type:     service.Service{},
-			Config:   &service.ServiceConfig{Desc: desc, Name: name, State: state, Enabled: enabled},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "name", "state", "enabled", "on_change"),
-		},
-	}, nil
+	return newStarlarkStep(spec.StepInstance{
+		Desc:     desc,
+		Type:     service.Service{},
+		Config:   &service.ServiceConfig{Desc: desc, Name: name, State: state, Enabled: enabled},
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "name", "state", "enabled", "on_change"),
+	},
+	), nil
 }
 
 // Step builtin: sysctl
@@ -442,18 +448,17 @@ func builtinSysctl(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: sysctl.Sysctl{},
-			Config: &sysctl.SysctlConfig{
-				Desc: desc, Key: key, Value: value, Persist: persist,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "key", "value", "persist", "on_change"),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: sysctl.Sysctl{},
+		Config: &sysctl.SysctlConfig{
+			Desc: desc, Key: key, Value: value, Persist: persist,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "key", "value", "persist", "on_change"),
+	},
+	), nil
 }
 
 // Step builtin: symlink
@@ -486,16 +491,15 @@ func builtinSymlink(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc:     desc,
-			Type:     symlink.Symlink{},
-			Config:   &symlink.SymlinkConfig{Desc: desc, Target: target, Link: link},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "target", "link", "on_change"),
-		},
-	}, nil
+	return newStarlarkStep(spec.StepInstance{
+		Desc:     desc,
+		Type:     symlink.Symlink{},
+		Config:   &symlink.SymlinkConfig{Desc: desc, Target: target, Link: link},
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "target", "link", "on_change"),
+	},
+	), nil
 }
 
 // Step builtin: template
@@ -548,29 +552,28 @@ func builtinTemplate(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: template.Template{},
-			Config: &template.TemplateConfig{
-				Desc: desc, Src: srcRef, Dest: dest,
-				Data: dataCfg, Perm: perm, Owner: owner, Group: group,
-				Verify: verify,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields: kwargsFieldSpans(
-				thread,
-				"src",
-				"dest",
-				"perm",
-				"owner",
-				"group",
-				"verify",
-				"on_change",
-			),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: template.Template{},
+		Config: &template.TemplateConfig{
+			Desc: desc, Src: srcRef, Dest: dest,
+			Data: dataCfg, Perm: perm, Owner: owner, Group: group,
+			Verify: verify,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields: kwargsFieldSpans(
+			thread,
+			"src",
+			"dest",
+			"perm",
+			"owner",
+			"group",
+			"verify",
+			"on_change",
+		),
+	},
+	), nil
 }
 
 // Step builtin: unarchive
@@ -616,29 +619,28 @@ func builtinUnarchive(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: unarchive.Unarchive{},
-			Config: &unarchive.UnarchiveConfig{
-				Desc: desc, Src: srcRef, Dest: dest,
-				Depth: depth, Owner: owner, Group: group,
-				Perm: perm,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields: kwargsFieldSpans(
-				thread,
-				"src",
-				"dest",
-				"depth",
-				"owner",
-				"group",
-				"perm",
-				"on_change",
-			),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: unarchive.Unarchive{},
+		Config: &unarchive.UnarchiveConfig{
+			Desc: desc, Src: srcRef, Dest: dest,
+			Depth: depth, Owner: owner, Group: group,
+			Perm: perm,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields: kwargsFieldSpans(
+			thread,
+			"src",
+			"dest",
+			"depth",
+			"owner",
+			"group",
+			"perm",
+			"on_change",
+		),
+	},
+	), nil
 }
 
 // Step builtin: user
@@ -686,30 +688,29 @@ func builtinUser(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: stepuser.User{},
-			Config: &stepuser.UserConfig{
-				Desc: desc, Name: name, State: state,
-				Shell: shell, Home: home, System: system,
-				Password: password, Groups: groupList,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields: kwargsFieldSpans(
-				thread,
-				"name",
-				"state",
-				"shell",
-				"home",
-				"system",
-				"password",
-				"groups",
-				"on_change",
-			),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: stepuser.User{},
+		Config: &stepuser.UserConfig{
+			Desc: desc, Name: name, State: state,
+			Shell: shell, Home: home, System: system,
+			Password: password, Groups: groupList,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields: kwargsFieldSpans(
+			thread,
+			"name",
+			"state",
+			"shell",
+			"home",
+			"system",
+			"password",
+			"groups",
+			"on_change",
+		),
+	},
+	), nil
 }
 
 // Step builtin: group
@@ -746,19 +747,18 @@ func builtinGroup(
 	}
 
 	span := callSpan(thread)
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: group.Group{},
-			Config: &group.GroupConfig{
-				Desc: desc, Name: name, State: state,
-				GID: gid, System: system,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   kwargsFieldSpans(thread, "name", "state", "gid", "system", "on_change"),
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: group.Group{},
+		Config: &group.GroupConfig{
+			Desc: desc, Name: name, State: state,
+			GID: gid, System: system,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   kwargsFieldSpans(thread, "name", "state", "gid", "system", "on_change"),
+	},
+	), nil
 }
 
 // Helpers
@@ -950,6 +950,8 @@ func starlarkToGo(v starlark.Value) any {
 		return m
 	case starlark.NoneType:
 		return nil
+	case *refValue:
+		return v.ref
 	default:
 		return v.String()
 	}

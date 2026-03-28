@@ -39,6 +39,7 @@ func predeclared() starlark.StringDict {
 		"rest":      restModule(),
 		"target":    targetModule(),
 		"deploy":    starlark.NewBuiltin("deploy", builtinDeploy),
+		"ref":       starlark.NewBuiltin("ref", builtinRef),
 		"env":       starlark.NewBuiltin("env", builtinEnv),
 		"secret":    starlark.NewBuiltin("secret", builtinSecret),
 		"secrets":   starlark.NewBuiltin("secrets", builtinSecrets),

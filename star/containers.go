@@ -140,21 +140,19 @@ func builtinContainerInstance(
 	}
 	fields := kwargsFieldSpans(thread, fieldNames...)
 
-	return &StarlarkStep{
-		Instance: spec.StepInstance{
-			Desc: desc,
-			Type: container.Instance{},
-			Config: &container.InstanceConfig{
-				Desc: desc, Name: name, Image: image,
-				State: state, Restart: restart, Ports: ports,
-				Env: env, Mounts: mounts, Args: ctrArgs,
-				Labels: labels, Healthcheck: hc,
-			},
-			OnChange: hookIDs,
-			Source:   span,
-			Fields:   fields,
+	return newStarlarkStep(spec.StepInstance{
+		Desc: desc,
+		Type: container.Instance{},
+		Config: &container.InstanceConfig{
+			Desc: desc, Name: name, Image: image,
+			State: state, Restart: restart, Ports: ports,
+			Env: env, Mounts: mounts, Args: ctrArgs,
+			Labels: labels, Healthcheck: hc,
 		},
-	}, nil
+		OnChange: hookIDs,
+		Source:   span,
+		Fields:   fields,
+	}), nil
 }
 
 func parseMount(s string) target.Mount {
