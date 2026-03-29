@@ -77,6 +77,10 @@ type (
 	// Embed it in error structs to avoid repeating these two methods.
 	FatalError struct{}
 
+	// Warning provides Severity=Warning, Impact=None for non-fatal diagnostics
+	// that should be reported but don't stop execution.
+	Warning struct{}
+
 	Diagnostics     []Diagnostic
 	MultiDiagnostic interface {
 		Diagnostics() []Diagnostic
@@ -85,6 +89,9 @@ type (
 
 func (FatalError) Severity() signal.Severity { return signal.Error }
 func (FatalError) Impact() Impact            { return ImpactAbort }
+
+func (Warning) Severity() signal.Severity { return signal.Warning }
+func (Warning) Impact() Impact            { return ImpactNone }
 
 func (d Diagnostics) Diagnostics() []Diagnostic { return d }
 func (d Diagnostics) Error() string {

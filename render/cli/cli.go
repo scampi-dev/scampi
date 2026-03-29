@@ -829,30 +829,33 @@ func (c *cli) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	if e.CfgPath != "" {
 		context = fmt.Sprintf(` in file %q`, e.CfgPath)
 	}
-	c.renderDiagnostic("engine.error", context, e.Detail.Template)
+	c.renderDiagnostic(e.Severity, "engine", context, e.Detail.Template)
 }
 
 func (c *cli) EmitPlanDiagnostic(e event.PlanDiagnostic) {
 	if !c.shouldRender(e.Chattiness) {
 		return
 	}
-	c.renderDiagnostic("plan.error", stepScope(e.Step), e.Detail.Template)
+	c.renderDiagnostic(e.Severity, "plan", stepScope(e.Step), e.Detail.Template)
 }
 
 func (c *cli) EmitActionDiagnostic(e event.ActionDiagnostic) {
 	if !c.shouldRender(e.Chattiness) {
 		return
 	}
-	c.renderDiagnostic("action.error", stepScope(e.Step), e.Detail.Template)
+	c.renderDiagnostic(e.Severity, "action", stepScope(e.Step), e.Detail.Template)
 }
 
 func (c *cli) EmitOpDiagnostic(e event.OpDiagnostic) {
 	if !c.shouldRender(e.Chattiness) {
 		return
 	}
-	c.renderDiagnostic("op.error",
+	c.renderDiagnostic(
+		e.Severity,
+		"op",
 		fmt.Sprintf(` in op '%s' of%s`, e.DisplayID, stepScope(e.Step)),
-		e.Detail.Template)
+		e.Detail.Template,
+	)
 }
 
 func stepScope(s event.StepDetail) string {
@@ -872,9 +875,43 @@ func stepScope(s event.StepDetail) string {
 	return fmt.Sprintf(` in step [%s]`, tag)
 }
 
-func (c *cli) renderDiagnostic(prefix, msg string, tmpl event.Template) {
+func (c *cli) renderDiagnostic(sev signal.Severity, scope, msg string, tmpl event.Template) {
+	var glyph, suffix string
+	var col ansi.ANSI
+
+	switch sev {
+	case signal.Debug:
+		glyph = c.glyphs.bullet
+		col = colDiagDebug
+		suffix = "debug"
+	case signal.Info:
+		glyph = c.glyphs.hint
+		col = colDiagInfo
+		suffix = "info"
+	case signal.Notice:
+		glyph = c.glyphs.ok
+		col = colDiagNotice
+		suffix = "notice"
+	case signal.Warning:
+		glyph = c.glyphs.warn
+		col = colDiagWarning
+		suffix = "warning"
+	case signal.Error:
+		glyph = c.glyphs.err
+		col = colDiagError
+		suffix = "error"
+	case signal.Fatal:
+		glyph = c.glyphs.fatal
+		col = colDiagFatal
+		suffix = "fatal"
+	default:
+		panic(errs.BUG("unhandled diagnostic severity %d", sev))
+	}
+
+	label := scope + "." + suffix
+
 	var events []renderEvent
-	for _, l := range c.formatter.fmtTemplate(tmpl, prefix, msg, c.glyphs.err, colDiagMsg, colDiagHelp) {
+	for _, l := range c.formatter.fmtTemplate(tmpl, label, msg, glyph, col, colDiagHelp) {
 		events = append(events, renderEvent{stream: streamErr, line: l, wrap: true})
 	}
 	c.commitRenderEvents(events)

@@ -36,7 +36,7 @@ var (
 	interruptHook func()
 )
 
-var version = "dev"
+var version = "v0.0.0-dev"
 
 const (
 	exitOK        = 0 // success
@@ -92,17 +92,18 @@ func main() {
 			},
 			&cli.BoolFlag{
 				Name:  flagVerbosity,
-				Usage: "increase verbosity (-v, -vv, -vvv, -vvvv)",
+				Usage: "increase verbosity (-v, -vv, -vvv)",
 			},
 		},
 		Commands: []*cli.Command{
-			applyCmd(),
-			checkCmd(),
-			inspectCmd(),
 			planCmd(),
+			checkCmd(),
+			applyCmd(),
+			inspectCmd(),
+			genCmd(),
 			indexCmd(),
-			legendCmd(),
 			secretsCmd(),
+			legendCmd(),
 			versionCmd(),
 		},
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
@@ -150,376 +151,8 @@ func main() {
 	}
 }
 
-func applyCmd() *cli.Command {
-	var cfg string
-
-	return &cli.Command{
-		Name:                   "apply",
-		Usage:                  "Apply the desired state from a configuration file",
-		UseShortOptionHandling: true,
-		Suggest:                true,
-		HideHelp:               false,
-		OnUsageError:           onUsageError,
-		Flags:                  resolveFlags(),
-		Arguments: []cli.Argument{
-			&cli.StringArg{
-				Name:        "config",
-				Config:      cli.StringConfig{TrimSpace: true},
-				Destination: &cfg,
-			},
-		},
-		ArgsUsage: "<config>",
-		Description: `Reads a declarative configuration file and executes the
-required operations to converge the system to the desired state.
-
-The command is idempotent: running it multiple times only applies
-changes when the current state differs from the declared state.`,
-		Before: requireArgs(1),
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			opts := mustGlobalOpts(ctx)
-
-			pol := diagnostic.Policy{
-				WarningsAsErrors: false,
-				Verbosity:        opts.verbosity,
-			}
-
-			store := diagnostic.NewSourceStore()
-
-			displ, cleanup := withDisplayer(opts, store)
-			defer cleanup()
-
-			resolveOpts := parseResolveOpts(cmd)
-			em := diagnostic.NewEmitter(pol, displ)
-			err := engine.Apply(ctx, em, cfg, store, resolveOpts)
-			return handleEngineError("Apply", err)
-		},
-	}
-}
-
-func checkCmd() *cli.Command {
-	var cfg string
-
-	return &cli.Command{
-		Name:                   "check",
-		Usage:                  "Check the current system state against a configuration file",
-		UseShortOptionHandling: true,
-		Suggest:                true,
-		HideHelp:               false,
-		OnUsageError:           onUsageError,
-		Flags:                  resolveFlags(),
-		Arguments: []cli.Argument{
-			&cli.StringArg{
-				Name:        "config",
-				Config:      cli.StringConfig{TrimSpace: true},
-				Destination: &cfg,
-			},
-		},
-		ArgsUsage: "<config>",
-		Description: `Reads a declarative configuration file and inspects the
-target system to determine which operations are already satisfied and
-which would need to execute.
-
-No changes are made to the system. Unlike 'plan', this command evaluates
-the actual system state.`,
-		Before: requireArgs(1),
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			opts := mustGlobalOpts(ctx)
-
-			pol := diagnostic.Policy{
-				WarningsAsErrors: false,
-				Verbosity:        opts.verbosity,
-			}
-
-			store := diagnostic.NewSourceStore()
-
-			displ, cleanup := withDisplayer(opts, store)
-			defer cleanup()
-
-			resolveOpts := parseResolveOpts(cmd)
-			em := diagnostic.NewEmitter(pol, displ)
-			err := engine.Check(ctx, em, cfg, store, resolveOpts)
-			return handleEngineError("Check", err)
-		},
-	}
-}
-
-func inspectCmd() *cli.Command {
-	var cfg string
-
-	return &cli.Command{
-		Name:                   "inspect",
-		Usage:                  "Show resolved state for all steps, or diff file content",
-		UseShortOptionHandling: true,
-		Suggest:                true,
-		HideHelp:               false,
-		OnUsageError:           onUsageError,
-		Flags: append(resolveFlags(),
-			&cli.BoolFlag{
-				Name:  "diff",
-				Usage: "diff file content (add a path argument to select which file)",
-			},
-			&cli.BoolFlag{
-				Name:    "interactive",
-				Aliases: []string{"i"},
-				Usage:   "pick a file interactively using $SCAMPI_FUZZY_FINDER (e.g. fzf)",
-			},
-		),
-		Arguments: []cli.Argument{
-			&cli.StringArg{
-				Name:        "config",
-				Config:      cli.StringConfig{TrimSpace: true},
-				Destination: &cfg,
-			},
-		},
-		ArgsUsage: "<config> [path]",
-		Description: `Reads a declarative configuration file and shows the resolved state
-of all steps after Starlark evaluation.
-
-Use --diff to compare file content against the current target state:
-  scampi inspect config.star --diff              # list diffable paths
-  scampi inspect config.star --diff nginx.conf   # diff that file
-  scampi inspect config.star --diff -i           # pick interactively
-
-Set SCAMPI_DIFFTOOL, DIFFTOOL, or EDITOR to choose your diff tool.
-Set SCAMPI_FUZZY_FINDER (e.g. fzf, sk) for interactive picking.
-Falls back to plain diff(1).`,
-		Before: requireArgsRange(1, 2),
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			opts := mustGlobalOpts(ctx)
-
-			isDiff := cmd.Bool("diff")
-			interactive := cmd.Bool("interactive")
-			diffPath := cmd.Args().Get(0)
-
-			if interactive && !isDiff {
-				return cli.Exit("--interactive requires --diff", exitUserError)
-			}
-
-			pol := diagnostic.Policy{
-				WarningsAsErrors: false,
-				Verbosity:        opts.verbosity,
-				SuppressPlan:     isDiff && diffPath == "" && !interactive,
-			}
-
-			store := diagnostic.NewSourceStore()
-
-			displ, cleanup := withDisplayer(opts, store)
-			defer cleanup()
-
-			resolveOpts := parseResolveOpts(cmd)
-			em := diagnostic.NewEmitter(pol, displ)
-
-			if isDiff && interactive && diffPath == "" {
-				return inspectDiffInteractive(ctx, em, cfg, store, resolveOpts)
-			}
-			if isDiff {
-				return inspectDiff(ctx, em, cfg, store, resolveOpts, diffPath)
-			}
-
-			return inspectList(ctx, em, cfg, store, resolveOpts)
-		},
-	}
-}
-
-func inspectList(
-	ctx context.Context,
-	em diagnostic.Emitter,
-	cfgPath string,
-	store *diagnostic.SourceStore,
-	resolveOpts spec.ResolveOptions,
-) error {
-	if err := engine.InspectList(ctx, em, cfgPath, store, resolveOpts); err != nil {
-		return handleEngineError("InspectList", err)
-	}
-	return nil
-}
-
-func inspectDiff(
-	ctx context.Context,
-	em diagnostic.Emitter,
-	cfgPath string,
-	store *diagnostic.SourceStore,
-	opts spec.ResolveOptions,
-	destPath string,
-) error {
-	if destPath == "" {
-		paths, err := engine.InspectDiffPaths(ctx, em, cfgPath, store, opts)
-		if err != nil {
-			return handleEngineError("InspectDiffPaths", err)
-		}
-		if len(paths) == 0 {
-			_, _ = fmt.Fprintln(os.Stdout, "no diffable file ops found")
-			return nil
-		}
-		for _, p := range paths {
-			_, _ = fmt.Fprintln(os.Stdout, p)
-		}
-		return nil
-	}
-
-	result, err := engine.InspectDiff(ctx, em, cfgPath, store, opts, destPath)
-	if err != nil {
-		return handleEngineError("InspectDiff", err)
-	}
-
-	tool := osutil.ResolveDiffTool()
-	return osutil.RunDiffTool(ctx, tool, result.DestPath, result.Current, result.Desired)
-}
-
-func inspectDiffInteractive(
-	ctx context.Context,
-	em diagnostic.Emitter,
-	cfgPath string,
-	store *diagnostic.SourceStore,
-	opts spec.ResolveOptions,
-) error {
-	finder := os.Getenv("SCAMPI_FUZZY_FINDER")
-	if finder == "" {
-		return cli.Exit(
-			"--interactive requires $SCAMPI_FUZZY_FINDER to be set (e.g. fzf, sk)",
-			exitUserError,
-		)
-	}
-
-	paths, err := engine.InspectDiffPaths(ctx, em, cfgPath, store, opts)
-	if err != nil {
-		return handleEngineError("InspectDiffPaths", err)
-	}
-	if len(paths) == 0 {
-		_, _ = fmt.Fprintln(os.Stdout, "no diffable file ops found")
-		return nil
-	}
-
-	selected, err := osutil.RunFuzzyFinder(finder, paths)
-	if err != nil {
-		return err
-	}
-	if selected == "" {
-		return nil
-	}
-
-	result, err := engine.InspectDiff(ctx, em, cfgPath, store, opts, selected)
-	if err != nil {
-		return handleEngineError("InspectDiff", err)
-	}
-
-	tool := osutil.ResolveDiffTool()
-	return osutil.RunDiffTool(ctx, tool, result.DestPath, result.Current, result.Desired)
-}
-
-func planCmd() *cli.Command {
-	var cfg string
-
-	return &cli.Command{
-		Name:                   "plan",
-		Usage:                  "Show the execution plan for a configuration file",
-		UseShortOptionHandling: true,
-		Suggest:                true,
-		HideHelp:               false,
-		OnUsageError:           onUsageError,
-		Flags:                  resolveFlags(),
-		Arguments: []cli.Argument{
-			&cli.StringArg{
-				Name:        "config",
-				Config:      cli.StringConfig{TrimSpace: true},
-				Destination: &cfg,
-			},
-		},
-		ArgsUsage: "<config>",
-		Description: `Reads a declarative configuration file and prints the
-execution plan without applying any changes.
-
-The plan shows the operations that would be executed by 'apply', but
-does not inspect or modify the target system.`,
-		Before: requireArgs(1),
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			opts := mustGlobalOpts(ctx)
-
-			pol := diagnostic.Policy{
-				WarningsAsErrors: false,
-				Verbosity:        opts.verbosity,
-			}
-
-			store := diagnostic.NewSourceStore()
-
-			displ, cleanup := withDisplayer(opts, store)
-			defer cleanup()
-
-			resolveOpts := parseResolveOpts(cmd)
-			em := diagnostic.NewEmitter(pol, displ)
-
-			err := engine.Plan(ctx, em, cfg, store, resolveOpts)
-			return handleEngineError("Plan", err)
-		},
-	}
-}
-
-func indexCmd() *cli.Command {
-	return &cli.Command{
-		Name:                   "index",
-		Usage:                  "List available steps and their documentation",
-		UseShortOptionHandling: true,
-		Suggest:                true,
-		HideHelp:               false,
-		OnUsageError:           onUsageError,
-		ArgsUsage:              "[step]",
-		Description: `Prints the index of steps supported by the engine.
-
-Without arguments, the command lists all available steps with a short
-description. When a step name is provided, detailed documentation is
-shown, including fields, behavior, and examples.`,
-		Before: requireMaxArgs(1),
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			opts := mustGlobalOpts(ctx)
-
-			pol := diagnostic.Policy{
-				WarningsAsErrors: false,
-				Verbosity:        opts.verbosity,
-			}
-
-			displ, cleanup := withDisplayer(opts, nil)
-			defer cleanup()
-
-			em := diagnostic.NewEmitter(pol, displ)
-			args := cmd.Args()
-
-			var err error
-			if args.Len() == 0 {
-				err = engine.IndexAll(ctx, em)
-			} else {
-				err = engine.IndexStep(ctx, args.First(), em)
-			}
-
-			if err != nil {
-				var abort engine.AbortError
-				if !errors.As(err, &abort) {
-					// Engine violated its contract: unexpected error
-					panic(errs.BUG("engine.Index returned unexpected error: %w", err))
-				}
-
-				return cli.Exit("", exitUserError)
-			}
-
-			return nil
-		},
-	}
-}
-
-func legendCmd() *cli.Command {
-	return &cli.Command{
-		Name:  "legend",
-		Usage: "Show the CLI visual language reference",
-		Description: `Prints a reference card for glyphs, plan structure,
-and color semantics used in scampi CLI output.`,
-		Action: func(ctx context.Context, _ *cli.Command) error {
-			opts := mustGlobalOpts(ctx)
-			displ, cleanup := withDisplayer(opts, nil)
-			defer cleanup()
-			displ.EmitLegend()
-			return nil
-		},
-	}
-}
+// Argument validation
+// -----------------------------------------------------------------------------
 
 func onUsageError(_ context.Context, cmd *cli.Command, err error, _ bool) error {
 	_, _ = fmt.Fprintf(os.Stderr, "Incorrect Usage: %s\n\n", err)
@@ -554,6 +187,9 @@ func requireArgsRange(lo, hi int) func(context.Context, *cli.Command) (context.C
 		return ctx, nil
 	}
 }
+
+// Flag parsing
+// -----------------------------------------------------------------------------
 
 func parseColorMode(cmd *cli.Command) (signal.ColorMode, error) {
 	s := cmd.String(flagColor)
@@ -590,6 +226,9 @@ func mustGlobalOpts(ctx context.Context) globalOpts {
 	return ctx.Value(ctxGlobalOpts).(globalOpts)
 }
 
+// Displayer
+// -----------------------------------------------------------------------------
+
 func newDisplayer(opts globalOpts, store *diagnostic.SourceStore) render.Displayer {
 	d := clir.New(
 		clir.Options{
@@ -615,6 +254,9 @@ func withDisplayer(opts globalOpts, store *diagnostic.SourceStore) (render.Displ
 		recoverAndReport(recover())
 	}
 }
+
+// Resolve options
+// -----------------------------------------------------------------------------
 
 func resolveFlags() []cli.Flag {
 	return []cli.Flag{
@@ -657,16 +299,8 @@ func splitComma(s string) []string {
 	return result
 }
 
-func versionCmd() *cli.Command {
-	return &cli.Command{
-		Name:  "version",
-		Usage: "Print the scampi version",
-		Action: func(_ context.Context, _ *cli.Command) error {
-			_, _ = fmt.Println("scampi " + version)
-			return nil
-		},
-	}
-}
+// Error handling
+// -----------------------------------------------------------------------------
 
 func handleEngineError(name string, err error) error {
 	if err == nil {

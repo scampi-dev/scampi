@@ -1,0 +1,12 @@
+openapi: "3.0.3"
+info:
+  title: Read-Only API
+  version: "1.0"
+paths:
+  /things:
+    get:
+      operationId: getThings
+      summary: List things
+      responses:
+        "200":
+          description: ok

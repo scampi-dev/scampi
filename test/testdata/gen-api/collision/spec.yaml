@@ -1,0 +1,29 @@
+openapi: "3.0.3"
+info:
+  title: Collision Test
+  version: "1.0"
+paths:
+  /users/{username}:
+    put:
+      operationId: updateUser
+      summary: Update user
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+      responses:
+        "200":
+          description: ok

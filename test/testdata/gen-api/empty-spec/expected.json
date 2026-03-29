@@ -1,0 +1,17 @@
+{
+  "abort": true,
+  "diagnostics": [
+    {
+      "id": "gen.Warning",
+      "scope": "ScopeEngine",
+      "severity": "Warning",
+      "kind": "DiagnosticRaised"
+    },
+    {
+      "id": "gen.Error",
+      "scope": "ScopeEngine",
+      "severity": "Error",
+      "kind": "DiagnosticRaised"
+    }
+  ]
+}

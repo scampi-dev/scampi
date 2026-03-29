@@ -175,6 +175,18 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
+			pattern:        "cmd/scampi/gen.go",
+			allowedImports: "os",
+		},
+		{
+			pattern:        "gen/api.go",
+			allowedImports: "os",
+		},
+		{
+			pattern:        "cmd/scampi/inspect.go",
+			allowedImports: "os",
+		},
+		{
 			pattern:        "cmd/scampi/secrets.go",
 			allowedImports: "os",
 		},

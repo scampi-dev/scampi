@@ -227,7 +227,7 @@ func extractSteps(list *starlark.List, fn string) ([]spec.StepInstance, error) {
 func dedupSteps(steps []spec.StepInstance) []spec.StepInstance {
 	type key struct{ kind, dedup string }
 
-	seen := map[key]spec.StepID{}   // dedup key → survivor ID
+	seen := map[key]spec.StepID{}          // dedup key → survivor ID
 	remap := map[spec.StepID]spec.StepID{} // dropped ID → survivor ID
 	var out []spec.StepInstance
 
