@@ -237,6 +237,31 @@ func (e *SumError) EventTemplate() event.Template {
 	}
 }
 
+// FetchError
+// -----------------------------------------------------------------------------
+
+// FetchError is raised when cloning a module dependency fails.
+type FetchError struct {
+	diagnostic.FatalError
+	ModPath string
+	Version string
+	Detail  string
+	Hint    string
+}
+
+func (e *FetchError) Error() string {
+	return fmt.Sprintf("fetch %s@%s: %s", e.ModPath, e.Version, e.Detail)
+}
+
+func (e *FetchError) EventTemplate() event.Template {
+	return event.Template{
+		ID:   "mod.FetchError",
+		Text: "fetch {{.ModPath}}@{{.Version}}: {{.Detail}}",
+		Hint: "{{.Hint}}",
+		Data: e,
+	}
+}
+
 // SumMismatchError
 // -----------------------------------------------------------------------------
 
