@@ -250,6 +250,10 @@ func TestImportCapabilities(t *testing.T) {
 			pattern:        "test/unarchive_test.go",
 			allowedImports: "crypto/sha256",
 		},
+		{
+			pattern:        "test/mod_test.go",
+			allowedImports: "os",
+		},
 	}
 
 	splitList := func(s string) []string {
