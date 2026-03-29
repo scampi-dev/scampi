@@ -11,9 +11,27 @@ import (
 	"go.starlark.net/syntax"
 
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/mod"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 )
+
+// EvalOption configures optional behavior for Eval.
+type EvalOption func(*evalConfig)
+
+type evalConfig struct {
+	module   *mod.Module
+	cacheDir string
+}
+
+// WithModule enables module-aware load() resolution using the parsed
+// scampi.mod manifest and module cache directory.
+func WithModule(m *mod.Module, cacheDir string) EvalOption {
+	return func(c *evalConfig) {
+		c.module = m
+		c.cacheDir = cacheDir
+	}
+}
 
 const maxExecutionSteps = 100_000_000
 
@@ -32,7 +50,12 @@ func Eval(
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	src source.Source,
+	opts ...EvalOption,
 ) (spec.Config, error) {
+	var ecfg evalConfig
+	for _, o := range opts {
+		o(&ecfg)
+	}
 	data, err := src.ReadFile(ctx, cfgPath)
 	if err != nil {
 		return spec.Config{}, &FileReadError{Path: cfgPath, Cause: err}
@@ -46,7 +69,7 @@ func Eval(
 
 	thread := &starlark.Thread{
 		Name: cfgPath,
-		Load: makeLoad(ctx, cfgPath, src, store),
+		Load: makeLoad(ctx, cfgPath, src, store, &ecfg),
 	}
 	thread.SetLocal(collectorKey, collector)
 	thread.SetMaxExecutionSteps(maxExecutionSteps)
@@ -78,6 +101,7 @@ func makeLoad(
 	basePath string,
 	src source.Source,
 	store *diagnostic.SourceStore,
+	ecfg *evalConfig,
 ) func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
 	var (
 		mu      sync.Mutex
@@ -94,8 +118,16 @@ func makeLoad(
 			}
 		}
 
-		absPath := module
-		if !filepath.IsAbs(module) {
+		var absPath string
+		if ecfg.module != nil && mod.IsModulePath(module) {
+			resolved, err := mod.Resolve(ecfg.module, module, ecfg.cacheDir)
+			if err != nil {
+				return nil, err
+			}
+			absPath = resolved
+		} else if filepath.IsAbs(module) {
+			absPath = module
+		} else {
 			absPath = filepath.Join(filepath.Dir(callerFile), module)
 		}
 

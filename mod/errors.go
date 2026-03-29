@@ -4,7 +4,6 @@ package mod
 
 import (
 	"fmt"
-	"strings"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
@@ -36,7 +35,7 @@ func (e ParseError) EventTemplate() event.Template {
 	return event.Template{
 		ID:     "mod.ParseError",
 		Text:   "{{.Detail}}",
-		Hint:   e.Hint,
+		Hint:   "{{.Hint}}",
 		Data:   e,
 		Source: &e.Source,
 	}
@@ -66,6 +65,13 @@ func (e *ModuleNotFoundError) EventTemplate() event.Template {
 	}
 }
 
+//nolint:unused // satisfies star.sourceSettable across package boundary
+func (e *ModuleNotFoundError) setSource(s spec.SourceSpan) {
+	if e.Source == (spec.SourceSpan{}) {
+		e.Source = s
+	}
+}
+
 // ModuleNotCachedError
 // -----------------------------------------------------------------------------
 
@@ -91,6 +97,13 @@ func (e *ModuleNotCachedError) EventTemplate() event.Template {
 	}
 }
 
+//nolint:unused // satisfies star.sourceSettable across package boundary
+func (e *ModuleNotCachedError) setSource(s spec.SourceSpan) {
+	if e.Source == (spec.SourceSpan{}) {
+		e.Source = s
+	}
+}
+
 // ModuleNoEntryPointError
 // -----------------------------------------------------------------------------
 
@@ -110,8 +123,15 @@ func (e *ModuleNoEntryPointError) EventTemplate() event.Template {
 	return event.Template{
 		ID:     "mod.NoEntryPoint",
 		Text:   "module {{.ModPath}} has no entry point",
-		Hint:   "tried: " + strings.Join(e.Tried, ", "),
+		Hint:   `tried: {{join ", " .Tried}}`,
 		Data:   e,
 		Source: &e.Source,
+	}
+}
+
+//nolint:unused // satisfies star.sourceSettable across package boundary
+func (e *ModuleNoEntryPointError) setSource(s spec.SourceSpan) {
+	if e.Source == (spec.SourceSpan{}) {
+		e.Source = s
 	}
 }
