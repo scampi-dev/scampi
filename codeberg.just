@@ -104,8 +104,11 @@ next-version *args:
 [positional-arguments]
 release *args:
   #!/usr/bin/env bash
-  exec ./scripts/release.sh \
+  set -euo pipefail
+  ./scripts/release.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "$@"
+  echo ""
+  echo "run 'just cb push-release' when ready"
 
 [doc("Push the release commit and tag to origin")]
 push-release:
