@@ -119,8 +119,8 @@ func makeLoad(
 		}
 
 		var absPath string
-		if ecfg.module != nil && mod.IsModulePath(module) {
-			resolved, err := mod.Resolve(ecfg.module, module, ecfg.cacheDir)
+		if ecfg.module != nil && (mod.IsModulePath(module) || ecfg.module.HasDep(module)) {
+			resolved, err := mod.Resolve(ctx, src, ecfg.module, module, ecfg.cacheDir)
 			if err != nil {
 				return nil, err
 			}

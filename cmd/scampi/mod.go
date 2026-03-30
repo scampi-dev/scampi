@@ -128,19 +128,25 @@ func modTidyCmd() *cli.Command {
 // -----------------------------------------------------------------------------
 
 func modAddCmd() *cli.Command {
-	var moduleArg string
+	var moduleArg, pathArg string
 
 	return &cli.Command{
-		Name:         "add",
-		Usage:        "Add a dependency to scampi.mod",
-		ArgsUsage:    "<module[@version]>",
+		Name:  "add",
+		Usage: "Add a dependency to scampi.mod",
+		ArgsUsage: `<module[@version]>
+   scampi mod add <name> <local-path>`,
 		OnUsageError: onUsageError,
-		Before:       requireArgs(1),
+		Before:       requireArgsRange(1, 2),
 		Arguments: []cli.Argument{
 			&cli.StringArg{
 				Name:        "module",
 				Config:      cli.StringConfig{TrimSpace: true},
 				Destination: &moduleArg,
+			},
+			&cli.StringArg{
+				Name:        "path",
+				Config:      cli.StringConfig{TrimSpace: true},
+				Destination: &pathArg,
 			},
 		},
 		Action: func(ctx context.Context, _ *cli.Command) error {
@@ -157,16 +163,31 @@ func modAddCmd() *cli.Command {
 				panic(errs.BUG("os.Getwd failed: %w", err))
 			}
 
-			modPath, version := parseModArg(moduleArg)
+			var modPath, version string
+			if pathArg != "" {
+				// Two-arg form: scampi mod add <name> <local-path>
+				modPath = moduleArg
+				version = pathArg
+			} else {
+				// One-arg form: scampi mod add <module[@version]>
+				modPath, version = parseModArg(moduleArg)
+			}
 			cacheDir := mod.DefaultCacheDir()
 
 			src := source.LocalPosixSource{}
-			resolved, err := mod.Add(ctx, src, modPath, version, dir, cacheDir)
+			resolved, change, err := mod.Add(ctx, src, modPath, version, dir, cacheDir)
 			if err != nil {
 				emitModDiagnostic(em, err)
 				return handleEngineError("mod add", engine.AbortError{Causes: []error{err}})
 			}
-			emitModInfo(em, fmt.Sprintf("added %s@%s", modPath, resolved))
+			switch change {
+			case mod.ModFileAdded:
+				emitModInfo(em, fmt.Sprintf("added %s@%s", modPath, resolved))
+			case mod.ModFileUpdated:
+				emitModInfo(em, fmt.Sprintf("updated %s to %s", modPath, resolved))
+			case mod.ModFileUnchanged:
+				emitModInfo(em, fmt.Sprintf("%s@%s already in scampi.mod", modPath, resolved))
+			}
 			return nil
 		},
 	}
@@ -221,6 +242,9 @@ func modDownloadCmd() *cli.Command {
 			updated := false
 
 			for _, dep := range m.Require {
+				if dep.IsLocal() {
+					continue
+				}
 				if err := mod.Fetch(dep, cacheDir); err != nil {
 					emitModDiagnostic(em, err)
 					return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
@@ -300,7 +324,7 @@ func modUpdateCmd() *cli.Command {
 			modPath, _ := parseModArg(moduleArg)
 			cacheDir := mod.DefaultCacheDir()
 
-			resolved, err := mod.Add(ctx, src, modPath, "", dir, cacheDir)
+			resolved, _, err := mod.Add(ctx, src, modPath, "", dir, cacheDir)
 			if err != nil {
 				emitModDiagnostic(em, err)
 				return handleEngineError("mod update", engine.AbortError{Causes: []error{err}})
@@ -359,6 +383,9 @@ func modVerifyCmd() *cli.Command {
 			cacheDir := mod.DefaultCacheDir()
 
 			for _, dep := range m.Require {
+				if dep.IsLocal() {
+					continue
+				}
 				modDir := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
 				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, dep, modDir); err != nil {
 					emitModDiagnostic(em, err)

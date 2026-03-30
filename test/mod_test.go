@@ -513,7 +513,7 @@ def greet(name):
 		t.Fatal(err)
 	}
 
-	resolvedVersion, err := mod.Add(
+	resolvedVersion, _, err := mod.Add(
 		context.Background(),
 		source.LocalPosixSource{},
 		modPath,
@@ -584,7 +584,7 @@ func TestModuleAdd_NotAModule(t *testing.T) {
 
 	ctx := context.Background()
 	src := source.LocalPosixSource{}
-	_, err := mod.Add(ctx, src, repoPath, "v1.0.0", projDir, mod.DefaultCacheDir())
+	_, _, err := mod.Add(ctx, src, repoPath, "v1.0.0", projDir, mod.DefaultCacheDir())
 	if err == nil {
 		t.Fatal("expected NotAModuleError, got nil")
 	}

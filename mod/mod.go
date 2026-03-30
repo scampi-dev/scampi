@@ -25,6 +25,13 @@ type Dependency struct {
 	Line    int
 }
 
+// IsLocal reports whether this dependency points to a local directory
+// rather than a remote git repository.
+func (d Dependency) IsLocal() bool {
+	return strings.HasPrefix(d.Version, ".") ||
+		strings.HasPrefix(d.Version, "/")
+}
+
 // span builds a SourceSpan pointing to a specific line in this module file.
 func (m *Module) span(line int) spec.SourceSpan {
 	return spec.SourceSpan{
@@ -37,6 +44,16 @@ func (m *Module) span(line int) spec.SourceSpan {
 // DepSpan returns a SourceSpan for a dependency entry.
 func (m *Module) DepSpan(dep *Dependency) spec.SourceSpan {
 	return m.span(dep.Line)
+}
+
+// HasDep reports whether the module's require table contains an entry for path.
+func (m *Module) HasDep(path string) bool {
+	for _, dep := range m.Require {
+		if dep.Path == path || strings.HasPrefix(path, dep.Path+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // IsModulePath reports whether path looks like a valid module path:
@@ -211,14 +228,16 @@ func parseDependency(m *Module, line string, lineNum int) (*Dependency, error) {
 		}
 	}
 	path, version := fields[0], fields[1]
-	if !isModulePath(path) {
+	isLocal := strings.HasPrefix(version, ".") || strings.HasPrefix(version, "/")
+
+	if !isLocal && !isModulePath(path) {
 		return nil, ParseError{
 			Detail: "invalid module path " + quote(path),
 			Hint:   "module path must be a host/path URL, e.g. codeberg.org/" + nonEmpty(path, "example/module"),
 			Source: m.span(lineNum),
 		}
 	}
-	if !isSemver(version) {
+	if !isLocal && !isSemver(version) {
 		return nil, ParseError{
 			Detail: "invalid version " + quote(version) + " for " + path,
 			Hint:   "version must be a semver tag starting with v, e.g. v1.0.0 (got " + version + ")",

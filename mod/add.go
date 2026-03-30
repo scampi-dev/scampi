@@ -14,40 +14,106 @@ import (
 	"scampi.dev/scampi/source"
 )
 
-// Add adds or updates a dependency in the scampi.mod and scampi.sum files at dir.
-// If version is empty, the latest stable semver tag is resolved from the remote.
-// Returns the resolved version.
-func Add(ctx context.Context, src source.Source, modPath, version, dir, cacheDir string) (string, error) {
-	if version == "" {
-		resolved, err := resolveLatestStable(modPath)
-		if err != nil {
-			return "", err
-		}
-		version = resolved
-	}
-
+// Add adds or updates a dependency in scampi.mod (and scampi.sum for remote deps).
+// For remote modules, version may be empty to resolve the latest stable tag.
+// For local modules, version is a filesystem path (starts with . or /).
+// Returns the resolved version and what changed in scampi.mod.
+func Add(
+	ctx context.Context,
+	src source.Source,
+	modPath string,
+	version string,
+	dir string,
+	cacheDir string,
+) (string, ModFileChange, error) {
 	dep := Dependency{Path: modPath, Version: version}
 
+	if dep.IsLocal() {
+		return addLocal(ctx, src, dep, dir)
+	}
+	return addRemote(ctx, src, dep, dir, cacheDir)
+}
+
+func addLocal(ctx context.Context, src source.Source, dep Dependency, dir string) (string, ModFileChange, error) {
+	localDir := dep.Version
+	if !filepath.IsAbs(localDir) {
+		localDir = filepath.Join(dir, localDir)
+	}
+
+	if err := ValidateEntryPoint(ctx, src, dep, localDir); err != nil {
+		return "", 0, err
+	}
+
+	change, err := updateModFile(ctx, src, dep, dir)
+	return dep.Version, change, err
+}
+
+func addRemote(
+	ctx context.Context,
+	src source.Source,
+	dep Dependency,
+	dir string,
+	cacheDir string,
+) (string, ModFileChange, error) {
+	if dep.Version == "" {
+		resolved, err := resolveLatestStable(dep.Path)
+		if err != nil {
+			return "", 0, err
+		}
+		dep.Version = resolved
+	}
+
 	if err := Fetch(dep, cacheDir); err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	dest := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
 
 	if err := ValidateEntryPoint(ctx, src, dep, dest); err != nil {
 		_ = os.RemoveAll(dest)
-		return "", err
+		return "", 0, err
 	}
 
 	hash, err := ComputeHash(dest)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
+	change, err := updateModFile(ctx, src, dep, dir)
+	if err != nil {
+		return "", 0, err
+	}
+
+	sumFile := filepath.Join(dir, "scampi.sum")
+	sums, err := ReadSum(ctx, src, sumFile)
+	if err != nil {
+		return "", 0, err
+	}
+
+	key := dep.Path + " " + dep.Version
+	sums[key] = hash
+
+	if err := WriteSum(ctx, src, sumFile, sums); err != nil {
+		return "", 0, err
+	}
+
+	return dep.Version, change, nil
+}
+
+// ModFileChange describes what updateModFile did.
+type ModFileChange int
+
+const (
+	ModFileAdded     ModFileChange = iota // new entry added
+	ModFileUpdated                        // existing entry version changed
+	ModFileUnchanged                      // already present with same version
+)
+
+func updateModFile(ctx context.Context, src source.Source, dep Dependency, dir string) (ModFileChange, error) {
 	modFile := filepath.Join(dir, "scampi.mod")
 	data, err := src.ReadFile(ctx, modFile)
 	if err != nil {
-		return "", &AddError{
+		return 0, &AddError{
 			Detail: "could not read scampi.mod: " + err.Error(),
 			Hint:   "run: scampi mod init",
 		}
@@ -55,45 +121,36 @@ func Add(ctx context.Context, src source.Source, modPath, version, dir, cacheDir
 
 	m, err := Parse(modFile, data)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	deps := make([]Dependency, 0, len(m.Require)+1)
-	added := false
+	change := ModFileAdded
 	for _, d := range m.Require {
-		if d.Path == modPath {
-			deps = append(deps, Dependency{Path: modPath, Version: version})
-			added = true
+		if d.Path == dep.Path {
+			if d.Version == dep.Version {
+				change = ModFileUnchanged
+			} else {
+				change = ModFileUpdated
+			}
+			deps = append(deps, Dependency{Path: dep.Path, Version: dep.Version})
 		} else {
 			deps = append(deps, Dependency{Path: d.Path, Version: d.Version})
 		}
 	}
-	if !added {
-		deps = append(deps, Dependency{Path: modPath, Version: version})
+	if change == ModFileAdded {
+		deps = append(deps, Dependency{Path: dep.Path, Version: dep.Version})
+	}
+
+	if change == ModFileUnchanged {
+		return ModFileUnchanged, nil
 	}
 
 	slices.SortFunc(deps, func(a, b Dependency) int {
 		return strings.Compare(a.Path, b.Path)
 	})
 
-	if err := writeModFile(ctx, src, modFile, m.Module, deps); err != nil {
-		return "", err
-	}
-
-	sumFile := filepath.Join(dir, "scampi.sum")
-	sums, err := ReadSum(ctx, src, sumFile)
-	if err != nil {
-		return "", err
-	}
-
-	key := modPath + " " + version
-	sums[key] = hash
-
-	if err := WriteSum(ctx, src, sumFile, sums); err != nil {
-		return "", err
-	}
-
-	return version, nil
+	return change, writeModFile(ctx, src, modFile, m.Module, deps)
 }
 
 // resolveLatestStable runs git ls-remote --tags on the module URL and returns

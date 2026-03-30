@@ -107,7 +107,7 @@ func TestAdd_ExplicitVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	version, err := mod.Add(context.Background(), source.LocalPosixSource{}, bare, "v1.2.3", dir, cacheDir)
+	version, _, err := mod.Add(context.Background(), source.LocalPosixSource{}, bare, "v1.2.3", dir, cacheDir)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -147,7 +147,7 @@ func TestAdd_LatestStable(t *testing.T) {
 	}
 
 	// version="" triggers latest stable resolution
-	version, err := mod.Add(context.Background(), source.LocalPosixSource{}, bare, "", dir, cacheDir)
+	version, _, err := mod.Add(context.Background(), source.LocalPosixSource{}, bare, "", dir, cacheDir)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestAdd_NoStableVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := mod.Add(context.Background(), source.LocalPosixSource{}, bare, "", dir, cacheDir)
+	_, _, err := mod.Add(context.Background(), source.LocalPosixSource{}, bare, "", dir, cacheDir)
 	if err == nil {
 		t.Fatal("expected NoStableVersionError, got nil")
 	}
