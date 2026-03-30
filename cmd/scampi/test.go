@@ -4,7 +4,9 @@ package main
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/urfave/cli/v3"
 
@@ -42,15 +44,17 @@ func testCmd() *cli.Command {
 			em := diagnostic.NewEmitter(pol, displ)
 			src := source.LocalPosixSource{}
 
-			pattern := testPath
-			if pattern == "" {
-				pattern = "*_test.star"
+			files, err := findTestFiles(testPath)
+			if err != nil {
+				emitTestDiag(em, &testkit.TestError{
+					Detail: err.Error(),
+					Hint:   "test files must end in _test.star",
+				})
+				return cli.Exit("", exitUserError)
 			}
-
-			files, _ := filepath.Glob(pattern)
 			if len(files) == 0 {
 				emitTestDiag(em, &testkit.TestError{
-					Detail: "no test files found matching " + pattern,
+					Detail: "no test files found",
 					Hint:   "test files must end in _test.star",
 				})
 				return cli.Exit("", exitUserError)
@@ -141,6 +145,51 @@ func runTestFile(
 	}
 
 	return passed, failed, nil
+}
+
+// findTestFiles resolves the test path argument into a list of *_test.star files.
+//
+//   - ""             → *_test.star in current dir
+//   - "./..."        → recursive from current dir
+//   - "path/..."     → recursive from path
+//   - "path/to/dir"  → *_test.star in that dir
+//   - "file.star"    → that specific file
+func findTestFiles(arg string) ([]string, error) {
+	if arg == "" {
+		return filepath.Glob("*_test.star")
+	}
+
+	if strings.HasSuffix(arg, "/...") || arg == "./..." {
+		root := strings.TrimSuffix(arg, "/...")
+		if root == "." || root == "" {
+			root = "."
+		}
+		return walkTestFiles(root)
+	}
+
+	info, err := os.Stat(arg)
+	if err == nil && info.IsDir() {
+		return filepath.Glob(filepath.Join(arg, "*_test.star"))
+	}
+
+	return []string{arg}, nil
+}
+
+func walkTestFiles(root string) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && strings.HasPrefix(d.Name(), ".") && path != root {
+			return filepath.SkipDir
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), "_test.star") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }
 
 func emitTestDiag(em diagnostic.Emitter, d diagnostic.Diagnostic) {

@@ -263,6 +263,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
+			pattern:        "cmd/scampi/test.go",
+			allowedImports: "os",
+		},
+		{
 			pattern:        "mod/sum.go",
 			allowedImports: "os,crypto/sha256",
 		},
