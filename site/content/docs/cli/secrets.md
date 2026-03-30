@@ -1,6 +1,6 @@
 ---
 title: secrets
-weight: 7
+weight: 10
 ---
 
 Manage [age](https://age-encryption.org/)-encrypted secrets. All subcommands

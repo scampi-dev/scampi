@@ -1,6 +1,6 @@
 ---
 title: gen
-weight: 8
+weight: 5
 ---
 
 Generate Starlark modules from external schemas. Each generator produces typed
