@@ -30,6 +30,32 @@ Each line in the `require` block is a dependency: `<module-path> <version>`.
 - Versions are semver tags: `v1.0.0`, `v2.0.0-alpha.1`
 - Local modules use a filesystem path instead of a version (see [Local Modules](../local))
 
+### Indirect dependencies
+
+When a dependency is required transitively (by one of your direct
+dependencies, not by your project itself), scampi marks it with a
+`// indirect` comment:
+
+```text {filename="scampi.mod"}
+module codeberg.org/yourname/yourproject
+
+require (
+    codeberg.org/scampi-modules/npm v1.0.0
+)
+
+require (
+    codeberg.org/scampi-modules/helpers v2.1.0 // indirect
+)
+```
+
+Indirect deps get their own `require` block, separate from your direct
+dependencies. Both blocks are managed automatically by `scampi mod add`
+and `scampi mod download` — you should not need to edit them by hand.
+
+When multiple versions of the same transitive module are required,
+scampi uses **minimum version selection** — the highest version
+requested by any dependency wins.
+
 ### Comments
 
 Lines starting with `//` are comments.

@@ -4,6 +4,7 @@ package mod
 
 import (
 	"fmt"
+	"strings"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
@@ -324,6 +325,28 @@ func (e *NoStableVersionError) EventTemplate() event.Template {
 		ID:   "mod.NoStableVersion",
 		Text: "no stable version found for {{.ModPath}}",
 		Hint: "specify a version explicitly: scampi mod add {{.ModPath}}@v1.0.0-alpha.1",
+		Data: e,
+	}
+}
+
+// CycleError
+// -----------------------------------------------------------------------------
+
+// CycleError is raised when transitive dependency resolution detects a cycle.
+type CycleError struct {
+	diagnostic.FatalError
+	Chain []string
+}
+
+func (e *CycleError) Error() string {
+	return "dependency cycle detected: " + strings.Join(e.Chain, " → ")
+}
+
+func (e *CycleError) EventTemplate() event.Template {
+	return event.Template{
+		ID:   "mod.CycleError",
+		Text: "dependency cycle detected",
+		Hint: `{{join " → " .Chain}}`,
 		Data: e,
 	}
 }

@@ -20,9 +20,10 @@ type Module struct {
 
 // Dependency is a single entry in the require block.
 type Dependency struct {
-	Path    string
-	Version string
-	Line    int
+	Path     string
+	Version  string
+	Line     int
+	Indirect bool
 }
 
 // IsLocal reports whether this dependency points to a local directory
@@ -124,6 +125,9 @@ func Parse(filename string, data []byte) (*Module, error) {
 		lineNum := i + 1
 		line := strings.TrimSpace(raw)
 
+		// Detect // indirect before stripping inline comments.
+		indirect := strings.Contains(line, "// indirect")
+
 		// Strip inline comments
 		if idx := strings.Index(line, "//"); idx >= 0 {
 			line = strings.TrimSpace(line[:idx])
@@ -138,7 +142,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 				inRequire = false
 				continue
 			}
-			dep, err := parseDependency(m, line, lineNum)
+			dep, err := parseDependency(m, line, lineNum, indirect)
 			if err != nil {
 				return nil, err
 			}
@@ -179,7 +183,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 		if strings.HasPrefix(line, "require ") {
 			// single-line require: require codeberg.org/foo/bar v1.0.0
 			rest := strings.TrimSpace(line[len("require "):])
-			dep, err := parseDependency(m, rest, lineNum)
+			dep, err := parseDependency(m, rest, lineNum, indirect)
 			if err != nil {
 				return nil, err
 			}
@@ -215,7 +219,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 	return m, nil
 }
 
-func parseDependency(m *Module, line string, lineNum int) (*Dependency, error) {
+func parseDependency(m *Module, line string, lineNum int, indirect bool) (*Dependency, error) {
 	fields := strings.Fields(line)
 	if len(fields) == 0 {
 		return nil, nil
@@ -244,7 +248,7 @@ func parseDependency(m *Module, line string, lineNum int) (*Dependency, error) {
 			Source: m.span(lineNum),
 		}
 	}
-	return &Dependency{Path: path, Version: version, Line: lineNum}, nil
+	return &Dependency{Path: path, Version: version, Line: lineNum, Indirect: indirect}, nil
 }
 
 // String helpers

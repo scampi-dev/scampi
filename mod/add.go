@@ -79,7 +79,40 @@ func addRemote(
 		return "", 0, err
 	}
 
-	change, err := updateModFile(ctx, src, dep, dir)
+	// Read existing mod file and compute the change type.
+	modFile := filepath.Join(dir, "scampi.mod")
+	data, err := src.ReadFile(ctx, modFile)
+	if err != nil {
+		return "", 0, &AddError{
+			Detail: "could not read scampi.mod: " + err.Error(),
+			Hint:   "run: scampi mod init",
+		}
+	}
+	m, err := Parse(modFile, data)
+	if err != nil {
+		return "", 0, err
+	}
+
+	deps := make([]Dependency, 0, len(m.Require)+1)
+	change := ModFileAdded
+	for _, d := range m.Require {
+		if d.Path == dep.Path {
+			if d.Version == dep.Version {
+				change = ModFileUnchanged
+			} else {
+				change = ModFileUpdated
+			}
+			deps = append(deps, Dependency{Path: dep.Path, Version: dep.Version})
+		} else {
+			deps = append(deps, d)
+		}
+	}
+	if change == ModFileAdded {
+		deps = append(deps, Dependency{Path: dep.Path, Version: dep.Version})
+	}
+
+	// Resolve and fetch transitive dependencies.
+	allDeps, err := FetchTransitive(ctx, src, deps, cacheDir)
 	if err != nil {
 		return "", 0, err
 	}
@@ -93,7 +126,30 @@ func addRemote(
 	key := dep.Path + " " + dep.Version
 	sums[key] = hash
 
+	for _, tdep := range allDeps {
+		if !tdep.Indirect || tdep.IsLocal() {
+			continue
+		}
+		tdest := filepath.Join(cacheDir, tdep.Path+"@"+tdep.Version)
+		if err := ValidateEntryPoint(ctx, src, tdep, tdest); err != nil {
+			return "", 0, err
+		}
+		h, err := ComputeHash(tdest)
+		if err != nil {
+			return "", 0, err
+		}
+		sums[tdep.Path+" "+tdep.Version] = h
+	}
+
 	if err := WriteSum(ctx, src, sumFile, sums); err != nil {
+		return "", 0, err
+	}
+
+	slices.SortFunc(allDeps, func(a, b Dependency) int {
+		return strings.Compare(a.Path, b.Path)
+	})
+
+	if err := WriteModFile(ctx, src, modFile, m.Module, allDeps); err != nil {
 		return "", 0, err
 	}
 
@@ -150,7 +206,7 @@ func updateModFile(ctx context.Context, src source.Source, dep Dependency, dir s
 		return strings.Compare(a.Path, b.Path)
 	})
 
-	return change, writeModFile(ctx, src, modFile, m.Module, deps)
+	return change, WriteModFile(ctx, src, modFile, m.Module, deps)
 }
 
 // resolveLatestStable runs git ls-remote --tags on the module URL and returns

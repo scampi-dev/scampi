@@ -283,6 +283,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,os/exec",
 		},
 		{
+			pattern:        "mod/resolve_deps.go",
+			allowedImports: "os",
+		},
+		{
 			pattern:        "mod/add.go",
 			allowedImports: "os,os/exec",
 		},

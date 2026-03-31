@@ -271,6 +271,35 @@ func modDownloadCmd() *cli.Command {
 				emitModInfo(em, fmt.Sprintf("downloaded %s@%s", dep.Path, dep.Version))
 			}
 
+			// Resolve and fetch transitive dependencies.
+			allDeps, err := mod.FetchTransitive(ctx, src, m.Require, cacheDir)
+			if err != nil {
+				emitModDiagnostic(em, err)
+				return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
+			}
+
+			for _, dep := range allDeps {
+				if !dep.Indirect || dep.IsLocal() {
+					continue
+				}
+				dest := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
+				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, dep, dest); err != nil {
+					emitModDiagnostic(em, err)
+					return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
+				}
+				hash, err := mod.ComputeHash(dest)
+				if err != nil {
+					emitModDiagnostic(em, err)
+					return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
+				}
+				key := dep.Path + " " + dep.Version
+				if sums[key] == "" {
+					sums[key] = hash
+					updated = true
+				}
+				emitModInfo(em, fmt.Sprintf("downloaded %s@%s (indirect)", dep.Path, dep.Version))
+			}
+
 			if updated {
 				if err := mod.WriteSum(ctx, src, sumFile, sums); err != nil {
 					emitModDiagnostic(em, err)
@@ -278,7 +307,13 @@ func modDownloadCmd() *cli.Command {
 				}
 			}
 
-			if len(m.Require) == 0 {
+			// Write scampi.mod with indirect markers.
+			if err := mod.WriteModFile(ctx, src, modFile, m.Module, allDeps); err != nil {
+				emitModDiagnostic(em, err)
+				return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
+			}
+
+			if len(m.Require) == 0 && len(allDeps) == 0 {
 				emitModInfo(em, "all modules up to date")
 			}
 

@@ -76,7 +76,7 @@ func Tidy(ctx context.Context, src source.Source, dir string) ([]string, error) 
 		return strings.Compare(a.Path, b.Path)
 	})
 
-	if err := writeModFile(ctx, src, modPath, mod.Module, newDeps); err != nil {
+	if err := WriteModFile(ctx, src, modPath, mod.Module, newDeps); err != nil {
 		return nil, err
 	}
 

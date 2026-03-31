@@ -3,10 +3,12 @@
 package mod_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"scampi.dev/scampi/mod"
+	"scampi.dev/scampi/source"
 )
 
 const testFile = "scampi.mod"
@@ -351,6 +353,82 @@ func TestIsModulePath(t *testing.T) {
 		if mod.IsModulePath(p) {
 			t.Errorf("IsModulePath(%q) = true, want false", p)
 		}
+	}
+}
+
+func TestParse_HappyPath_IndirectFlag(t *testing.T) {
+	data := []byte(`module codeberg.org/pskry/skrynet
+
+require (
+    codeberg.org/scampi-modules/npm v1.0.0
+    codeberg.org/scampi-modules/authelia v0.3.2 // indirect
+)
+`)
+	m, err := mod.Parse(testFile, data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(m.Require) != 2 {
+		t.Fatalf("len(Require) = %d, want 2", len(m.Require))
+	}
+	if m.Require[0].Indirect {
+		t.Errorf("Require[0].Indirect = true, want false for direct dep")
+	}
+	if !m.Require[1].Indirect {
+		t.Errorf("Require[1].Indirect = false, want true for indirect dep")
+	}
+}
+
+func TestParse_HappyPath_NoIndirectFlag(t *testing.T) {
+	data := []byte(`module codeberg.org/pskry/skrynet
+
+require (
+    codeberg.org/scampi-modules/npm v1.0.0
+    codeberg.org/scampi-modules/authelia v0.3.2
+)
+`)
+	m, err := mod.Parse(testFile, data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for i, dep := range m.Require {
+		if dep.Indirect {
+			t.Errorf("Require[%d].Indirect = true, want false", i)
+		}
+	}
+}
+
+func TestWriteModFile_IndirectRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	src := source.NewMemSource()
+
+	deps := []mod.Dependency{
+		{Path: "codeberg.org/scampi-modules/npm", Version: "v1.0.0", Indirect: false},
+		{Path: "codeberg.org/scampi-modules/authelia", Version: "v0.3.2", Indirect: true},
+	}
+
+	if err := mod.WriteModFile(ctx, src, testFile, "codeberg.org/pskry/skrynet", deps); err != nil {
+		t.Fatalf("writeModFile: %v", err)
+	}
+
+	data, err := src.ReadFile(ctx, testFile)
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+
+	m, err := mod.Parse(testFile, data)
+	if err != nil {
+		t.Fatalf("Parse after write: %v", err)
+	}
+
+	if len(m.Require) != 2 {
+		t.Fatalf("len(Require) = %d, want 2", len(m.Require))
+	}
+	if m.Require[0].Indirect {
+		t.Errorf("Require[0].Indirect = true, want false")
+	}
+	if !m.Require[1].Indirect {
+		t.Errorf("Require[1].Indirect = false, want true")
 	}
 }
 
