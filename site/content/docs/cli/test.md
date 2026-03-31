@@ -10,13 +10,13 @@ on writing tests.
 scampi test [path]
 ```
 
-| Argument          | Behavior                                   |
-| ----------------- | ------------------------------------------ |
-| (none)            | Run `*_test.star` in the current directory |
-| `./...`           | Recursive from current directory           |
-| `path/to/dir`     | All `*_test.star` in that directory        |
-| `path/to/dir/...` | Recursive from that directory              |
-| `path/file.star`  | Run a specific test file                   |
+| Argument           | Behavior                                     |
+| ------------------ | -------------------------------------------- |
+| (none)             | Run `*_test.scampi` in the current directory |
+| `./...`            | Recursive from current directory             |
+| `path/to/dir`      | All `*_test.scampi` in that directory        |
+| `path/to/dir/...`  | Recursive from that directory                |
+| `path/file.scampi` | Run a specific test file                     |
 
 Hidden directories (starting with `.`) are skipped during recursive discovery.
 

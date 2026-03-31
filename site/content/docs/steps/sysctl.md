@@ -53,7 +53,7 @@ typically use lower prefixes like `10-` or `50-`.
 
 ### Enable IP forwarding (persistent)
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 sysctl(
     key="net.ipv4.ip_forward",
     value="1",
@@ -69,7 +69,7 @@ net.ipv4.ip_forward = 1
 
 ### Tune TCP keepalive (live only)
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 sysctl(
     key="net.ipv4.tcp_keepalive_time",
     value="300",
@@ -82,7 +82,7 @@ No drop-in file is written. If one exists from a previous run, it is removed.
 
 ### Harden network settings
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 sysctl(key="net.ipv4.conf.all.rp_filter", value="1")
 sysctl(key="net.ipv4.conf.default.rp_filter", value="1")
 sysctl(key="net.ipv4.icmp_echo_ignore_broadcasts", value="1")

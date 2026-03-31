@@ -182,7 +182,7 @@ Type coercion follows the default value's type:
 
 ### Provenance is Obvious
 
-Every value is either a literal in your `.star` file or an explicit `env()` call.
+Every value is either a literal in your `.scampi` file or an explicit `env()` call.
 There's no layering, no precedence, no hidden override mechanism. You can always
 answer "where did this value come from?" by reading the code.
 
@@ -212,15 +212,15 @@ Secret values never appear in diagnostic output — only key names.
 Standard Starlark `load()` splits configs across files:
 
 ```python
-# config.star
-load("./targets.star", "web_targets", "db_targets")
-load("./steps/web.star", "web_steps")
+# config.scampi
+load("./targets.scampi", "web_targets", "db_targets")
+load("./steps/web.scampi", "web_steps")
 
 deploy(name="web", targets=web_targets, steps=web_steps)
 ```
 
 ```python
-# targets.star
+# targets.scampi
 target.ssh(name="web1", host="10.0.0.1", user="deploy")
 target.ssh(name="web2", host="10.0.0.2", user="deploy")
 
@@ -254,7 +254,7 @@ Start with one file. Split when it hurts.
 ### Minimal (Single File)
 
 ```python
-# dotfiles.star
+# dotfiles.scampi
 target.local(name="laptop")
 
 deploy(
@@ -268,13 +268,13 @@ deploy(
 ```
 
 ```bash
-scampi apply dotfiles.star
+scampi apply dotfiles.scampi
 ```
 
 ### Small (One File, Multiple Targets)
 
 ```python
-# config.star
+# config.scampi
 target.local(name="laptop")
 target.ssh(name="server", host="myserver.com", user="me")
 
@@ -291,8 +291,8 @@ deploy(
 
 ```
 myproject/
-├── targets.star
-└── config.star
+├── targets.scampi
+└── config.scampi
 ```
 
 ### Large (Full Layout)
@@ -300,13 +300,13 @@ myproject/
 ```
 myproject/
 ├── targets/
-│   ├── test.star
-│   ├── stage.star
-│   └── prod.star
+│   ├── test.scampi
+│   ├── stage.scampi
+│   └── prod.scampi
 ├── steps/
-│   ├── web.star
-│   └── db.star
-└── config.star
+│   ├── web.scampi
+│   └── db.scampi
+└── config.scampi
 ```
 
 ---
@@ -325,22 +325,22 @@ myproject/
 
 ```bash
 # Minimal: single file
-scampi apply dotfiles.star
+scampi apply dotfiles.scampi
 
 # Check without applying
-scampi check config.star
+scampi check config.scampi
 
 # Show execution plan
-scampi plan config.star
+scampi plan config.scampi
 
 # Filter to specific targets
-scampi apply --targets web1,web2 config.star
+scampi apply --targets web1,web2 config.scampi
 
 # Filter to specific deploy block
-scampi apply --only web config.star
+scampi apply --only web config.scampi
 
 # Inspect file diffs
-scampi inspect config.star
+scampi inspect config.scampi
 ```
 
 ---

@@ -18,7 +18,7 @@ scampi mod add codeberg.org/scampi-modules/npm
 
 Use it in your config:
 
-```starlark {filename="deploy.star"}
+```starlark {filename="deploy.scampi"}
 load("codeberg.org/scampi-modules/npm", "proxy_host", "certificate")
 
 target.local(name = "server")
@@ -37,7 +37,7 @@ deploy(
 
 1. `scampi.mod` declares your module path and dependencies
 2. `scampi mod add` fetches modules from git repositories into a local cache
-3. `load()` resolves module paths against the require table and loads `.star` files
+3. `load()` resolves module paths against the require table and loads `.scampi` files
 4. Steps from modules work identically to built-in steps
 
 ## Sections

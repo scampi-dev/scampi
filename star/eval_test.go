@@ -21,7 +21,7 @@ import (
 
 func TestEvalMinimalConfig(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="myhost")
 
 deploy(
@@ -34,13 +34,13 @@ deploy(
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
 
-	if cfg.Path != "/config.star" {
-		t.Errorf("Path = %q, want /config.star", cfg.Path)
+	if cfg.Path != "/config.scampi" {
+		t.Errorf("Path = %q, want /config.scampi", cfg.Path)
 	}
 
 	if len(cfg.Targets) != 1 {
@@ -89,7 +89,7 @@ deploy(
 
 func TestEvalAllStepTypes(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 
 steps = [
@@ -104,7 +104,7 @@ deploy(name="main", targets=["host"], steps=steps)
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -133,7 +133,7 @@ deploy(name="main", targets=["host"], steps=steps)
 
 func TestEvalSSHTarget(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.ssh(
     name="remote",
     host="192.168.1.1",
@@ -150,7 +150,7 @@ deploy(name="main", targets=["remote"], steps=[
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestEvalEnvDefault(t *testing.T) {
 	src := source.NewMemSource()
 	src.Env["MY_HOST"] = "remotehost"
 	src.Env["MY_PORT"] = "3000"
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 host = env("MY_HOST", "localhost")
 port = env("MY_PORT", 22)
 missing = env("NOPE", "fallback")
@@ -203,7 +203,7 @@ deploy(name="main", targets=["t"], steps=[
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -225,12 +225,12 @@ deploy(name="main", targets=["t"], steps=[
 
 func TestEvalEnvRequired(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 val = env("REQUIRED_VAR")
 `)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing required env var")
 	}
@@ -238,13 +238,13 @@ val = env("REQUIRED_VAR")
 
 func TestEvalDuplicateTarget(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="dup")
 target.local(name="dup")
 `)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for duplicate target")
 	}
@@ -252,14 +252,14 @@ target.local(name="dup")
 
 func TestEvalDuplicateDeploy(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=[dir(path="/tmp/a")])
 deploy(name="main", targets=["host"], steps=[dir(path="/tmp/b")])
 `)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for duplicate deploy block")
 	}
@@ -267,7 +267,7 @@ deploy(name="main", targets=["host"], steps=[dir(path="/tmp/b")])
 
 func TestEvalStepComposition(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 
 base = [
@@ -282,7 +282,7 @@ deploy(name="main", targets=["host"], steps=base + extra)
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -303,7 +303,7 @@ deploy(name="main", targets=["host"], steps=base + extra)
 
 func TestEvalTemplateWithData(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 
 deploy(name="main", targets=["host"], steps=[
@@ -322,7 +322,7 @@ deploy(name="main", targets=["host"], steps=[
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -342,20 +342,20 @@ deploy(name="main", targets=["host"], steps=[
 
 func TestEvalLoad(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/lib/steps.star"] = []byte(`
+	src.Files["/lib/steps.scampi"] = []byte(`
 common = [
     dir(path="/tmp/shared"),
 ]
 `)
-	src.Files["/config.star"] = []byte(`
-load("/lib/steps.star", "common")
+	src.Files["/config.scampi"] = []byte(`
+load("/lib/steps.scampi", "common")
 
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=common)
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -372,21 +372,21 @@ deploy(name="main", targets=["host"], steps=common)
 
 func TestEvalSourceSpans(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`target.local(name="host")
+	src.Files["/config.scampi"] = []byte(`target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
     dir(path="/tmp/x"),
 ])
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
 
 	step := cfg.Deploy["main"].Steps[0]
-	if step.Source.Filename != "/config.star" {
-		t.Errorf("source filename = %q, want '/config.star'", step.Source.Filename)
+	if step.Source.Filename != "/config.scampi" {
+		t.Errorf("source filename = %q, want '/config.scampi'", step.Source.Filename)
 	}
 	if step.Source.StartLine == 0 {
 		t.Error("source line = 0, expected non-zero")
@@ -395,7 +395,7 @@ deploy(name="main", targets=["host"], steps=[
 
 func TestEvalPkgStateAbsent(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
     pkg(packages=["vim"], state="absent", source=system()),
@@ -403,7 +403,7 @@ deploy(name="main", targets=["host"], steps=[
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -416,7 +416,7 @@ deploy(name="main", targets=["host"], steps=[
 
 func TestEvalSymlinkConfig(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
     symlink(target="/usr/bin/vim", link="/usr/local/bin/vim", desc="vim link"),
@@ -424,7 +424,7 @@ deploy(name="main", targets=["host"], steps=[
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -444,10 +444,10 @@ deploy(name="main", targets=["host"], steps=[
 
 func TestEvalEmptyTargetName(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`target.local(name="")`)
+	src.Files["/config.scampi"] = []byte(`target.local(name="")`)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for empty target name")
 	}
@@ -459,13 +459,13 @@ func TestEvalEmptyTargetName(t *testing.T) {
 
 func TestEvalEmptyDeployName(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 deploy(name="", targets=["host"], steps=[dir(path="/tmp/a")])
 `)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for empty deploy name")
 	}
@@ -477,13 +477,13 @@ deploy(name="", targets=["host"], steps=[dir(path="/tmp/a")])
 
 func TestEvalEmptyDeployTargets(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 deploy(name="main", targets=[], steps=[dir(path="/tmp/a")])
 `)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for empty targets")
 	}
@@ -495,13 +495,13 @@ deploy(name="main", targets=[], steps=[dir(path="/tmp/a")])
 
 func TestEvalEmptyDeploySteps(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=[])
 `)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for empty steps")
 	}
@@ -513,16 +513,16 @@ deploy(name="main", targets=["host"], steps=[])
 
 func TestEvalCircularLoad(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/a.star"] = []byte(`load("/b.star", "bval")
+	src.Files["/a.scampi"] = []byte(`load("/b.scampi", "bval")
 aval = 1
 `)
-	src.Files["/b.star"] = []byte(`load("/a.star", "aval")
+	src.Files["/b.scampi"] = []byte(`load("/a.scampi", "aval")
 bval = 2
 `)
-	src.Files["/config.star"] = []byte(`load("/a.star", "aval")`)
+	src.Files["/config.scampi"] = []byte(`load("/a.scampi", "aval")`)
 
 	store := diagnostic.NewSourceStore()
-	_, err := star.Eval(context.Background(), "/config.star", store, src)
+	_, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for circular load")
 	}

@@ -138,19 +138,19 @@ pkg(
 ### OS-neutral configuration with variables
 
 ```python
-# debian.star
+# debian.scampi
 docker_src = apt_repo(
     url = "https://download.docker.com/linux/debian",
     key_url = "https://download.docker.com/linux/debian/gpg",
     components = ["stable"],
 )
 
-# rhel.star
+# rhel.scampi
 docker_src = dnf_repo(
     url = "https://download.docker.com/linux/rhel",
     key_url = "https://download.docker.com/linux/rhel/gpg",
 )
 
-# shared.star (loaded after OS-specific file)
+# shared.scampi (loaded after OS-specific file)
 pkg(packages=["docker-ce"], source=docker_src)
 ```

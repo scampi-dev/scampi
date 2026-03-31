@@ -16,7 +16,7 @@ See the [Install page]({{< relref "/get" >}}) for all options (one-liner, `go in
 
 ### Create a config file
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 target.local(name="my-machine")
 
 deploy(
@@ -38,7 +38,7 @@ deploy(
 Dry-run to see what scampi would do without making changes:
 
 ```bash
-scampi check deploy.star
+scampi check deploy.scampi
 ```
 
 Scampi inspects the current state and reports what differs from your declared
@@ -47,7 +47,7 @@ config. Yellow means something would change. Green means it already matches.
 ### Apply
 
 ```bash
-scampi apply deploy.star
+scampi apply deploy.scampi
 ```
 
 Run it again — everything should be green. That's convergence: the system already
@@ -59,7 +59,7 @@ matches your declared state, so there's nothing to do.
 
 To manage a remote machine over SSH, add a target:
 
-```python {filename="remote.star"}
+```python {filename="remote.scampi"}
 target.ssh(name="web", host="192.168.1.10", user="deploy")
 
 deploy(

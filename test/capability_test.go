@@ -17,14 +17,14 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 	t.Helper()
 
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}

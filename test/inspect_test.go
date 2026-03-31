@@ -28,7 +28,7 @@ func makeInspectEngine(t *testing.T, actions []spec.Action) *engine.Engine {
 	}
 
 	cfg := spec.ResolvedConfig{
-		Path:       "/test.star",
+		Path:       "/test.scampi",
 		DeployName: "test",
 		TargetName: "local",
 		Target:     mockTargetInstance(tgt),

@@ -16,7 +16,7 @@ import (
 
 // E2EScenario defines a data-driven E2E test case.
 // Each scenario is a directory under testdata/e2e/ containing:
-//   - config.star    (required) - Starlark configuration
+//   - config.scampi    (required) - Starlark configuration
 //   - source.json    (required) - source files to populate
 //   - target.json    (optional) - pre-existing target state
 //   - expect.json    (required) - expected outcomes
@@ -116,15 +116,15 @@ func TestE2E(t *testing.T) {
 		name := e.Name()
 		scenarioDir := filepath.Join(root, name)
 
-		cfgPath := filepath.Join(scenarioDir, "config.star")
+		cfgPath := filepath.Join(scenarioDir, "config.scampi")
 		if _, err := readFileSafe(cfgPath); err != nil {
-			t.Errorf("%s: no config.star found", name)
+			t.Errorf("%s: no config.scampi found", name)
 			continue
 		}
 
 		for _, driver := range drivers {
 			t.Run(name+"/"+driver.Name(), func(t *testing.T) {
-				runE2EScenarioWithDriver(t, scenarioDir, "config.star", driver)
+				runE2EScenarioWithDriver(t, scenarioDir, "config.scampi", driver)
 			})
 		}
 	}

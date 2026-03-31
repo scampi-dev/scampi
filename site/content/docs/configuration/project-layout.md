@@ -11,11 +11,11 @@ well as projects grow.
 A single file is enough:
 
 {{< filetree/container >}}
-  {{< filetree/file name="deploy.star" >}}
+  {{< filetree/file name="deploy.scampi" >}}
   {{< filetree/file name="nginx.conf" >}}
 {{< /filetree/container >}}
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 target.local(name="dev")
 
 deploy(
@@ -48,8 +48,8 @@ http {
 Separate targets from deploy logic:
 
 {{< filetree/container >}}
-  {{< filetree/file name="targets.star" >}}
-  {{< filetree/file name="deploy.star" >}}
+  {{< filetree/file name="targets.scampi" >}}
+  {{< filetree/file name="deploy.scampi" >}}
   {{< filetree/folder name="files" >}}
     {{< filetree/file name="nginx.conf" >}}
     {{< filetree/file name="app.env" >}}
@@ -59,12 +59,12 @@ Separate targets from deploy logic:
   {{< /filetree/folder >}}
 {{< /filetree/container >}}
 
-```python {filename="targets.star"}
+```python {filename="targets.scampi"}
 target.ssh(name="web", host="app.example.com", user="deploy")
 ```
 
-```python {filename="deploy.star"}
-load("targets.star", "web")
+```python {filename="deploy.scampi"}
+load("targets.scampi", "web")
 
 deploy(
     name = "app",
@@ -99,10 +99,10 @@ PORT=3000
 Group by concern when managing multiple services:
 
 {{< filetree/container >}}
-  {{< filetree/file name="targets.star" >}}
-  {{< filetree/file name="web.star" >}}
-  {{< filetree/file name="db.star" >}}
-  {{< filetree/file name="monitoring.star" >}}
+  {{< filetree/file name="targets.scampi" >}}
+  {{< filetree/file name="web.scampi" >}}
+  {{< filetree/file name="db.scampi" >}}
+  {{< filetree/file name="monitoring.scampi" >}}
   {{< filetree/folder name="files" >}}
     {{< filetree/file name="nginx.conf" >}}
     {{< filetree/file name="pg_hba.conf" >}}
@@ -112,14 +112,14 @@ Group by concern when managing multiple services:
   {{< /filetree/folder >}}
 {{< /filetree/container >}}
 
-```python {filename="targets.star"}
+```python {filename="targets.scampi"}
 target.ssh(name="web", host="web.example.com", user="deploy")
 target.ssh(name="db", host="db.example.com", user="deploy")
 target.ssh(name="mon", host="mon.example.com", user="deploy")
 ```
 
-```python {filename="web.star"}
-load("targets.star", "web")
+```python {filename="web.scampi"}
+load("targets.scampi", "web")
 
 deploy(
     name = "web",
@@ -132,8 +132,8 @@ deploy(
 )
 ```
 
-```python {filename="db.star"}
-load("targets.star", "db")
+```python {filename="db.scampi"}
+load("targets.scampi", "db")
 
 deploy(
     name = "database",
@@ -146,8 +146,8 @@ deploy(
 )
 ```
 
-```python {filename="monitoring.star"}
-load("targets.star", "mon")
+```python {filename="monitoring.scampi"}
+load("targets.scampi", "mon")
 
 deploy(
     name = "monitoring",
@@ -173,22 +173,22 @@ once and vary the data per environment:
 
 {{< filetree/container >}}
   {{< filetree/folder name="shared" >}}
-    {{< filetree/file name="targets.star" >}}
-    {{< filetree/file name="web.star" >}}
+    {{< filetree/file name="targets.scampi" >}}
+    {{< filetree/file name="web.scampi" >}}
   {{< /filetree/folder >}}
-  {{< filetree/file name="production.star" >}}
-  {{< filetree/file name="staging.star" >}}
+  {{< filetree/file name="production.scampi" >}}
+  {{< filetree/file name="staging.scampi" >}}
   {{< filetree/folder name="templates" >}}
     {{< filetree/file name="nginx.conf.tmpl" >}}
   {{< /filetree/folder >}}
 {{< /filetree/container >}}
 
-```python {filename="shared/targets.star"}
+```python {filename="shared/targets.scampi"}
 target.ssh(name="prod-web", host="web.prod.example.com", user="deploy")
 target.ssh(name="staging-web", host="web.staging.example.com", user="deploy")
 ```
 
-```python {filename="shared/web.star"}
+```python {filename="shared/web.scampi"}
 def web_steps(domain):
     return [
         pkg(packages=["nginx"], state="present", source=system()),
@@ -202,16 +202,16 @@ def web_steps(domain):
     ]
 ```
 
-```python {filename="production.star"}
-load("shared/targets.star", "prod-web")
-load("shared/web.star", "web_steps")
+```python {filename="production.scampi"}
+load("shared/targets.scampi", "prod-web")
+load("shared/web.scampi", "web_steps")
 
 deploy(name="prod-web", targets=["prod-web"], steps=web_steps("prod.example.com"))
 ```
 
-```python {filename="staging.star"}
-load("shared/targets.star", "staging-web")
-load("shared/web.star", "web_steps")
+```python {filename="staging.scampi"}
+load("shared/targets.scampi", "staging-web")
+load("shared/web.scampi", "web_steps")
 
 deploy(name="staging-web", targets=["staging-web"], steps=web_steps("staging.example.com"))
 ```

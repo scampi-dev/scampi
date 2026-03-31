@@ -11,9 +11,9 @@ can focus on convergence logic.
 
 Generated code follows a consistent layering:
 
-1. **`foo.api.star`** (generated) — raw typed request wrappers
-2. **`foo.star`** (user-authored) — convergence-aware resource functions using `rest.resource`
-3. **`deploy.star`** (user config) — declarative infrastructure
+1. **`foo.api.scampi`** (generated) — raw typed request wrappers
+2. **`foo.scampi`** (user-authored) — convergence-aware resource functions using `rest.resource`
+3. **`deploy.scampi`** (user config) — declarative infrastructure
 
 The generator handles layer 1. You write layers 2 and 3.
 
@@ -23,7 +23,7 @@ The generator handles layer 1. You write layers 2 and 3.
 scampi gen api [flags] <spec.yaml>
 ```
 
-Generate a `.api.star` module from an OpenAPI specification. Supports both
+Generate a `.api.scampi` module from an OpenAPI specification. Supports both
 OpenAPI 3.x and Swagger 2.0 specs.
 
 | Flag             | Description                                        |
@@ -31,7 +31,7 @@ OpenAPI 3.x and Swagger 2.0 specs.
 | `-o`, `--output` | Output file path (default: derives from spec name) |
 
 By default the output file is named after the spec: `npm-openapi.yaml` produces
-`npm-openapi.api.star`. Use `-o -` to write to stdout.
+`npm-openapi.api.scampi`. Use `-o -` to write to stdout.
 
 ### What it generates
 
@@ -110,7 +110,7 @@ scampi gen api npm-openapi.yaml
 
 Produces:
 
-```starlark {filename="npm-openapi.api.star"}
+```starlark {filename="npm-openapi.api.scampi"}
 # Generated from npm-openapi.yaml by scampi gen api
 #
 # Nginx Proxy Manager API (subset) 1.0.0
@@ -120,7 +120,7 @@ Produces:
 # apply to generated output. If the source specification carries its
 # own license terms, those terms govern this file.
 #
-# Usage: load("npm-openapi.api.star", ...)
+# Usage: load("npm-openapi.api.scampi", ...)
 
 # Certificates
 # -----------------------------------------------------------------------------
@@ -167,8 +167,8 @@ def get_proxy_hosts(check = None):
 
 You then write a thin wrapper module that adds convergence semantics:
 
-```starlark {filename="npm.star"}
-load("npm-openapi.api.star", "get_certificates", "create_certificate")
+```starlark {filename="npm.scampi"}
+load("npm-openapi.api.scampi", "get_certificates", "create_certificate")
 
 def certificate(domain_names, provider = "letsencrypt"):
     return rest.resource(

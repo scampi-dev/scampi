@@ -103,7 +103,7 @@ deploy(
 )
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	src.Files["/secrets.json"] = []byte(`{}`)
 
 	rec := &recordingDisplayer{}
@@ -111,7 +111,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secret, got nil")
 	}
@@ -160,14 +160,14 @@ deploy(
 )
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for wrong arg type, got nil")
 	}
@@ -216,14 +216,14 @@ deploy(
 )
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for too many args, got nil")
 	}
@@ -255,14 +255,14 @@ deploy(
 )
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing backend, got nil")
 	}
@@ -353,14 +353,14 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing path, got nil")
 	}
@@ -375,14 +375,14 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing path, got nil")
 	}
@@ -398,7 +398,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	src.Files["/secrets.json"] = []byte(`{}`)
 
 	rec := &recordingDisplayer{}
@@ -406,7 +406,7 @@ deploy(name="test", targets=["local"], steps=[])
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for double secrets() call, got nil")
 	}
@@ -421,14 +421,14 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for unknown backend, got nil")
 	}
@@ -443,14 +443,14 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secrets file, got nil")
 	}
@@ -576,7 +576,7 @@ deploy(
 )
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	src.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{})
 	src.Env["SCAMPI_AGE_KEY"] = id.String()
 
@@ -585,7 +585,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secret, got nil")
 	}
@@ -619,7 +619,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	src.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{})
 	// Point SCAMPI_AGE_KEY_FILE at a nonexistent path to block the default-file
 	// fallback (which would succeed if ~/.config/scampi/age.key happens to exist).
@@ -630,7 +630,7 @@ deploy(name="test", targets=["local"], steps=[])
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing identity, got nil")
 	}
@@ -662,7 +662,7 @@ target.local(name="local")
 deploy(name="test", targets=["local"], steps=[])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	// No secrets file, but set identity so we get past identity resolution
 	id := ageTestKeypair(t)
 	src.Env["SCAMPI_AGE_KEY"] = id.String()
@@ -672,7 +672,7 @@ deploy(name="test", targets=["local"], steps=[])
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secrets file, got nil")
 	}

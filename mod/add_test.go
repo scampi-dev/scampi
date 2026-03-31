@@ -47,9 +47,9 @@ func initTaggedRepo(t *testing.T, tags ...string) string {
 		if err := os.WriteFile(filepath.Join(work, name), content, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		// Ensure _index.star exists on first commit
+		// Ensure _index.scampi exists on first commit
 		if i == 0 {
-			if err := os.WriteFile(filepath.Join(work, "_index.star"), []byte("x = 1\n"), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(work, "_index.scampi"), []byte("x = 1\n"), 0o644); err != nil {
 				t.Fatal(err)
 			}
 		}

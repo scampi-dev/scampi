@@ -84,7 +84,7 @@ entirely. This avoids polluting user directories (git repos, web roots, etc.).
 
 ### Basic extraction
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 unarchive(
     src = local("./files/site.tar.gz"),
     dest = "/var/www/mysite",
@@ -94,7 +94,7 @@ unarchive(
 
 ### With ownership and permissions
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 unarchive(
     src = local("./files/app.tar.gz"),
     dest = "/opt/myapp",
@@ -107,7 +107,7 @@ unarchive(
 
 ### Nested archive unpacking
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 unarchive(
     src = local("./release.tar.gz"),
     dest = "/opt/release",
@@ -118,7 +118,7 @@ unarchive(
 
 ### Remote archive
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 unarchive(
     src = remote(
         url = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz",
@@ -133,7 +133,7 @@ unarchive(
 
 ### Top-level only with hook
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 unarchive(
     src = local("./files/site.tar.gz"),
     dest = "/var/www/scampi.dev",

@@ -46,7 +46,7 @@ def process_case(name, dir_path):
         expect_path = os.path.join(dir_path, expect_name)
         data = load_expect(expect_path)
 
-        config_name = "config.star"
+        config_name = "config.scampi"
         config_path = os.path.join(dir_path, config_name)
         if not os.path.exists(config_path):
             continue

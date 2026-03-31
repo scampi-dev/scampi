@@ -48,14 +48,14 @@ func testCmd() *cli.Command {
 			if err != nil {
 				emitTestDiag(em, &testkit.TestError{
 					Detail: err.Error(),
-					Hint:   "test files must end in _test.star",
+					Hint:   "test files must end in _test.scampi",
 				})
 				return cli.Exit("", exitUserError)
 			}
 			if len(files) == 0 {
 				emitTestDiag(em, &testkit.TestError{
 					Detail: "no test files found",
-					Hint:   "test files must end in _test.star",
+					Hint:   "test files must end in _test.scampi",
 				})
 				return cli.Exit("", exitUserError)
 			}
@@ -147,16 +147,16 @@ func runTestFile(
 	return passed, failed, nil
 }
 
-// findTestFiles resolves the test path argument into a list of *_test.star files.
+// findTestFiles resolves the test path argument into a list of *_test.scampi files.
 //
-//   - ""             → *_test.star in current dir
+//   - ""             → *_test.scampi in current dir
 //   - "./..."        → recursive from current dir
 //   - "path/..."     → recursive from path
-//   - "path/to/dir"  → *_test.star in that dir
-//   - "file.star"    → that specific file
+//   - "path/to/dir"  → *_test.scampi in that dir
+//   - "file.scampi"    → that specific file
 func findTestFiles(arg string) ([]string, error) {
 	if arg == "" {
-		return filepath.Glob("*_test.star")
+		return filepath.Glob("*_test.scampi")
 	}
 
 	if strings.HasSuffix(arg, "/...") || arg == "./..." {
@@ -169,7 +169,7 @@ func findTestFiles(arg string) ([]string, error) {
 
 	info, err := os.Stat(arg)
 	if err == nil && info.IsDir() {
-		return filepath.Glob(filepath.Join(arg, "*_test.star"))
+		return filepath.Glob(filepath.Join(arg, "*_test.scampi"))
 	}
 
 	return []string{arg}, nil
@@ -184,7 +184,7 @@ func walkTestFiles(root string) ([]string, error) {
 		if d.IsDir() && strings.HasPrefix(d.Name(), ".") && path != root {
 			return filepath.SkipDir
 		}
-		if !d.IsDir() && strings.HasSuffix(d.Name(), "_test.star") {
+		if !d.IsDir() && strings.HasSuffix(d.Name(), "_test.scampi") {
 			files = append(files, path)
 		}
 		return nil

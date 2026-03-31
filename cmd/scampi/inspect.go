@@ -28,9 +28,9 @@ func inspectCmd() *cli.Command {
 of all steps after Starlark evaluation.
 
 Use --diff to compare file content against the current target state:
-  scampi inspect config.star --diff              # list diffable paths
-  scampi inspect config.star --diff nginx.conf   # diff that file
-  scampi inspect config.star --diff -i           # pick interactively
+  scampi inspect config.scampi --diff              # list diffable paths
+  scampi inspect config.scampi --diff nginx.conf   # diff that file
+  scampi inspect config.scampi --diff -i           # pick interactively
 
 Set SCAMPI_DIFFTOOL, DIFFTOOL, or EDITOR to choose your diff tool.
 Set SCAMPI_FUZZY_FINDER (e.g. fzf, sk) for interactive picking.

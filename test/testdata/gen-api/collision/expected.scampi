@@ -7,7 +7,7 @@
 # apply to generated output. If the source specification carries its
 # own license terms, those terms govern this file.
 #
-# Usage: load("spec.api.star", ...)
+# Usage: load("spec.api.scampi", ...)
 
 # {Username}
 # -----------------------------------------------------------------------------

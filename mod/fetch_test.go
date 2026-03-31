@@ -36,7 +36,7 @@ func initBareRepo(t *testing.T, tag string) string {
 
 	run(work, "init")
 	run(work, "checkout", "-b", "main")
-	if err := os.WriteFile(filepath.Join(work, "_index.star"), []byte("x = 1\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(work, "_index.scampi"), []byte("x = 1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	run(work, "add", ".")
@@ -59,8 +59,8 @@ func TestFetch_Basic(t *testing.T) {
 	dest := filepath.Join(cacheDir, bare+"@v0.1.0")
 
 	// Entry point file must exist.
-	if _, err := os.Stat(filepath.Join(dest, "_index.star")); err != nil {
-		t.Errorf("_index.star not found after fetch: %v", err)
+	if _, err := os.Stat(filepath.Join(dest, "_index.scampi")); err != nil {
+		t.Errorf("_index.scampi not found after fetch: %v", err)
 	}
 
 	// .git must be removed.

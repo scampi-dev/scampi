@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-// testModule builds the `test` namespace for *_test.star files.
+// testModule builds the `test` namespace for *_test.scampi files.
 func testModule(tc *testkit.Collector) *starlarkstruct.Module {
 	return &starlarkstruct.Module{
 		Name: "test",

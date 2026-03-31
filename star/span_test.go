@@ -13,7 +13,7 @@ import (
 
 func TestKwargFieldSpans(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`target.local(name="host")
+	src.Files["/config.scampi"] = []byte(`target.local(name="host")
 deploy(
     name="main",
     targets=["host"],
@@ -30,7 +30,7 @@ deploy(
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -55,8 +55,8 @@ deploy(
 			if !ok {
 				t.Fatalf("field %q not found in Fields map", tt.field)
 			}
-			if fs.Value.Filename != "/config.star" {
-				t.Errorf("Filename = %q, want /config.star", fs.Value.Filename)
+			if fs.Value.Filename != "/config.scampi" {
+				t.Errorf("Filename = %q, want /config.scampi", fs.Value.Filename)
 			}
 			if fs.Value.StartLine != tt.wantLine {
 				t.Errorf("StartLine = %d, want %d", fs.Value.StartLine, tt.wantLine)
@@ -70,14 +70,14 @@ deploy(
 
 func TestKwargFieldSpans_SingleLine(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`target.local(name="host")
+	src.Files["/config.scampi"] = []byte(`target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
     pkg(packages=["vim", "curl"], source=system()),
 ])
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -96,7 +96,7 @@ deploy(name="main", targets=["host"], steps=[
 
 func TestKwargFieldSpans_SSHTarget(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`target.ssh(
+	src.Files["/config.scampi"] = []byte(`target.ssh(
     name="remote",
     host="10.0.0.1",
     user="admin",
@@ -109,7 +109,7 @@ deploy(name="main", targets=["remote"], steps=[
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
@@ -144,30 +144,30 @@ deploy(name="main", targets=["remote"], steps=[
 
 func TestKwargFieldSpans_Loaded(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/lib.star"] = []byte(`steps = [
+	src.Files["/lib.scampi"] = []byte(`steps = [
     dir(
         path="/tmp/loaded",
         perm="0755",
     ),
 ]
 `)
-	src.Files["/config.star"] = []byte(`load("/lib.star", "steps")
+	src.Files["/config.scampi"] = []byte(`load("/lib.scampi", "steps")
 target.local(name="host")
 deploy(name="main", targets=["host"], steps=steps)
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}
 
 	step := cfg.Deploy["main"].Steps[0]
 
-	// path="/tmp/loaded" is on line 3 of lib.star
+	// path="/tmp/loaded" is on line 3 of lib.scampi
 	fs := step.Fields["path"]
-	if fs.Value.Filename != "/lib.star" {
-		t.Errorf("path: Filename = %q, want /lib.star", fs.Value.Filename)
+	if fs.Value.Filename != "/lib.scampi" {
+		t.Errorf("path: Filename = %q, want /lib.scampi", fs.Value.Filename)
 	}
 	if fs.Value.StartLine != 3 {
 		t.Errorf("path: StartLine = %d, want 3", fs.Value.StartLine)
@@ -176,14 +176,14 @@ deploy(name="main", targets=["host"], steps=steps)
 
 func TestKwargFieldSpans_FallbackForMissing(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`target.local(name="host")
+	src.Files["/config.scampi"] = []byte(`target.local(name="host")
 deploy(name="main", targets=["host"], steps=[
     dir(path="/tmp/x"),
 ])
 `)
 
 	store := diagnostic.NewSourceStore()
-	cfg, err := star.Eval(context.Background(), "/config.star", store, src)
+	cfg, err := star.Eval(context.Background(), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}

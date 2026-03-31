@@ -65,7 +65,7 @@ Protocol must be `tcp` or `udp`.
 
 ### Allow SSH
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 firewall(
     port="22/tcp",
     action="allow",
@@ -75,14 +75,14 @@ firewall(
 
 ### Allow HTTP and HTTPS
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 firewall(port="80/tcp", desc="allow HTTP")
 firewall(port="443/tcp", desc="allow HTTPS")
 ```
 
 ### Deny a port
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 firewall(
     port="3306/tcp",
     action="deny",
@@ -92,7 +92,7 @@ firewall(
 
 ### Server hardening pattern
 
-```python {filename="harden.star"}
+```python {filename="harden.scampi"}
 pkg(
     packages=["ufw"],
     state="present",

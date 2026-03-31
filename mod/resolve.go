@@ -10,14 +10,14 @@ import (
 	"scampi.dev/scampi/source"
 )
 
-// Resolve maps a module load path to an absolute .star file path.
+// Resolve maps a module load path to an absolute .scampi file path.
 //
 // For bare module loads (e.g. codeberg.org/user/repo), the entry point is
-// resolved by trying _index.star then <last-segment>.star. If both exist,
-// _index.star takes precedence.
+// resolved by trying _index.scampi then <last-segment>.scampi. If both
+// exist, _index.scampi takes precedence.
 //
 // For subpath loads (e.g. codeberg.org/user/repo/internal/helpers), the
-// subpath is resolved by trying <subpath>.star then <subpath>/_index.star.
+// subpath is resolved by trying <subpath>.scampi then <subpath>/_index.scampi.
 //
 // Remote deps resolve against cacheDir. Local deps resolve against the
 // filesystem path in the version field (relative to scampi.mod's directory).
@@ -63,7 +63,7 @@ func Resolve(ctx context.Context, src source.Source, m *Module, loadPath string,
 }
 
 // ValidateEntryPoint checks that a module directory contains a loadable
-// .star entry point. Returns NotAModuleError if not.
+// .scampi entry point. Returns NotAModuleError if not.
 func ValidateEntryPoint(ctx context.Context, src source.Source, dep Dependency, dir string) error {
 	if hasEntryPoint(ctx, src, dir, lastSegment(dep.Path)) {
 		return nil
@@ -83,20 +83,20 @@ func modDirFor(m *Module, dep *Dependency, cacheDir string) string {
 	return filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
 }
 
-// resolveCandidates returns the ordered list of candidate .star paths to try.
+// resolveCandidates returns the ordered list of candidate .scampi paths to try.
 func resolveCandidates(modDir string, dep *Dependency, subPath string) []string {
 	if subPath == "" {
 		last := lastSegment(dep.Path)
 		return []string{
-			filepath.Join(modDir, "_index.star"),
-			filepath.Join(modDir, last+".star"),
+			filepath.Join(modDir, "_index.scampi"),
+			filepath.Join(modDir, last+".scampi"),
 		}
 	}
 
 	subNative := filepath.FromSlash(subPath)
 	return []string{
-		filepath.Join(modDir, subNative+".star"),
-		filepath.Join(modDir, subNative, "_index.star"),
+		filepath.Join(modDir, subNative+".scampi"),
+		filepath.Join(modDir, subNative, "_index.scampi"),
 	}
 }
 
@@ -131,10 +131,10 @@ func lastSegment(p string) string {
 }
 
 func hasEntryPoint(ctx context.Context, src source.Source, dir, name string) bool {
-	if meta, err := src.Stat(ctx, filepath.Join(dir, "_index.star")); err == nil && meta.Exists {
+	if meta, err := src.Stat(ctx, filepath.Join(dir, "_index.scampi")); err == nil && meta.Exists {
 		return true
 	}
-	if meta, err := src.Stat(ctx, filepath.Join(dir, name+".star")); err == nil && meta.Exists {
+	if meta, err := src.Stat(ctx, filepath.Join(dir, name+".scampi")); err == nil && meta.Exists {
 		return true
 	}
 	return false

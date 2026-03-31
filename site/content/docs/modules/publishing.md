@@ -3,17 +3,17 @@ title: Publishing
 weight: 2
 ---
 
-A scampi module is a git repository containing `.star` files. Publishing
+A scampi module is a git repository containing `.scampi` files. Publishing
 is as simple as tagging a release.
 
 ## Repository layout
 
 ```text
 your-module/
-    _index.star          # entry point (or <module-name>.star)
-    helpers.star         # internal helpers (loaded relatively)
+    _index.scampi          # entry point (or <module-name>.scampi)
+    helpers.scampi         # internal helpers (loaded relatively)
     sub/
-        _index.star      # subpath entry point
+        _index.scampi      # subpath entry point
     scampi.mod           # optional: only needed if this module has dependencies
     README.md
 ```
@@ -43,7 +43,7 @@ codeberg.org/yourname/scampi-modules/authelia   → repo/authelia/
 scampi resolves this automatically — it probes progressively shorter
 paths until it finds a valid git repo, then treats the remaining
 segments as a subdirectory. Each subdirectory has its own entry point
-(`_index.star` or `<name>.star`) and optional `scampi.mod`.
+(`_index.scampi` or `<name>.scampi`) and optional `scampi.mod`.
 
 ### Vanity import paths
 
@@ -98,12 +98,12 @@ scampi mod add codeberg.org/yourname/module@v2.0.0-alpha.1
 
 ## Entry point conventions
 
-- Use `_index.star` for the main entry point
+- Use `_index.scampi` for the main entry point
 - Export public functions at the top level
 - Keep internal helpers in separate files, loaded relatively:
 
-```starlark {filename="_index.star"}
-load("helpers.star", "_validate_config")
+```starlark {filename="_index.scampi"}
+load("helpers.scampi", "_validate_config")
 
 def my_step(name, config):
     _validate_config(config)
@@ -134,7 +134,7 @@ list what they directly `load()`.
 
 ## Testing
 
-Include `*_test.star` files in your module repository. Consumers and
+Include `*_test.scampi` files in your module repository. Consumers and
 CI pipelines can run them with `scampi test`:
 
 ```text

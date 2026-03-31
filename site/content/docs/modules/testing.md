@@ -9,11 +9,11 @@ test builtins for setting up mock state and asserting outcomes.
 
 ## Writing tests
 
-A test file is any `*_test.star` file. It uses `test.target.in_memory()` instead
+A test file is any `*_test.scampi` file. It uses `test.target.in_memory()` instead
 of a real target and adds assertions after the deploy block:
 
-```starlark {filename="webserver_test.star"}
-load("webserver.star", "static_site")
+```starlark {filename="webserver_test.scampi"}
+load("webserver.scampi", "static_site")
 
 t = test.target.in_memory(
     name = "mock",
@@ -39,10 +39,10 @@ a.dir("/var/www/mysite").exists()
 ## Running tests
 
 ```text
-scampi test                          # *_test.star in current directory
+scampi test                          # *_test.scampi in current directory
 scampi test ./...                    # recursive from current directory
-scampi test path/to/test.star        # specific file
-scampi test path/to/dir              # all *_test.star in that directory
+scampi test path/to/test.scampi        # specific file
+scampi test path/to/dir              # all *_test.scampi in that directory
 scampi test path/to/dir/...          # recursive from that directory
 ```
 

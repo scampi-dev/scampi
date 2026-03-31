@@ -28,14 +28,14 @@ func TestDiagnostics(t *testing.T) {
 		name := e.Name()
 		dir := filepath.Join(root, name)
 
-		cfgPath := filepath.Join(dir, "config.star")
+		cfgPath := filepath.Join(dir, "config.scampi")
 		if _, err := readFileSafe(cfgPath); err != nil {
-			t.Errorf("%s: no config.star found", name)
+			t.Errorf("%s: no config.scampi found", name)
 			continue
 		}
 
 		t.Run(name, func(t *testing.T) {
-			runDiagnosticsCase(t, dir, "config.star", "star")
+			runDiagnosticsCase(t, dir, "config.scampi", "scampi")
 		})
 	}
 }

@@ -78,7 +78,7 @@ func TestComputeHash_IgnoresDotGit(t *testing.T) {
 
 func TestComputeHash_Format(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "main.star", "# scampi config")
+	writeFile(t, dir, "main.scampi", "# scampi config")
 
 	h, err := mod.ComputeHash(dir)
 	if err != nil {
@@ -157,7 +157,7 @@ func TestWriteSum_Sorted(t *testing.T) {
 
 func TestVerifyModule_OK(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "main.star", "# scampi module")
+	writeFile(t, dir, "main.scampi", "# scampi module")
 
 	hash, err := mod.ComputeHash(dir)
 	if err != nil {
@@ -176,7 +176,7 @@ func TestVerifyModule_OK(t *testing.T) {
 
 func TestVerifyModule_Mismatch(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "main.star", "# scampi module")
+	writeFile(t, dir, "main.scampi", "# scampi module")
 
 	dep := mod.Dependency{Path: "codeberg.org/foo/bar", Version: "v1.0.0"}
 	sums := map[string]string{
@@ -195,7 +195,7 @@ func TestVerifyModule_Mismatch(t *testing.T) {
 
 func TestVerifyModule_NotInSum(t *testing.T) {
 	dir := t.TempDir()
-	writeFile(t, dir, "main.star", "# scampi module")
+	writeFile(t, dir, "main.scampi", "# scampi module")
 
 	dep := mod.Dependency{Path: "codeberg.org/new/module", Version: "v1.0.0"}
 	sums := map[string]string{}

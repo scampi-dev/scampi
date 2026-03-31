@@ -58,7 +58,7 @@ deploy(
 )
 `, size)
 
-			cfgPath := absPath(filepath.Join(tmp, "config.star"))
+			cfgPath := absPath(filepath.Join(tmp, "config.scampi"))
 			writeOrDie(cfgPath, []byte(cfg), 0o644)
 
 			src := source.LocalPosixSource{}
@@ -126,7 +126,7 @@ deploy(
 
 			src.Files["/src.txt"] = []byte("hello")
 			tgt.Files["/dest.txt"] = []byte("hello")
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 
 			rec := &recordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -134,7 +134,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -187,7 +187,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Symlinks["/link.txt"] = "/target.txt"
 
 			rec := &recordingDisplayer{}
@@ -196,7 +196,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -248,7 +248,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Dirs["/mydir"] = 0o755
 
 			rec := &recordingDisplayer{}
@@ -257,7 +257,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -321,7 +321,7 @@ deploy(
 			tgt := target.NewMemTarget()
 
 			src.Files["/src.txt"] = []byte("hello")
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Files["/dest.txt"] = []byte("hello")
 			tgt.Symlinks["/link.txt"] = "/target.txt"
 
@@ -331,7 +331,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -388,7 +388,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Files["/out.conf"] = []byte("server bench port=8080")
 
 			rec := &recordingDisplayer{}
@@ -397,7 +397,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -451,7 +451,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Pkgs["nginx"] = true
 
 			rec := &recordingDisplayer{}
@@ -460,7 +460,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -514,7 +514,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Services["nginx"] = true
 			tgt.EnabledServices["nginx"] = true
 
@@ -524,7 +524,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -576,7 +576,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Groups["deploy"] = target.GroupInfo{Name: "deploy"}
 
 			rec := &recordingDisplayer{}
@@ -585,7 +585,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -639,7 +639,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Users["deploy"] = target.UserInfo{
 				Name:   "deploy",
 				Shell:  "/bin/bash",
@@ -652,7 +652,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -705,7 +705,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Files["/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf"] = []byte("net.ipv4.ip_forward = 1\n")
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				if cmd == "sysctl -n net.ipv4.ip_forward" {
@@ -720,7 +720,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -773,7 +773,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				switch cmd {
 				case "ufw version":
@@ -794,7 +794,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -847,7 +847,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				if cmd == "check-thing" {
 					return target.CommandResult{ExitCode: 0}, nil
@@ -861,7 +861,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -913,7 +913,7 @@ deploy(
 			src := source.NewMemSource()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 			for i := range size {
 				tgt.Containers[fmt.Sprintf("app-%d", i)] = target.ContainerInfo{
 					Name: fmt.Sprintf("app-%d", i), Image: "nginx:1.25",
@@ -927,7 +927,7 @@ deploy(
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -1003,7 +1003,7 @@ deploy(name="bench", targets=["local"], steps=[
 
 			src := source.NewMemSource()
 			src.Files[srcPath] = archive
-			src.Files["/config.star"] = []byte(cfgStr)
+			src.Files["/config.scampi"] = []byte(cfgStr)
 
 			tgt := target.NewMemTarget()
 			tgt.Files[destMarkerPath("/output")] = []byte(archiveHash(archive) + "\n")
@@ -1014,7 +1014,7 @@ deploy(name="bench", targets=["local"], steps=[
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
-				cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}

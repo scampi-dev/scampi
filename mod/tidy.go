@@ -15,7 +15,7 @@ import (
 
 var loadPathRe = regexp.MustCompile(`load\(\s*"([^"]+)"`)
 
-// Tidy scans *.star files in dir for load() calls and synchronises the
+// Tidy scans *.scampi files in dir for load() calls and synchronises the
 // require block in scampi.mod to match. It returns a list of human-readable
 // change descriptions, or nil if nothing changed.
 func Tidy(ctx context.Context, src source.Source, dir string) ([]string, error) {
@@ -93,11 +93,11 @@ func Tidy(ctx context.Context, src source.Source, dir string) ([]string, error) 
 func collectLoadPaths(ctx context.Context, src source.Source, dir string, mod *Module) (map[string]bool, error) {
 	// filepath.Glob lists filenames (metadata only). source.Source doesn't
 	// have a directory-listing method, so we keep this for now.
-	pattern := filepath.Join(dir, "*.star")
+	pattern := filepath.Join(dir, "*.scampi")
 	files, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, &TidyError{
-			Detail: fmt.Sprintf("could not scan *.star files: %v", err),
+			Detail: fmt.Sprintf("could not scan *.scampi files: %v", err),
 			Hint:   "check directory permissions",
 		}
 	}

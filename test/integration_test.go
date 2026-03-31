@@ -31,10 +31,10 @@ func loadAndResolve(
 
 	memSrc, ok := src.(*source.MemSource)
 	if ok {
-		memSrc.Files["/config.star"] = []byte(cfgStr)
+		memSrc.Files["/config.scampi"] = []byte(cfgStr)
 	}
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +328,7 @@ deploy(name="test", targets=["local"], steps=[
 	src := newFaultySource(innerSrc)
 	tgt := target.NewMemTarget()
 
-	innerSrc.Files["/config.star"] = []byte(cfgStr)
+	innerSrc.Files["/config.scampi"] = []byte(cfgStr)
 	// Note: /missing.txt is not added, so read will fail
 
 	// Inject explicit error
@@ -340,7 +340,7 @@ deploy(name="test", targets=["local"], steps=[
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}

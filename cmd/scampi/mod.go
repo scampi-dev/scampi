@@ -91,7 +91,7 @@ func modInitCmd() *cli.Command {
 func modTidyCmd() *cli.Command {
 	return &cli.Command{
 		Name:         "tidy",
-		Usage:        "Sync the require block with load() calls in *.star files",
+		Usage:        "Sync the require block with load() calls in *.scampi files",
 		OnUsageError: onUsageError,
 		Action: func(ctx context.Context, _ *cli.Command) error {
 			opts := mustGlobalOpts(ctx)

@@ -36,4 +36,4 @@ jobs:
 
           # Deploy
           cp build/site-dist/site.tar.gz scampi-infra/files/site.tar.gz
-          cd scampi-infra && ../build/bin/scampi apply site.star
+          cd scampi-infra && ../build/bin/scampi apply site.scampi

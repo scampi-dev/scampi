@@ -11,7 +11,7 @@ import (
 
 func testConfig(deploys map[string]spec.DeployBlock, targets map[string]spec.TargetInstance) spec.Config {
 	return spec.Config{
-		Path:    "/test/config.star",
+		Path:    "/test/config.scampi",
 		Deploy:  deploys,
 		Targets: targets,
 	}

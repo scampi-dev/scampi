@@ -31,13 +31,13 @@ target.rest(name="api", base_url="http://localhost:8080/api")
 deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	cfg, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(context.Background(), em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -160,13 +160,13 @@ target.rest(name="api", base_url="http://localhost/api", auth="not-an-auth")
 deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	_, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	_, err := engine.LoadConfig(context.Background(), em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for invalid auth type")
 	}
@@ -178,13 +178,13 @@ target.rest(name="", base_url="http://localhost/api")
 deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	_, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	_, err := engine.LoadConfig(context.Background(), em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for empty target name")
 	}
@@ -722,7 +722,7 @@ func applyREST(t *testing.T, cfgStr, baseURL string) (*recordingDisplayer, error
 	t.Helper()
 
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	tgt := createRESTTarget(t, &rest.Config{BaseURL: baseURL})
 
@@ -731,7 +731,7 @@ func applyREST(t *testing.T, cfgStr, baseURL string) (*recordingDisplayer, error
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		return rec, err
 	}
@@ -758,13 +758,13 @@ func applyREST(t *testing.T, cfgStr, baseURL string) (*recordingDisplayer, error
 func loadConfig(t *testing.T, cfgStr string) spec.Config {
 	t.Helper()
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	cfg, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(context.Background(), em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -1355,13 +1355,13 @@ deploy(name="test", targets=["api"], steps=[
 ])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	_, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	_, err := engine.LoadConfig(context.Background(), em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for invalid jq expression in ref()")
 	}
@@ -1484,13 +1484,13 @@ deploy(name="test", targets=["api"], steps=[
 ])
 `
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	_, err := engine.LoadConfig(context.Background(), em, "/config.star", store, src)
+	_, err := engine.LoadConfig(context.Background(), em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error when ref() receives non-step argument")
 	}

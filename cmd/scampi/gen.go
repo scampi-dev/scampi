@@ -39,7 +39,7 @@ func genAPICmd() *cli.Command {
 
 	return &cli.Command{
 		Name:                   "api",
-		Usage:                  "Generate .api.star module from an OpenAPI specification",
+		Usage:                  "Generate .api.scampi module from an OpenAPI specification",
 		ArgsUsage:              "<spec.yaml>",
 		UseShortOptionHandling: true,
 		Suggest:                true,
@@ -75,7 +75,7 @@ func genAPICmd() *cli.Command {
 			outPath := output
 			if outPath == "" {
 				base := strings.TrimSuffix(specPath, filepath.Ext(specPath))
-				outPath = base + ".api.star"
+				outPath = base + ".api.scampi"
 			}
 
 			if outPath == "-" {

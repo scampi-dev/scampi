@@ -42,14 +42,14 @@ func writeFile(t *testing.T, path string) {
 func TestResolve_IndexEntry(t *testing.T) {
 	cache := t.TempDir()
 	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
-	writeFile(t, filepath.Join(modDir, "_index.star"))
+	writeFile(t, filepath.Join(modDir, "_index.scampi"))
 
 	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
 	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := filepath.Join(modDir, "_index.star")
+	want := filepath.Join(modDir, "_index.scampi")
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
 	}
@@ -58,14 +58,14 @@ func TestResolve_IndexEntry(t *testing.T) {
 func TestResolve_NameEntry(t *testing.T) {
 	cache := t.TempDir()
 	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
-	writeFile(t, filepath.Join(modDir, "npm.star"))
+	writeFile(t, filepath.Join(modDir, "npm.scampi"))
 
 	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
 	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := filepath.Join(modDir, "npm.star")
+	want := filepath.Join(modDir, "npm.scampi")
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
 	}
@@ -74,31 +74,31 @@ func TestResolve_NameEntry(t *testing.T) {
 func TestResolve_IndexTakesPrecedenceOverName(t *testing.T) {
 	cache := t.TempDir()
 	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
-	writeFile(t, filepath.Join(modDir, "_index.star"))
-	writeFile(t, filepath.Join(modDir, "npm.star"))
+	writeFile(t, filepath.Join(modDir, "_index.scampi"))
+	writeFile(t, filepath.Join(modDir, "npm.scampi"))
 
 	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
 	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := filepath.Join(modDir, "_index.star")
+	want := filepath.Join(modDir, "_index.scampi")
 	if got != want {
-		t.Errorf("_index.star should take precedence: got %s, want %s", got, want)
+		t.Errorf("_index.scampi should take precedence: got %s, want %s", got, want)
 	}
 }
 
 func TestResolve_Subpath(t *testing.T) {
 	cache := t.TempDir()
 	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
-	writeFile(t, filepath.Join(modDir, "internal", "helpers.star"))
+	writeFile(t, filepath.Join(modDir, "internal", "helpers.scampi"))
 
 	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
 	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm/internal/helpers", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := filepath.Join(modDir, "internal", "helpers.star")
+	want := filepath.Join(modDir, "internal", "helpers.scampi")
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
 	}
@@ -107,14 +107,14 @@ func TestResolve_Subpath(t *testing.T) {
 func TestResolve_SubpathIndex(t *testing.T) {
 	cache := t.TempDir()
 	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
-	writeFile(t, filepath.Join(modDir, "internal", "_index.star"))
+	writeFile(t, filepath.Join(modDir, "internal", "_index.scampi"))
 
 	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
 	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm/internal", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := filepath.Join(modDir, "internal", "_index.star")
+	want := filepath.Join(modDir, "internal", "_index.scampi")
 	if got != want {
 		t.Errorf("got %s, want %s", got, want)
 	}

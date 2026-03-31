@@ -270,7 +270,7 @@ frobnicate(name="test")`,
 		src := source.NewMemSource()
 		tgt := target.NewMemTarget()
 
-		src.Files["/config.star"] = []byte(input)
+		src.Files["/config.scampi"] = []byte(input)
 
 		rec := &recordingDisplayer{}
 		em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -285,7 +285,7 @@ frobnicate(name="test")`,
 
 		apply := func() error {
 			ctx := context.Background()
-			cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+			cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 			if err != nil {
 				return err
 			}

@@ -15,15 +15,15 @@ steps after Starlark evaluation.
 **List mode** (default) shows the resolved configuration for every step:
 
 ```bash
-scampi inspect config.star
+scampi inspect config.scampi
 ```
 
 **Diff mode** compares file content against the current target state:
 
 ```bash
-scampi inspect config.star --diff              # list diffable paths
-scampi inspect config.star --diff nginx.conf   # diff a specific file
-scampi inspect config.star --diff -i           # pick interactively
+scampi inspect config.scampi --diff              # list diffable paths
+scampi inspect config.scampi --diff nginx.conf   # diff a specific file
+scampi inspect config.scampi --diff -i           # pick interactively
 ```
 
 ## Flags

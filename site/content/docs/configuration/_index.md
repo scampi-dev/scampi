@@ -3,7 +3,7 @@ title: Configuration
 weight: 3
 ---
 
-Scampi configs are Starlark files (`.star`). Starlark is a deterministic,
+Scampi configs are Starlark files (`.scampi`). Starlark is a deterministic,
 Python-like language — if you know Python, you already know Starlark.
 
 ## Targets
@@ -174,7 +174,7 @@ a template that writes it into a file).
 Use `load()` to split configs across files:
 
 ```python
-load("targets.star", "web", "db")
+load("targets.scampi", "web", "db")
 
 deploy(
     name = "app",

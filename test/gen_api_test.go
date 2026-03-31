@@ -26,7 +26,7 @@ func TestGenAPI(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			specPath := findGenSpec(t, dir)
-			expectStarPath := filepath.Join(dir, "expected.star")
+			expectStarPath := filepath.Join(dir, "expected.scampi")
 			expectJSONPath := filepath.Join(dir, "expected.json")
 
 			expect := loadExpected(t, expectJSONPath)

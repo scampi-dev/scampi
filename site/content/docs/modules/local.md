@@ -27,7 +27,7 @@ require (
 ## How it works
 
 - The module path (`my/helpers`) is what you use in `load()` calls
-- The filesystem path (`./modules/helpers`) is where the `.star` files live
+- The filesystem path (`./modules/helpers`) is where the `.scampi` files live
 - Relative paths resolve from the directory containing `scampi.mod`
 - Absolute paths work too
 - No caching, no checksums — files are read directly from disk
@@ -35,7 +35,7 @@ require (
 
 ## Using local modules
 
-```starlark {filename="deploy.star"}
+```starlark {filename="deploy.scampi"}
 load("my/helpers", "make_config")
 
 target.local(name = "server")
@@ -55,8 +55,8 @@ The `load()` path must match the module path in the require table exactly.
 
 Same rules as remote modules:
 
-1. `_index.star` at the module root (checked first)
-2. `<last-segment>.star` (e.g. `helpers.star` for `my/helpers`)
+1. `_index.scampi` at the module root (checked first)
+2. `<last-segment>.scampi` (e.g. `helpers.scampi` for `my/helpers`)
 
 ## Transitioning to a published module
 

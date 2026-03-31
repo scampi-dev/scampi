@@ -30,7 +30,7 @@ lint:
 [doc("Build and deploy site via scampi-infra")]
 deploy: dist
   cp build/site-dist/site.tar.gz {{infra_dir}}/files/site.tar.gz
-  cd {{infra_dir}} && scampi apply site.star
+  cd {{infra_dir}} && scampi apply site.scampi
 
 [doc("Remove all generated files")]
 clean:

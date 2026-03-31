@@ -117,7 +117,7 @@ func TestSSH_Connect_InvalidTimeout(t *testing.T) {
 	_, err := sshType.Create(context.Background(), source.NewMemSource(), spec.TargetInstance{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
-			"timeout": {Value: spec.SourceSpan{Filename: "test.star", StartLine: 5}},
+			"timeout": {Value: spec.SourceSpan{Filename: "test.scampi", StartLine: 5}},
 		},
 	})
 

@@ -43,7 +43,7 @@ deploy(
 	tgt := target.NewMemTarget()
 
 	src.Files["/tmpl.txt"] = []byte("Hello, {{.name}}!")
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	tgt.Files["/out.txt"] = []byte("old content")
 
 	rec := &recordingDisplayer{}
@@ -51,7 +51,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -113,14 +113,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -184,14 +184,14 @@ deploy(
 	tgt := target.NewMemTarget()
 
 	src.Files["/tmpl.txt"] = []byte("Hello, {{.name}}! Count: {{.count}}")
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -271,14 +271,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -342,7 +342,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	src.Env["MY_PORT"] = "9000" // Override via env
 
 	rec := &recordingDisplayer{}
@@ -350,7 +350,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -415,14 +415,14 @@ deploy(
 	src := source.NewMemSource() // No env vars
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -479,7 +479,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate target with matching state
 	tgt.Files["/out.txt"] = []byte("static content")
@@ -491,7 +491,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -556,7 +556,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate with different content
 	tgt.Files["/out.txt"] = []byte("old content")
@@ -568,7 +568,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -637,14 +637,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -704,14 +704,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -770,7 +770,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	// Note: /nonexistent.txt is not added
 
 	rec := &recordingDisplayer{}
@@ -778,7 +778,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -845,7 +845,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	src.Env["MY_HOST"] = "localhost" // Set the env var
 
 	rec := &recordingDisplayer{}
@@ -853,7 +853,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -912,14 +912,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -978,7 +978,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate with wrong mode
 	tgt.Files["/out.txt"] = []byte("content")
@@ -990,7 +990,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1042,7 +1042,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate with wrong owner
 	tgt.Files["/out.txt"] = []byte("content")
@@ -1054,7 +1054,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1114,14 +1114,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1173,14 +1173,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1240,14 +1240,14 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1309,7 +1309,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	src.Env["MY_HOST"] = "prod.example.com"
 	src.Env["MY_PORT"] = "443"
 
@@ -1318,7 +1318,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1380,7 +1380,7 @@ deploy(
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 	// Only set MY_HOST, not MY_PORT
 	src.Env["MY_HOST"] = "prod.example.com"
 
@@ -1389,7 +1389,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1443,7 +1443,7 @@ deploy(
 	innerTgt := target.NewMemTarget()
 	tgt := newFaultyTarget(innerTgt)
 
-	src.Files["/config.star"] = []byte(cfgStr)
+	src.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Inject write failure
 	tgt.injectFault("WriteFile", "/out.txt", fs.ErrPermission)
@@ -1453,7 +1453,7 @@ deploy(
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}

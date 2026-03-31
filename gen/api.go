@@ -25,7 +25,7 @@ import (
 	"scampi.dev/scampi/errs"
 )
 
-// API generates a .api.star module from an OpenAPI specification file.
+// API generates a .api.scampi module from an OpenAPI specification file.
 // Supports both OpenAPI 3.x and Swagger 2.0 specs. Diagnostics are
 // emitted through em; on failure an AbortError is returned.
 func API(specPath string, scampiVersion string, w io.Writer, em diagnostic.Emitter) error {
@@ -206,7 +206,7 @@ func (g *apiGenerator) header() {
 	g.line("# It is provided as-is with no warranty. Scampi's license does not")
 	g.line("# apply to generated output. If the source specification carries its")
 	g.line("# own license terms, those terms govern this file.")
-	starFile := strings.TrimSuffix(filepath.Base(g.specPath), filepath.Ext(g.specPath)) + ".api.star"
+	starFile := strings.TrimSuffix(filepath.Base(g.specPath), filepath.Ext(g.specPath)) + ".api.scampi"
 	g.line("#")
 	g.line(`# Usage: load("%s", ...)`, starFile)
 }

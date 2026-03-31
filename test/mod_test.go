@@ -22,7 +22,7 @@ import (
 
 // diskFallbackSource wraps a MemSource and falls back to the real filesystem
 // for absolute paths that are not present in the virtual files map.  This is
-// needed because module .star files live on disk (inside t.TempDir) while the
+// needed because module .scampi files live on disk (inside t.TempDir) while the
 // user config and scampi.mod live only in memory.
 type diskFallbackSource struct {
 	mem *source.MemSource
@@ -85,18 +85,18 @@ func (d *diskFallbackSource) LookupSecret(key string) (string, bool, error) {
 var _ source.Source = (*diskFallbackSource)(nil)
 
 // modMemSrc returns a diskFallbackSource with a MemSource pre-loaded with a
-// scampi.mod and a config.star.  Module .star files on the real filesystem
+// scampi.mod and a config.scampi.  Module .scampi files on the real filesystem
 // are accessible through the disk fallback.
 func modMemSrc(modFile, configFile string) *diskFallbackSource {
 	mem := source.NewMemSource()
 	mem.Files["/scampi.mod"] = []byte(modFile)
-	mem.Files["/config.star"] = []byte(configFile)
+	mem.Files["/config.scampi"] = []byte(configFile)
 	return &diskFallbackSource{mem: mem}
 }
 
 // setupModCache creates a real temp directory tree that DefaultCacheDir() will
 // return when XDG_CACHE_HOME is pointed at the parent.  It returns the module
-// directory so callers can populate .star files into it.
+// directory so callers can populate .scampi files into it.
 func setupModCache(t *testing.T, modPath, version string) (cacheDir, modDir string) {
 	t.Helper()
 	cacheParent := t.TempDir()
@@ -117,7 +117,7 @@ func loadCfgSrc(t *testing.T, src source.Source) (engine.AbortError, bool) {
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	_, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		return engine.AbortError{}, false
 	}
@@ -146,7 +146,7 @@ func errContains(err error, substrings ...string) bool {
 func TestModuleLoad_Basic(t *testing.T) {
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/helpers", "v1.0.0")
 
-	if err := os.WriteFile(filepath.Join(modDir, "_index.star"), []byte(`
+	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
 def greeting():
     return "hello from module"
 `), 0o644); err != nil {
@@ -181,7 +181,7 @@ deploy(
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestModuleLoad_Subpath(t *testing.T) {
 	if err := os.MkdirAll(subDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(subDir, "helpers.star"), []byte(`
+	if err := os.WriteFile(filepath.Join(subDir, "helpers.scampi"), []byte(`
 def make_url(host):
     return "https://" + host
 `), 0o644); err != nil {
@@ -234,7 +234,7 @@ deploy(
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -243,25 +243,25 @@ deploy(
 	}
 }
 
-// TestModuleLoad_InternalRelativeLoad verifies that a module's _index.star can
+// TestModuleLoad_InternalRelativeLoad verifies that a module's _index.scampi can
 // load a sibling file relatively, and that the relative load resolves within
 // the module's cache directory rather than the user's config directory.
 func TestModuleLoad_InternalRelativeLoad(t *testing.T) {
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/utils", "v0.1.0")
 
-	if err := os.WriteFile(filepath.Join(modDir, "helpers.star"), []byte(`
+	if err := os.WriteFile(filepath.Join(modDir, "helpers.scampi"), []byte(`
 def add(a, b):
     return a + b
 `), 0o644); err != nil {
-		t.Fatalf("WriteFile helpers.star: %v", err)
+		t.Fatalf("WriteFile helpers.scampi: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(modDir, "_index.star"), []byte(`
-load("helpers.star", "add")
+	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
+load("helpers.scampi", "add")
 
 def double(x):
     return add(x, x)
 `), 0o644); err != nil {
-		t.Fatalf("WriteFile _index.star: %v", err)
+		t.Fatalf("WriteFile _index.scampi: %v", err)
 	}
 
 	src := modMemSrc(
@@ -292,7 +292,7 @@ deploy(
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -405,7 +405,7 @@ deploy(
 }
 
 // createModuleRepo creates a bare git repo tagged at v1.0.0 containing an
-// _index.star that exports a simple function.  Returns the bare repo path.
+// _index.scampi that exports a simple function.  Returns the bare repo path.
 func createModuleRepo(t *testing.T) string {
 	t.Helper()
 	work := t.TempDir()
@@ -429,7 +429,7 @@ func createModuleRepo(t *testing.T) string {
 
 	runGit(work, "init")
 	runGit(work, "checkout", "-b", "main")
-	if err := os.WriteFile(filepath.Join(work, "_index.star"), []byte(`
+	if err := os.WriteFile(filepath.Join(work, "_index.scampi"), []byte(`
 def greet(name):
     return "hello, " + name
 `), 0o644); err != nil {
@@ -442,7 +442,7 @@ def greet(name):
 	return bare
 }
 
-// createEmptyRepo creates a bare git repo tagged at v1.0.0 with no .star files.
+// createEmptyRepo creates a bare git repo tagged at v1.0.0 with no .scampi files.
 func createEmptyRepo(t *testing.T) string {
 	t.Helper()
 	work := t.TempDir()
@@ -501,7 +501,7 @@ func TestModuleAdd_ThenLoad(t *testing.T) {
 	if err := os.MkdirAll(cachedModDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(cachedModDir, "_index.star"), []byte(`
+	if err := os.WriteFile(filepath.Join(cachedModDir, "_index.scampi"), []byte(`
 def greet(name):
     return "hello, " + name
 `), 0o644); err != nil {
@@ -559,7 +559,7 @@ deploy(
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig: %v", err)
 	}
@@ -568,7 +568,7 @@ deploy(
 	}
 }
 
-// TestModuleAdd_NotAModule verifies that adding a repo with no .star files
+// TestModuleAdd_NotAModule verifies that adding a repo with no .scampi files
 // fails with NotAModuleError.
 func TestModuleAdd_NotAModule(t *testing.T) {
 	repoPath := createEmptyRepo(t)
@@ -602,7 +602,7 @@ func TestModuleAdd_NotAModule(t *testing.T) {
 // scampi.mod and only built-in steps still works correctly.
 func TestModuleLoad_NoModFile(t *testing.T) {
 	src := source.NewMemSource()
-	src.Files["/config.star"] = []byte(`
+	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
 
 deploy(
@@ -619,7 +619,7 @@ deploy(
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.star", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig without scampi.mod failed: %v", err)
 	}
@@ -638,7 +638,7 @@ func TestModuleLoad_Local(t *testing.T) {
 	if err := os.MkdirAll(localMod, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(localMod, "_index.star"), []byte(`
+	if err := os.WriteFile(filepath.Join(localMod, "_index.scampi"), []byte(`
 def greet(name):
     return "hello, " + name
 `), 0o644); err != nil {
@@ -655,7 +655,7 @@ require (
 		t.Fatal(err)
 	}
 
-	cfgFile := filepath.Join(projDir, "config.star")
+	cfgFile := filepath.Join(projDir, "config.scampi")
 	if err := os.WriteFile(cfgFile, []byte(`load("my/helpers", "greet")
 
 msg = greet("world")
@@ -693,7 +693,7 @@ func TestModuleLoad_LocalAbsPath(t *testing.T) {
 	projDir := t.TempDir()
 	localMod := t.TempDir()
 
-	if err := os.WriteFile(filepath.Join(localMod, "_index.star"), []byte(`
+	if err := os.WriteFile(filepath.Join(localMod, "_index.scampi"), []byte(`
 def helper():
     return 42
 `), 0o644); err != nil {
@@ -707,7 +707,7 @@ def helper():
 		t.Fatal(err)
 	}
 
-	cfgFile := filepath.Join(projDir, "config.star")
+	cfgFile := filepath.Join(projDir, "config.scampi")
 	if err := os.WriteFile(cfgFile, []byte(`load("my/util", "helper")
 
 val = helper()

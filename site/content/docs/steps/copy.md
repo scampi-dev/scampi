@@ -56,7 +56,7 @@ skip it entirely.
 
 ### Basic file copy
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     src = local("./nginx.conf"),
     dest = "/etc/nginx/nginx.conf",
@@ -68,7 +68,7 @@ copy(
 
 ### Inline content
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
     dest = "/etc/sudoers.d/hal9000",
@@ -81,7 +81,7 @@ copy(
 
 ### Application config (POSIX notation)
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     desc = "deploy app config",
     src = local("./config.yaml"),
@@ -94,7 +94,7 @@ copy(
 
 ### Validated sudoers file
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
     dest = "/etc/sudoers.d/hal9000",
@@ -107,7 +107,7 @@ copy(
 
 ### Validated nginx config
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     src = local("./nginx.conf"),
     dest = "/etc/nginx/nginx.conf",
@@ -120,7 +120,7 @@ copy(
 
 ### Remote file
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     desc = "download IP lookup config",
     src = remote(url="https://example.com/config.yaml"),
@@ -133,7 +133,7 @@ copy(
 
 ### Remote file with checksum
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     src = remote(
         url = "https://example.com/ca-bundle.crt",
@@ -148,7 +148,7 @@ copy(
 
 ### Restrictive permissions (ls-style)
 
-```python {filename="deploy.star"}
+```python {filename="deploy.scampi"}
 copy(
     src = local("./ssl/server.key"),
     dest = "/etc/ssl/private/server.key",

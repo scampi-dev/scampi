@@ -44,7 +44,7 @@ Or just own it: "We've standardized on **scampi** for infrastructure convergence
 
 ```bash
 # Create a config that renders a template
-cat > hello.star <<EOF
+cat > hello.scampi <<EOF
 target.local(name="local")
 
 deploy(name="demo", targets=["local"], steps=[
@@ -69,10 +69,10 @@ deploy(name="demo", targets=["local"], steps=[
 EOF
 
 # Check what would happen
-just scampi plan hello.star
+just scampi plan hello.scampi
 
 # Make it so
-just scampi apply hello.star
+just scampi apply hello.scampi
 
 # Verify
 cat /tmp/scampi-hello.txt

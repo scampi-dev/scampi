@@ -266,7 +266,7 @@ func (e *FetchError) EventTemplate() event.Template {
 // NotAModuleError
 // -----------------------------------------------------------------------------
 
-// NotAModuleError is raised when a fetched repo has no .star entry point.
+// NotAModuleError is raised when a fetched repo has no .scampi entry point.
 type NotAModuleError struct {
 	diagnostic.FatalError
 	ModPath string
@@ -281,7 +281,7 @@ func (e *NotAModuleError) EventTemplate() event.Template {
 	return event.Template{
 		ID:   "mod.NotAModule",
 		Text: "{{.ModPath}}@{{.Version}} is not a scampi module",
-		Hint: "a module must contain _index.star or <name>.star at its root",
+		Hint: "a module must contain _index.scampi or <name>.scampi at its root",
 		Data: e,
 	}
 }

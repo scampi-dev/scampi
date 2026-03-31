@@ -87,10 +87,10 @@ and can be checked explicitly with `scampi mod verify`.
 When you `load("codeberg.org/user/module", ...)`, scampi looks for an entry
 point in the module's root directory:
 
-1. `_index.star` — checked first
-2. `<module-name>.star` — e.g. `npm.star` for a module named `npm`
+1. `_index.scampi` — checked first
+2. `<module-name>.scampi` — e.g. `npm.scampi` for a module named `npm`
 
-If both exist, `_index.star` takes precedence.
+If both exist, `_index.scampi` takes precedence.
 
 ### Subpath loads
 
@@ -100,5 +100,5 @@ You can load from subdirectories within a module:
 load("codeberg.org/user/module/internal/helpers", "helper_func")
 ```
 
-This resolves to `internal/helpers.star` or `internal/helpers/_index.star`
+This resolves to `internal/helpers.scampi` or `internal/helpers/_index.scampi`
 within the module's directory.

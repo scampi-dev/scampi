@@ -167,7 +167,7 @@ flowchart LR
 Here's the full cycle on a simple config that creates directories, copies a
 file, and sets up a symlink.
 
-```python {filename="demo.star"}
+```python {filename="demo.scampi"}
 target.local(name="my-machine")
 
 deploy(
@@ -190,7 +190,7 @@ deploy(
 ```
 
 <div class="term-label">1. Plan — see the execution structure</div>
-<div class="term"><span class="cmd">$ scampi plan -v demo.star</span>
+<div class="term"><span class="cmd">$ scampi plan -v demo.scampi</span>
 <span class="gd">[engine] started</span>
 <span class="b">[plan] planning</span> <span class="bb">demo</span> <span class="b">— 4 steps planned</span>
 <span class="m">┌─┬</span> <span class="mb">execution plan</span>
@@ -221,7 +221,7 @@ the file first, then sets permissions and ownership concurrently.
 </p>
 
 <div class="term-label">2. Check — inspect what would change (yellow = needs change)</div>
-<div class="term"><span class="cmd">$ scampi check -v demo.star</span>
+<div class="term"><span class="cmd">$ scampi check -v demo.scampi</span>
 <span class="c">[dir:0] started...</span>
 <span class="d">[dir:0] 󰏫 builtin.dir — needs change</span>
 <span class="d">         state: (missing) → directory</span>
@@ -246,7 +246,7 @@ the file first, then sets permissions and ownership concurrently.
 </div>
 
 <div class="term-label">3. Apply — converge</div>
-<div class="term"><span class="cmd">$ scampi apply -v demo.star</span>
+<div class="term"><span class="cmd">$ scampi apply -v demo.scampi</span>
 <span class="c">[dir:0] started...</span>
 <span class="d">[dir:0] 󰐊 'builtin.dir' changed</span>
 <span class="y">[dir:0] 󰏫 1/2 ops changed</span>
@@ -264,7 +264,7 @@ the file first, then sets permissions and ownership concurrently.
 </div>
 
 <div class="term-label">4. Check again — everything green</div>
-<div class="term"><span class="cmd">$ scampi check -v demo.star</span>
+<div class="term"><span class="cmd">$ scampi check -v demo.scampi</span>
 <span class="g">[dir:0] 󰄬 up-to-date</span>
 <span class="g">[dir:1] 󰄬 up-to-date</span>
 <span class="g">[copy:2] 󰄬 up-to-date</span>
