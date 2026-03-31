@@ -45,11 +45,18 @@ for f in "${files[@]}"; do
 
   label_ids="[]"
   label_names=""
+  milestone_id=0
   if [[ "$labels_line" == labels:* ]]; then
     label_names="${labels_line#labels: }"
     label_ids=$(echo "$all_labels" | jq --arg names "$label_names" '
       ($names | split(", ")) as $want |
       [.[] | select(.name as $n | $want | any(. == $n)) | .id]')
+  fi
+
+  milestone_line=$(sed -n '3p' "$f")
+  if [[ "$milestone_line" == milestone:* ]]; then
+    milestone_id="${milestone_line#milestone: }"
+    body=$(tail -n +5 "$f")
   fi
 
   if echo "$existing_titles" | grep -qxF "$title"; then
@@ -59,17 +66,18 @@ for f in "${files[@]}"; do
 
   if [[ "$dry_run" == true ]]; then
     echo "--- $f"
-    echo "  title:  $title"
-    echo "  labels: $label_names"
-    echo "  body:   $(echo "$body" | wc -l | tr -d ' ') lines"
+    echo "  title:     $title"
+    echo "  labels:    $label_names"
+    echo "  milestone: $milestone_id"
+    echo "  body:      $(echo "$body" | wc -l | tr -d ' ') lines"
     continue
   fi
 
   resp=$(curl -sf \
     -H "Authorization: token $CODEBERG_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "$(jq -n --arg t "$title" --arg b "$body" --argjson l "$label_ids" \
-      '{title: $t, body: $b, labels: $l}')" \
+    -d "$(jq -n --arg t "$title" --arg b "$body" --argjson l "$label_ids" --argjson m "$milestone_id" \
+      '{title: $t, body: $b, labels: $l, milestone: $m}')" \
     "$api/repos/$repo/issues")
   echo "$resp" | jq -r '"#\(.number): \(.title) → \(.html_url)"'
 
