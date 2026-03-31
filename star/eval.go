@@ -96,10 +96,12 @@ func Eval(
 	}()
 
 	f, prog, err := starlark.SourceProgramOptions(fileOptions, cfgPath, data, pd.Has)
+	if f != nil {
+		collector.AddAST(cfgPath, f)
+	}
 	if err != nil {
 		return spec.Config{}, wrapStarlarkError(err, collector)
 	}
-	collector.AddAST(cfgPath, f)
 
 	_, err = prog.Init(thread, pd)
 	if err != nil {

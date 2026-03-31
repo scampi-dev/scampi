@@ -1,0 +1,17 @@
+{
+  "abort": true,
+  "diagnostics": [
+    {
+      "id": "star.EvalError",
+      "scope": "ScopeEngine",
+      "severity": "Error",
+      "kind": "DiagnosticRaised",
+      "source": {
+        "start_line": 9,
+        "start_col": 13,
+        "end_line": 9,
+        "end_col": 17
+      }
+    }
+  ]
+}

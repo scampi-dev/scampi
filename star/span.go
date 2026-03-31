@@ -171,6 +171,69 @@ func kwargValueSpan(call *syntax.CallExpr, name string) (spec.SourceSpan, bool) 
 	return spec.SourceSpan{}, false
 }
 
+// kwargKeySpanAt returns the span of a kwarg's key (name only, not value)
+// at the given error position. Disambiguates duplicate kwargs by position.
+func kwargKeySpanAt(
+	call *syntax.CallExpr,
+	name string,
+	errorPos syntax.Position,
+) (spec.SourceSpan, bool) {
+	for _, arg := range call.Args {
+		bin, ok := arg.(*syntax.BinaryExpr)
+		if !ok || bin.Op != syntax.EQ {
+			continue
+		}
+		ident, ok := bin.X.(*syntax.Ident)
+		if !ok || ident.Name != name {
+			continue
+		}
+		keyStart, _ := ident.Span()
+		if keyStart.Line != errorPos.Line || keyStart.Col != errorPos.Col {
+			continue
+		}
+		start, end := ident.Span()
+		return spec.SourceSpan{
+			Filename:  start.Filename(),
+			StartLine: int(start.Line),
+			StartCol:  int(start.Col),
+			EndLine:   int(end.Line),
+			EndCol:    int(end.Col),
+		}, true
+	}
+	return spec.SourceSpan{}, false
+}
+
+// findEnclosingCall walks the AST and returns the CallExpr that
+// contains the given position (i.e. pos is between Lparen and Rparen).
+func findEnclosingCall(file *syntax.File, pos syntax.Position) *syntax.CallExpr {
+	var best *syntax.CallExpr
+	syntax.Walk(file, func(n syntax.Node) bool {
+		call, ok := n.(*syntax.CallExpr)
+		if !ok {
+			return true
+		}
+		lp := call.Lparen
+		rp := call.Rparen
+		if !posAfter(pos, lp) || !posAfter(rp, pos) {
+			return true
+		}
+		// Pick the innermost (tightest) enclosing call.
+		if best == nil || posAfter(call.Lparen, best.Lparen) {
+			best = call
+		}
+		return true
+	})
+	return best
+}
+
+// posAfter reports whether a is at or after b.
+func posAfter(a, b syntax.Position) bool {
+	if a.Line != b.Line {
+		return a.Line > b.Line
+	}
+	return a.Col >= b.Col
+}
+
 // refinePoisonSpan attempts to replace the LPAREN-level span on a
 // PoisonValueError with the precise span of the nested declaration call
 // (e.g. secrets(...) inside a template's data dict).

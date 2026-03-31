@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"strings"
 
+	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
@@ -69,6 +71,18 @@ func wrapStarlarkError(err error, c *Collector) error {
 
 		return StarlarkError{Err: err, Source: span}
 	}
+	// Resolve-phase errors (e.g. duplicate kwargs) have positions
+	// embedded in resolve.Error / resolve.ErrorList.
+	if span, ok := spanFromResolveError(err); ok {
+		refined := refineResolveSpan(c, span, err)
+		return StarlarkError{Err: err, Source: refined}
+	}
+
+	// Syntax errors from the parser.
+	if span, ok := spanFromSyntaxError(err); ok {
+		return StarlarkError{Err: err, Source: span}
+	}
+
 	return StarlarkError{Err: err}
 }
 
@@ -164,6 +178,73 @@ func spanFromBacktrace(bt starlark.CallStack) spec.SourceSpan {
 		return posToSpan(bt[len(bt)-1].Pos)
 	}
 	return spec.SourceSpan{}
+}
+
+// refineResolveSpan tries to widen a point span from a resolve error
+// into a full kwarg span (name=value) using the AST.
+func refineResolveSpan(c *Collector, span spec.SourceSpan, err error) spec.SourceSpan {
+	if c == nil {
+		return span
+	}
+	f := c.AST(span.Filename)
+	if f == nil {
+		return span
+	}
+
+	// For "keyword argument X is repeated", find the kwarg at the error
+	// position and return its full span (name + = + value).
+	field, _ := parseRepeatedKwarg(err.Error())
+	if field == "" {
+		return span
+	}
+
+	call := findEnclosingCall(f, posFromSpan(span))
+	if call == nil {
+		return span
+	}
+	if refined, ok := kwargKeySpanAt(call, field, posFromSpan(span)); ok {
+		return refined
+	}
+	return span
+}
+
+// parseRepeatedKwarg extracts the field name from a "keyword argument X
+// is repeated" error message.
+func parseRepeatedKwarg(msg string) (string, bool) {
+	const marker = "keyword argument "
+	idx := strings.Index(msg, marker)
+	if idx < 0 {
+		return "", false
+	}
+	rest := msg[idx+len(marker):]
+	if i := strings.IndexByte(rest, ' '); i >= 0 {
+		return strings.Trim(rest[:i], `"`), true
+	}
+	return strings.Trim(rest, `"`), true
+}
+
+// spanFromResolveError extracts a source span from resolve-phase errors
+// (e.g. duplicate kwargs, undefined variables). These fire before any
+// Go builtins run, so there's no EvalError call stack.
+func spanFromResolveError(err error) (spec.SourceSpan, bool) {
+	var el resolve.ErrorList
+	if errors.As(err, &el) && len(el) > 0 {
+		return posToSpan(el[0].Pos), true
+	}
+	var re resolve.Error
+	if errors.As(err, &re) {
+		return posToSpan(re.Pos), true
+	}
+	return spec.SourceSpan{}, false
+}
+
+// spanFromSyntaxError extracts a source span from parser errors.
+func spanFromSyntaxError(err error) (spec.SourceSpan, bool) {
+	var se syntax.Error
+	if errors.As(err, &se) {
+		return posToSpan(se.Pos), true
+	}
+	return spec.SourceSpan{}, false
 }
 
 func isEvalError(err error, target **starlark.EvalError) bool {

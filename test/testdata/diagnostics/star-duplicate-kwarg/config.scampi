@@ -1,0 +1,12 @@
+target.local(name="local")
+
+deploy(
+    name="test",
+    targets=["local"],
+    steps=[
+        dir(
+            path="/tmp/foo",
+            path="/tmp/bar",
+        ),
+    ],
+)
