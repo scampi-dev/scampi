@@ -33,8 +33,9 @@ layout: hextra-home
 <img src="/scampi.png" alt="scampi mascot" class="hero-mascot">
 </div>
 
-<div class="hx-mt-8 hx-mb-16" style="padding-top: 1.5rem; padding-bottom: 1.5rem;">
+<div class="hx-mt-8 hx-mb-16" style="padding-top: 1.5rem; padding-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
 {{< hextra/hero-button text="Get Started" link="docs/getting-started" >}}
+<a href="/get/" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.95rem; border: 1px solid var(--border-color, #d1d5db); text-decoration: none; color: inherit;">Install <code style="font-size: 0.8rem; opacity: 0.7;">curl get.scampi.dev | sh</code></a>
 </div>
 
 <div class="home-code">
@@ -88,5 +89,15 @@ deploy(
     title="Fail-Fast"
     style="pointer-events: none"
     subtitle="Errors are caught early with clear messages that guide you to the fix. No silent failures."
+  >}}
+  {{< hextra/feature-card
+    title="Testable"
+    style="pointer-events: none"
+    subtitle="Built-in test framework with mock targets. Test your infra code in milliseconds, no containers needed."
+  >}}
+  {{< hextra/feature-card
+    title="Editor-First"
+    style="pointer-events: none"
+    subtitle="LSP server with real-time diagnostics, completion, and hover docs. Full eval pipeline, not just syntax."
   >}}
 {{< /hextra/feature-grid >}}

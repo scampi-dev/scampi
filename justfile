@@ -22,17 +22,19 @@ build:
   go build -ldflags '{{ldflags}}' -o {{bin_dir}}/scampi  ./cmd/scampi
   go build -ldflags '{{ldflags}}' -o {{bin_dir}}/scampls ./cmd/scampls
 
-[doc("Cross-compile for all supported platforms (outdir=DIR prefix=NAME)")]
-cross outdir=bin_dir prefix="scampi":
+[doc("Cross-compile for all supported platforms (outdir=DIR)")]
+cross outdir=bin_dir:
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p "{{outdir}}"
   for pair in {{cross_targets}}; do
     os="${pair%/*}"
     arch="${pair#*/}"
-    out="{{outdir}}/{{prefix}}-${os}-${arch}"
-    printf "  %-20s → %s\n" "${os}/${arch}" "$out"
-    CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -ldflags '{{ldflags}}' -o "$out" ./cmd/scampi
+    for bin in scampi scampls; do
+      out="{{outdir}}/${bin}-${os}-${arch}"
+      printf "  %-20s → %s\n" "${bin} ${os}/${arch}" "$out"
+      CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -ldflags '{{ldflags}}' -o "$out" ./cmd/${bin}
+    done
   done
 
 [doc("Build and run scampi locally")]

@@ -147,6 +147,19 @@ doesn't dump a stack trace and wish you luck. It tells you what's wrong,
 shows you what the correct syntax looks like using your own values, and
 guides you to a working config one error at a time.
 
+**Testable without deploying.** Most infra tools' idea of testing is
+"apply it and see what breaks." Scampi has a built-in test framework with
+mock targets that run in milliseconds — no containers, no cloud accounts,
+no YAML scaffolding. Write a `*_test.scampi` file, assert on the outcome,
+done. REST API modules get mock targets too, with full request recording.
+
+**Editor support that actually works.** `scampls` is an LSP server that
+runs the real evaluation pipeline — not a syntax checker, the actual
+Starlark evaluator with the full step registry. Unknown fields, missing
+required params, type errors, invalid enums — all caught as you type, with
+precise source spans and "did you mean?" hints. Your editor becomes the
+first line of defense, not `apply`.
+
 ### The workflow
 
 ```mermaid
@@ -298,8 +311,12 @@ reference — here's the short version:
 ## Want the deep cut?
 
 Read the [Philosophy]({{< relref "docs/philosophy" >}}) for the design
-principles behind scampi — why convergence over imperative, why Starlark
-over YAML, why opinions over options.
+principles — why convergence over imperative, why Starlark over YAML,
+why testability and developer ergonomics aren't nice-to-haves.
+
+Check out [Testing]({{< relref "docs/testing" >}}) to see how mock
+targets and assertions work, or set up
+[the LSP]({{< relref "docs/lsp" >}}) in your editor.
 
 Or just [get started]({{< relref "docs/getting-started" >}}) and see for
 yourself.

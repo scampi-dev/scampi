@@ -40,12 +40,26 @@ linkTitle: Install
 curl -fsSL get.scampi.dev | sh
 ```
 
-Downloads the latest release, verifies the SHA256 checksum, and installs to `~/.local/bin` (or `/usr/local/bin` if it doesn't exist).
+Downloads the latest release of **both `scampi` and `scampls`** (the LSP
+server), verifies SHA256 checksums, and installs to `~/.local/bin` (or
+`/usr/local/bin` if it doesn't exist).
+
+**Just the CLI** (e.g. CI runners):
+
+```bash
+curl -fsSL get.scampi.dev/cli | sh
+```
+
+**Just the LSP:**
+
+```bash
+curl -fsSL get.scampi.dev/lsp | sh
+```
 
 **Custom path:**
 
 ```bash
-curl -fsSL get.scampi.dev | sh -s -- -o ~/.local/bin/myname
+curl -fsSL get.scampi.dev | sh -s -- -o ~/.local/bin
 ```
 
 Supported platforms: Linux, macOS, and FreeBSD (amd64/arm64).
@@ -54,6 +68,7 @@ Supported platforms: Linux, macOS, and FreeBSD (amd64/arm64).
 
 ```bash
 go install scampi.dev/scampi/cmd/scampi@latest
+go install scampi.dev/scampi/cmd/scampls@latest
 ```
 
 Requires Go {{< go-version >}}+.
@@ -73,4 +88,4 @@ cd scampi
 just build
 ```
 
-The binary lands at `./build/bin/scampi`. Requires Go {{< go-version >}}+ and [just](https://just.systems).
+Produces `./build/bin/scampi` and `./build/bin/scampls`. Requires Go {{< go-version >}}+ and [just](https://just.systems).

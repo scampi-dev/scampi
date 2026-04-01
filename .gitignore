@@ -14,6 +14,8 @@
 /build/
 site/static/scampi.png
 site/static/install.sh
+site/static/cli.sh
+site/static/lsp.sh
 __debug*
 *.zip
 *.out

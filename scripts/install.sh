@@ -2,21 +2,23 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Install scampi — https://scampi.dev
 #
-#   curl -fsSL get.scampi.dev | sh
-#   curl -fsSL get.scampi.dev | sh -s -- -o ~/.local/bin/myname
+#   curl -fsSL get.scampi.dev | sh           # both scampi + scampls
+#   curl -fsSL get.scampi.dev/cli | sh       # CLI only
+#   curl -fsSL get.scampi.dev/lsp | sh       # LSP only
+#
+# Override install location:
+#   curl -fsSL get.scampi.dev | sh -s -- -d ~/.local/bin
 #
 set -eu
 
-BIN_NAME="scampi"
 DEST_DIR=""
 
 parse_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
-    -o | --output)
-      [ $# -lt 2 ] && fatal "-o requires a path argument"
-      DEST_DIR="$(dirname "$2")"
-      BIN_NAME="$(basename "$2")"
+    -d | --dir)
+      [ $# -lt 2 ] && fatal "-d requires a directory argument"
+      DEST_DIR="$2"
       shift 2
       ;;
     *)
@@ -25,6 +27,7 @@ parse_args() {
     esac
   done
 }
+
 REPO="scampi-dev/scampi"
 API="https://codeberg.org/api/v1/repos/${REPO}"
 DL="https://codeberg.org/${REPO}/releases/download"
@@ -59,11 +62,12 @@ main() {
   printf "\n  ${ORANGE}${B}<('◡')⚙  get scampi${R} ${DIM}— https://scampi.dev${R}\n\n"
   detect_platform
   fetch_version
-  check_installed
-  download_and_verify
-  install_binary
+  download_checksums
+
+  ##@@INSTALL_BINS@@##
+
   # shellcheck disable=SC2059
-  printf "\n  ${GREEN}${B}scampi ${VERSION}${R} installed to ${DIM}${DEST}${R}\n\n"
+  printf "\n  ${GREEN}${B}${VERSION}${R} installed to ${DIM}${INSTALL_DIR}${R}\n\n"
 }
 
 detect_platform() {
@@ -87,8 +91,6 @@ detect_platform() {
 }
 
 fetch_version() {
-  # Codeberg's /releases/latest only returns stable releases.
-  # Fall back to the first release (most recent) if no stable exists.
   VERSION=$(curl -fsSL "${API}/releases/latest" 2>/dev/null |
     grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
 
@@ -104,70 +106,63 @@ fetch_version() {
   info "latest: ${VERSION}"
 }
 
-check_installed() {
-  installed=""
-
-  # Try in PATH first
-  if command -v "${BIN_NAME}" >/dev/null 2>&1; then
-    installed=$("${BIN_NAME}" version 2>/dev/null | awk '{print $2}')
-  fi
-
-  # Check default install locations if not in PATH
-  if [ -z "${installed}" ]; then
-    for loc in "${HOME}/.local/bin/${BIN_NAME}" "/usr/local/bin/${BIN_NAME}"; do
-      if [ -x "${loc}" ]; then
-        installed=$("${loc}" version 2>/dev/null | awk '{print $2}')
-        break
-      fi
-    done
-  fi
-
-  if [ "${installed}" = "${VERSION}" ]; then
-    ok "scampi ${VERSION} is already installed"
-    exit 0
-  fi
-
-  if [ -n "${installed}" ]; then
-    info "found ${installed}, upgrading to ${VERSION}"
-  fi
-}
-
-download_and_verify() {
-  BINARY="scampi-${VERSION}-${OS}-${ARCH}"
-  URL="${DL}/${VERSION}/${BINARY}"
+download_checksums() {
   SUMS_URL="${DL}/${VERSION}/SHA256SUMS"
-
   TMPDIR=$(mktemp -d)
   trap 'rm -rf "${TMPDIR}"' EXIT
 
-  info "downloading ${BINARY}..."
-  curl -fsSL -o "${TMPDIR}/${BIN_NAME}" "${URL}" ||
-    fatal "download failed — ${OS}/${ARCH} may not be available for ${VERSION}"
   curl -fsSL -o "${TMPDIR}/SHA256SUMS" "${SUMS_URL}" ||
     fatal "could not download checksums"
+}
 
-  verify_checksum
+install_one() {
+  bin_name="$1"
+  asset="${bin_name}-${OS}-${ARCH}"
+  url="${DL}/${VERSION}/${asset}"
+
+  # Check if already installed at this version.
+  installed=""
+  if command -v "${bin_name}" >/dev/null 2>&1; then
+    installed=$("${bin_name}" version 2>/dev/null | awk '{print $NF}')
+  fi
+  if [ "${installed}" = "${VERSION}" ]; then
+    ok "${bin_name} ${VERSION} already installed"
+    return
+  fi
+  if [ -n "${installed}" ]; then
+    info "${bin_name}: ${installed} → ${VERSION}"
+  fi
+
+  info "downloading ${asset}..."
+  curl -fsSL -o "${TMPDIR}/${bin_name}" "${url}" ||
+    fatal "download failed — ${bin_name} ${OS}/${ARCH} may not be available for ${VERSION}"
+
+  verify_checksum "${bin_name}" "${asset}"
+  do_install "${bin_name}"
 }
 
 verify_checksum() {
-  WANT=$(grep "${BINARY}" "${TMPDIR}/SHA256SUMS" | awk '{print $1}')
-  if [ -z "${WANT}" ]; then
-    fatal "no checksum found for ${BINARY}"
+  bin_name="$1"
+  asset="$2"
+
+  want=$(grep "${asset}" "${TMPDIR}/SHA256SUMS" | awk '{print $1}')
+  if [ -z "${want}" ]; then
+    fatal "no checksum found for ${asset}"
   fi
 
   if command -v sha256sum >/dev/null 2>&1; then
-    GOT=$(sha256sum "${TMPDIR}/${BIN_NAME}" | awk '{print $1}')
+    got=$(sha256sum "${TMPDIR}/${bin_name}" | awk '{print $1}')
   elif command -v shasum >/dev/null 2>&1; then
-    GOT=$(shasum -a 256 "${TMPDIR}/${BIN_NAME}" | awk '{print $1}')
+    got=$(shasum -a 256 "${TMPDIR}/${bin_name}" | awk '{print $1}')
   else
     warn "no sha256 tool found, skipping checksum verification"
     return
   fi
 
-  if [ "${GOT}" != "${WANT}" ]; then
-    fatal "checksum mismatch: expected ${WANT}, got ${GOT}"
+  if [ "${got}" != "${want}" ]; then
+    fatal "checksum mismatch for ${asset}: expected ${want}, got ${got}"
   fi
-  ok "checksum verified"
+  ok "${bin_name}: checksum verified"
 }
 
 confirm_overwrite() {
@@ -189,39 +184,46 @@ confirm_overwrite() {
   fi
 }
 
-install_binary() {
-  chmod +x "${TMPDIR}/${BIN_NAME}"
+do_install() {
+  bin_name="$1"
+  chmod +x "${TMPDIR}/${bin_name}"
 
   if [ -n "${DEST_DIR}" ]; then
-    # Explicit path via -o
-    DEST="${DEST_DIR}/${BIN_NAME}"
-    confirm_overwrite "${DEST}"
+    dest="${DEST_DIR}/${bin_name}"
+    confirm_overwrite "${dest}"
+    mkdir -p "${DEST_DIR}"
     if [ -w "${DEST_DIR}" ]; then
-      mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
+      mv "${TMPDIR}/${bin_name}" "${dest}"
     else
-      info "installing to ${DEST} (requires sudo)"
-      sudo mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
+      info "installing ${bin_name} to ${dest} (requires sudo)"
+      sudo mv "${TMPDIR}/${bin_name}" "${dest}"
     fi
   elif [ -d "${HOME}/.local/bin" ]; then
-    DEST="${HOME}/.local/bin/${BIN_NAME}"
-    confirm_overwrite "${DEST}"
-    mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
+    dest="${HOME}/.local/bin/${bin_name}"
+    confirm_overwrite "${dest}"
+    mv "${TMPDIR}/${bin_name}" "${dest}"
   elif [ -w "/usr/local/bin" ]; then
-    DEST="/usr/local/bin/${BIN_NAME}"
-    confirm_overwrite "${DEST}"
-    mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
+    dest="/usr/local/bin/${bin_name}"
+    confirm_overwrite "${dest}"
+    mv "${TMPDIR}/${bin_name}" "${dest}"
   else
-    DEST="/usr/local/bin/${BIN_NAME}"
-    confirm_overwrite "${DEST}"
-    info "installing to ${DEST} (requires sudo)"
-    sudo mv "${TMPDIR}/${BIN_NAME}" "${DEST}"
+    dest="/usr/local/bin/${bin_name}"
+    confirm_overwrite "${dest}"
+    info "installing ${bin_name} to ${dest} (requires sudo)"
+    sudo mv "${TMPDIR}/${bin_name}" "${dest}"
   fi
 
-  # PATH hint
+  INSTALL_DIR="$(dirname "${dest}")"
+  ok "${bin_name} → ${dest}"
+}
+
+# PATH hint (once, after all installs)
+path_hint() {
   case ":${PATH}:" in
-  *":$(dirname "${DEST}"):"*) ;;
-  *) warn "add $(dirname "${DEST}") to your PATH" ;;
+  *":${INSTALL_DIR}:"*) ;;
+  *) warn "add ${INSTALL_DIR} to your PATH" ;;
   esac
 }
 
 main "$@"
+path_hint

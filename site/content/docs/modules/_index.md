@@ -45,6 +45,6 @@ deploy(
 {{< cards >}}
   {{< card link="format" title="Module Format" subtitle="scampi.mod, scampi.sum, and entry points" >}}
   {{< card link="publishing" title="Publishing" subtitle="Repository layout, versioning, and conventions" >}}
-  {{< card link="testing" title="Testing" subtitle="Test modules with scampi test and in-memory targets" >}}
+  {{< card link="/docs/testing/" title="Testing" subtitle="Test modules with scampi test and mock targets" >}}
   {{< card link="local" title="Local Modules" subtitle="Develop modules alongside your project" >}}
 {{< /cards >}}

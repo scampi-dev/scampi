@@ -29,19 +29,31 @@ OpenAPI 3.x and Swagger 2.0 specs.
 | Flag             | Description                                        |
 | ---------------- | -------------------------------------------------- |
 | `-o`, `--output` | Output file path (default: derives from spec name) |
+| `-p`, `--prefix` | Path prefix prepended to all generated routes      |
 
 By default the output file is named after the spec: `npm-openapi.yaml` produces
 `npm-openapi.api.scampi`. Use `-o -` to write to stdout.
 
+When the API is served behind a proxy path, use `--prefix` to prepend to
+all generated routes:
+
+```text
+scampi gen api --prefix=/integration unifi-network.json
+```
+
+This generates `path = "/integration/v1/sites/" + siteId + "/networks"` instead
+of `path = "/v1/sites/" + siteId + "/networks"`.
+
 ### What it generates
 
 Each endpoint in the spec becomes a Starlark function wrapping `rest.request()`
-with the correct HTTP method, path, required and optional parameters, and body
-construction.
+with the correct HTTP method, path, and parameters.
 
-- Path parameters become positional arguments
-- Required body fields become positional arguments
-- Optional body fields become keyword arguments defaulting to `None`
+- Path parameters become positional arguments and are interpolated into the path
+- Body fields default to `None` — when no body args are passed, the function
+  returns a bare `rest.request(method, path)` suitable for use as a
+  `rest.resource` template
+- When body args are provided, they're collected into a JSON body
 - GET endpoints include a `check` parameter for response validation
 - Endpoints are grouped by path prefix with section headers
 
@@ -135,19 +147,25 @@ def get_certificates(check = None):
 
 # POST /nginx/certificates — Create a new certificate
 def create_certificate(
-        domain_names,
-        provider,
+        domain_names = None,
+        provider = None,
         meta = None):
-    body = {
-        "domain_names": domain_names,
-        "provider": provider,
-    }
+    body = {}
+    if domain_names != None:
+        body["domain_names"] = domain_names
+    if provider != None:
+        body["provider"] = provider
     if meta != None:
         body["meta"] = meta
+    if body:
+        return rest.request(
+            method = "POST",
+            path = "/nginx/certificates",
+            body = rest.body.json(body),
+        )
     return rest.request(
         method = "POST",
         path = "/nginx/certificates",
-        body = rest.body.json(body),
     )
 
 
@@ -165,7 +183,10 @@ def get_proxy_hosts(check = None):
 # ... more functions for create, update, delete ...
 ```
 
-You then write a thin wrapper module that adds convergence semantics:
+You then write a thin wrapper module that adds convergence semantics.
+The generated wrappers work directly as `rest.resource` templates — when called
+without body args they return a bare method+path request, and `rest.resource`
+provides the body via `state`:
 
 ```starlark {filename="npm.scampi"}
 load("npm-openapi.api.scampi", "get_certificates", "create_certificate")
@@ -173,10 +194,15 @@ load("npm-openapi.api.scampi", "get_certificates", "create_certificate")
 def certificate(domain_names, provider = "letsencrypt"):
     return rest.resource(
         query = get_certificates(
-            check = rest.jq('.[] | select(.domain_names == $domain_names)'),
+            check = rest.jq(
+                expr = '.[] | select(.domain_names[0] == "' + domain_names[0] + '")',
+            ),
         ),
-        found = "ok",
-        missing = create_certificate(domain_names, provider),
+        missing = create_certificate(),
+        state = {
+            "domain_names": domain_names,
+            "provider": provider,
+        },
     )
 ```
 

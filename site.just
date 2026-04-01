@@ -7,16 +7,17 @@ export HUGO_SCAMPI_GO_VERSION := `grep '^go ' go.mod | awk '{print $2}'`
 
 [default]
 [doc("Build the Hugo site")]
-build:
-  cp scampi.png site/static/scampi.png
-  cp scripts/install.sh site/static/install.sh
+build: _copy-static
   cd site && {{hugo}} --minify
 
 [doc("Local dev server")]
-dev *args:
+dev *args: _copy-static
+  cd site && {{hugo}} server --disableFastRender -D -e production {{args}}
+
+[private]
+_copy-static:
   cp scampi.png site/static/scampi.png
-  cp scripts/install.sh site/static/install.sh
-  cd site && {{hugo}} server -D -e production {{args}}
+  ./scripts/gen-install-scripts.sh
 
 [doc("Package site for deployment")]
 dist outdir="build/site-dist": build
@@ -35,3 +36,7 @@ deploy: dist
 [doc("Remove all generated files")]
 clean:
   rm -rf build/site build/site-dist site/resources/_gen
+  rm site/static/scampi.png
+  rm site/static/cli.sh
+  rm site/static/install.sh
+  rm site/static/lsp.sh

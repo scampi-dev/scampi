@@ -138,6 +138,65 @@ This is a core design principle, not polish. The error experience *is* the
 user experience for a config tool — it's the main thing you interact with
 while iterating on a config.
 
+## Testable by default
+
+Infrastructure code is notoriously hard to test. Ansible has Molecule —
+a separate tool with its own config format, its own Docker driver, and
+its own learning curve. Terraform has `terraform plan` and that's about
+it. Most people's test suite for their infrastructure is "apply it and
+see if anything breaks."
+
+Scampi treats testing as a first-class concern, not an afterthought bolted
+on by a third party. Test files are regular scampi configs that run against
+mock targets:
+
+```starlark {filename="webserver_test.scampi"}
+t = test.target.in_memory(name = "mock", packages = ["nginx"])
+
+deploy(name = "test", targets = ["mock"], steps = [
+    static_site(domain = "example.com"),
+])
+
+a = test.assert.that(t)
+a.file("/etc/nginx/sites-enabled/example.com.conf").exists()
+a.service("nginx").is_running()
+```
+
+No containers to spin up, no cloud accounts to provision, no YAML
+scaffolding. `scampi test` runs in milliseconds because mock targets are
+in-memory — there's no I/O, no network, no waiting. REST API modules
+get the same treatment with `test.target.rest_mock()`, which records
+every HTTP request for assertion verification.
+
+This isn't a nice-to-have. If you can't test your infrastructure code
+without deploying it, you don't iterate — you gamble. Fast, local,
+deterministic tests are how infrastructure code becomes actual
+engineering instead of "push and pray."
+
+## Developer ergonomics matter
+
+The gap between writing infrastructure code and getting feedback on it
+should be as small as possible. Long feedback loops breed sloppy configs
+and manual workarounds.
+
+Scampi ships `scampls`, a Language Server Protocol server that runs the
+real evaluation pipeline in your editor. Not a lint pass, not a syntax
+check — the actual Starlark evaluator with the full step registry. You
+get unknown-field errors, missing-required-field errors, type mismatches,
+and invalid enum values as you type, with precise source spans and
+actionable hints.
+
+`scampi gen api` bridges external systems: point it at an OpenAPI spec
+and it generates typed Starlark wrappers for every endpoint. The
+generated functions compose directly with `rest.resource` for idempotent
+CRUD — no manual HTTP plumbing, no copy-pasting URLs.
+
+Error messages are designed so you can reach a valid config by just
+following them. Each error says what's wrong, shows correct syntax using
+your values, and guides you to the next fix. The error experience *is*
+the developer experience for a config tool — optimizing it isn't polish,
+it's the whole point.
+
 ## Source and target are separate worlds
 
 Scampi draws a hard line between two sides:
