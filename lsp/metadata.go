@@ -333,6 +333,43 @@ func nonStepBuiltins() []BuiltinFunc {
 				{Name: "start_period", Type: "string", Desc: "Grace period before checks start", Default: `"0s"`},
 			},
 		},
+
+		// Test builtins (available in *_test.scampi files)
+		{
+			Name:    "test.target.in_memory",
+			Summary: "Create an in-memory target for testing POSIX steps",
+			Params: []BuiltinParam{
+				{Name: "name", Type: "string", Desc: "Target name", Required: true},
+				{Name: "files", Type: "struct", Desc: "Pre-populated files (path → content)"},
+				{Name: "packages", Type: "list", Desc: "Pre-installed packages"},
+				{Name: "services", Type: "struct", Desc: "Service states (name → running/stopped)"},
+				{Name: "dirs", Type: "list", Desc: "Pre-existing directories"},
+			},
+		},
+		{
+			Name:    "test.target.rest_mock",
+			Summary: "Create a mock REST target for testing REST steps",
+			Params: []BuiltinParam{
+				{Name: "name", Type: "string", Desc: "Target name", Required: true},
+				{Name: "routes", Type: "struct", Desc: "Route responses (\"METHOD /path\" → test.response())"},
+			},
+		},
+		{
+			Name:    "test.response",
+			Summary: "Define a mock HTTP response for test.target.rest_mock routes",
+			Params: []BuiltinParam{
+				{Name: "status", Type: "int", Desc: "HTTP status code", Required: true},
+				{Name: "body", Type: "string", Desc: "Response body"},
+				{Name: "headers", Type: "struct", Desc: "Response headers"},
+			},
+		},
+		{
+			Name:    "test.assert.that",
+			Summary: "Create an assertion builder for a test target",
+			Params: []BuiltinParam{
+				{Name: "target", Type: "test_target", Desc: "Test target to assert against", Required: true},
+			},
+		},
 	}
 }
 

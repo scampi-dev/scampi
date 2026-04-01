@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -16,6 +17,7 @@ import (
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/star"
+	"scampi.dev/scampi/star/testkit"
 )
 
 // Evaluate runs the full Starlark evaluation pipeline and returns LSP
@@ -36,7 +38,12 @@ func Evaluate(ctx context.Context, docURI protocol.DocumentURI, content string) 
 	})
 	store := diagnostic.NewSourceStore()
 
-	_, err := star.Eval(ctx, filePath, store, src)
+	var opts []star.EvalOption
+	if strings.HasSuffix(filePath, "_test.scampi") {
+		opts = append(opts, star.WithTestBuiltins(testkit.NewCollector()))
+	}
+
+	_, err := star.Eval(ctx, filePath, store, src, opts...)
 	if err == nil {
 		return nil
 	}

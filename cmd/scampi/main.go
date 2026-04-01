@@ -67,10 +67,11 @@ const (
 
 func main() {
 	scampi := &cli.Command{
-		Name:        "scampi",
-		Usage:       "Declarative task execution for local and remote systems",
-		Version:     version,
-		HideVersion: true,
+		Name:                   "scampi",
+		Usage:                  "Declarative task execution for local and remote systems",
+		Version:                version,
+		HideVersion:            true,
+		UseShortOptionHandling: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:  flagASCII,
