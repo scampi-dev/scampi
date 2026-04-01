@@ -25,10 +25,10 @@ def update_user(
     if body:
         return rest.request(
             method = "PUT",
-            path = "/users/{username}",
+            path = "/users/" + username,
             body = rest.body.json(body),
         )
     return rest.request(
         method = "PUT",
-        path = "/users/{username}",
+        path = "/users/" + username,
     )

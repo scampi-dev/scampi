@@ -50,17 +50,17 @@ def update_item(id, name = None):
     if body:
         return rest.request(
             method = "PUT",
-            path = "/items/{id}",
+            path = "/items/" + id,
             body = rest.body.json(body),
         )
     return rest.request(
         method = "PUT",
-        path = "/items/{id}",
+        path = "/items/" + id,
     )
 
 # DELETE /items/{id} — Delete an item
 def delete_item(id):
     return rest.request(
         method = "DELETE",
-        path = "/items/{id}",
+        path = "/items/" + id,
     )

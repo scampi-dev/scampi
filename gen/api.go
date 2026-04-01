@@ -239,6 +239,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 	g.writeFuncSignature(funcName, params.all())
 
 	fullPath := g.pathPrefix + path
+	pathExpr := interpolatePathParams(fullPath, params.pathParams)
 
 	if params.hasBody() {
 		// Build body only from params that were actually passed.
@@ -252,7 +253,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 		g.line("    if body:")
 		g.line("        return rest.request(")
 		g.line("            method = %q,", method)
-		g.line("            path = %q,", fullPath)
+		g.line("            path = %s,", pathExpr)
 		g.line("            body = rest.body.json(body),")
 		if method == "GET" {
 			g.line("            check = check,")
@@ -260,7 +261,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 		g.line("        )")
 		g.line("    return rest.request(")
 		g.line("        method = %q,", method)
-		g.line("        path = %q,", fullPath)
+		g.line("        path = %s,", pathExpr)
 		if method == "GET" {
 			g.line("        check = check,")
 		}
@@ -268,7 +269,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 	} else {
 		g.line("    return rest.request(")
 		g.line("        method = %q,", method)
-		g.line("        path = %q,", fullPath)
+		g.line("        path = %s,", pathExpr)
 		if method == "GET" {
 			g.line("        check = check,")
 		}
@@ -475,6 +476,36 @@ func titleFromPrefix(prefix string) string {
 func sanitizePath(path string) string {
 	r := strings.NewReplacer("/", "_", "{", "", "}", "", "-", "_")
 	return strings.Trim(r.Replace(path), "_")
+}
+
+// interpolatePathParams converts a path like "/v1/sites/{siteId}/networks"
+// into a Starlark expression: "/v1/sites/" + siteId + "/networks".
+// If there are no path params, returns the quoted literal.
+func interpolatePathParams(path string, params []string) string {
+	if len(params) == 0 {
+		return fmt.Sprintf("%q", path)
+	}
+
+	// Build replacement expression by splitting on each {param}.
+	result := path
+	for _, p := range params {
+		placeholder := "{" + p + "}"
+		result = strings.Replace(result, placeholder, "\x00"+p+"\x00", 1)
+	}
+
+	// Split on the sentinel and build Starlark concatenation.
+	parts := strings.Split(result, "\x00")
+	var segments []string
+	for i, part := range parts {
+		if i%2 == 0 {
+			if part != "" {
+				segments = append(segments, fmt.Sprintf("%q", part))
+			}
+		} else {
+			segments = append(segments, part)
+		}
+	}
+	return strings.Join(segments, " + ")
 }
 
 // cleanPathPrefix normalises a user-supplied prefix: strips redundant
