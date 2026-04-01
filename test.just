@@ -27,7 +27,7 @@ containers:
 [doc("Run all tests with race-detector and containers")]
 everything:
   SCAMPI_TEST_CONTAINERS=1 go test -race -v ./...
-  just test startest
+  just test testkit
   go test ./test -bench=. -benchmem -count=1 -benchtime=1x
   just test fuzz 5s
 
@@ -50,9 +50,13 @@ e2e:
 ssh:
   SCAMPI_TEST_CONTAINERS=1 go test -v ./test -run TestSSH
 
-[doc("Run Starlark test files (scampi test framework)")]
-startest:
-  go run ./cmd/scampi test test/testdata/startest/...
+[doc("Run scampi testkit tests (scampi test framework)")]
+testkit:
+  go run ./cmd/scampi test test/testdata/testkit/...
+
+[doc("Run gen api golden tests")]
+genapi:
+  go test -v ./test -run TestGenAPI
 
 [doc("Run code style rule tests")]
 rules:

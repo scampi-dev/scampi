@@ -238,29 +238,42 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 
 	g.writeFuncSignature(funcName, params.all())
 
+	fullPath := g.pathPrefix + path
+
 	if params.hasBody() {
-		g.line("    body = {")
-		for _, f := range params.required {
-			g.line("        %q: %s,", f.apiName, f.paramName)
-		}
-		g.line("    }")
-		for _, f := range params.optional {
+		// Build body only from params that were actually passed.
+		// All body params default to None so the function can be called
+		// without body args — useful as a rest.resource template.
+		g.line("    body = {}")
+		for _, f := range params.allBody() {
 			g.line("    if %s != None:", f.paramName)
 			g.line("        body[%q] = %s", f.apiName, f.paramName)
 		}
+		g.line("    if body:")
+		g.line("        return rest.request(")
+		g.line("            method = %q,", method)
+		g.line("            path = %q,", fullPath)
+		g.line("            body = rest.body.json(body),")
+		if method == "GET" {
+			g.line("            check = check,")
+		}
+		g.line("        )")
+		g.line("    return rest.request(")
+		g.line("        method = %q,", method)
+		g.line("        path = %q,", fullPath)
+		if method == "GET" {
+			g.line("        check = check,")
+		}
+		g.line("    )")
+	} else {
+		g.line("    return rest.request(")
+		g.line("        method = %q,", method)
+		g.line("        path = %q,", fullPath)
+		if method == "GET" {
+			g.line("        check = check,")
+		}
+		g.line("    )")
 	}
-
-	fullPath := g.pathPrefix + path
-	g.line("    return rest.request(")
-	g.line("        method = %q,", method)
-	g.line("        path = %q,", fullPath)
-	if params.hasBody() {
-		g.line("        body = rest.body.json(body),")
-	}
-	if method == "GET" {
-		g.line("        check = check,")
-	}
-	g.line("    )")
 }
 
 func (g *apiGenerator) writeFuncSignature(name string, params []string) {
@@ -301,11 +314,20 @@ func (p *opParams) hasBody() bool {
 	return len(p.required) > 0 || len(p.optional) > 0
 }
 
+func (p *opParams) allBody() []field {
+	out := make([]field, 0, len(p.required)+len(p.optional))
+	out = append(out, p.required...)
+	out = append(out, p.optional...)
+	return out
+}
+
 func (p *opParams) all() []string {
 	var out []string
 	out = append(out, p.pathParams...)
+	// Body params all default to None so the function works as a
+	// rest.resource template (method+path only, no body).
 	for _, f := range p.required {
-		out = append(out, f.paramName)
+		out = append(out, f.paramName+" = None")
 	}
 	for _, f := range p.optional {
 		out = append(out, f.paramName+" = None")

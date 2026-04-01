@@ -21,16 +21,21 @@ def list_items(check = None):
     )
 
 # POST /items — Create an item
-def create_item(name, count = None):
-    body = {
-        "name": name,
-    }
+def create_item(name = None, count = None):
+    body = {}
+    if name != None:
+        body["name"] = name
     if count != None:
         body["count"] = count
+    if body:
+        return rest.request(
+            method = "POST",
+            path = "/items",
+            body = rest.body.json(body),
+        )
     return rest.request(
         method = "POST",
         path = "/items",
-        body = rest.body.json(body),
     )
 
 
@@ -38,14 +43,19 @@ def create_item(name, count = None):
 # -----------------------------------------------------------------------------
 
 # PUT /items/{id} — Update an item
-def update_item(id, name):
-    body = {
-        "name": name,
-    }
+def update_item(id, name = None):
+    body = {}
+    if name != None:
+        body["name"] = name
+    if body:
+        return rest.request(
+            method = "PUT",
+            path = "/items/{id}",
+            body = rest.body.json(body),
+        )
     return rest.request(
         method = "PUT",
         path = "/items/{id}",
-        body = rest.body.json(body),
     )
 
 # DELETE /items/{id} — Delete an item
