@@ -16,8 +16,9 @@ func testModule(tc *testkit.Collector) *starlarkstruct.Module {
 	return &starlarkstruct.Module{
 		Name: "test",
 		Members: starlark.StringDict{
-			"target": testTargetModule(),
-			"assert": testAssertModule(tc),
+			"target":   testTargetModule(),
+			"assert":   testAssertModule(tc),
+			"response": starlark.NewBuiltin("test.response", builtinTestResponse),
 		},
 	}
 }
@@ -29,6 +30,10 @@ func testTargetModule() *starlarkstruct.Module {
 			"in_memory": starlark.NewBuiltin(
 				"test.target.in_memory",
 				builtinTestInMemory,
+			),
+			"rest_mock": starlark.NewBuiltin(
+				"test.target.rest_mock",
+				builtinTestRESTMock,
 			),
 		},
 	}
@@ -46,11 +51,13 @@ func testAssertModule(tc *testkit.Collector) *starlarkstruct.Module {
 	}
 }
 
-// StarlarkTestTarget wraps a *MemTarget as a Starlark value. It is passed
+// StarlarkTestTarget wraps a test target as a Starlark value. It is passed
 // to test.assert.that() and registered as a target via the collector.
+// Exactly one of Mem or REST is non-nil.
 type StarlarkTestTarget struct {
 	Name string
 	Mem  *target.MemTarget
+	REST *testkit.MockREST
 }
 
 var _ starlark.Value = (*StarlarkTestTarget)(nil)
@@ -175,6 +182,126 @@ func builtinTestAssertThat(tc *testkit.Collector) func(
 		); err != nil {
 			return nil, err
 		}
+		if tgt.REST != nil {
+			return testkit.NewAssertionBuilder(tgt.REST, tc), nil
+		}
 		return testkit.NewAssertionBuilder(tgt.Mem, tc), nil
 	}
+}
+
+// test.target.rest_mock
+// -----------------------------------------------------------------------------
+
+// starlarkResponse wraps a MockResponse as a Starlark value.
+type starlarkResponse struct {
+	resp testkit.MockResponse
+}
+
+func (r starlarkResponse) String() string        { return "test.response" }
+func (r starlarkResponse) Type() string          { return "test_response" }
+func (r starlarkResponse) Freeze()               {}
+func (r starlarkResponse) Truth() starlark.Bool  { return starlark.True }
+func (r starlarkResponse) Hash() (uint32, error) { return 0, nil }
+
+func builtinTestResponse(
+	_ *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		status  int
+		body    string
+		headers *starlark.Dict
+	)
+	if err := starlark.UnpackArgs("test.response", args, kwargs,
+		"status", &status,
+		"body?", &body,
+		"headers?", &headers,
+	); err != nil {
+		return nil, err
+	}
+
+	resp := testkit.MockResponse{
+		StatusCode: status,
+		Body:       []byte(body),
+	}
+
+	if headers != nil {
+		resp.Headers = make(map[string][]string, headers.Len())
+		for _, item := range headers.Items() {
+			k, _ := starlark.AsString(item[0])
+			v, _ := starlark.AsString(item[1])
+			resp.Headers[k] = []string{v}
+		}
+	}
+
+	return starlarkResponse{resp: resp}, nil
+}
+
+func builtinTestRESTMock(
+	thread *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var (
+		name   string
+		routes *starlark.Dict
+	)
+	if err := starlark.UnpackArgs("test.target.rest_mock", args, kwargs,
+		"name", &name,
+		"routes?", &routes,
+	); err != nil {
+		return nil, err
+	}
+
+	span := callSpan(thread)
+
+	if name == "" {
+		return nil, &EmptyNameError{
+			Func:   "test.target.rest_mock",
+			Source: span,
+		}
+	}
+
+	routeMap := make(map[string]testkit.MockResponse)
+	if routes != nil {
+		for _, item := range routes.Items() {
+			key, ok := starlark.AsString(item[0])
+			if !ok {
+				return nil, &TypeError{
+					Context:  "test.target.rest_mock: route key",
+					Expected: "string (e.g. \"GET /items\")",
+					Got:      item[0].Type(),
+					Source:   span,
+				}
+			}
+			resp, ok := item[1].(starlarkResponse)
+			if !ok {
+				return nil, &TypeError{
+					Context:  "test.target.rest_mock: route value",
+					Expected: "test.response()",
+					Got:      item[1].Type(),
+					Source:   span,
+				}
+			}
+			routeMap[key] = resp.resp
+		}
+	}
+
+	mock := testkit.NewMockREST(routeMap)
+
+	inst := spec.TargetInstance{
+		Type:   testkit.RESTMockTargetType{Tgt: mock},
+		Source: span,
+		Fields: make(map[string]spec.FieldSpan),
+	}
+
+	c := threadCollector(thread)
+	if err := c.AddTarget(name, inst, span); err != nil {
+		return nil, err
+	}
+
+	return &StarlarkTestTarget{Name: name, REST: mock}, nil
 }

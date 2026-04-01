@@ -21,6 +21,7 @@ var assertionAttrs = []string{
 	"symlink",
 	"container",
 	"command_ran",
+	"request",
 }
 
 // AssertionBuilder is the Starlark value returned by test.assert.that(t).
@@ -63,6 +64,8 @@ func (b *AssertionBuilder) Attr(name string) (starlark.Value, error) {
 		return starlark.NewBuiltin("assert_that.container", b.builtinContainer), nil
 	case "command_ran":
 		return starlark.NewBuiltin("assert_that.command_ran", b.builtinCommandRan), nil
+	case "request":
+		return starlark.NewBuiltin("assert_that.request", b.builtinRequest), nil
 	}
 	return nil, nil
 }
@@ -150,6 +153,24 @@ func (b *AssertionBuilder) builtinContainer(
 		return nil, err
 	}
 	return &ContainerAssertion{tgt: b.tgt, name: name, collector: b.collector}, nil
+}
+
+func (b *AssertionBuilder) builtinRequest(
+	_ *starlark.Thread,
+	_ *starlark.Builtin,
+	args starlark.Tuple,
+	kwargs []starlark.Tuple,
+) (starlark.Value, error) {
+	var method, path string
+	if err := starlark.UnpackPositionalArgs("request", args, kwargs, 2, &method, &path); err != nil {
+		return nil, err
+	}
+	mock, ok := b.tgt.(*MockREST)
+	if !ok {
+		// bare-error: assertion setup error, not engine-reachable
+		return nil, errs.Errorf("request assertions require a rest_mock target")
+	}
+	return &RequestAssertion{mock: mock, method: method, path: path, collector: b.collector}, nil
 }
 
 func (b *AssertionBuilder) builtinCommandRan(

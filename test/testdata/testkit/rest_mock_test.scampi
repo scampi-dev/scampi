@@ -1,0 +1,36 @@
+t = test.target.rest_mock(
+    name = "api",
+    routes = {
+        "GET /items": test.response(status=200, body='[{"id":1,"name":"existing"}]'),
+        "POST /items": test.response(status=201, body='{"id":2}'),
+        "DELETE /items/1": test.response(status=204),
+    },
+)
+
+deploy(
+    name = "rest_test",
+    targets = ["api"],
+    steps = [
+        rest.request(
+            desc = "create item",
+            method = "POST",
+            path = "/items",
+            body = rest.body.json({"name": "new-item"}),
+            check = rest.status(code=201),
+        ),
+        rest.request(
+            desc = "delete item",
+            method = "DELETE",
+            path = "/items/1",
+            check = rest.status(code=204),
+        ),
+    ],
+)
+
+a = test.assert.that(t)
+
+a.request("POST", "/items").was_called()
+a.request("POST", "/items").was_called_times(1)
+a.request("POST", "/items").body_contains('"name"')
+a.request("DELETE", "/items/1").was_called()
+a.request("GET", "/nonexistent").was_not_called()
