@@ -110,6 +110,7 @@ func (s *Server) Initialize(
 			},
 			HoverProvider:      &protocol.HoverOptions{},
 			DefinitionProvider: &protocol.DefinitionOptions{},
+			ReferencesProvider: &protocol.ReferenceOptions{},
 		},
 		ServerInfo: &protocol.ServerInfo{
 			Name:    "scampls",
@@ -284,9 +285,6 @@ func (s *Server) RangeFormatting(
 	context.Context,
 	*protocol.DocumentRangeFormattingParams,
 ) ([]protocol.TextEdit, error) {
-	return nil, nil
-}
-func (s *Server) References(context.Context, *protocol.ReferenceParams) ([]protocol.Location, error) {
 	return nil, nil
 }
 func (s *Server) Rename(context.Context, *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {

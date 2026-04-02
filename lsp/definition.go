@@ -230,6 +230,30 @@ func posToLSPRange(pos syntax.Position) protocol.Range {
 	}
 }
 
+// dedup returns a slice with duplicates removed, using keyFn to determine
+// identity. Order is preserved; first occurrence wins.
+func dedup[S ~[]E, E any, K comparable](s S, keyFn func(E) K) S {
+	seen := make(map[K]struct{}, len(s))
+	out := s[:0]
+	for _, v := range s {
+		k := keyFn(v)
+		if _, dup := seen[k]; !dup {
+			seen[k] = struct{}{}
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+type locKey struct {
+	uri        protocol.DocumentURI
+	line, char uint32
+}
+
+func locationKey(loc protocol.Location) locKey {
+	return locKey{loc.URI, loc.Range.Start.Line, loc.Range.Start.Character}
+}
+
 func fileLocation(path string) *protocol.Location {
 	if path == "" {
 		return nil
