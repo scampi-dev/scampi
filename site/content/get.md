@@ -37,7 +37,7 @@ linkTitle: Install
 ## One-liner
 
 ```bash
-curl -fsSL get.scampi.dev | sh
+curl get.scampi.dev | sh
 ```
 
 Downloads the latest release of **both `scampi` and `scampls`** (the LSP
@@ -47,19 +47,19 @@ server), verifies SHA256 checksums, and installs to `~/.local/bin` (or
 **Just the CLI** (e.g. CI runners):
 
 ```bash
-curl -fsSL get.scampi.dev/cli | sh
+curl get.scampi.dev/cli | sh
 ```
 
 **Just the LSP:**
 
 ```bash
-curl -fsSL get.scampi.dev/lsp | sh
+curl get.scampi.dev/lsp | sh
 ```
 
 **Custom path:**
 
 ```bash
-curl -fsSL get.scampi.dev | sh -s -- -o ~/.local/bin
+curl get.scampi.dev | sh -s -- -o ~/.local/bin
 ```
 
 Supported platforms: Linux, macOS, and FreeBSD (amd64/arm64).

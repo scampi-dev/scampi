@@ -25,7 +25,7 @@ If you installed scampi via `get.scampi.dev`, scampls is already on your
 PATH. To install just the LSP:
 
 ```bash
-curl -fsSL get.scampi.dev/lsp | sh
+curl get.scampi.dev/lsp | sh
 ```
 
 Or via Go:

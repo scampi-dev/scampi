@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Install scampi — https://scampi.dev
 #
-#   curl -fsSL get.scampi.dev | sh           # both scampi + scampls
-#   curl -fsSL get.scampi.dev/cli | sh       # CLI only
-#   curl -fsSL get.scampi.dev/lsp | sh       # LSP only
+#   curl get.scampi.dev | sh           # both scampi + scampls
+#   curl get.scampi.dev/cli | sh       # CLI only
+#   curl get.scampi.dev/lsp | sh       # LSP only
 #
 # Override install location:
-#   curl -fsSL get.scampi.dev | sh -s -- -d ~/.local/bin
+#   curl get.scampi.dev | sh -s -- -d ~/.local/bin
 #
 set -eu
 
