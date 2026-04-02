@@ -22,8 +22,7 @@ jobs:
 
       - name: Build release binaries
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          just cross release "scampi-${TAG}"
+          just cross release
           (cd release && sha256sum * | tee SHA256SUMS)
           ls -lh release/
 
