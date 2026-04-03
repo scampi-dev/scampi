@@ -30,7 +30,7 @@ func (s *Server) Hover(
 
 	// Known function name always wins — handles nested calls like
 	// deploy(steps=[copy(...)]) where copy is inside deploy's parens.
-	if md := s.hoverFunc(cur.WordUnderCursor); md != "" {
+	if md := s.hoverFunc(params.TextDocument.URI, cur.WordUnderCursor); md != "" {
 		s.log.Printf("hover: returning func doc (%d bytes), kind=%q\n---\n%s\n---", len(md), protocol.Markdown, md)
 		return &protocol.Hover{
 			Contents: protocol.MarkupContent{
@@ -42,7 +42,7 @@ func (s *Server) Hover(
 
 	// Kwarg name inside a call?
 	if cur.InCall {
-		if md := s.hoverKwarg(cur); md != "" {
+		if md := s.hoverKwarg(params.TextDocument.URI, cur); md != "" {
 			s.log.Printf("hover: returning kwarg doc (%d bytes), kind=%q", len(md), protocol.Markdown)
 			return &protocol.Hover{
 				Contents: protocol.MarkupContent{
@@ -56,16 +56,16 @@ func (s *Server) Hover(
 	return nil, nil
 }
 
-func (s *Server) hoverFunc(word string) string {
-	f, ok := s.catalog.Lookup(word)
+func (s *Server) hoverFunc(docURI protocol.DocumentURI, word string) string {
+	f, ok := s.lookupFunc(docURI, word)
 	if !ok {
 		return ""
 	}
 	return formatFuncDoc(f)
 }
 
-func (s *Server) hoverKwarg(cur CursorContext) string {
-	f, ok := s.catalog.Lookup(cur.FuncName)
+func (s *Server) hoverKwarg(docURI protocol.DocumentURI, cur CursorContext) string {
+	f, ok := s.lookupFunc(docURI, cur.FuncName)
 	if !ok {
 		return ""
 	}

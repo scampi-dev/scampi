@@ -93,6 +93,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
+			pattern:        "lsp/userfunc.go",
+			allowedImports: "os",
+		},
+		{
 			pattern:        "osutil/configdir.go",
 			allowedImports: "os",
 		},
@@ -544,6 +548,7 @@ func isExcludedCall(name string) bool {
 	}
 	return strings.HasSuffix(name, ".UnpackArgs") ||
 		name == "UnpackArgs" ||
+		name == "unpackArgs" ||
 		name == "append"
 }
 

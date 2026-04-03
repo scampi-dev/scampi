@@ -31,7 +31,7 @@ func (s *Server) SignatureHelp(
 		return nil, nil
 	}
 
-	f, ok := s.catalog.Lookup(cur.FuncName)
+	f, ok := s.lookupFunc(params.TextDocument.URI, cur.FuncName)
 	if !ok {
 		s.log.Printf("signatureHelp: unknown func %q", cur.FuncName)
 		return nil, nil

@@ -41,13 +41,13 @@ func (s *Server) Completion(
 	case cur.InCall && cur.FuncName == "secret" && cur.InString:
 		items = s.completeSecretKeys(params.TextDocument.URI, cur)
 	case cur.InCall && cur.ActiveKwarg != "" && cur.InString:
-		items = s.completeEnumValues(cur)
+		items = s.completeEnumValues(params.TextDocument.URI, cur)
 	case cur.InCall && cur.ActiveKwarg != "":
-		items = s.completeKwargValue(cur)
+		items = s.completeKwargValue(params.TextDocument.URI, cur)
 	case cur.InList:
 		items = s.completeTopLevel(cur.WordUnderCursor)
 	case cur.InCall:
-		items = s.completeKwargs(cur)
+		items = s.completeKwargs(params.TextDocument.URI, cur)
 	case isDotPrefix(cur.WordUnderCursor):
 		items = s.completeModule(cur.WordUnderCursor)
 	default:
@@ -133,8 +133,8 @@ func (s *Server) completeModule(word string) []protocol.CompletionItem {
 }
 
 // completeKwargs offers keyword arguments for the function being called.
-func (s *Server) completeKwargs(cur CursorContext) []protocol.CompletionItem {
-	f, ok := s.catalog.Lookup(cur.FuncName)
+func (s *Server) completeKwargs(docURI protocol.DocumentURI, cur CursorContext) []protocol.CompletionItem {
+	f, ok := s.lookupFunc(docURI, cur.FuncName)
 	if !ok {
 		return nil
 	}
@@ -191,8 +191,8 @@ var typeCompletions = map[string][]protocol.CompletionItem{
 }
 
 // completeKwargValue offers type-appropriate values for a kwarg being typed.
-func (s *Server) completeKwargValue(cur CursorContext) []protocol.CompletionItem {
-	f, ok := s.catalog.Lookup(cur.FuncName)
+func (s *Server) completeKwargValue(docURI protocol.DocumentURI, cur CursorContext) []protocol.CompletionItem {
+	f, ok := s.lookupFunc(docURI, cur.FuncName)
 	if !ok {
 		return nil
 	}
@@ -216,8 +216,8 @@ func (s *Server) completeKwargValue(cur CursorContext) []protocol.CompletionItem
 }
 
 // completeEnumValues offers valid enum values for a kwarg being typed.
-func (s *Server) completeEnumValues(cur CursorContext) []protocol.CompletionItem {
-	f, ok := s.catalog.Lookup(cur.FuncName)
+func (s *Server) completeEnumValues(docURI protocol.DocumentURI, cur CursorContext) []protocol.CompletionItem {
+	f, ok := s.lookupFunc(docURI, cur.FuncName)
 	if !ok {
 		return nil
 	}

@@ -9,6 +9,7 @@ import (
 
 	"go.starlark.net/starlark"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
 	stepcopy "scampi.dev/scampi/step/copy"
 	"scampi.dev/scampi/step/dir"
@@ -822,7 +823,8 @@ func unpackArgs(fnName string, args starlark.Tuple, kwargs []starlark.Tuple, pai
 		shown = shown[:3]
 		suffix = ", ..."
 	}
-	return fmt.Errorf("%s: missing argument for %s%s", fnName, strings.Join(shown, ", "), suffix)
+	// bare-error: returned to Starlark eval, which wraps it in StarlarkError with source span
+	return errs.Errorf("%s: missing argument for %s%s", fnName, strings.Join(shown, ", "), suffix)
 }
 
 func unpackSourceRef(val starlark.Value, fn string) (spec.SourceRef, error) {
