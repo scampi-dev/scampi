@@ -4,10 +4,13 @@ package lsp
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"go.lsp.dev/protocol"
+	"go.lsp.dev/uri"
 )
 
 func TestHoverOnFuncName(t *testing.T) {
@@ -97,5 +100,43 @@ func TestHoverOnDottedFunc(t *testing.T) {
 	}
 	if !strings.Contains(result.Contents.Value, "target.ssh") {
 		t.Errorf("hover should mention 'target.ssh', got %q", result.Contents.Value)
+	}
+}
+
+func TestHoverUserDefinedFunc(t *testing.T) {
+	dir := t.TempDir()
+
+	libContent := "def proxy_host(domain, forward_host, forward_port=443):\n    pass\n"
+	if err := os.WriteFile(filepath.Join(dir, "lib.scampi"), []byte(libContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := testServer()
+	mainPath := filepath.Join(dir, "main.scampi")
+	docURI := protocol.DocumentURI(uri.File(mainPath))
+	text := "load(\"lib.scampi\", \"proxy_host\")\nproxy_host(domain=\"test\")\n"
+	s.docs.Open(docURI, text, 1)
+
+	// Hover on "proxy_host" at line 1
+	result, err := s.Hover(context.Background(), &protocol.HoverParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: 1, Character: 5},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil {
+		t.Fatal("expected hover for user-defined function")
+	}
+	if !strings.Contains(result.Contents.Value, "proxy_host") {
+		t.Errorf("hover should mention 'proxy_host', got %q", result.Contents.Value)
+	}
+	if !strings.Contains(result.Contents.Value, "domain") {
+		t.Error("hover should include param 'domain'")
+	}
+	if !strings.Contains(result.Contents.Value, "forward_port") {
+		t.Error("hover should include param 'forward_port'")
 	}
 }
