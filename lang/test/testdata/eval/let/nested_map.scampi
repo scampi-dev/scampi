@@ -1,0 +1,7 @@
+let m = {
+  "name": "test",
+  "nested": {
+    "key": "value",
+    "num": 42,
+  },
+}

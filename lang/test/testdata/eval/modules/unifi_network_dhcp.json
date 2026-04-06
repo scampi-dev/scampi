@@ -1,0 +1,25 @@
+{
+  "lets": {
+    "with_dhcp": {
+      "name": "Servers",
+      "vlanId": 2,
+      "ipv4": {
+        "hostIpAddress": "192.0.2.1",
+        "dhcp": {
+          "mode": "SERVER",
+          "start": "192.0.2.100",
+          "end": "192.0.2.254",
+          "dns": ["1.1.1.1", "8.8.8.8"],
+          "domain": "servers.local"
+        }
+      }
+    },
+    "without_dhcp": {
+      "name": "Guest",
+      "vlanId": 10,
+      "ipv4": {
+        "hostIpAddress": "192.0.2.1"
+      }
+    }
+  }
+}

@@ -120,14 +120,21 @@ func (ev *Evaluator) evalDecl(d ast.Decl) {
 		ev.collectTopLevel(v)
 	case *ast.FuncDecl:
 		var params []string
+		var defaults []any
 		for _, p := range d.Params {
 			params = append(params, p.Name.Name)
+			if p.Default != nil {
+				defaults = append(defaults, p.Default)
+			} else {
+				defaults = append(defaults, nil)
+			}
 		}
 		ev.env.set(d.Name.Name, &FuncVal{
-			Name:   d.Name.Name,
-			Params: params,
-			body:   d.Body,
-			scope:  ev.env,
+			Name:     d.Name.Name,
+			Params:   params,
+			Defaults: defaults,
+			body:     d.Body,
+			scope:    ev.env,
 		})
 	case *ast.StepDecl:
 		if d.Body != nil {
@@ -416,6 +423,12 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 			child.set(name, v)
 		} else if i < len(positional) {
 			child.set(name, positional[i])
+		} else if i < len(fv.Defaults) && fv.Defaults[i] != nil {
+			if defExpr, ok := fv.Defaults[i].(ast.Expr); ok {
+				child.set(name, ev.evalExpr(defExpr))
+			} else {
+				child.set(name, &NoneVal{})
+			}
 		} else {
 			child.set(name, &NoneVal{})
 		}

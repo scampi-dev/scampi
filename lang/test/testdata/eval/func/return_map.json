@@ -1,0 +1,11 @@
+{
+  "lets": {
+    "result": {
+      "name": "test",
+      "value": 42,
+      "nested": {
+        "inner": true
+      }
+    }
+  }
+}

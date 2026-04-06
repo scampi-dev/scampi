@@ -331,11 +331,23 @@ func (c *Checker) checkListLit(lit *ast.ListLit) Type {
 }
 
 func (c *Checker) checkMapLit(lit *ast.MapLit) Type {
+	var valType Type
 	for _, e := range lit.Entries {
 		c.typeOf(e.Key)
-		c.typeOf(e.Value)
+		vt := c.typeOf(e.Value)
+		if vt == nil {
+			continue
+		}
+		if valType == nil {
+			valType = vt
+		} else if valType != vt {
+			valType = AnyType
+		}
 	}
-	return &Map{Key: StringType, Value: AnyType}
+	if valType == nil {
+		valType = AnyType
+	}
+	return &Map{Key: StringType, Value: valType}
 }
 
 // Index expression
@@ -346,6 +358,10 @@ func (c *Checker) checkIndex(idx *ast.IndexExpr) Type {
 	idxType := c.typeOf(idx.Index)
 	if xType == nil {
 		return nil
+	}
+	// Unwrap optional: T?[k] → T[k] (user is expected to nil-check first).
+	if opt, ok := xType.(*Optional); ok {
+		xType = opt.Inner
 	}
 	switch t := xType.(type) {
 	case *List:

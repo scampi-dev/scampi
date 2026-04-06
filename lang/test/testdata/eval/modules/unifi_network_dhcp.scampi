@@ -1,0 +1,53 @@
+# Exercises: conditional map mutation inside func body, nested if,
+# optional params with none-checks.
+
+import "std"
+
+func network(
+  name:    string,
+  vlan_id: int,
+  gateway: string,
+  dhcp:    map[string, string]? = none,
+  dns:     list[string]? = none,
+  domain:  string? = none,
+) map[string, any] {
+  let ipv4 = {
+    "hostIpAddress": gateway,
+  }
+
+  if dhcp != none {
+    let dhcp_cfg = {
+      "mode": "SERVER",
+      "start": dhcp["start"],
+      "end": dhcp["end"],
+    }
+    if dns != none {
+      dhcp_cfg["dns"] = dns
+    }
+    if domain != none {
+      dhcp_cfg["domain"] = domain
+    }
+    ipv4["dhcp"] = dhcp_cfg
+  }
+
+  return {
+    "name": name,
+    "vlanId": vlan_id,
+    "ipv4": ipv4,
+  }
+}
+
+let with_dhcp = network(
+  name = "Servers",
+  vlan_id = 2,
+  gateway = "192.0.2.1",
+  dhcp = {"start": "192.0.2.100", "end": "192.0.2.254"},
+  dns = ["1.1.1.1", "8.8.8.8"],
+  domain = "servers.local",
+)
+
+let without_dhcp = network(
+  name = "Guest",
+  vlan_id = 10,
+  gateway = "192.0.2.1",
+)

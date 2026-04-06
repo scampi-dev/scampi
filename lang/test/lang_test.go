@@ -138,16 +138,12 @@ func TestErrors(t *testing.T) {
 // Eval tests — full pipeline → runtime values
 // -----------------------------------------------------------------------------
 
-// jsonValue is what json.Unmarshal produces for untyped values:
-// string, float64, bool, nil, []any, or map[string]any.
-type jsonValue = any
-
 type evalExpected struct {
-	Lets    map[string]jsonValue `json:"lets,omitempty"`
-	Targets []expectTarget       `json:"targets,omitempty"`
-	Deploys []expectDeploy       `json:"deploys,omitempty"`
-	Secrets *expectSecrets       `json:"secrets,omitempty"`
-	Errors  []string             `json:"errors,omitempty"`
+	Lets    map[string]json.RawMessage `json:"lets,omitempty"`
+	Targets []expectTarget             `json:"targets,omitempty"`
+	Deploys []expectDeploy             `json:"deploys,omitempty"`
+	Secrets *expectSecrets             `json:"secrets,omitempty"`
+	Errors  []string                   `json:"errors,omitempty"`
 }
 
 type expectTarget struct {
@@ -220,16 +216,20 @@ func TestEval(t *testing.T) {
 // Eval value assertions
 // -----------------------------------------------------------------------------
 
-func assertLets(t *testing.T, r *eval.Result, want map[string]jsonValue) {
+func assertLets(t *testing.T, r *eval.Result, want map[string]json.RawMessage) {
 	t.Helper()
 	if want == nil {
 		return
 	}
-	for name, wantVal := range want {
+	for name, raw := range want {
 		got, ok := r.Bindings[name]
 		if !ok {
 			t.Errorf("let %q: not found in eval result", name)
 			continue
+		}
+		var wantVal any
+		if err := json.Unmarshal(raw, &wantVal); err != nil {
+			t.Fatalf("let %q: bad expected JSON: %v", name, err)
 		}
 		if !valueMatchesJSON(got, wantVal) {
 			t.Errorf("let %q: got %v, want %v", name, got, wantVal)

@@ -144,12 +144,11 @@ func (*SecretsVal) String() string { return "SecretsConfig" }
 
 // FuncVal is a callable function (carries its AST + closure scope).
 type FuncVal struct {
-	Name   string
-	Params []string
-	// Body and scope are stored as opaque pointers back into the
-	// evaluator — the func is called via Eval.callFunc().
-	body  any // *ast.Block
-	scope any // *envScope
+	Name     string
+	Params   []string
+	Defaults []any // parallel to Params: *ast.Expr or nil per param
+	body     any   // *ast.Block
+	scope    any   // *envScope
 }
 
 func (*FuncVal) valueTag()        {}

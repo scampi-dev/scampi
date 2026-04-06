@@ -1,0 +1,10 @@
+func build(name: string, flag: bool) map[string, any] {
+  let state = {
+    "name": name,
+    "enabled": flag,
+    "nested": {"x": 1},
+  }
+  return state
+}
+
+let result = build(name = "test", flag = true)

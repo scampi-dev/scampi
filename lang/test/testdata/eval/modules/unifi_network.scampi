@@ -1,0 +1,35 @@
+# Translated from .modules/unifi/network.scampi
+# Exercises: func with many kwargs, mutable nested maps, conditional
+# key insertion, string splitting, int parsing.
+
+import "std"
+
+func network(
+  name:      string,
+  vlan_id:   int,
+  gateway:   string,
+  enabled:   bool = true,
+  isolation: bool = false,
+  internet:  bool = true,
+) map[string, any] {
+  let state = {
+    "management": "GATEWAY",
+    "name": name,
+    "enabled": enabled,
+    "vlanId": vlan_id,
+    "isolationEnabled": isolation,
+    "internetAccessEnabled": internet,
+    "ipv4Configuration": {
+      "autoScaleEnabled": false,
+      "hostIpAddress": gateway,
+    },
+  }
+  return state
+}
+
+let result = network(
+  name = "Servers",
+  vlan_id = 2,
+  gateway = "192.0.2.1",
+  isolation = true,
+)

@@ -1,0 +1,9 @@
+{
+  "lets": {
+    "result": {
+      "name": "test",
+      "enabled": true,
+      "nested": {"x": 1}
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "lets": {
+    "result": {
+      "management": "GATEWAY",
+      "name": "Servers",
+      "enabled": true,
+      "vlanId": 2,
+      "isolationEnabled": true,
+      "internetAccessEnabled": true,
+      "ipv4Configuration": {
+        "autoScaleEnabled": false,
+        "hostIpAddress": "192.0.2.1"
+      }
+    }
+  }
+}

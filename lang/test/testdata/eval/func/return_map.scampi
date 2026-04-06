@@ -1,0 +1,5 @@
+func build(name: string, value: int) map[string, any] {
+  return {"name": name, "value": value, "nested": {"inner": true}}
+}
+
+let result = build(name = "test", value = 42)
