@@ -1,0 +1,46 @@
+# Translated from .infra/site.scampi (inlined)
+
+import "std"
+import "std/target"
+
+std.secrets { backend = "age", path = "secrets.age.json" }
+
+let vps = target.ssh {
+  name = "vps"
+  host = "203.0.113.10"
+  user = "hal9000"
+}
+
+std.deploy {
+  name = "site"
+  targets = [vps]
+
+  let reload_caddy = std.service {
+    name = "caddy"
+    state = std.SvcState.reloaded
+  }
+
+  std.pkg { packages = ["caddy"], source = std.system {} }
+
+  std.dir { path = "/var/www/scampi.dev", perm = "0755" }
+  std.dir { path = "/etc/caddy", perm = "0755", owner = "root", group = "root" }
+
+  std.copy {
+    src = std.local { path = "./files/Caddyfile" }
+    dest = "/etc/caddy/Caddyfile"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    verify = "caddy validate --config %s"
+    on_change = [reload_caddy]
+  }
+
+  std.unarchive {
+    src = std.local { path = "./files/site.tar.gz" }
+    dest = "/var/www/scampi.dev"
+    owner = "hal9000"
+    group = "hal9000"
+  }
+
+  std.service { name = "caddy", state = std.SvcState.running, enabled = true }
+}

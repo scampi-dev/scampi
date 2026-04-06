@@ -1,0 +1,12 @@
+{
+  "secrets": {
+    "backend": "age",
+    "path": "secrets.age.json"
+  },
+  "targets": [
+    {"name": "vps-root", "kind": "ssh"}
+  ],
+  "deploys": [
+    {"name": "bootstrap", "steps": 6}
+  ]
+}

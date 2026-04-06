@@ -1,0 +1,132 @@
+# Translated from .infra/runner.scampi (inlined)
+
+import "std"
+import "std/target"
+
+std.secrets { backend = "age", path = "secrets.age.json" }
+
+let vps = target.ssh {
+  name = "vps"
+  host = "203.0.113.10"
+  user = "hal9000"
+}
+
+let runner_version = "12.7.2"
+let runner_url = "https://code.forgejo.org/forgejo/runner/releases/download/v${runner_version}/forgejo-runner-${runner_version}-linux-amd64"
+
+let go_version = "1.26.1"
+let go_url = "https://go.dev/dl/go${go_version}.linux-amd64.tar.gz"
+
+let just_version = "1.46.0"
+let just_url = "https://github.com/casey/just/releases/download/${just_version}/just-${just_version}-x86_64-unknown-linux-musl.tar.gz"
+
+std.deploy {
+  name = "runner"
+  targets = [vps]
+
+  let restart_runner = std.service {
+    name = "forgejo-runner"
+    state = std.SvcState.restarted
+  }
+  let restart_docker = std.service {
+    name = "docker"
+    state = std.SvcState.restarted
+  }
+
+  std.pkg {
+    packages = ["git", "shellcheck", "curl", "nodejs", "npm", "gcc", "libc6-dev", "jq"]
+    source = std.system {}
+  }
+
+  # Go
+  std.unarchive {
+    src = std.remote { url = go_url }
+    dest = "/usr/local"
+  }
+  std.copy {
+    src = std.inline { content = "export PATH=\"/usr/local/go/bin:$PATH\"\n" }
+    dest = "/etc/profile.d/go.sh"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+  }
+  std.symlink { target = "/usr/local/go/bin/go", link = "/usr/local/bin/go" }
+
+  # just
+  std.unarchive {
+    src = std.remote { url = just_url }
+    dest = "/usr/local/bin"
+  }
+
+  # Docker
+  std.pkg {
+    packages = [
+      "docker-ce", "docker-ce-cli", "containerd.io",
+      "docker-buildx-plugin", "docker-compose-plugin",
+    ]
+    source = std.apt_repo {
+      url = "https://download.docker.com/linux/debian"
+      key_url = "https://download.docker.com/linux/debian/gpg"
+      components = ["stable"]
+    }
+  }
+  std.copy {
+    src = std.inline { content = "{\"features\":{\"buildkit\":true}}\n" }
+    dest = "/etc/docker/daemon.json"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    on_change = [restart_docker]
+  }
+  std.service { name = "docker", state = std.SvcState.running, enabled = true }
+
+  # Runner user
+  std.user {
+    name = "forgejo-runner"
+    shell = "/bin/bash"
+    home = "/home/forgejo-runner"
+    system = true
+    groups = ["docker"]
+  }
+
+  # Runner binary
+  std.copy {
+    src = std.remote { url = runner_url }
+    dest = "/usr/local/bin/forgejo-runner"
+    perm = "0755"
+    owner = "root"
+    group = "root"
+  }
+
+  std.dir {
+    path = "/var/lib/forgejo-runner"
+    perm = "0755"
+    owner = "forgejo-runner"
+    group = "forgejo-runner"
+  }
+
+  std.copy {
+    src = std.local { path = "./files/forgejo-runner-config.yml" }
+    dest = "/var/lib/forgejo-runner/config.yml"
+    perm = "0640"
+    owner = "forgejo-runner"
+    group = "forgejo-runner"
+    on_change = [restart_runner]
+  }
+
+  std.copy {
+    src = std.local { path = "./files/forgejo-runner.service" }
+    dest = "/etc/systemd/system/forgejo-runner.service"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    on_change = [restart_runner]
+  }
+
+  std.run {
+    check = "systemctl is-enabled tmp.mount 2>/dev/null | grep -q masked"
+    apply = "sudo systemctl mask tmp.mount"
+  }
+
+  std.service { name = "forgejo-runner", state = std.SvcState.running, enabled = true }
+}

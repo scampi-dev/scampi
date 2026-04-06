@@ -1,0 +1,20 @@
+{
+  "secrets": {
+    "backend": "age",
+    "path": "secrets.age.json"
+  },
+  "targets": [
+    {"name": "vps", "kind": "ssh"}
+  ],
+  "deploys": [
+    {"name": "runner", "steps": 15}
+  ],
+  "lets": {
+    "runner_version": "12.7.2",
+    "runner_url": "https://code.forgejo.org/forgejo/runner/releases/download/v12.7.2/forgejo-runner-12.7.2-linux-amd64",
+    "go_version": "1.26.1",
+    "go_url": "https://go.dev/dl/go1.26.1.linux-amd64.tar.gz",
+    "just_version": "1.46.0",
+    "just_url": "https://github.com/casey/just/releases/download/1.46.0/just-1.46.0-x86_64-unknown-linux-musl.tar.gz"
+  }
+}

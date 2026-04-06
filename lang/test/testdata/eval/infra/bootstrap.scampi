@@ -1,0 +1,65 @@
+# Translated from .infra/bootstrap.scampi (inlined)
+
+import "std"
+import "std/target"
+
+std.secrets { backend = "age", path = "secrets.age.json" }
+
+let vps_root = target.ssh {
+  name = "vps-root"
+  host = "203.0.113.10"
+  user = "root"
+}
+
+std.deploy {
+  name = "bootstrap"
+  targets = [vps_root]
+
+  let restart_sshd = std.service {
+    name = "sshd"
+    state = std.SvcState.restarted
+  }
+
+  std.user {
+    name = "hal9000"
+    shell = "/bin/bash"
+    home = "/home/hal9000"
+    groups = ["sudo"]
+  }
+
+  std.pkg { packages = ["sudo"], source = std.system {} }
+
+  std.copy {
+    src = std.inline { content = "hal9000 ALL=(ALL) NOPASSWD:ALL\n" }
+    dest = "/etc/sudoers.d/hal9000"
+    perm = "0440"
+    owner = "root"
+    group = "root"
+    verify = "visudo -cf %s"
+  }
+
+  std.dir {
+    path = "/home/hal9000/.ssh"
+    perm = "0700"
+    owner = "hal9000"
+    group = "hal9000"
+  }
+
+  std.copy {
+    src = std.local { path = "./files/hal9000_authorized_keys" }
+    dest = "/home/hal9000/.ssh/authorized_keys"
+    perm = "0600"
+    owner = "hal9000"
+    group = "hal9000"
+  }
+
+  std.copy {
+    src = std.local { path = "./files/sshd_hardened.conf" }
+    dest = "/etc/ssh/sshd_config.d/hardened.conf"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    verify = "sshd -t -f %s"
+    on_change = [restart_sshd]
+  }
+}
