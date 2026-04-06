@@ -1221,7 +1221,6 @@ require (
 Intra-project imports use the full canonical path (no `./` shortcut,
 matching Go).
 
-
 ### 8.1 targets.scampi — shared target definitions
 
 ```

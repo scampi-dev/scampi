@@ -214,7 +214,8 @@ func TestWorkspaceSymbolsExcludesNonScampiFiles(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "test.scampi"), []byte("def found():\n    pass\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "test.go"), []byte("package main\nfunc notfound() {}\n"), 0o644); err != nil {
+	goContent := "package main\nfunc notfound() {}\n"
+	if err := os.WriteFile(filepath.Join(dir, "test.go"), []byte(goContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

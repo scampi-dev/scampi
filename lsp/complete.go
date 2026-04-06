@@ -179,15 +179,33 @@ func (s *Server) completeKwargs(docURI protocol.DocumentURI, cur CursorContext) 
 
 var typeCompletions = map[string][]protocol.CompletionItem{
 	"source": {
-		{Label: "local", Kind: protocol.CompletionItemKindFunction, Detail: "Reference a local file", InsertText: "local("},
-		{Label: "inline", Kind: protocol.CompletionItemKindFunction, Detail: "Use an inline string", InsertText: "inline("},
-		{Label: "remote", Kind: protocol.CompletionItemKindFunction, Detail: "Download a remote file", InsertText: "remote("},
+		completionFunc("local", "Reference a local file"),
+		completionFunc("inline", "Use an inline string"),
+		completionFunc("remote", "Download a remote file"),
 	},
 	"pkg_source": {
-		{Label: "system", Kind: protocol.CompletionItemKindFunction, Detail: "Use the system package manager", InsertText: "system()"},
-		{Label: "apt_repo", Kind: protocol.CompletionItemKindFunction, Detail: "Add an APT repository", InsertText: "apt_repo("},
-		{Label: "dnf_repo", Kind: protocol.CompletionItemKindFunction, Detail: "Add a DNF repository", InsertText: "dnf_repo("},
+		completionCall("system", "Use the system package manager"),
+		completionFunc("apt_repo", "Add an APT repository"),
+		completionFunc("dnf_repo", "Add a DNF repository"),
 	},
+}
+
+func completionFunc(label, detail string) protocol.CompletionItem {
+	return protocol.CompletionItem{
+		Label:      label,
+		Kind:       protocol.CompletionItemKindFunction,
+		Detail:     detail,
+		InsertText: label + "(",
+	}
+}
+
+func completionCall(label, detail string) protocol.CompletionItem {
+	return protocol.CompletionItem{
+		Label:      label,
+		Kind:       protocol.CompletionItemKindFunction,
+		Detail:     detail,
+		InsertText: label + "()",
+	}
 }
 
 // completeKwargValue offers type-appropriate values for a kwarg being typed.
@@ -207,8 +225,8 @@ func (s *Server) completeKwargValue(docURI protocol.DocumentURI, cur CursorConte
 		// For string params, offer secret() and env() as common value producers.
 		if p.Type == "string" {
 			return []protocol.CompletionItem{
-				{Label: "secret", Kind: protocol.CompletionItemKindFunction, Detail: "Read a secret value", InsertText: "secret("},
-				{Label: "env", Kind: protocol.CompletionItemKindFunction, Detail: "Read an environment variable", InsertText: "env("},
+				completionFunc("secret", "Read a secret value"),
+				completionFunc("env", "Read an environment variable"),
 			}
 		}
 	}
