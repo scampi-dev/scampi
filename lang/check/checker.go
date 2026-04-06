@@ -16,9 +16,12 @@ type Checker struct {
 	// modules maps import leaf-names to their scopes.
 	modules map[string]*Scope
 
-	// selfFields is set when inside a step body to the step's params,
-	// so `self.field` can resolve.
+	// selfFields is set when inside a step body to the step's params.
 	selfFields []*FieldDef
+
+	// returnType is the expected return type of the enclosing func.
+	// nil when not inside a func body.
+	returnType Type
 }
 
 // Error is a type-checker error.
@@ -104,7 +107,13 @@ func (c *Checker) enter(n ast.Node) bool {
 
 	case *ast.ReturnStmt:
 		if n.Value != nil {
-			c.typeOf(n.Value)
+			vt := c.typeOf(n.Value)
+			if vt != nil && c.returnType != nil && !IsAssignableTo(vt, c.returnType) {
+				c.errAt(
+					n.SrcSpan,
+					"return type mismatch: got "+vt.String()+", want "+c.returnType.String(),
+				)
+			}
 		}
 		return false
 
@@ -280,15 +289,16 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 	}
 	if d.Body != nil {
 		c.pushScope(ScopeFunc)
-		// Register params in the func scope.
+		prevRet := c.returnType
+		c.returnType = ret
 		for _, p := range d.Params {
 			pt := c.resolveType(p.Type)
 			c.scope.Define(&Symbol{
 				Name: p.Name.Name, Type: pt, Kind: SymParam, Span: p.SrcSpan,
 			})
 		}
-		// Walk the body.
 		ast.Walk(d.Body, c.enter, c.leave)
+		c.returnType = prevRet
 		c.popScope()
 	}
 }
