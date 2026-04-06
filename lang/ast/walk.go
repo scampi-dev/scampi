@@ -128,7 +128,12 @@ func walkChildren(node Node, pre func(Node) bool, post func(Node)) {
 
 	case *CallExpr:
 		walkExpr(n.Fn, pre, post)
-		walkExprList(n.Args, pre, post)
+		for _, a := range n.Args {
+			if a.Name != nil {
+				Walk(a.Name, pre, post)
+			}
+			walkExpr(a.Value, pre, post)
+		}
 
 	case *SelectorExpr:
 		walkExpr(n.X, pre, post)

@@ -138,12 +138,16 @@ func TestErrors(t *testing.T) {
 // Eval tests — full pipeline → runtime values
 // -----------------------------------------------------------------------------
 
+// jsonValue is what json.Unmarshal produces for untyped values:
+// string, float64, bool, nil, []any, or map[string]any.
+type jsonValue = any
+
 type evalExpected struct {
-	Lets    map[string]json.RawMessage `json:"lets,omitempty"`
-	Targets []expectTarget             `json:"targets,omitempty"`
-	Deploys []expectDeploy             `json:"deploys,omitempty"`
-	Secrets *expectSecrets             `json:"secrets,omitempty"`
-	Errors  []string                   `json:"errors,omitempty"`
+	Lets    map[string]jsonValue `json:"lets,omitempty"`
+	Targets []expectTarget       `json:"targets,omitempty"`
+	Deploys []expectDeploy       `json:"deploys,omitempty"`
+	Secrets *expectSecrets       `json:"secrets,omitempty"`
+	Errors  []string             `json:"errors,omitempty"`
 }
 
 type expectTarget struct {
@@ -216,18 +220,20 @@ func TestEval(t *testing.T) {
 // Eval value assertions
 // -----------------------------------------------------------------------------
 
-func assertLets(t *testing.T, r *eval.Result, want map[string]json.RawMessage) {
+func assertLets(t *testing.T, r *eval.Result, want map[string]jsonValue) {
 	t.Helper()
 	if want == nil {
 		return
 	}
-	for name, rawWant := range want {
+	for name, wantVal := range want {
 		got, ok := r.Bindings[name]
 		if !ok {
 			t.Errorf("let %q: not found in eval result", name)
 			continue
 		}
-		assertValueEquals(t, name, got, rawWant)
+		if !valueMatchesJSON(got, wantVal) {
+			t.Errorf("let %q: got %v, want %v", name, got, wantVal)
+		}
 	}
 }
 
@@ -391,17 +397,6 @@ func declKindName(d ast.Decl) (string, string) {
 // Value comparison helpers
 // -----------------------------------------------------------------------------
 
-func assertValueEquals(t *testing.T, name string, got eval.Value, rawWant json.RawMessage) {
-	t.Helper()
-	var want any
-	if err := json.Unmarshal(rawWant, &want); err != nil {
-		t.Fatalf("let %q: bad expected value: %v", name, err)
-	}
-	if !valueMatchesJSON(got, want) {
-		t.Errorf("let %q: got %v, want %v", name, got, want)
-	}
-}
-
 func valueMatchesJSON(v eval.Value, j any) bool {
 	switch jv := j.(type) {
 	case float64:
@@ -426,6 +421,18 @@ func valueMatchesJSON(v eval.Value, j any) bool {
 		}
 		for i, item := range jv {
 			if !valueMatchesJSON(lv.Items[i], item) {
+				return false
+			}
+		}
+		return true
+	case map[string]any:
+		mv, ok := v.(*eval.MapVal)
+		if !ok || len(mv.Keys) != len(jv) {
+			return false
+		}
+		for wantKey, wantVal := range jv {
+			gotVal, found := mv.Get(wantKey)
+			if !found || !valueMatchesJSON(gotVal, wantVal) {
 				return false
 			}
 		}

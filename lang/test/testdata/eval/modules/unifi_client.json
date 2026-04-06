@@ -1,0 +1,12 @@
+{
+  "lets": {
+    "result": {
+      "name": "nas",
+      "mac": "aa:bb:cc:dd:ee:ff",
+      "fixed_ip": "192.0.2.10",
+      "use_fixedip": true,
+      "local_dns_record": "nas.local",
+      "local_dns_record_enabled": true
+    }
+  }
+}

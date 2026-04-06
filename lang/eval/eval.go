@@ -391,14 +391,20 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 		ev.errAt(call.SrcSpan, "cannot call non-function")
 		return &NoneVal{}
 	}
-	args := make([]Value, len(call.Args))
-	for i, a := range call.Args {
-		args[i] = ev.evalExpr(a)
+	argMap := make(map[string]Value, len(call.Args))
+	var positional []Value
+	for _, a := range call.Args {
+		v := ev.evalExpr(a.Value)
+		if a.Name != nil {
+			argMap[a.Name.Name] = v
+		} else {
+			positional = append(positional, v)
+		}
 	}
-	return ev.callFunc(fv, args)
+	return ev.callFunc(fv, positional, argMap)
 }
 
-func (ev *Evaluator) callFunc(fv *FuncVal, args []Value) Value {
+func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string]Value) Value {
 	body, ok := fv.body.(*ast.Block)
 	if !ok {
 		return &NoneVal{}
@@ -406,8 +412,12 @@ func (ev *Evaluator) callFunc(fv *FuncVal, args []Value) Value {
 	parent, _ := fv.scope.(*envScope)
 	child := newEnv(parent)
 	for i, name := range fv.Params {
-		if i < len(args) {
-			child.set(name, args[i])
+		if v, ok := kwargs[name]; ok {
+			child.set(name, v)
+		} else if i < len(positional) {
+			child.set(name, positional[i])
+		} else {
+			child.set(name, &NoneVal{})
 		}
 	}
 	prev := ev.env

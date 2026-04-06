@@ -200,19 +200,31 @@ func flattenSelector(s *ast.SelectorExpr) []*ast.Ident {
 	return nil
 }
 
-// parseCallArgs parses comma-separated call arguments up to RParen.
-func (p *Parser) parseCallArgs() []ast.Expr {
-	var args []ast.Expr
+// parseCallArgs parses positional and keyword arguments up to RParen.
+// Keyword: `name = expr`. Positional: bare `expr`.
+func (p *Parser) parseCallArgs() []*ast.CallArg {
+	var args []*ast.CallArg
 	for p.cur.Kind != token.RParen && p.cur.Kind != token.EOF {
 		if p.cur.Kind == token.Comma || p.cur.Kind == token.Semi {
 			p.advance()
 			continue
 		}
+		// Keyword arg: ident = expr
+		if p.cur.Kind == token.Ident && p.peek.Kind == token.Assign {
+			name := p.parseIdent("keyword argument")
+			p.advance() // '='
+			val := p.parseExpr()
+			if name != nil && val != nil {
+				args = append(args, &ast.CallArg{Name: name, Value: val})
+			}
+			continue
+		}
+		// Positional arg.
 		a := p.parseExpr()
 		if a == nil {
 			break
 		}
-		args = append(args, a)
+		args = append(args, &ast.CallArg{Value: a})
 	}
 	return args
 }

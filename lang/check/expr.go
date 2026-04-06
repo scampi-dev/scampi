@@ -197,7 +197,6 @@ func (c *Checker) checkCall(call *ast.CallExpr) Type {
 		c.errAt(call.SrcSpan, "cannot call "+fnType.String())
 		return nil
 	}
-	// Check argument count (allowing defaults).
 	minArgs := 0
 	for _, p := range ft.Params {
 		if !p.HasDef {
@@ -210,13 +209,25 @@ func (c *Checker) checkCall(call *ast.CallExpr) Type {
 	if len(call.Args) > len(ft.Params) {
 		c.errAt(call.SrcSpan, "too many arguments")
 	}
-	// Type-check each argument.
 	for i, arg := range call.Args {
-		argT := c.typeOf(arg)
-		if i < len(ft.Params) && argT != nil {
-			if !IsAssignableTo(argT, ft.Params[i].Type) {
-				c.errAt(arg.Span(), "argument type mismatch: got "+argT.String()+", want "+ft.Params[i].Type.String())
+		argT := c.typeOf(arg.Value)
+		if argT == nil {
+			continue
+		}
+		// For keyword args, find the param by name.
+		var paramT Type
+		if arg.Name != nil {
+			for _, p := range ft.Params {
+				if p.Name == arg.Name.Name {
+					paramT = p.Type
+					break
+				}
 			}
+		} else if i < len(ft.Params) {
+			paramT = ft.Params[i].Type
+		}
+		if paramT != nil && !IsAssignableTo(argT, paramT) {
+			c.errAt(arg.Value.Span(), "argument type mismatch: got "+argT.String()+", want "+paramT.String())
 		}
 	}
 	return ft.Ret

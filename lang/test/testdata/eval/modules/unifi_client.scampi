@@ -1,0 +1,40 @@
+# Translated from .modules/unifi/client.scampi
+# Exercises: func with mutable maps, conditional key insertion,
+# string concatenation, REST resource composition.
+
+import "std"
+
+func client(
+  site: string,
+  name: string,
+  mac: string,
+  fixed_ip: string,
+  network_id: string? = none,
+  dns_record: string? = none,
+) map[string, any] {
+  let state = {
+    "name": name,
+    "mac": mac,
+    "fixed_ip": fixed_ip,
+    "use_fixedip": true,
+  }
+
+  if network_id != none {
+    state["network_id"] = network_id
+  }
+
+  if dns_record != none {
+    state["local_dns_record"] = dns_record
+    state["local_dns_record_enabled"] = true
+  }
+
+  return state
+}
+
+let result = client(
+  site = "default",
+  name = "nas",
+  mac = "aa:bb:cc:dd:ee:ff",
+  fixed_ip = "192.0.2.10",
+  dns_record = "nas.local",
+)

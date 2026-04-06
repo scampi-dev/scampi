@@ -346,11 +346,18 @@ type FieldInit struct {
 	SrcSpan token.Span
 }
 
-// CallExpr is a function call `fn(arg, ...)`.
+// CallExpr is a function call `fn(arg, ...)` with positional or
+// keyword arguments.
 type CallExpr struct {
 	Fn      Expr
-	Args    []Expr
+	Args    []*CallArg
 	SrcSpan token.Span
+}
+
+// CallArg is a positional or keyword argument. Name is nil for positional.
+type CallArg struct {
+	Name  *Ident
+	Value Expr
 }
 
 func (e *CallExpr) Span() token.Span { return e.SrcSpan }
