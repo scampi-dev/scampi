@@ -1,0 +1,29 @@
+import "std"
+import "std/target"
+
+let vps = target.ssh { name = "vps", host = "10.0.0.1", user = "root" }
+
+struct Config {
+  enable_firewall: bool
+  enable_monitoring: bool
+}
+
+let cfg = Config { enable_firewall = true, enable_monitoring = false }
+
+std.deploy {
+  name = "conditional"
+  targets = [vps]
+
+  std.pkg { packages = ["nginx"], source = std.system {} }
+
+  if cfg.enable_firewall {
+    std.firewall { port = "80/tcp" }
+    std.firewall { port = "443/tcp" }
+  }
+
+  if cfg.enable_monitoring {
+    std.pkg { packages = ["prometheus-node-exporter"], source = std.system {} }
+  }
+
+  std.service { name = "nginx" }
+}

@@ -1,0 +1,8 @@
+{
+  "targets": [
+    {"name": "vps", "kind": "ssh"}
+  ],
+  "deploys": [
+    {"name": "conditional", "steps": 4}
+  ]
+}
