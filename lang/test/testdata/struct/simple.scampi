@@ -1,0 +1,6 @@
+struct User {
+  name: string
+  groups: list[string] = []
+  shell: string = "/bin/bash"
+  admin: bool = false
+}

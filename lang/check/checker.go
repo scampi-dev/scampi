@@ -15,6 +15,10 @@ type Checker struct {
 
 	// modules maps import leaf-names to their scopes.
 	modules map[string]*Scope
+
+	// selfFields is set when inside a step body to the step's params,
+	// so `self.field` can resolve.
+	selfFields []*FieldDef
 }
 
 // Error is a type-checker error.
@@ -85,29 +89,73 @@ func (c *Checker) enter(n ast.Node) bool {
 		c.checkLetDecl(n)
 		return false
 
-	case *ast.ForStmt:
-		c.pushScope(ScopeBlock)
-		return true // let Walk visit children
-
-	case *ast.IfStmt:
-		c.pushScope(ScopeBlock)
-		return true
-
 	case *ast.AssignStmt:
 		if !c.scope.AllowsMutation() {
 			c.errAt(n.SrcSpan, "mutation not allowed outside func bodies")
 		}
-		return true
+		c.typeOf(n.Target)
+		c.typeOf(n.Value)
+		return false
+
+	case *ast.ExprStmt:
+		c.typeOf(n.Expr)
+		return false
+
+	case *ast.ReturnStmt:
+		if n.Value != nil {
+			c.typeOf(n.Value)
+		}
+		return false
+
+	case *ast.LetStmt:
+		c.checkLetDecl(n.Decl)
+		return false
+
+	case *ast.ForStmt:
+		c.pushScope(ScopeBlock)
+		iterT := c.typeOf(n.Iter)
+		if n.Var != nil && iterT != nil {
+			var elemT Type
+			if lt, ok := iterT.(*List); ok {
+				elemT = lt.Elem
+			}
+			if elemT != nil {
+				c.scope.Define(&Symbol{
+					Name: n.Var.Name,
+					Type: elemT,
+					Kind: SymLet,
+					Span: n.Var.SrcSpan,
+				})
+			}
+		}
+		if n.Body != nil {
+			ast.Walk(n.Body, c.enter, c.leave)
+		}
+		c.popScope()
+		return false
+
+	case *ast.IfStmt:
+		c.typeOf(n.Cond)
+		c.pushScope(ScopeBlock)
+		if n.Then != nil {
+			ast.Walk(n.Then, c.enter, c.leave)
+		}
+		c.popScope()
+		if n.Else != nil {
+			c.pushScope(ScopeBlock)
+			ast.Walk(n.Else, c.enter, c.leave)
+			c.popScope()
+		}
+		return false
 	}
 	return true
 }
 
-// leave is the post-visit callback for ast.Walk.
+// leave is the post-visit callback for ast.Walk. Scope management for
+// ForStmt/IfStmt is handled inline in enter (they return false and
+// walk their children manually).
 func (c *Checker) leave(n ast.Node) {
-	switch n.(type) {
-	case *ast.ForStmt, *ast.IfStmt:
-		c.popScope()
-	}
+	_ = n
 }
 
 func (c *Checker) pushScope(kind ScopeKind) {
@@ -262,20 +310,43 @@ func (c *Checker) checkStepDecl(d *ast.StepDecl) {
 	}
 	if d.Body != nil {
 		c.pushScope(ScopeStep)
+		prevSelf := c.selfFields
+		var stepParams []*FieldDef
 		for _, p := range d.Params {
 			pt := c.resolveType(p.Type)
+			fd := &FieldDef{Name: p.Name.Name, Type: pt, HasDef: p.Default != nil}
+			stepParams = append(stepParams, fd)
 			c.scope.Define(&Symbol{
 				Name: p.Name.Name, Type: pt, Kind: SymParam, Span: p.SrcSpan,
 			})
 		}
+		c.selfFields = stepParams
 		ast.Walk(d.Body, c.enter, c.leave)
+		c.selfFields = prevSelf
 		c.popScope()
 	}
 }
 
 func (c *Checker) checkLetDecl(d *ast.LetDecl) {
-	// TODO: infer type from value expression once expr checking lands.
-	_ = d
+	var declared Type
+	if d.Type != nil {
+		declared = c.resolveType(d.Type)
+	}
+	inferred := c.typeOf(d.Value)
+	if declared != nil && inferred != nil {
+		if !IsAssignableTo(inferred, declared) {
+			c.errAt(d.SrcSpan, "let type mismatch: got "+inferred.String()+", want "+declared.String())
+		}
+	}
+	// Update the pre-registered symbol with the resolved type.
+	sym := c.scope.Lookup(d.Name.Name)
+	if sym != nil {
+		if declared != nil {
+			sym.Type = declared
+		} else {
+			sym.Type = inferred
+		}
+	}
 }
 
 // Type resolution
@@ -313,8 +384,14 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 		c.errAt(t.SrcSpan, "unknown type: "+name)
 		return nil
 	}
-	c.errAt(t.SrcSpan, "qualified type names not yet supported")
-	return nil
+	// Dotted name: resolve first part as module import, walk into it.
+	first := t.Name.Parts[0].Name
+	sym := c.scope.Lookup(first)
+	if sym == nil || sym.Kind != SymImport {
+		c.errAt(t.SrcSpan, "unknown type: "+first)
+		return nil
+	}
+	return c.resolveModuleMember(first, t.Name.Parts[1:], t.SrcSpan)
 }
 
 func builtinByName(name string) Type {

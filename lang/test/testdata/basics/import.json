@@ -1,0 +1,7 @@
+{
+  "imports": ["std"],
+  "decls": [
+    {"kind": "let", "name": "version"}
+  ],
+  "errors": []
+}

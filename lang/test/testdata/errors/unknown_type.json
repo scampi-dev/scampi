@@ -1,0 +1,6 @@
+{
+  "decls": [
+    {"kind": "struct", "name": "Bad", "fields": 1}
+  ],
+  "errors": ["unknown type"]
+}

@@ -1,0 +1,7 @@
+{
+  "decls": [
+    {"kind": "enum", "name": "PkgState", "variants": 3},
+    {"kind": "enum", "name": "Color", "variants": 3}
+  ],
+  "errors": []
+}

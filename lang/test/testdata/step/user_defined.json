@@ -1,0 +1,7 @@
+{
+  "imports": ["std"],
+  "decls": [
+    {"kind": "step", "name": "create_user", "params": 2}
+  ],
+  "errors": []
+}

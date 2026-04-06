@@ -1,0 +1,4 @@
+{
+  "imports": ["nonexistent"],
+  "errors": ["unknown module"]
+}
