@@ -725,7 +725,7 @@ func TestBareErrorBan(t *testing.T) {
 	// Sanctioned files: internal helpers whose fmt.Errorf/errors.New
 	// errors are wrapped before reaching the engine.
 	sanctioned := []string{
-		// none
+		"lang/resolve/resolve.go", // internal FS errors wrapped into resolve.Error
 	}
 
 	usedSanctions := map[string]bool{}
