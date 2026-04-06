@@ -53,13 +53,26 @@ fmt:
   go fmt ./...
   ./scripts/fix-markdown-tables.py
 
-[doc("Lint project")]
-lint:
+[doc("Lint project (severity: warning|hint)")]
+lint severity='warning':
   go tool golangci-lint run
   go tool gomarklint
   go test -run TestMarkdownTableAlignment ./test/
   shellcheck scripts/*.sh
   just license-check
+  just _gopls-hints {{severity}}
+
+[private]
+_gopls-hints severity:
+  #!/usr/bin/env bash
+  [[ "{{severity}}" != "hint" ]] && exit 0
+  files=$(find . -name '*.go' -not -name '*_test.go' -not -path './vendor/*' -not -path './.git/*')
+  hints=$(echo "$files" | xargs gopls check -severity=hint 2>&1 | grep -v '^$')
+  if [[ -n "$hints" ]]; then
+    echo ""
+    echo "gopls hints:"
+    echo "$hints"
+  fi
 
 [doc("Site build/dev (just site --list for subcommands)")]
 mod site
