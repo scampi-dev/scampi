@@ -1,0 +1,12 @@
+{
+  "secrets": {
+    "backend": "file",
+    "path": "secrets.json"
+  },
+  "targets": [
+    {"name": "vps", "kind": "ssh"}
+  ],
+  "deploys": [
+    {"name": "web", "steps": 4}
+  ]
+}

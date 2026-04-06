@@ -339,14 +339,22 @@ func (c *Checker) checkLetDecl(d *ast.LetDecl) {
 			c.errAt(d.SrcSpan, "let type mismatch: got "+inferred.String()+", want "+declared.String())
 		}
 	}
-	// Update the pre-registered symbol with the resolved type.
+	resolved := inferred
+	if declared != nil {
+		resolved = declared
+	}
+	// Update a pre-registered symbol (top-level forward-decl) or
+	// define a new one (nested let inside a body).
 	sym := c.scope.Lookup(d.Name.Name)
-	if sym != nil {
-		if declared != nil {
-			sym.Type = declared
-		} else {
-			sym.Type = inferred
-		}
+	if sym != nil && sym.Kind == SymLet {
+		sym.Type = resolved
+	} else {
+		c.scope.Define(&Symbol{
+			Name: d.Name.Name,
+			Type: resolved,
+			Kind: SymLet,
+			Span: d.SrcSpan,
+		})
 	}
 }
 

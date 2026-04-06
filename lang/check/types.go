@@ -141,5 +141,27 @@ func IsAssignableTo(src, dst Type) bool {
 		}
 		return IsAssignableTo(src, opt.Inner)
 	}
+	// Structural equality for collections.
+	if sl, ok := src.(*List); ok {
+		if dl, ok := dst.(*List); ok {
+			return IsAssignableTo(sl.Elem, dl.Elem)
+		}
+	}
+	if sm, ok := src.(*Map); ok {
+		if dm, ok := dst.(*Map); ok {
+			return IsAssignableTo(sm.Key, dm.Key) && IsAssignableTo(sm.Value, dm.Value)
+		}
+	}
+	// Same named type.
+	if ss, ok := src.(*StructType); ok {
+		if ds, ok := dst.(*StructType); ok {
+			return ss.Name == ds.Name
+		}
+	}
+	if se, ok := src.(*EnumType); ok {
+		if de, ok := dst.(*EnumType); ok {
+			return se.Name == de.Name
+		}
+	}
 	return false
 }

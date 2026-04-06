@@ -148,14 +148,13 @@ func canTakeStructLit(x ast.Expr) bool {
 func (p *Parser) parseStructLitBody(typeExpr ast.Expr) ast.Expr {
 	start := typeExpr.Span().Start
 	p.advance() // '{'
-	fields := p.parseFieldInits(token.RBrace)
+	fields, body := p.parseBlockContent(token.RBrace)
 	endTok := p.expect(token.RBrace, "struct/step literal body")
-	// Convert typeExpr to TypeExpr. For Ident and SelectorExpr we
-	// wrap in a NamedType via a synthesized DottedName.
 	typ := exprToTypeExpr(typeExpr)
 	return &ast.StructLit{
 		Type:    typ,
 		Fields:  fields,
+		Body:    body,
 		SrcSpan: token.Span{Start: start, End: endTok.End},
 	}
 }
@@ -218,35 +217,52 @@ func (p *Parser) parseCallArgs() []ast.Expr {
 	return args
 }
 
-// parseFieldInits parses `name = expr, ...` until the given end token.
-// Used for struct literals and step invocations.
-func (p *Parser) parseFieldInits(end token.Kind) []*ast.FieldInit {
+// parseBlockContent parses the contents of a struct-lit / step-invocation
+// body until the given end token. Handles both `name = value` field inits
+// and bare statements (step invocations, let, for, if). Disambiguates:
+//
+//   - `ident =` → field init
+//   - `let/for/if/return` → statement
+//   - anything else → expression statement (e.g. `std.pkg { ... }`)
+func (p *Parser) parseBlockContent(end token.Kind) ([]*ast.FieldInit, []ast.Stmt) {
 	var fields []*ast.FieldInit
+	var stmts []ast.Stmt
 	for p.cur.Kind != end && p.cur.Kind != token.EOF {
 		if p.cur.Kind == token.Comma || p.cur.Kind == token.Semi {
 			p.advance()
 			continue
 		}
-		name := p.parseIdent("field name")
-		if name == nil {
-			// skip to next comma or end
-			for p.cur.Kind != token.Comma && p.cur.Kind != end && p.cur.Kind != token.EOF {
-				p.advance()
+		// Statement keywords are always statements.
+		if p.cur.Kind == token.Let || p.cur.Kind == token.For ||
+			p.cur.Kind == token.If || p.cur.Kind == token.Return {
+			s := p.parseStmt()
+			if s != nil {
+				stmts = append(stmts, s)
 			}
 			continue
 		}
-		p.expect(token.Assign, "field binding")
-		val := p.parseExpr()
-		if val == nil {
+		// `ident = ...` is a field init. `ident.xxx ...` or `ident { ... }`
+		// is an expression statement.
+		if p.cur.Kind == token.Ident && p.peek.Kind == token.Assign {
+			name := p.parseIdent("field name")
+			p.expect(token.Assign, "field binding")
+			val := p.parseExpr()
+			if name != nil && val != nil {
+				fields = append(fields, &ast.FieldInit{
+					Name:    name,
+					Value:   val,
+					SrcSpan: token.Span{Start: name.SrcSpan.Start, End: val.Span().End},
+				})
+			}
 			continue
 		}
-		fields = append(fields, &ast.FieldInit{
-			Name:    name,
-			Value:   val,
-			SrcSpan: token.Span{Start: name.SrcSpan.Start, End: val.Span().End},
-		})
+		// Everything else: parse as an expression statement.
+		s := p.parseStmt()
+		if s != nil {
+			stmts = append(stmts, s)
+		}
 	}
-	return fields
+	return fields, stmts
 }
 
 // parsePrimary parses a primary expression: literals, identifiers,
@@ -464,11 +480,12 @@ func (p *Parser) parseBraceExpr() ast.Expr {
 // finishStructLit finishes parsing a struct literal at the current
 // position, which starts with `ident = expr`.
 func (p *Parser) finishStructLit(start uint32, typ ast.TypeExpr) ast.Expr {
-	fields := p.parseFieldInits(token.RBrace)
+	fields, body := p.parseBlockContent(token.RBrace)
 	endTok := p.expect(token.RBrace, "struct literal")
 	return &ast.StructLit{
 		Type:    typ,
 		Fields:  fields,
+		Body:    body,
 		SrcSpan: token.Span{Start: start, End: endTok.End},
 	}
 }

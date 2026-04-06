@@ -1,0 +1,12 @@
+import "std"
+import "std/target"
+
+let vps = target.ssh { name = "vps", host = "10.0.0.1", user = "root" }
+
+std.deploy {
+  name = "web"
+  targets = [vps]
+
+  std.pkg { packages = packages, source = std.system {} }
+  let packages = ["nginx", "certbot"]
+}

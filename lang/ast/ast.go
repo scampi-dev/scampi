@@ -325,10 +325,13 @@ type MapEntry struct {
 }
 
 // StructLit is a struct literal `TypeName { field = value, ... }`
-// or an inferred-type bare block `{ field = value }`.
+// or an inferred-type bare block `{ field = value }`. For step/deploy
+// invocations that have bodies, Body holds statements that appear
+// after (or interleaved with) the field inits.
 type StructLit struct {
 	Type    TypeExpr // nil for context-inferred literals
 	Fields  []*FieldInit
+	Body    []Stmt // statements in the block (step invocations, let, for, if)
 	SrcSpan token.Span
 }
 

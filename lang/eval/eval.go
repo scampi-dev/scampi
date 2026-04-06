@@ -444,14 +444,18 @@ func (ev *Evaluator) evalDeploy(
 			dv.Targets = l.Items
 		}
 	}
-	// Walk the body statements of the StructLit. In the parser, a
-	// deploy body's step invocations appear as individual FieldInit
-	// entries PLUS any statements inside. For v0, step invocations
-	// in deploys are ExprStmt at the file level wrapped in a StructLit.
-	//
-	// TODO: properly handle deploy body once the parser supports
-	// step-invocation statements inside struct lit bodies.
-	_ = lit
+	// Evaluate body statements. Bare step invocations inside the deploy
+	// body are collected as desired-state steps.
+	prev := ev.currentDeploy
+	ev.currentDeploy = dv
+	childEnv := newEnv(ev.env)
+	prevEnv := ev.env
+	ev.env = childEnv
+	for _, s := range lit.Body {
+		ev.evalStmt(s)
+	}
+	ev.env = prevEnv
+	ev.currentDeploy = prev
 	return dv
 }
 

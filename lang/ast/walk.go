@@ -124,6 +124,7 @@ func walkChildren(node Node, pre func(Node) bool, post func(Node)) {
 			Walk(f.Name, pre, post)
 			walkExpr(f.Value, pre, post)
 		}
+		walkStmtList(n.Body, pre, post)
 
 	case *CallExpr:
 		walkExpr(n.Fn, pre, post)
