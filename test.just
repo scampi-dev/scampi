@@ -106,6 +106,25 @@ bench save_as='' count='10' benchtime='100ms':
     }
   }}
 
+[doc("Show test coverage by package (filter: grep pattern)")]
+coverage filter='':
+  #!/usr/bin/env bash
+  set -euo pipefail
+  pkglist=$(go list ./... | grep -v '/bin/')
+  if [[ -n "{{filter}}" ]]; then
+    pkglist=$(echo "$pkglist" | grep "{{filter}}")
+  fi
+  printf "%-50s %8s\n" "PACKAGE" "COVERAGE"
+  printf "%-50s %8s\n" "-------" "--------"
+  echo "$pkglist" | xargs go test -cover 2>&1 \
+    | grep -E '^ok|^\?' \
+    | while read -r line; do
+        pkg=$(echo "$line" | awk '{print $2}' | sed 's|scampi.dev/scampi/||')
+        cov=$(echo "$line" | grep -o '[0-9.]*% of' | grep -o '[0-9.]*%' || echo "-")
+        if echo "$line" | grep -q '^\?'; then cov="no test"; fi
+        printf "%-50s %8s\n" "$pkg" "$cov"
+      done
+
 [doc("Compare the latest 2 existing benchmarks with suffix")]
 benchcomp suffix:
   curr=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 1`; \
