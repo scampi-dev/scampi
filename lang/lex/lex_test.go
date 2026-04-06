@@ -59,7 +59,8 @@ func assertTokens(t *testing.T, src string, wants []want) {
 	}
 }
 
-// --- Idents and keywords ---
+// Idents and keywords
+// -----------------------------------------------------------------------------
 
 func TestIdentsAndKeywords(t *testing.T) {
 	assertTokens(t, "foo bar baz", []want{
@@ -100,7 +101,8 @@ func TestIdentWithUnderscoreAndDigits(t *testing.T) {
 	})
 }
 
-// --- Integers ---
+// Integers
+// -----------------------------------------------------------------------------
 
 func TestIntegerLiterals(t *testing.T) {
 	assertTokens(t, "0 42 100 0xFF 0b1010 0o755", []want{
@@ -134,7 +136,8 @@ func TestInvalidHex(t *testing.T) {
 	}
 }
 
-// --- Operators and delimiters ---
+// Operators and delimiters
+// -----------------------------------------------------------------------------
 
 func TestOperators(t *testing.T) {
 	assertTokens(t, "+ - * / % == != < > <= >= && || ! = : .", []want{
@@ -170,7 +173,8 @@ func TestDelimiters(t *testing.T) {
 	})
 }
 
-// --- Strings ---
+// Strings
+// -----------------------------------------------------------------------------
 
 func TestSimpleString(t *testing.T) {
 	assertTokens(t, `"hello"`, []want{
@@ -213,7 +217,8 @@ func TestInvalidEscape(t *testing.T) {
 	}
 }
 
-// --- String interpolation ---
+// String interpolation
+// -----------------------------------------------------------------------------
 
 func TestInterpolation(t *testing.T) {
 	assertTokens(t, `"hello ${name} world"`, []want{
@@ -270,7 +275,8 @@ func TestInterpolationWithMapLiteral(t *testing.T) {
 	})
 }
 
-// --- Comments ---
+// Comments
+// -----------------------------------------------------------------------------
 
 func TestLineComment(t *testing.T) {
 	assertTokens(t, "foo # this is a comment\nbar", []want{
@@ -288,7 +294,8 @@ func TestCommentAtEOF(t *testing.T) {
 	})
 }
 
-// --- Whitespace and ASI ---
+// Whitespace and ASI
+// -----------------------------------------------------------------------------
 
 func TestASIAfterIdent(t *testing.T) {
 	assertTokens(t, "foo\nbar", []want{
@@ -349,7 +356,8 @@ func TestMultipleBlankLines(t *testing.T) {
 	})
 }
 
-// --- Realistic snippet ---
+// Realistic snippet
+// -----------------------------------------------------------------------------
 
 func TestRealSnippet(t *testing.T) {
 	src := `import "std"

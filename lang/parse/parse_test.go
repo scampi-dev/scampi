@@ -40,7 +40,8 @@ func parseExprOnly(t *testing.T, src string) ast.Expr {
 	return let.Value
 }
 
-// --- imports ---
+// imports
+// -----------------------------------------------------------------------------
 
 func TestParseImport(t *testing.T) {
 	f := parseFile(t, `import "std"`)
@@ -69,7 +70,8 @@ import "codeberg.org/scampi-dev/modules/unifi"
 	}
 }
 
-// --- struct decl ---
+// struct decl
+// -----------------------------------------------------------------------------
 
 func TestParseStruct(t *testing.T) {
 	f := parseFile(t, `
@@ -100,7 +102,8 @@ struct User {
 	}
 }
 
-// --- enum decl ---
+// enum decl
+// -----------------------------------------------------------------------------
 
 func TestParseEnum(t *testing.T) {
 	f := parseFile(t, `enum PkgState { present, absent, latest }`)
@@ -119,7 +122,8 @@ func TestParseEnum(t *testing.T) {
 	}
 }
 
-// --- func decl ---
+// func decl
+// -----------------------------------------------------------------------------
 
 func TestParseFunc(t *testing.T) {
 	f := parseFile(t, `
@@ -151,7 +155,8 @@ func build_url(host: string, path: string = "/") string {
 	}
 }
 
-// --- step decl ---
+// step decl
+// -----------------------------------------------------------------------------
 
 func TestParseStepWithBody(t *testing.T) {
 	f := parseFile(t, `
@@ -195,7 +200,8 @@ func TestParseStepDottedName(t *testing.T) {
 	}
 }
 
-// --- let ---
+// let
+// -----------------------------------------------------------------------------
 
 func TestParseLet(t *testing.T) {
 	f := parseFile(t, `let version = "1.2.3"`)
@@ -216,7 +222,8 @@ func TestParseLetWithType(t *testing.T) {
 	}
 }
 
-// --- expressions ---
+// expressions
+// -----------------------------------------------------------------------------
 
 func TestParseArithmetic(t *testing.T) {
 	e := parseExprOnly(t, "1 + 2 * 3")
@@ -346,7 +353,8 @@ func TestParseListComp(t *testing.T) {
 	}
 }
 
-// --- statements ---
+// statements
+// -----------------------------------------------------------------------------
 
 func TestParseForStmt(t *testing.T) {
 	f := parseFile(t, `
@@ -383,7 +391,8 @@ func f() int {
 	}
 }
 
-// --- optional types ---
+// optional types
+// -----------------------------------------------------------------------------
 
 func TestParseOptionalType(t *testing.T) {
 	f := parseFile(t, `struct X { name: string? }`)
@@ -413,7 +422,8 @@ func TestParseMapType(t *testing.T) {
 	}
 }
 
-// --- real-world snippet ---
+// real-world snippet
+// -----------------------------------------------------------------------------
 
 func TestParseRealSnippet(t *testing.T) {
 	src := `

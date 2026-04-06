@@ -76,7 +76,8 @@ func (p *Parser) Parse() *ast.File {
 	return f
 }
 
-// --- token stream helpers ---------------------------------------------
+// Token stream helpers
+// -----------------------------------------------------------------------------
 
 func (p *Parser) advance() token.Token {
 	tok := p.cur

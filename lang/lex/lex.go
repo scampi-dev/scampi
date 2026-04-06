@@ -423,7 +423,8 @@ func (l *Lexer) scanStringSegment(fresh bool) token.Token {
 	return l.emit(token.StringEnd, start, uint32(l.pos))
 }
 
-// --- character classes ---
+// Character classes
+// -----------------------------------------------------------------------------
 
 func isIdentStart(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
