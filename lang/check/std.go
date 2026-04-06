@@ -2,6 +2,41 @@
 
 package check
 
+// TargetModule returns a scope for the std/target submodule containing
+// ssh, local, and rest target steps.
+func TargetModule() *Scope {
+	s := NewScope(nil, ScopeFile)
+	s.Define(&Symbol{Name: "ssh", Type: &StepType{
+		Name: "ssh",
+		Params: []*FieldDef{
+			{Name: "name", Type: StringType},
+			{Name: "host", Type: StringType},
+			{Name: "user", Type: StringType},
+			{Name: "port", Type: IntType, HasDef: true},
+			{Name: "key", Type: &Optional{Inner: StringType}, HasDef: true},
+			{Name: "insecure", Type: BoolType, HasDef: true},
+			{Name: "timeout", Type: StringType, HasDef: true},
+		},
+		Ret: TargetType,
+	}, Kind: SymStep})
+	s.Define(&Symbol{Name: "local", Type: &StepType{
+		Name:   "local",
+		Params: []*FieldDef{{Name: "name", Type: StringType}},
+		Ret:    TargetType,
+	}, Kind: SymStep})
+	s.Define(&Symbol{Name: "rest", Type: &StepType{
+		Name: "rest",
+		Params: []*FieldDef{
+			{Name: "name", Type: StringType},
+			{Name: "base_url", Type: StringType},
+			{Name: "auth", Type: AuthType, HasDef: true},
+			{Name: "tls", Type: TLSType, HasDef: true},
+		},
+		Ret: TargetType,
+	}, Kind: SymStep})
+	return s
+}
+
 // StdModule returns a scope populated with the std library symbols.
 // For v0, these are hardcoded. Future: generated from Go struct tags
 // via the stub generator (#137).

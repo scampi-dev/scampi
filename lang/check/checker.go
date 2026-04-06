@@ -29,11 +29,12 @@ type Error struct {
 
 func (e Error) Error() string { return e.Msg }
 
-// New creates a checker with the std module pre-loaded.
+// New creates a checker with the std and std/target modules pre-loaded.
 func New() *Checker {
 	return &Checker{
 		modules: map[string]*Scope{
-			"std": StdModule(),
+			"std":    StdModule(),
+			"target": TargetModule(),
 		},
 	}
 }
