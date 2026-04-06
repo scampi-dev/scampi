@@ -1,0 +1,3 @@
+let x = 10
+let label = if x > 5 { "big" } else { "small" }
+let neg = if x < 0 { "negative" } else { "non-negative" }

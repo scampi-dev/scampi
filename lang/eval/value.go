@@ -160,7 +160,8 @@ func (v *FuncVal) String() string { return "func " + v.Name }
 
 // Result is the output of evaluating a scampi-lang program.
 type Result struct {
-	Targets []*TargetVal
-	Deploys []*DeployVal
-	Secrets *SecretsVal
+	Targets  []*TargetVal
+	Deploys  []*DeployVal
+	Secrets  *SecretsVal
+	Bindings map[string]Value // all top-level let bindings
 }

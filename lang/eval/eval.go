@@ -61,6 +61,7 @@ func Eval(f *ast.File, source []byte, opts ...Option) (*Result, []Error) {
 		o(ev)
 	}
 	ev.evalFile(f)
+	ev.result.Bindings = ev.env.vars
 	return &ev.result, ev.errs
 }
 

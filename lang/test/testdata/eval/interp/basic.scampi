@@ -1,0 +1,2 @@
+let version = "1.2.3"
+let url = "https://example.com/v${version}/app.tar.gz"

@@ -1,0 +1,3 @@
+let greeting = "hello"
+let name = "world"
+let msg = greeting + " " + name

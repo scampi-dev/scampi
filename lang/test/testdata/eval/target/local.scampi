@@ -1,0 +1,4 @@
+import "std"
+import "std/target"
+
+let dev = target.local { name = "dev" }

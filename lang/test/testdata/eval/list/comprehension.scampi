@@ -1,0 +1,3 @@
+let xs = [1, 2, 3, 4, 5]
+let doubled = [x * 2 for x in xs]
+let evens = [x for x in xs if x % 2 == 0]
