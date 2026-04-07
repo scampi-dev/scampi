@@ -93,6 +93,7 @@ func emitStep(bw *builder, in StubInput) {
 		fi := fieldInfo{
 			name:     name,
 			goType:   f.Type,
+			doc:      stepTag,
 			optional: f.Tag.Get("optional") == "true",
 			defVal:   f.Tag.Get("default"),
 		}
@@ -107,24 +108,53 @@ func emitStep(bw *builder, in StubInput) {
 		fieldInfo{name: "on_change", scampiType: "list[StepInstance]", defVal: "[]", rawDefault: true},
 	)
 
-	bw.write("step " + in.Kind + "(")
-	for i, f := range fields {
-		if i > 0 {
-			bw.write(", ")
-		}
+	// Resolve types and compute column widths for alignment.
+	type resolved struct {
+		name    string
+		typDef  string // "type" or "type = default"
+		comment string
+	}
+	var rows []resolved
+	maxName := 0
+	maxTyp := 0
+	for _, f := range fields {
 		typStr := f.resolveType()
 		if f.optional && !strings.HasSuffix(typStr, "?") {
 			typStr += "?"
 		}
-		entry := f.name + ": " + typStr
+		def := ""
 		if f.defVal != "" {
 			if f.rawDefault {
-				entry += " = " + f.defVal
+				def = " = " + f.defVal
 			} else {
-				entry += " = " + formatDefault(f.defVal, f.enumName)
+				def = " = " + formatDefault(f.defVal, f.enumName)
 			}
 		}
-		bw.write(entry)
+		r := resolved{
+			name:    f.name,
+			typDef:  typStr + def,
+			comment: f.doc,
+		}
+		rows = append(rows, r)
+		if len(r.name) > maxName {
+			maxName = len(r.name)
+		}
+		if len(r.typDef) > maxTyp {
+			maxTyp = len(r.typDef)
+		}
+	}
+
+	bw.line("step " + in.Kind + "(")
+	for i, r := range rows {
+		comma := ","
+		if i == len(rows)-1 {
+			comma = ","
+		}
+		line := "  " + pad(r.name+":", maxName+1) + " " + pad(r.typDef+comma, maxTyp+1)
+		if r.comment != "" {
+			line += " # " + r.comment
+		}
+		bw.line(strings.TrimRight(line, " "))
 	}
 	bw.line(") " + in.OutputType)
 }
@@ -132,11 +162,12 @@ func emitStep(bw *builder, in StubInput) {
 type fieldInfo struct {
 	name       string
 	goType     reflect.Type
+	doc        string // from step:"..." tag
 	optional   bool
 	defVal     string
 	enumName   string
 	scampiType string
-	rawDefault bool // defVal is already formatted, don't quote
+	rawDefault bool
 }
 
 func (f fieldInfo) resolveType() string {
@@ -154,7 +185,7 @@ func (f fieldInfo) resolveType() string {
 
 func goTypeToScampi(t reflect.Type) string {
 	if t.Kind() == reflect.Pointer {
-		return goTypeToScampi(t.Elem()) + "?"
+		return goTypeToScampi(t.Elem())
 	}
 	switch t.Kind() {
 	case reflect.String:
@@ -168,7 +199,7 @@ func goTypeToScampi(t reflect.Type) string {
 	case reflect.Map:
 		return "map[" + goTypeToScampi(t.Key()) + ", " + goTypeToScampi(t.Elem()) + "]"
 	case reflect.Interface:
-		return "any"
+		return mapInterfaceType(t)
 	case reflect.Struct:
 		return mapStructType(t)
 	}
@@ -184,8 +215,37 @@ func mapStructType(t reflect.Type) string {
 		return "PkgSource"
 	case strings.HasSuffix(full, "target.Healthcheck"):
 		return "Healthcheck"
+	case strings.HasSuffix(full, "rest.RequestConfig"):
+		return "rest.request"
+	case strings.HasSuffix(full, "rest.BodyConfig"):
+		return "rest.body"
+	case strings.HasSuffix(full, "rest.CheckConfig"):
+		return "Check"
+	case strings.HasSuffix(full, "rest.JQBinding"):
+		return "Check"
 	}
 	return "any"
+}
+
+func mapInterfaceType(t reflect.Type) string {
+	if t.PkgPath() == "" {
+		return "any"
+	}
+	full := t.PkgPath() + "." + t.Name()
+	switch {
+	case strings.HasSuffix(full, "rest.BodyConfig"):
+		return "rest.body"
+	case strings.HasSuffix(full, "rest.CheckConfig"):
+		return "Check"
+	}
+	return "any"
+}
+
+func pad(s string, width int) string {
+	for len(s) < width {
+		s += " "
+	}
+	return s
 }
 
 // Naming

@@ -287,47 +287,6 @@ func (r *Resolver) readDir(fsys fs.FS, dirPath string) ([]sourceFile, error) {
 	return files, nil
 }
 
-// buildScope creates a scope containing the file's top-level exported
-// declarations. For v0, all top-level names are exported.
-func (r *Resolver) buildScope(f *ast.File) *check.Scope {
-	scope := check.NewScope(nil, check.ScopeFile)
-	for _, d := range f.Decls {
-		switch d := d.(type) {
-		case *ast.StructDecl:
-			scope.Define(&check.Symbol{
-				Name: d.Name.Name,
-				Kind: check.SymStruct,
-				Span: d.SrcSpan,
-			})
-		case *ast.EnumDecl:
-			scope.Define(&check.Symbol{
-				Name: d.Name.Name,
-				Kind: check.SymEnum,
-				Span: d.SrcSpan,
-			})
-		case *ast.FuncDecl:
-			scope.Define(&check.Symbol{
-				Name: d.Name.Name,
-				Kind: check.SymFunc,
-				Span: d.SrcSpan,
-			})
-		case *ast.StepDecl:
-			scope.Define(&check.Symbol{
-				Name: d.Name.Parts[0].Name,
-				Kind: check.SymStep,
-				Span: d.SrcSpan,
-			})
-		case *ast.LetDecl:
-			scope.Define(&check.Symbol{
-				Name: d.Name.Name,
-				Kind: check.SymLet,
-				Span: d.SrcSpan,
-			})
-		}
-	}
-	return scope
-}
-
 func importLeaf(path string) string {
 	for i := len(path) - 1; i >= 0; i-- {
 		if path[i] == '/' {

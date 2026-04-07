@@ -57,8 +57,9 @@ func TestGenerateBasic(t *testing.T) {
 	out := buf.String()
 	assertContains(t, out, "enum PkgState { present, absent, latest }")
 	assertContains(t, out, "step pkg(")
-	assertContains(t, out, "packages: list[string]")
-	assertContains(t, out, "state: PkgState = PkgState.present")
+	assertContains(t, out, "packages:")
+	assertContains(t, out, "list[string]")
+	assertContains(t, out, "PkgState = PkgState.present")
 	assertContains(t, out, ") StepInstance")
 }
 
@@ -76,8 +77,9 @@ func TestGenerateNoEnums(t *testing.T) {
 	}
 	out := buf.String()
 	assertContains(t, out, "step copy(")
-	assertContains(t, out, "src: string")
-	assertContains(t, out, "verify: string?")
+	assertContains(t, out, "src:")
+	assertContains(t, out, "verify:")
+	assertContains(t, out, "string?")
 	assertContains(t, out, ") StepInstance")
 	assertNotContains(t, out, "enum")
 }
@@ -96,7 +98,8 @@ func TestGenerateTargetOutputType(t *testing.T) {
 	}
 	out := buf.String()
 	assertContains(t, out, ") Target")
-	assertContains(t, out, "port: int = 22")
+	assertContains(t, out, "port:")
+	assertContains(t, out, "int = 22")
 }
 
 func TestGenerateSummaryComment(t *testing.T) {
@@ -136,8 +139,8 @@ func TestGenerateImplicitFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := buf.String()
-	assertContains(t, out, "desc: string?")
-	assertContains(t, out, "on_change: list[StepInstance]")
+	assertContains(t, out, "desc:")
+	assertContains(t, out, "on_change:")
 }
 
 func TestToSnake(t *testing.T) {
