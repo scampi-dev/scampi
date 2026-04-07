@@ -74,9 +74,9 @@ func (c *Checker) enter(n ast.Node) bool {
 		// Already handled imports and forward-decls above.
 		return true
 
-	case *ast.StructDecl:
-		c.checkStructDecl(n)
-		return false // children already visited by checkStructDecl
+	case *ast.TypeDecl:
+		c.checkTypeDecl(n)
+		return false // children already visited by checkTypeDecl
 
 	case *ast.EnumDecl:
 		return false // fully registered in forward pass
@@ -215,10 +215,10 @@ func importLeaf(path string) string {
 
 func (c *Checker) registerDecl(d ast.Decl) {
 	switch d := d.(type) {
-	case *ast.StructDecl:
+	case *ast.TypeDecl:
 		st := &StructType{Name: d.Name.Name}
 		c.scope.Define(&Symbol{
-			Name: d.Name.Name, Type: st, Kind: SymStruct, Span: d.SrcSpan,
+			Name: d.Name.Name, Type: st, Kind: SymType, Span: d.SrcSpan,
 		})
 	case *ast.EnumDecl:
 		var variants []string
@@ -248,7 +248,7 @@ func (c *Checker) registerDecl(d ast.Decl) {
 // Declaration checking
 // -----------------------------------------------------------------------------
 
-func (c *Checker) checkStructDecl(d *ast.StructDecl) {
+func (c *Checker) checkTypeDecl(d *ast.TypeDecl) {
 	sym := c.scope.Lookup(d.Name.Name)
 	if sym == nil {
 		return
@@ -400,7 +400,7 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 			return bt
 		}
 		sym := c.scope.Lookup(name)
-		if sym != nil && (sym.Kind == SymStruct || sym.Kind == SymEnum || sym.Kind == SymDecl) {
+		if sym != nil && (sym.Kind == SymType || sym.Kind == SymEnum || sym.Kind == SymDecl) {
 			return sym.Type
 		}
 		c.errAt(t.SrcSpan, "unknown type: "+name)

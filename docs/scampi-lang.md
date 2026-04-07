@@ -12,11 +12,11 @@ declarations — no language code runs during execution.
 The language has three conceptual layers:
 
 1. **Declarations** — decl blocks that describe desired state
-2. **Types** — enums, structs, and decl signatures
+2. **Types** — enums, type declarations, and decl signatures
 3. **Generation logic** — loops, conditionals, functions, and data transforms
    that exist solely to produce declarations
 
-**The language core is minimal.** ~17 keywords: declarations (`struct`,
+**The language core is minimal.** ~17 keywords: declarations (`type`,
 `enum`, `decl`, `func`), bindings (`let`), modules (`module`, `import`),
 control flow (`for`, `in`, `if`, `else`, `return`), values (`true`,
 `false`, `none`, `self`). Logic via operators (`&&`, `||`, `!`). No
@@ -65,7 +65,7 @@ Source files are UTF-8. No BOM.
 
 ```
 module  import  let     return
-func    decl    struct  enum
+func    decl    type    enum
 for     in      if      else
 true    false   none    self
 ```
@@ -212,17 +212,17 @@ The LSP resolves bare variants by checking the expected type of the field.
 If ambiguous (two enums in scope with the same variant name), the compiler
 requires qualification.
 
-### 2.5 Struct types
+### 2.5 Type declarations
 
 ```
-struct User {
+type User {
     name:   string
     groups: list[string] = []
     shell:  string = "/bin/bash"
 }
 ```
 
-Structs have named fields with types, optional defaults, and no methods.
+Types have named fields with types, optional defaults, and no methods.
 Instantiation uses the same block syntax as steps:
 
 ```
@@ -232,10 +232,10 @@ let alice = User { name = "alice", groups = ["wheel", "dev"] }
 Fields with defaults may be omitted. Fields without defaults are
 required.
 
-**Expected-type inference for struct literals**: when the expected
-type of an expression is a struct type and the expression is a bare
+**Expected-type inference for type literals**: when the expected
+type of an expression is a named type and the expression is a bare
 block `{ field = value, ... }` (using `=`, distinct from map literals
-which use `:`), the block is a struct literal for the expected type.
+which use `:`), the block is a type literal for the expected type.
 The type name can be omitted:
 
 ```
@@ -247,16 +247,16 @@ data = TemplateData { values = {...}, env = {...} }
 
 This keeps common patterns terse without losing type safety. The `=`
 vs `:` distinction tells the parser (and the reader) whether they're
-looking at a struct literal or a map literal:
+looking at a type literal or a map literal:
 
 ```
-struct_lit = { name = "alice", age = 30 }      # TeamMember struct
+type_lit   = { name = "alice", age = 30 }      # TeamMember type
 map_lit    = { "name": "alice", "age": 30 }    # map[string, any]
 ```
 
 ### 2.6 Type aliases
 
-Not in v1. If needed later, syntax would be `struct Name = OtherType`
+Not in v1. If needed later, syntax would be `type Name = OtherType`
 or similar.
 
 ---
@@ -525,7 +525,7 @@ documentation, and output type.
 **Call-site syntax differs from declaration:**
 
 Decl declarations use parens with colons (matching func declarations).
-Decl **invocations** use braces with equals (matching struct literals):
+Decl **invocations** use braces with equals (matching type literals):
 
 ```
 // declaration: parens, colons
@@ -536,7 +536,7 @@ std.pkg { packages = ["nginx"], source = std.system {} }
 ```
 
 This reflects decls' dual nature — parameterized declarations (like
-funcs) that produce typed records (constructed like struct literals).
+funcs) that produce typed records (constructed like type literals).
 
 **Output type rules (v0):**
 
@@ -878,7 +878,7 @@ computations:
 ### 6.2 Composable types
 
 Composable types are small typed values that plug into decl fields. They
-use block syntax (like steps and structs), not function-call syntax.
+use block syntax (like steps and types), not function-call syntax.
 
 **Source resolvers:**
 
@@ -996,10 +996,10 @@ enum HttpMethod  { GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS }
 Defined in `std`, consumed by the engine from top-level scope:
 
 ```
-struct Target        { ... }   # opaque, produced by target.* steps
-struct Deploy        { ... }   # opaque, produced by std.deploy
-struct SecretsConfig { ... }   # opaque, produced by std.secrets
-struct Step  { ... }   # opaque, produced by desired-state decls
+type Target              # opaque, produced by target.* steps
+type Deploy              # opaque, produced by std.deploy
+type SecretsConfig       # opaque, produced by std.secrets
+type Step                # opaque, produced by desired-state decls
 ```
 
 ### 7.3 Target, deploy, secrets stubs
@@ -1083,7 +1083,7 @@ decl symlink(
     desc:   string?,
 ) Step
 
-struct TemplateData {
+type TemplateData {
     values: map[string, any] = {}
     env:    map[string, string] = {}
 }
@@ -1547,7 +1547,7 @@ std.deploy {
 import "std"
 import "codeberg.org/scampi-dev/infra/targets"
 
-struct TeamMember {
+type TeamMember {
     name:   string
     groups: list[string]
     shell:  string = "/bin/bash"
@@ -1762,7 +1762,7 @@ Explicitly excluded:
 | ------------------------ | --------------------------------------------------------------------- |
 | Exceptions / try-catch   | Steps converge or fail — the engine handles failure                   |
 | Concurrency              | The DAG scheduler handles parallelism                                 |
-| Classes / inheritance    | Structs + step compositions cover all use cases                       |
+| Classes / inheritance    | Types + step compositions cover all use cases                         |
 | Dynamic attribute access | Prevents sound rename/refactor in LSP                                 |
 | Eval / exec / reflection | Breaks static analysis                                                |
 | Null (general purpose)   | `none` only exists for optional types                                 |
@@ -1782,11 +1782,11 @@ use_decl       = 'use' use_path ('as' IDENT)? ;
 use_path       = (IDENT '.')* (IDENT | '*')
                | STRING ('.' (IDENT | '*'))? ;
 
-declaration    = decl_decl | struct_decl | enum_decl | fn_decl ;
+declaration    = decl_decl | type_decl | enum_decl | fn_decl ;
 
 decl_decl      = 'decl' dotted_name '(' params ')' type_expr?
                  ('{' block_body '}')? ;
-struct_decl    = 'struct' IDENT '{' field_defs '}' ;
+type_decl      = 'type' IDENT ('{' field_defs '}')? ;
 enum_decl      = 'enum' IDENT '{' (IDENT ',')* '}' ;
 
 field_defs     = (IDENT ':' type_expr ('=' expr)?)* ;

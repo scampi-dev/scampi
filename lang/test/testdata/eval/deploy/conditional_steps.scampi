@@ -5,7 +5,7 @@ import "std/target"
 
 let vps = target.ssh { name = "vps", host = "10.0.0.1", user = "root" }
 
-struct Config {
+type Config {
   enable_firewall: bool
   enable_monitoring: bool
 }

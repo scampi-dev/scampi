@@ -1,5 +1,5 @@
 module main
 
-struct Bad {
+type Bad {
   x: NonExistentType
 }

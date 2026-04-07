@@ -16,7 +16,7 @@ let vps = target.ssh {
 let runner_version = "12.7.2"
 let runner_url = "https://example.com/runner/v${runner_version}/runner-linux-amd64"
 
-struct TeamMember {
+type TeamMember {
   name: string
   groups: list[string] = []
   admin: bool = false

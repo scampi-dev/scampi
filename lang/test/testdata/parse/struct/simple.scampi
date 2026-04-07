@@ -1,6 +1,6 @@
 module main
 
-struct User {
+type User {
   name: string
   groups: list[string] = []
   shell: string = "/bin/bash"

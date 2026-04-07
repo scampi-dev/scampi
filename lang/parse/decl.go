@@ -64,8 +64,8 @@ func (p *Parser) parseImport() *ast.ImportDecl {
 // The caller has already verified isDeclStart(p.cur.Kind).
 func (p *Parser) parseDecl() ast.Decl {
 	switch p.cur.Kind {
-	case token.Struct:
-		return p.parseStructDecl()
+	case token.Type:
+		return p.parseTypeDecl()
 	case token.Enum:
 		return p.parseEnumDecl()
 	case token.Func:
@@ -84,28 +84,28 @@ func (p *Parser) parseDecl() ast.Decl {
 	return nil
 }
 
-// parseStructDecl:
+// parseTypeDecl:
 //
-//	struct Name { field: type = default, ... }
-func (p *Parser) parseStructDecl() *ast.StructDecl {
+//	type Name { field: type = default, ... }
+func (p *Parser) parseTypeDecl() *ast.TypeDecl {
 	start := p.cur.Pos
-	p.advance() // 'struct'
+	p.advance() // 'type'
 
-	name := p.parseIdent("struct name")
+	name := p.parseIdent("type name")
 	if name == nil {
 		p.synchronize()
 		return nil
 	}
 
-	p.expect(token.LBrace, "struct body")
+	p.expect(token.LBrace, "type body")
 	fields := p.parseFields(token.RBrace)
-	endTok := p.expect(token.RBrace, "struct body")
+	endTok := p.expect(token.RBrace, "type body")
 
 	if p.cur.Kind == token.Semi {
 		p.advance()
 	}
 
-	return &ast.StructDecl{
+	return &ast.TypeDecl{
 		Name:    name,
 		Fields:  fields,
 		SrcSpan: token.Span{Start: start, End: endTok.End},
@@ -286,7 +286,7 @@ func (p *Parser) parseLetDecl() *ast.LetDecl {
 	}
 }
 
-// parseFields parses field declarations inside a struct body:
+// parseFields parses field declarations inside a type body:
 //
 //	name: type = default
 //	name: type

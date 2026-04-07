@@ -74,13 +74,13 @@ import "codeberg.org/scampi-dev/modules/unifi"
 	}
 }
 
-// struct decl
+// type decl
 // -----------------------------------------------------------------------------
 
-func TestParseStruct(t *testing.T) {
+func TestParseType(t *testing.T) {
 	f := parseFile(t, `
 module main
-struct User {
+type User {
     name: string
     groups: list[string] = []
     shell: string = "/bin/bash"
@@ -89,12 +89,12 @@ struct User {
 	if len(f.Decls) != 1 {
 		t.Fatalf("expected 1 decl, got %d", len(f.Decls))
 	}
-	s, ok := f.Decls[0].(*ast.StructDecl)
+	s, ok := f.Decls[0].(*ast.TypeDecl)
 	if !ok {
-		t.Fatalf("expected StructDecl, got %T", f.Decls[0])
+		t.Fatalf("expected TypeDecl, got %T", f.Decls[0])
 	}
 	if s.Name.Name != "User" {
-		t.Errorf("struct name: got %q, want %q", s.Name.Name, "User")
+		t.Errorf("type name: got %q, want %q", s.Name.Name, "User")
 	}
 	if len(s.Fields) != 3 {
 		t.Fatalf("expected 3 fields, got %d", len(s.Fields))
@@ -419,9 +419,9 @@ func f() int {
 func TestParseOptionalType(t *testing.T) {
 	f := parseFile(t, `
 module main
-struct X { name: string? }
+type X { name: string? }
 `)
-	s := f.Decls[0].(*ast.StructDecl)
+	s := f.Decls[0].(*ast.TypeDecl)
 	if _, ok := s.Fields[0].Type.(*ast.OptionalType); !ok {
 		t.Errorf("expected OptionalType, got %T", s.Fields[0].Type)
 	}
@@ -430,9 +430,9 @@ struct X { name: string? }
 func TestParseGenericType(t *testing.T) {
 	f := parseFile(t, `
 module main
-struct X { xs: list[string] }
+type X { xs: list[string] }
 `)
-	s := f.Decls[0].(*ast.StructDecl)
+	s := f.Decls[0].(*ast.TypeDecl)
 	if _, ok := s.Fields[0].Type.(*ast.GenericType); !ok {
 		t.Errorf("expected GenericType, got %T", s.Fields[0].Type)
 	}
@@ -441,9 +441,9 @@ struct X { xs: list[string] }
 func TestParseMapType(t *testing.T) {
 	f := parseFile(t, `
 module main
-struct X { m: map[string, int] }
+type X { m: map[string, int] }
 `)
-	s := f.Decls[0].(*ast.StructDecl)
+	s := f.Decls[0].(*ast.TypeDecl)
 	gt, ok := s.Fields[0].Type.(*ast.GenericType)
 	if !ok {
 		t.Fatalf("expected GenericType, got %T", s.Fields[0].Type)
@@ -463,7 +463,7 @@ import "std"
 
 let vps_host = std.secret("vps.host")
 
-struct User {
+type User {
     name: string
     groups: list[string] = []
 }

@@ -144,7 +144,7 @@ func (ev *Evaluator) evalDecl(d ast.Decl) {
 				scope: ev.env,
 			})
 		}
-	case *ast.StructDecl, *ast.EnumDecl:
+	case *ast.TypeDecl, *ast.EnumDecl:
 		// Type declarations don't produce runtime values.
 	}
 }

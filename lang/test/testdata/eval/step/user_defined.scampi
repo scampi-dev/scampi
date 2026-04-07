@@ -3,7 +3,7 @@ module main
 import "std"
 import "std/target"
 
-struct TeamMember {
+type TeamMember {
   name: string
   groups: list[string] = []
 }

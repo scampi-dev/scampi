@@ -92,7 +92,7 @@ func TestResolveRemoteDep(t *testing.T) {
 		"example.com/lib@v2.0.0/core.scampi": &fstest.MapFile{
 			Data: []byte(`
 module lib
-struct Config { name: string }
+type Config { name: string }
 `),
 		},
 	}

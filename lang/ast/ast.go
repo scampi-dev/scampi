@@ -60,16 +60,16 @@ func (d *ImportDecl) Span() token.Span { return d.SrcSpan }
 func (*ImportDecl) astNode()           {}
 func (*ImportDecl) declNode()          {}
 
-// StructDecl is a `struct Name { field: type = default, ... }` declaration.
-type StructDecl struct {
+// TypeDecl is a `struct Name { field: type = default, ... }` declaration.
+type TypeDecl struct {
 	Name    *Ident
 	Fields  []*Field
 	SrcSpan token.Span
 }
 
-func (d *StructDecl) Span() token.Span { return d.SrcSpan }
-func (*StructDecl) astNode()           {}
-func (*StructDecl) declNode()          {}
+func (d *TypeDecl) Span() token.Span { return d.SrcSpan }
+func (*TypeDecl) astNode()           {}
+func (*TypeDecl) declNode()          {}
 
 // EnumDecl is an `enum Name { variant, ... }` declaration.
 type EnumDecl struct {

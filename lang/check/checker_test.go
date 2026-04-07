@@ -78,13 +78,13 @@ import "nonexistent"
 `, "unknown module")
 }
 
-// Struct declarations
+// Type declarations
 // -----------------------------------------------------------------------------
 
-func TestCheckStructWithPrimitiveFields(t *testing.T) {
+func TestCheckTypeWithPrimitiveFields(t *testing.T) {
 	expectNoErrors(t, `
 module main
-struct User {
+type User {
     name: string
     age: int
     admin: bool
@@ -92,30 +92,30 @@ struct User {
 `)
 }
 
-func TestCheckStructWithOptionalField(t *testing.T) {
+func TestCheckTypeWithOptionalField(t *testing.T) {
 	expectNoErrors(t, `
 module main
-struct Config {
+type Config {
     host: string
     port: int?
 }
 `)
 }
 
-func TestCheckStructWithGenericField(t *testing.T) {
+func TestCheckTypeWithGenericField(t *testing.T) {
 	expectNoErrors(t, `
 module main
-struct Team {
+type Team {
     members: list[string]
     meta: map[string, any]
 }
 `)
 }
 
-func TestCheckStructWithUnknownFieldType(t *testing.T) {
+func TestCheckTypeWithUnknownFieldType(t *testing.T) {
 	expectError(t, `
 module main
-struct Bad {
+type Bad {
     x: NonExistentType
 }
 `, "unknown type")
@@ -135,7 +135,7 @@ func TestCheckEnumUsedAsFieldType(t *testing.T) {
 	expectNoErrors(t, `
 module main
 enum State { on, off }
-struct Switch {
+type Switch {
     state: State
 }
 `)

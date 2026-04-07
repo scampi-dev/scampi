@@ -1,6 +1,6 @@
 {
   "decls": [
-    {"kind": "struct", "name": "User", "fields": 4}
+    {"kind": "type", "name": "User", "fields": 4}
   ],
   "errors": []
 }

@@ -92,7 +92,7 @@ func TestKeywordLookup(t *testing.T) {
 		{"let", Let},
 		{"func", Func},
 		{"decl", Decl},
-		{"struct", Struct},
+		{"type", Type},
 		{"enum", Enum},
 		{"for", For},
 		{"if", If},

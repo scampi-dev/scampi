@@ -329,7 +329,7 @@ func assertDecls(t *testing.T, f *ast.File, want []expectDecl) {
 			t.Errorf("decl[%d] name: got %q, want %q", i, name, w.Name)
 		}
 		switch dd := d.(type) {
-		case *ast.StructDecl:
+		case *ast.TypeDecl:
 			if w.Fields > 0 && len(dd.Fields) != w.Fields {
 				t.Errorf("decl[%d] fields: got %d, want %d", i, len(dd.Fields), w.Fields)
 			}
@@ -380,8 +380,8 @@ func assertErrors(t *testing.T, got []string, want []string) {
 
 func declKindName(d ast.Decl) (string, string) {
 	switch d := d.(type) {
-	case *ast.StructDecl:
-		return "struct", d.Name.Name
+	case *ast.TypeDecl:
+		return "type", d.Name.Name
 	case *ast.EnumDecl:
 		return "enum", d.Name.Name
 	case *ast.FuncDecl:

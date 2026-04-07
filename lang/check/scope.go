@@ -38,7 +38,7 @@ const (
 	SymParam                    // function/step parameter
 	SymFunc                     // function declaration
 	SymDecl                     // step declaration
-	SymStruct                   // struct type
+	SymType                     // struct type
 	SymEnum                     // enum type
 	SymImport                   // imported module namespace
 )

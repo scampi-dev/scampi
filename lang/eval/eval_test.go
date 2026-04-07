@@ -104,7 +104,7 @@ let m = {"a": 1, "b": 2}
 func TestEvalStructLit(t *testing.T) {
 	src := `
 module main
-struct User {
+type User {
   name: string
   admin: bool = false
 }

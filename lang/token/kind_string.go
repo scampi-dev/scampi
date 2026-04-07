@@ -26,7 +26,7 @@ func _() {
 	_ = x[Let-13]
 	_ = x[Func-14]
 	_ = x[Decl-15]
-	_ = x[Struct-16]
+	_ = x[Type-16]
 	_ = x[Enum-17]
 	_ = x[For-18]
 	_ = x[In-19]
@@ -64,9 +64,9 @@ func _() {
 	_ = x[Comma-51]
 }
 
-const _Kind_name = "IllegalEOFSemiIdentIntStringStringBegStringContStringEndLInterpRInterpModuleImportLetFuncDeclStructEnumForInIfElseReturnTrueFalseNoneSelfPlusMinusStarSlashPercentEqNeqLtGtLeqGeqAndOrNotAssignColonDotQuestionLBraceRBraceLBrackRBrackLParenRParenComma"
+const _Kind_name = "IllegalEOFSemiIdentIntStringStringBegStringContStringEndLInterpRInterpModuleImportLetFuncDeclTypeEnumForInIfElseReturnTrueFalseNoneSelfPlusMinusStarSlashPercentEqNeqLtGtLeqGeqAndOrNotAssignColonDotQuestionLBraceRBraceLBrackRBrackLParenRParenComma"
 
-var _Kind_index = [...]uint8{0, 7, 10, 14, 19, 22, 28, 37, 47, 56, 63, 70, 76, 82, 85, 89, 93, 99, 103, 106, 108, 110, 114, 120, 124, 129, 133, 137, 141, 146, 150, 155, 162, 164, 167, 169, 171, 174, 177, 180, 182, 185, 191, 196, 199, 207, 213, 219, 225, 231, 237, 243, 248}
+var _Kind_index = [...]uint8{0, 7, 10, 14, 19, 22, 28, 37, 47, 56, 63, 70, 76, 82, 85, 89, 93, 97, 101, 104, 106, 108, 112, 118, 122, 127, 131, 135, 139, 144, 148, 153, 160, 162, 165, 167, 169, 172, 175, 178, 180, 183, 189, 194, 197, 205, 211, 217, 223, 229, 235, 241, 246}
 
 func (i Kind) String() string {
 	if i >= Kind(len(_Kind_index)-1) {

@@ -42,7 +42,7 @@ func walkChildren(node Node, pre func(Node) bool, post func(Node)) {
 	case *ImportDecl:
 		// no children
 
-	case *StructDecl:
+	case *TypeDecl:
 		Walk(n.Name, pre, post)
 		walkFieldList(n.Fields, pre, post)
 

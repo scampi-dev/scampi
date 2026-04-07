@@ -164,8 +164,8 @@ func (r *Resolver) Resolve(importPath string) *Module {
 func (r *Resolver) mergeScope(into *check.Scope, f *ast.File) {
 	for _, d := range f.Decls {
 		switch d := d.(type) {
-		case *ast.StructDecl:
-			into.Define(&check.Symbol{Name: d.Name.Name, Kind: check.SymStruct, Span: d.SrcSpan})
+		case *ast.TypeDecl:
+			into.Define(&check.Symbol{Name: d.Name.Name, Kind: check.SymType, Span: d.SrcSpan})
 		case *ast.EnumDecl:
 			into.Define(&check.Symbol{Name: d.Name.Name, Kind: check.SymEnum, Span: d.SrcSpan})
 		case *ast.FuncDecl:

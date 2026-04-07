@@ -33,7 +33,7 @@ const (
 	Let
 	Func
 	Decl
-	Struct
+	Type
 	Enum
 	For
 	In
@@ -116,7 +116,7 @@ var Keywords = map[string]Kind{
 	"let":    Let,
 	"func":   Func,
 	"decl":   Decl,
-	"struct": Struct,
+	"type":   Type,
 	"enum":   Enum,
 	"for":    For,
 	"in":     In,

@@ -68,7 +68,7 @@ type Map struct {
 func (*Map) typeTag()         {}
 func (m *Map) String() string { return "map[" + m.Key.String() + ", " + m.Value.String() + "]" }
 
-// StructType is a user-defined struct (resolved from a StructDecl).
+// StructType is a user-defined struct (resolved from a TypeDecl).
 type StructType struct {
 	Name   string
 	Fields []*FieldDef

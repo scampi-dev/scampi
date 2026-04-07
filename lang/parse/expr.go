@@ -463,7 +463,7 @@ func (p *Parser) parseListOrComp() ast.Expr {
 // parseBraceExpr parses `{...}` at expression position. Distinguishes:
 //
 //	map literal:    { key : value, ... }   -> uses ':' to separate
-//	struct literal: { name = value, ... }  -> uses '=' to separate
+//	type literal: { name = value, ... }  -> uses '=' to separate
 //	empty:          {}                     -> map literal (convention)
 func (p *Parser) parseBraceExpr() ast.Expr {
 	start := p.cur.Pos
@@ -493,7 +493,7 @@ func (p *Parser) parseBraceExpr() ast.Expr {
 // position, which starts with `ident = expr`.
 func (p *Parser) finishStructLit(start uint32, typ ast.TypeExpr) ast.Expr {
 	fields, body := p.parseBlockContent(token.RBrace)
-	endTok := p.expect(token.RBrace, "struct literal")
+	endTok := p.expect(token.RBrace, "type literal")
 	return &ast.StructLit{
 		Type:    typ,
 		Fields:  fields,
