@@ -70,8 +70,8 @@ func (p *Parser) parseDecl() ast.Decl {
 		return p.parseEnumDecl()
 	case token.Func:
 		return p.parseFuncDecl()
-	case token.Step:
-		return p.parseStepDecl()
+	case token.Decl:
+		return p.parseDeclDecl()
 	case token.Let:
 		return p.parseLetDecl()
 	}
@@ -194,25 +194,25 @@ func (p *Parser) parseFuncDecl() *ast.FuncDecl {
 	}
 }
 
-// parseStepDecl:
+// parseDeclDecl:
 //
-//	step NAME(params) OutputType { body }   // with body
-//	step NAME(params) OutputType            // stub, no body
+//	decl NAME(params) OutputType { body }   // with body
+//	decl NAME(params) OutputType            // stub, no body
 //
 // Name may be dotted (e.g. container.instance, rest.request).
-func (p *Parser) parseStepDecl() *ast.StepDecl {
+func (p *Parser) parseDeclDecl() *ast.DeclDecl {
 	start := p.cur.Pos
-	p.advance() // 'step'
+	p.advance() // 'decl'
 
-	name := p.parseDottedName("step name")
+	name := p.parseDottedName("decl name")
 	if name == nil {
 		p.synchronize()
 		return nil
 	}
 
-	p.expect(token.LParen, "step parameters")
+	p.expect(token.LParen, "decl parameters")
 	params := p.parseParams(token.RParen)
-	p.expect(token.RParen, "step parameters")
+	p.expect(token.RParen, "decl parameters")
 
 	// Output type: required for builtins/steps that need to declare it,
 	// optional for user-defined (defaults to StepInstance). We accept
@@ -228,7 +228,7 @@ func (p *Parser) parseStepDecl() *ast.StepDecl {
 	if p.cur.Kind == token.LBrace {
 		p.advance() // '{'
 		body = p.parseBlock()
-		endTok := p.expect(token.RBrace, "step body")
+		endTok := p.expect(token.RBrace, "decl body")
 		end = endTok.End
 	}
 
@@ -236,7 +236,7 @@ func (p *Parser) parseStepDecl() *ast.StepDecl {
 		p.advance()
 	}
 
-	return &ast.StepDecl{
+	return &ast.DeclDecl{
 		Name:    name,
 		Params:  params,
 		Ret:     ret,

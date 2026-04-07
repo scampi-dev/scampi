@@ -109,18 +109,18 @@ func (f *FuncType) String() string {
 	return "func(...) " + f.Ret.String()
 }
 
-// StepType is the type of a step declaration — distinct from FuncType
-// because step invocations use block syntax, not call syntax.
-type StepType struct {
+// DeclType is the type of a decl declaration — distinct from FuncType
+// because decl invocations use block syntax, not call syntax.
+type DeclType struct {
 	Name    string // may be dotted: "container.instance"
 	Params  []*FieldDef
 	Ret     Type // output type (StepInstance if not declared)
 	HasBody bool
 }
 
-func (*StepType) typeTag() {}
-func (s *StepType) String() string {
-	return "step " + s.Name + "(...) " + s.Ret.String()
+func (*DeclType) typeTag() {}
+func (s *DeclType) String() string {
+	return "decl " + s.Name + "(...) " + s.Ret.String()
 }
 
 // IsAssignableTo reports whether a value of type src can be used

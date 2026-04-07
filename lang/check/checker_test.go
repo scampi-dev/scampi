@@ -162,24 +162,24 @@ func f(x: string, y: int?) int {
 `)
 }
 
-// Step declarations
+// Decl declarations
 // -----------------------------------------------------------------------------
 
-func TestCheckStepDecl(t *testing.T) {
+func TestCheckDeclDecl(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
 
-step create_user(name: string, groups: list[string]) StepInstance {
+decl create_user(name: string, groups: list[string]) StepInstance {
     std.user { name = self.name }
 }
 `)
 }
 
-func TestCheckStepStub(t *testing.T) {
+func TestCheckDeclStub(t *testing.T) {
 	expectNoErrors(t, `
 module main
-step my_step(x: string, y: int) StepInstance
+decl my_step(x: string, y: int) StepInstance
 `)
 }
 
@@ -291,7 +291,7 @@ func TestScopeMutability(t *testing.T) {
 	file := NewScope(nil, ScopeFile)
 	fn := NewScope(file, ScopeFunc)
 	block := NewScope(fn, ScopeBlock)
-	step := NewScope(file, ScopeStep)
+	step := NewScope(file, ScopeDecl)
 
 	if file.AllowsMutation() {
 		t.Error("file scope should not allow mutation")

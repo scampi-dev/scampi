@@ -18,7 +18,7 @@ type ScopeKind uint8
 const (
 	ScopeFile  ScopeKind = iota // top-level file scope
 	ScopeFunc                   // inside a func body — mutation allowed
-	ScopeStep                   // inside a step body — frozen
+	ScopeDecl                   // inside a step body — frozen
 	ScopeBlock                  // for/if/else block — inherits parent kind
 )
 
@@ -37,7 +37,7 @@ const (
 	SymLet    SymbolKind = iota // let binding
 	SymParam                    // function/step parameter
 	SymFunc                     // function declaration
-	SymStep                     // step declaration
+	SymDecl                     // step declaration
 	SymStruct                   // struct type
 	SymEnum                     // enum type
 	SymImport                   // imported module namespace

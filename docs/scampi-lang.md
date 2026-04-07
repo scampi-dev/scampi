@@ -11,13 +11,13 @@ declarations — no language code runs during execution.
 
 The language has three conceptual layers:
 
-1. **Declarations** — step blocks that describe desired state
-2. **Types** — enums, structs, and step signatures
+1. **Declarations** — decl blocks that describe desired state
+2. **Types** — enums, structs, and decl signatures
 3. **Generation logic** — loops, conditionals, functions, and data transforms
    that exist solely to produce declarations
 
 **The language core is minimal.** ~17 keywords: declarations (`struct`,
-`enum`, `step`, `func`), bindings (`let`), modules (`module`, `import`),
+`enum`, `decl`, `func`), bindings (`let`), modules (`module`, `import`),
 control flow (`for`, `in`, `if`, `else`, `return`), values (`true`,
 `false`, `none`, `self`). Logic via operators (`&&`, `||`, `!`). No
 special syntax for hooks, targets, deploys, or any other scampi concept —
@@ -65,7 +65,7 @@ Source files are UTF-8. No BOM.
 
 ```
 module  import  let     return
-func    step    struct  enum
+func    decl    struct  enum
 for     in      if      else
 true    false   none    self
 ```
@@ -370,7 +370,7 @@ else). Deliberately unsolved for v1.
 
 ### 4.1 Step instantiation
 
-The core construct. A step block declares desired state:
+The core construct. A decl block declares desired state:
 
 ```
 std.pkg {
@@ -385,13 +385,13 @@ file can be called unqualified; user-defined steps from another module
 are called through that module's namespace (e.g. `myteam.create_user`).
 
 Fields are key-value pairs. Values are expressions. All fields are
-validated against the step's type signature at compile time.
+validated against the decl's type signature at compile time.
 
 ### 4.2 Syntactic sugar (deferred to post-v1)
 
 These shorthands are planned but not in the initial implementation.
 
-**State shorthand** — for any step with a `state` field backed by an enum:
+**State shorthand** — for any decl with a `state` field backed by an enum:
 
 ```
 # sugar
@@ -438,16 +438,21 @@ Inside the `using std { ... }` block, `pkg`, `copy`, `dir`, `system`,
 is still required. The boundary is explicit and scope-local — no
 file-wide pollution like Go's `import . "pkg"`. Deferred to post-v1.
 
-### 4.3 Step and function declarations
+### 4.3 Decl and function declarations
 
-`step` and `func` declarations share the same shape:
+`decl` and `func` are the two declaration keywords. They share the
+same shape but differ in calling convention:
+
+- `func` — called with `()`, pure computation, returns a value
+- `decl` — called with `{}`, declarative, produces typed values
 
 ```
-keyword NAME(field: type, ...) ReturnType { body }
+func NAME(field: type, ...) ReturnType { body }
+decl NAME(field: type, ...) ReturnType { body }
 ```
 
-Only the keyword differs. Both take typed parameters, both declare a
-return/output type, both have a body.
+Both take typed parameters, both declare a return/output type, both
+can have a body.
 
 **Functions:**
 
@@ -457,10 +462,10 @@ func build_url(host: string, path: string = "/") string {
 }
 ```
 
-**User-defined step with body:**
+**User-defined decl with body:**
 
 ```
-step create_user(
+decl create_user(
     name:   string,
     groups: list[string] = [],
     shell:  string = "/bin/bash",
@@ -476,23 +481,23 @@ step create_user(
 }
 ```
 
-`self` refers to the step's own field values inside the body. The body
-produces a sequence of `StepInstance` values through bare step
+`self` refers to the decl's own field values inside the body. The body
+produces a sequence of `StepInstance` values through bare decl
 invocations (see §4.7).
 
 **Builtin stub (no body):**
 
-Steps in `std` are declarations with no body — just the signature:
+Decls in `std` are declarations with no body — just the signature:
 
 ```
-step pkg(
+decl pkg(
     packages: list[string],
     source:   PkgSource,
     state:    PkgState = PkgState.present,
     desc:     string?,
 ) StepInstance
 
-step ssh(
+decl ssh(
     name:     string,
     host:     string,
     user:     string,
@@ -502,12 +507,12 @@ step ssh(
     timeout:  string = "5s",
 ) Target
 
-step deploy(
+decl deploy(
     name:    string,
     targets: list[Target],
-) Deploy { /* body accepts step invocations */ }
+) Deploy { /* body accepts decl invocations */ }
 
-step secrets(
+decl secrets(
     backend: string,
     path:    string,
 ) SecretsConfig
@@ -519,28 +524,28 @@ documentation, and output type.
 
 **Call-site syntax differs from declaration:**
 
-Step declarations use parens with colons (matching func declarations).
-Step **invocations** use braces with equals (matching struct literals):
+Decl declarations use parens with colons (matching func declarations).
+Decl **invocations** use braces with equals (matching struct literals):
 
 ```
 // declaration: parens, colons
-step pkg(packages: list[string], source: PkgSource) StepInstance
+decl pkg(packages: list[string], source: PkgSource) StepInstance
 
 // invocation: braces, equals
 std.pkg { packages = ["nginx"], source = std.system {} }
 ```
 
-This reflects steps' dual nature — parameterized declarations (like
+This reflects decls' dual nature — parameterized declarations (like
 funcs) that produce typed records (constructed like struct literals).
 
 **Output type rules (v0):**
 
-- If omitted from a user-defined step, output type is `StepInstance`
-- User-defined steps must produce `StepInstance` (no custom output
+- If omitted from a user-defined decl, output type is `StepInstance`
+- User-defined decls must produce `StepInstance` (no custom output
   types in v0)
-- Builtin steps in std can produce any value type defined in std
+- Builtin decls in std can produce any value type defined in std
   (`Target`, `Deploy`, `SecretsConfig`, or `StepInstance`)
-- A step invocation's expression has the step's output type: e.g.
+- A decl invocation's expression has the decl's output type: e.g.
   `let v = std.target.ssh { ... }` gives `v` the type `Target`
 
 ### 4.4 Top-level scope and the engine
@@ -565,7 +570,7 @@ produces no `Deploy` values.
 
 ### 4.5 Targets (from `std/target`)
 
-Targets are `let`-bound step invocations that produce `Target` values:
+Targets are `let`-bound decl invocations that produce `Target` values:
 
 ```
 import "std/target"
@@ -595,8 +600,8 @@ string-name registry. Type-checked end to end.
 
 ### 4.6 Deploy (from `std`)
 
-A deploy is a step invocation that produces a `Deploy` value. Its body
-accepts step invocations (as statements for desired state, or as
+A deploy is a decl invocation that produces a `Deploy` value. Its body
+accepts decl invocations (as statements for desired state, or as
 let-bound values for reuse) and arbitrary `let` bindings:
 
 ```
@@ -625,20 +630,20 @@ std.deploy {
 ```
 
 The deploy body is just a block scope — it contains `let` bindings
-and step invocations. Bare step invocations become desired state;
+and decl invocations. Bare decl invocations become desired state;
 let-bound ones are values you can reference from `on_change` lists
 (see §4.7).
 
 ### 4.7 Statements vs values in body scopes
 
-Inside a body scope (a user-defined `step` body, a `std.deploy` body,
-or any nested block), step invocations behave differently depending
+Inside a body scope (a user-defined `decl` body, a `std.deploy` body,
+or any nested block), decl invocations behave differently depending
 on whether they appear as **statements** or **expressions**:
 
-- **Statement (bare invocation)** — the step is emitted as desired
+- **Statement (bare invocation)** — the decl is emitted as desired
   state. The engine collects it as part of the enclosing deploy's
   convergence work.
-- **Expression (let-bound or used in another value)** — the step
+- **Expression (let-bound or used in another value)** — the decl
   invocation produces a `StepInstance` (or other output type) value
   you can reuse. It is NOT automatically emitted as desired state.
 
@@ -699,7 +704,7 @@ std.secrets {
 let host = std.secret("vps.host")
 ```
 
-`std.secrets` is a step invocation producing a `SecretsConfig` value.
+`std.secrets` is a decl invocation producing a `SecretsConfig` value.
 At most one may appear at top-level across the project. `std.secret(key)`
 is a scalar function that returns a string resolved at evaluation time.
 
@@ -726,12 +731,12 @@ Shadowing is allowed in inner scopes.
   *contents* are mutable. You can do `my_map["key"] = value` and
   `my_list.append(item)`. This is where imperative data-building logic
   lives.
-- **Inside `step` blocks, `deploy` blocks, and top-level scope**:
+- **Inside `decl` blocks, `deploy` blocks, and top-level scope**:
   everything is recursively frozen. Once a value is bound, it and all its
   contents are immutable. You can call a function that builds a map, but
   once you have the result, no further mutation is possible.
 
-This creates a clean boundary: functions are where you *compute*, step
+This creates a clean boundary: functions are where you *compute*, decl
 blocks are where you *declare*. No side effects leak into declarations.
 
 ```
@@ -819,8 +824,8 @@ func build_dhcp_config(
 }
 ```
 
-Functions **cannot** contain step declarations. They take values and return
-values. For reusable step bundles, use `step` definitions.
+Functions **cannot** contain decl declarations. They take values and return
+values. For reusable step bundles, use `decl` definitions.
 
 Collection contents are mutable inside function bodies (see §5.1). This is
 where imperative data-building logic lives — conditionally inserting map
@@ -872,7 +877,7 @@ computations:
 
 ### 6.2 Composable types
 
-Composable types are small typed values that plug into step fields. They
+Composable types are small typed values that plug into decl fields. They
 use block syntax (like steps and structs), not function-call syntax.
 
 **Source resolvers:**
@@ -968,7 +973,7 @@ through normal scoping rules:
 
 ## 7. Standard library stubs
 
-These are generated from Go struct tags. They define every builtin step's
+These are generated from Go struct tags. They define every builtin decl's
 type signature. The LSP reads these as the authoritative source.
 
 ### 7.1 Enums
@@ -994,7 +999,7 @@ Defined in `std`, consumed by the engine from top-level scope:
 struct Target        { ... }   # opaque, produced by target.* steps
 struct Deploy        { ... }   # opaque, produced by std.deploy
 struct SecretsConfig { ... }   # opaque, produced by std.secrets
-struct StepInstance  { ... }   # opaque, produced by desired-state steps
+struct StepInstance  { ... }   # opaque, produced by desired-state decls
 ```
 
 ### 7.3 Target, deploy, secrets stubs
@@ -1002,7 +1007,7 @@ struct StepInstance  { ... }   # opaque, produced by desired-state steps
 ```
 # std/target.scampi
 
-step ssh(
+decl ssh(
     name:     string,
     host:     string,
     user:     string,
@@ -1012,9 +1017,9 @@ step ssh(
     timeout:  string = "5s",
 ) Target
 
-step local(name: string) Target
+decl local(name: string) Target
 
-step rest(
+decl rest(
     name:     string,
     base_url: string,
     auth:     Auth = rest.no_auth {},
@@ -1025,36 +1030,36 @@ step rest(
 ```
 # std/deploy.scampi
 
-step deploy(
+decl deploy(
     name:    string,
     targets: list[Target],
 ) Deploy {
-    # body: let bindings + bare step invocations
-    # bare step invocations produce desired state
+    # body: let bindings + bare decl invocations
+    # bare decl invocations produce desired state
 }
 ```
 
 ```
 # std/secrets.scampi
 
-step secrets(
+decl secrets(
     backend: string,
     path:    string,
 ) SecretsConfig
 ```
 
-### 7.4 Desired-state step stubs
+### 7.4 Desired-state decl stubs
 
 All produce `StepInstance` (the default output type). Every desired-
-state step implicitly has `on_change: list[StepInstance] = []` —
-reactive steps to fire when this step changes. `desc: string?` is
+state decl implicitly has `on_change: list[StepInstance] = []` —
+reactive decls to fire when this step changes. `desc: string?` is
 shown on each stub.
 
 ```
 # File operations
 # ---------------------------------------------------------------------------
 
-step copy(
+decl copy(
     src:    Source,
     dest:   string,
     perm:   string,
@@ -1064,7 +1069,7 @@ step copy(
     desc:   string?,
 ) StepInstance
 
-step dir(
+decl dir(
     path:  string,
     perm:  string?,
     owner: string?,
@@ -1072,7 +1077,7 @@ step dir(
     desc:  string?,
 ) StepInstance
 
-step symlink(
+decl symlink(
     target: string,
     link:   string,
     desc:   string?,
@@ -1083,7 +1088,7 @@ struct TemplateData {
     env:    map[string, string] = {}
 }
 
-step template(
+decl template(
     src:    Source,
     dest:   string,
     data:   TemplateData?,
@@ -1094,7 +1099,7 @@ step template(
     desc:   string?,
 ) StepInstance
 
-step unarchive(
+decl unarchive(
     src:   Source,
     dest:  string,
     depth: int = 0,
@@ -1107,7 +1112,7 @@ step unarchive(
 # Package management
 # ---------------------------------------------------------------------------
 
-step pkg(
+decl pkg(
     packages: list[string],
     source:   PkgSource,
     state:    PkgState = PkgState.present,
@@ -1117,7 +1122,7 @@ step pkg(
 # Service management
 # ---------------------------------------------------------------------------
 
-step service(
+decl service(
     name:    string,
     state:   SvcState = SvcState.running,
     enabled: bool = true,
@@ -1127,7 +1132,7 @@ step service(
 # User and group management
 # ---------------------------------------------------------------------------
 
-step user(
+decl user(
     name:     string,
     state:    UserState = UserState.present,
     shell:    string?,
@@ -1138,7 +1143,7 @@ step user(
     desc:     string?,
 ) StepInstance
 
-step group(
+decl group(
     name:   string,
     state:  GroupState = GroupState.present,
     gid:    int?,
@@ -1149,14 +1154,14 @@ step group(
 # System configuration
 # ---------------------------------------------------------------------------
 
-step sysctl(
+decl sysctl(
     key:     string,
     value:   string,
     persist: bool = true,
     desc:    string?,
 ) StepInstance
 
-step mount(
+decl mount(
     src:   string,
     dest:  string,
     type:  FsType,
@@ -1165,7 +1170,7 @@ step mount(
     desc:  string?,
 ) StepInstance
 
-step firewall(
+decl firewall(
     port:   string,
     action: FwAction = FwAction.allow,
     desc:   string?,
@@ -1174,7 +1179,7 @@ step firewall(
 # Command execution
 # ---------------------------------------------------------------------------
 
-step run(
+decl run(
     apply:  string,
     check:  string?,       # mutually exclusive with always
     always: bool = false,  # mutually exclusive with check
@@ -1184,7 +1189,7 @@ step run(
 # Container management (in std/container)
 # ---------------------------------------------------------------------------
 
-step container.instance(
+decl container.instance(
     name:        string,
     image:       string,
     state:       CtrState = CtrState.running,
@@ -1201,7 +1206,7 @@ step container.instance(
 # REST (in std/rest)
 # ---------------------------------------------------------------------------
 
-step rest.request(
+decl rest.request(
     method:  HttpMethod,
     path:    string,
     headers: map[string, string]?,
@@ -1210,7 +1215,7 @@ step rest.request(
     desc:    string?,
 ) StepInstance
 
-step rest.resource(
+decl rest.resource(
     query:    rest.request,
     missing:  rest.request?,
     found:    rest.request?,
@@ -1536,7 +1541,7 @@ std.deploy {
 }
 ```
 
-### 8.6 User-defined step with iteration
+### 8.6 User-defined decl with iteration
 
 ```
 import "std"
@@ -1549,7 +1554,7 @@ struct TeamMember {
     admin:  bool = false
 }
 
-step create_user(member: TeamMember) StepInstance {
+decl create_user(member: TeamMember) StepInstance {
     std.user {
         name   = self.member.name
         groups = self.member.groups
@@ -1732,7 +1737,7 @@ engine has its own error model for execution failures).
 
 **Compile-time errors:**
 - Type mismatches
-- Unknown fields in step blocks
+- Unknown fields in decl blocks
 - Missing required fields
 - Unknown imports
 - Ambiguous bare enum variants
@@ -1777,9 +1782,9 @@ use_decl       = 'use' use_path ('as' IDENT)? ;
 use_path       = (IDENT '.')* (IDENT | '*')
                | STRING ('.' (IDENT | '*'))? ;
 
-declaration    = step_decl | struct_decl | enum_decl | fn_decl ;
+declaration    = decl_decl | struct_decl | enum_decl | fn_decl ;
 
-step_decl      = 'step' dotted_name '(' params ')' type_expr?
+decl_decl      = 'decl' dotted_name '(' params ')' type_expr?
                  ('{' block_body '}')? ;
 struct_decl    = 'struct' IDENT '{' field_defs '}' ;
 enum_decl      = 'enum' IDENT '{' (IDENT ',')* '}' ;
@@ -1845,21 +1850,21 @@ support — the parser must produce a partial AST from broken source.
 ### 13.2 Type checker
 
 Single-pass type checker operating on the AST. All type information is
-resolved from explicit annotations (function signatures, step definitions,
+resolved from explicit annotations (function signatures, decl definitions,
 struct fields). Local variable types are inferred from their initializer.
 
 ### 13.3 Evaluator
 
 Tree-walking evaluator. The language is simple enough that compilation to
-bytecode is unnecessary. Evaluation produces a list of step declarations
+bytecode is unnecessary. Evaluation produces a list of decl declarations
 consumed by the engine.
 
 ### 13.4 LSP integration
 
 The LSP operates on the type-checked AST. Core features:
 
-- **Completion**: field names in step blocks, enum variants, imported symbols
-- **Hover**: type signatures, step documentation, field descriptions
+- **Completion**: field names in decl blocks, enum variants, imported symbols
+- **Hover**: type signatures, decl documentation, field descriptions
 - **Go to definition**: across files, for steps, types, enums, functions
 - **Rename**: sound cross-file rename (no dynamic dispatch, no reflection)
 - **Diagnostics**: type errors, missing fields, unknown symbols — all at

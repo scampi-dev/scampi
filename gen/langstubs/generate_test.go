@@ -56,7 +56,7 @@ func TestGenerateBasic(t *testing.T) {
 	}
 	out := buf.String()
 	assertContains(t, out, "enum PkgState { present, absent, latest }")
-	assertContains(t, out, "step pkg(")
+	assertContains(t, out, "decl pkg(")
 	assertContains(t, out, "packages:")
 	assertContains(t, out, "list[string]")
 	assertContains(t, out, "PkgState = PkgState.present")
@@ -76,7 +76,7 @@ func TestGenerateNoEnums(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := buf.String()
-	assertContains(t, out, "step copy(")
+	assertContains(t, out, "decl copy(")
 	assertContains(t, out, "src:")
 	assertContains(t, out, "verify:")
 	assertContains(t, out, "string?")
@@ -125,9 +125,9 @@ func TestGenerateMultipleSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := buf.String()
-	assertContains(t, out, "step pkg(")
-	assertContains(t, out, "step copy(")
-	assertContains(t, out, "step ssh(")
+	assertContains(t, out, "decl pkg(")
+	assertContains(t, out, "decl copy(")
+	assertContains(t, out, "decl ssh(")
 }
 
 func TestGenerateImplicitFields(t *testing.T) {

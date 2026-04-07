@@ -109,7 +109,7 @@ Pointer fields are treated as optional (`T?`). Fields tagged
 ## Output format
 
 For each step, the generator emits a declaration in the unified
-`step NAME(field: type, ...) OutputType` syntax:
+`decl NAME(field: type, ...) OutputType` syntax:
 
 ```scampi
 # Auto-generated from Go struct tags. Do not edit.
@@ -117,7 +117,7 @@ For each step, the generator emits a declaration in the unified
 enum PkgState { present, absent, latest }
 
 # Copy files with owner and permission management.
-step copy(
+decl copy(
   src:    Source,
   dest:   string,
   perm:   string,
@@ -130,11 +130,11 @@ step copy(
 
 - One file per std submodule (`std.scampi`, `std/container.scampi`,
   `std/rest.scampi`, `std/target.scampi`)
-- Enum declarations precede the steps that use them
-- The `desc` and `on_change` fields are implicit on every step (the
+- Enum declarations precede the decls that use them
+- The `desc` and `on_change` fields are implicit on every decl (the
   generator adds them)
-- Output type is `StepInstance` for desired-state steps, `Target` for
-  target steps, etc.
+- Output type is `StepInstance` for desired-state decls, `Target` for
+  target decls, etc.
 
 ## Step kind → output type mapping
 

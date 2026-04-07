@@ -136,7 +136,7 @@ func (ev *Evaluator) evalDecl(d ast.Decl) {
 			body:     d.Body,
 			scope:    ev.env,
 		})
-	case *ast.StepDecl:
+	case *ast.DeclDecl:
 		if d.Body != nil {
 			ev.env.set(d.Name.Parts[0].Name, &FuncVal{
 				Name:  d.Name.Parts[0].Name,
@@ -501,7 +501,7 @@ func (ev *Evaluator) lookupStep(name string) (*FuncVal, bool) {
 // collected and returned. If inside a deploy, they're also appended to
 // the current deploy's steps.
 func (ev *Evaluator) expandUserStep(fv *FuncVal, fields map[string]Value) Value {
-	stepDecl, ok := fv.body.(*ast.StepDecl)
+	stepDecl, ok := fv.body.(*ast.DeclDecl)
 	if !ok || stepDecl.Body == nil {
 		return &StructVal{TypeName: fv.Name, Fields: fields}
 	}

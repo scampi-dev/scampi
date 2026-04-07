@@ -164,19 +164,19 @@ func build_url(host: string, path: string = "/") string {
 	}
 }
 
-// step decl
+// decl decl
 // -----------------------------------------------------------------------------
 
-func TestParseStepWithBody(t *testing.T) {
+func TestParseDeclWithBody(t *testing.T) {
 	f := parseFile(t, `
 module main
-step create_user(name: string, shell: string = "/bin/bash") StepInstance {
+decl create_user(name: string, shell: string = "/bin/bash") StepInstance {
     std.user { name = self.name, shell = self.shell }
 }
 `)
-	s := f.Decls[0].(*ast.StepDecl)
+	s := f.Decls[0].(*ast.DeclDecl)
 	if len(s.Name.Parts) != 1 || s.Name.Parts[0].Name != "create_user" {
-		t.Errorf("step name wrong")
+		t.Errorf("decl name wrong")
 	}
 	if len(s.Params) != 2 {
 		t.Fatalf("expected 2 params, got %d", len(s.Params))
@@ -186,12 +186,12 @@ step create_user(name: string, shell: string = "/bin/bash") StepInstance {
 	}
 }
 
-func TestParseStepStub(t *testing.T) {
+func TestParseDeclStub(t *testing.T) {
 	f := parseFile(t, `
 module main
-step pkg(packages: list[string], state: PkgState = PkgState.present) StepInstance
+decl pkg(packages: list[string], state: PkgState = PkgState.present) StepInstance
 `)
-	s := f.Decls[0].(*ast.StepDecl)
+	s := f.Decls[0].(*ast.DeclDecl)
 	if s.Body != nil {
 		t.Error("stub should have no body")
 	}
@@ -200,12 +200,12 @@ step pkg(packages: list[string], state: PkgState = PkgState.present) StepInstanc
 	}
 }
 
-func TestParseStepDottedName(t *testing.T) {
+func TestParseDeclDottedName(t *testing.T) {
 	f := parseFile(t, `
 module main
-step container.instance(name: string) StepInstance
+decl container.instance(name: string) StepInstance
 `)
-	s := f.Decls[0].(*ast.StepDecl)
+	s := f.Decls[0].(*ast.DeclDecl)
 	if len(s.Name.Parts) != 2 {
 		t.Fatalf("expected dotted name with 2 parts, got %d", len(s.Name.Parts))
 	}
@@ -468,7 +468,7 @@ struct User {
     groups: list[string] = []
 }
 
-step create_user(u: User) StepInstance {
+decl create_user(u: User) StepInstance {
     std.user {
         name = u.name
         groups = u.groups

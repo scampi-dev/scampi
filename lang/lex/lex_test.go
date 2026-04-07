@@ -72,11 +72,11 @@ func TestIdentsAndKeywords(t *testing.T) {
 }
 
 func TestKeywords(t *testing.T) {
-	assertTokens(t, "import let func step struct enum for in if else return true false none self", []want{
+	assertTokens(t, "import let func decl struct enum for in if else return true false none self", []want{
 		{token.Import, "import"},
 		{token.Let, "let"},
 		{token.Func, "func"},
-		{token.Step, "step"},
+		{token.Decl, "decl"},
 		{token.Struct, "struct"},
 		{token.Enum, "enum"},
 		{token.For, "for"},

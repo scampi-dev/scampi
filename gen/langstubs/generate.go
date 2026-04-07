@@ -144,7 +144,7 @@ func emitStep(bw *builder, in StubInput) {
 		}
 	}
 
-	bw.line("step " + in.Kind + "(")
+	bw.line("decl " + in.Kind + "(")
 	for i, r := range rows {
 		comma := ","
 		if i == len(rows)-1 {

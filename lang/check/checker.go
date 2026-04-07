@@ -85,8 +85,8 @@ func (c *Checker) enter(n ast.Node) bool {
 		c.checkFuncDecl(n)
 		return false // we handle our own child walk
 
-	case *ast.StepDecl:
-		c.checkStepDecl(n)
+	case *ast.DeclDecl:
+		c.checkDeclDecl(n)
 		return false
 
 	case *ast.LetDecl:
@@ -234,9 +234,9 @@ func (c *Checker) registerDecl(d ast.Decl) {
 		c.scope.Define(&Symbol{
 			Name: d.Name.Name, Kind: SymFunc, Span: d.SrcSpan,
 		})
-	case *ast.StepDecl:
+	case *ast.DeclDecl:
 		c.scope.Define(&Symbol{
-			Name: d.Name.Parts[0].Name, Kind: SymStep, Span: d.SrcSpan,
+			Name: d.Name.Parts[0].Name, Kind: SymDecl, Span: d.SrcSpan,
 		})
 	case *ast.LetDecl:
 		c.scope.Define(&Symbol{
@@ -303,7 +303,7 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 	}
 }
 
-func (c *Checker) checkStepDecl(d *ast.StepDecl) {
+func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {
 	var ret Type = StepInstanceType
 	if d.Ret != nil {
 		ret = c.resolveType(d.Ret)
@@ -318,12 +318,12 @@ func (c *Checker) checkStepDecl(d *ast.StepDecl) {
 				Name: p.Name.Name, Type: pt, HasDef: p.Default != nil,
 			})
 		}
-		sym.Type = &StepType{
+		sym.Type = &DeclType{
 			Name: name, Params: params, Ret: ret, HasBody: d.Body != nil,
 		}
 	}
 	if d.Body != nil {
-		c.pushScope(ScopeStep)
+		c.pushScope(ScopeDecl)
 		prevSelf := c.selfFields
 		var stepParams []*FieldDef
 		for _, p := range d.Params {
@@ -400,7 +400,7 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 			return bt
 		}
 		sym := c.scope.Lookup(name)
-		if sym != nil && (sym.Kind == SymStruct || sym.Kind == SymEnum || sym.Kind == SymStep) {
+		if sym != nil && (sym.Kind == SymStruct || sym.Kind == SymEnum || sym.Kind == SymDecl) {
 			return sym.Type
 		}
 		c.errAt(t.SrcSpan, "unknown type: "+name)

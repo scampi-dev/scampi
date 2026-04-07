@@ -91,7 +91,7 @@ func TestKeywordLookup(t *testing.T) {
 		{"import", Import},
 		{"let", Let},
 		{"func", Func},
-		{"step", Step},
+		{"decl", Decl},
 		{"struct", Struct},
 		{"enum", Enum},
 		{"for", For},
@@ -103,7 +103,7 @@ func TestKeywordLookup(t *testing.T) {
 		{"none", None},
 		{"self", Self},
 		{"foo", Ident},
-		{"Step", Ident}, // case-sensitive
+		{"Decl", Ident}, // case-sensitive
 		{"", Ident},
 	}
 	for _, tc := range cases {

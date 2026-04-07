@@ -32,7 +32,7 @@ const (
 	Import
 	Let
 	Func
-	Step
+	Decl
 	Struct
 	Enum
 	For
@@ -115,7 +115,7 @@ var Keywords = map[string]Kind{
 	"import": Import,
 	"let":    Let,
 	"func":   Func,
-	"step":   Step,
+	"decl":   Decl,
 	"struct": Struct,
 	"enum":   Enum,
 	"for":    For,

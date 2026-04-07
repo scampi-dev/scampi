@@ -142,7 +142,7 @@ func (p *Parser) skipSemis() {
 // isDeclStart reports whether a token kind can begin a declaration.
 func isDeclStart(k token.Kind) bool {
 	switch k {
-	case token.Struct, token.Enum, token.Func, token.Step, token.Let:
+	case token.Struct, token.Enum, token.Func, token.Decl, token.Let:
 		return true
 	}
 	return false

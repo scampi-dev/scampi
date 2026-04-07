@@ -2,6 +2,6 @@ module main
 
 import "std"
 
-step create_user(name: string, shell: string = "/bin/bash") StepInstance {
+decl create_user(name: string, shell: string = "/bin/bash") StepInstance {
   std.user { name = self.name, shell = self.shell }
 }

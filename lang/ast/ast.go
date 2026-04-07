@@ -95,9 +95,9 @@ func (d *FuncDecl) Span() token.Span { return d.SrcSpan }
 func (*FuncDecl) astNode()           {}
 func (*FuncDecl) declNode()          {}
 
-// StepDecl is a `step Name(params) OutputType { body }` declaration.
+// DeclDecl is a `decl Name(params) OutputType { body }` declaration.
 // Body may be nil for stubs. Name may be dotted (e.g. container.instance).
-type StepDecl struct {
+type DeclDecl struct {
 	Name    *DottedName
 	Params  []*Field
 	Ret     TypeExpr // nil means defaults to StepInstance
@@ -105,9 +105,9 @@ type StepDecl struct {
 	SrcSpan token.Span
 }
 
-func (d *StepDecl) Span() token.Span { return d.SrcSpan }
-func (*StepDecl) astNode()           {}
-func (*StepDecl) declNode()          {}
+func (d *DeclDecl) Span() token.Span { return d.SrcSpan }
+func (*DeclDecl) astNode()           {}
+func (*DeclDecl) declNode()          {}
 
 // LetDecl is a `let name: type = expr` binding.
 type LetDecl struct {

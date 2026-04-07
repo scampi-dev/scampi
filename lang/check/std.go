@@ -6,7 +6,7 @@ package check
 // ssh, local, and rest target steps.
 func TargetModule() *Scope {
 	s := NewScope(nil, ScopeFile)
-	s.Define(&Symbol{Name: "ssh", Type: &StepType{
+	s.Define(&Symbol{Name: "ssh", Type: &DeclType{
 		Name: "ssh",
 		Params: []*FieldDef{
 			{Name: "name", Type: StringType},
@@ -18,13 +18,13 @@ func TargetModule() *Scope {
 			{Name: "timeout", Type: StringType, HasDef: true},
 		},
 		Ret: TargetType,
-	}, Kind: SymStep})
-	s.Define(&Symbol{Name: "local", Type: &StepType{
+	}, Kind: SymDecl})
+	s.Define(&Symbol{Name: "local", Type: &DeclType{
 		Name:   "local",
 		Params: []*FieldDef{{Name: "name", Type: StringType}},
 		Ret:    TargetType,
-	}, Kind: SymStep})
-	s.Define(&Symbol{Name: "rest", Type: &StepType{
+	}, Kind: SymDecl})
+	s.Define(&Symbol{Name: "rest", Type: &DeclType{
 		Name: "rest",
 		Params: []*FieldDef{
 			{Name: "name", Type: StringType},
@@ -33,7 +33,7 @@ func TargetModule() *Scope {
 			{Name: "tls", Type: TLSType, HasDef: true},
 		},
 		Ret: TargetType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 	return s
 }
 
@@ -58,33 +58,33 @@ func StdModule() *Scope {
 	}, Kind: SymFunc})
 
 	// Source composables.
-	s.Define(&Symbol{Name: "local", Type: &StepType{
+	s.Define(&Symbol{Name: "local", Type: &DeclType{
 		Name:   "local",
 		Params: []*FieldDef{{Name: "path", Type: StringType}},
 		Ret:    SourceType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
-	s.Define(&Symbol{Name: "inline", Type: &StepType{
+	s.Define(&Symbol{Name: "inline", Type: &DeclType{
 		Name:   "inline",
 		Params: []*FieldDef{{Name: "content", Type: StringType}},
 		Ret:    SourceType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
-	s.Define(&Symbol{Name: "remote", Type: &StepType{
+	s.Define(&Symbol{Name: "remote", Type: &DeclType{
 		Name: "remote",
 		Params: []*FieldDef{
 			{Name: "url", Type: StringType},
 			{Name: "checksum", Type: &Optional{Inner: StringType}, HasDef: true},
 		},
 		Ret: SourceType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
 	// Package sources.
-	s.Define(&Symbol{Name: "system", Type: &StepType{
+	s.Define(&Symbol{Name: "system", Type: &DeclType{
 		Name: "system", Ret: PkgSourceType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
-	s.Define(&Symbol{Name: "apt_repo", Type: &StepType{
+	s.Define(&Symbol{Name: "apt_repo", Type: &DeclType{
 		Name: "apt_repo",
 		Params: []*FieldDef{
 			{Name: "url", Type: StringType},
@@ -93,29 +93,29 @@ func StdModule() *Scope {
 			{Name: "suite", Type: &Optional{Inner: StringType}, HasDef: true},
 		},
 		Ret: PkgSourceType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
-	s.Define(&Symbol{Name: "dnf_repo", Type: &StepType{
+	s.Define(&Symbol{Name: "dnf_repo", Type: &DeclType{
 		Name: "dnf_repo",
 		Params: []*FieldDef{
 			{Name: "url", Type: StringType},
 			{Name: "key_url", Type: &Optional{Inner: StringType}, HasDef: true},
 		},
 		Ret: PkgSourceType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
 	// Secrets config.
-	s.Define(&Symbol{Name: "secrets", Type: &StepType{
+	s.Define(&Symbol{Name: "secrets", Type: &DeclType{
 		Name: "secrets",
 		Params: []*FieldDef{
 			{Name: "backend", Type: StringType},
 			{Name: "path", Type: StringType},
 		},
 		Ret: SecretsConfigType,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
 	// Deploy.
-	s.Define(&Symbol{Name: "deploy", Type: &StepType{
+	s.Define(&Symbol{Name: "deploy", Type: &DeclType{
 		Name: "deploy",
 		Params: []*FieldDef{
 			{Name: "name", Type: StringType},
@@ -123,7 +123,7 @@ func StdModule() *Scope {
 		},
 		Ret:     DeployType,
 		HasBody: true,
-	}, Kind: SymStep})
+	}, Kind: SymDecl})
 
 	// Enums.
 	pkgState := &EnumType{Name: "PkgState", Variants: []string{"present", "absent", "latest"}}
@@ -237,8 +237,8 @@ func StdModule() *Scope {
 	for _, st := range steps {
 		s.Define(&Symbol{
 			Name: st.name,
-			Type: &StepType{Name: st.name, Params: st.params, Ret: StepInstanceType},
-			Kind: SymStep,
+			Type: &DeclType{Name: st.name, Params: st.params, Ret: StepInstanceType},
+			Kind: SymDecl,
 		})
 	}
 

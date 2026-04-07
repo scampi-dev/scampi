@@ -254,7 +254,7 @@ func (c *Checker) checkStructLit(lit *ast.StructLit) Type {
 	case *StructType:
 		c.checkFieldInits(tt.Fields, lit.Fields, tt.Name, lit.SrcSpan)
 		return tt
-	case *StepType:
+	case *DeclType:
 		c.checkFieldInits(tt.Params, lit.Fields, tt.Name, lit.SrcSpan)
 		// Check body statements (step invocations inside deploy/step bodies).
 		for _, s := range lit.Body {
@@ -262,7 +262,7 @@ func (c *Checker) checkStructLit(lit *ast.StructLit) Type {
 		}
 		return tt.Ret
 	}
-	c.errAt(lit.SrcSpan, t.String()+" is not a struct or step type")
+	c.errAt(lit.SrcSpan, t.String()+" is not a struct or decl type")
 	return nil
 }
 

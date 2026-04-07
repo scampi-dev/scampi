@@ -56,7 +56,7 @@ func walkChildren(node Node, pre func(Node) bool, post func(Node)) {
 		walkTypeExpr(n.Ret, pre, post)
 		Walk(n.Body, pre, post)
 
-	case *StepDecl:
+	case *DeclDecl:
 		Walk(n.Name, pre, post)
 		walkFieldList(n.Params, pre, post)
 		walkTypeExpr(n.Ret, pre, post)

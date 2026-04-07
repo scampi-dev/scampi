@@ -337,7 +337,7 @@ func assertDecls(t *testing.T, f *ast.File, want []expectDecl) {
 			if w.Variants > 0 && len(dd.Variants) != w.Variants {
 				t.Errorf("decl[%d] variants: got %d, want %d", i, len(dd.Variants), w.Variants)
 			}
-		case *ast.StepDecl:
+		case *ast.DeclDecl:
 			if w.Params > 0 && len(dd.Params) != w.Params {
 				t.Errorf("decl[%d] params: got %d, want %d", i, len(dd.Params), w.Params)
 			}
@@ -386,8 +386,8 @@ func declKindName(d ast.Decl) (string, string) {
 		return "enum", d.Name.Name
 	case *ast.FuncDecl:
 		return "func", d.Name.Name
-	case *ast.StepDecl:
-		return "step", d.Name.Parts[0].Name
+	case *ast.DeclDecl:
+		return "decl", d.Name.Parts[0].Name
 	case *ast.LetDecl:
 		return "let", d.Name.Name
 	}

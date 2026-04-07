@@ -170,8 +170,8 @@ func (r *Resolver) mergeScope(into *check.Scope, f *ast.File) {
 			into.Define(&check.Symbol{Name: d.Name.Name, Kind: check.SymEnum, Span: d.SrcSpan})
 		case *ast.FuncDecl:
 			into.Define(&check.Symbol{Name: d.Name.Name, Kind: check.SymFunc, Span: d.SrcSpan})
-		case *ast.StepDecl:
-			into.Define(&check.Symbol{Name: d.Name.Parts[0].Name, Kind: check.SymStep, Span: d.SrcSpan})
+		case *ast.DeclDecl:
+			into.Define(&check.Symbol{Name: d.Name.Parts[0].Name, Kind: check.SymDecl, Span: d.SrcSpan})
 		case *ast.LetDecl:
 			into.Define(&check.Symbol{Name: d.Name.Name, Kind: check.SymLet, Span: d.SrcSpan})
 		}
