@@ -1,5 +1,5 @@
 module main
 
-import "std"
+import "std/posix"
 
-std.copy { dest = "/tmp/foo" }
+posix.copy { dest = "/tmp/foo" }

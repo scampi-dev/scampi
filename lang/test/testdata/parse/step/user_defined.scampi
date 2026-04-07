@@ -1,7 +1,8 @@
 module main
 
 import "std"
+import "std/posix"
 
-decl create_user(name: string, shell: string = "/bin/bash") Step {
-  std.user { name = self.name, shell = self.shell }
+decl create_user(name: string, shell: string = "/bin/bash") std.Step {
+  posix.user { name = self.name, shell = self.shell }
 }

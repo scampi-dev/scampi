@@ -3,11 +3,11 @@ module main
 # Translated from .infra/tools.scampi (inlined, no multi-file imports)
 
 import "std"
-import "std/target"
+import "std/posix"
 
-std.secrets { backend = "age", path = "secrets.age.json" }
+std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
 
-let vps = target.ssh {
+let vps = posix.ssh {
   name = "vps"
   host = "203.0.113.10"
   user = "hal9000"
@@ -16,9 +16,10 @@ let vps = target.ssh {
 std.deploy {
   name = "tools"
   targets = [vps]
-
-  std.pkg {
-    packages = ["neovim", "htop", "btop"]
-    source = std.system {}
-  }
+  steps = [
+    posix.pkg {
+      packages = ["neovim", "htop", "btop"]
+      source = posix.pkg_system {}
+    },
+  ]
 }

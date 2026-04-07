@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package std
+package std_test
 
 import (
 	"testing"
 
 	"scampi.dev/scampi/lang/check"
+	"scampi.dev/scampi/std"
 )
 
 func TestStdLibCompiles(t *testing.T) {
-	modules, err := check.BootstrapStd(FS)
+	modules, err := check.BootstrapStd(std.FS)
 	if err != nil {
 		t.Fatalf("bootstrap: %v", err)
 	}

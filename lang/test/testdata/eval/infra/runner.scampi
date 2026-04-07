@@ -3,11 +3,11 @@ module main
 # Translated from .infra/runner.scampi (inlined)
 
 import "std"
-import "std/target"
+import "std/posix"
 
-std.secrets { backend = "age", path = "secrets.age.json" }
+std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
 
-let vps = target.ssh {
+let vps = posix.ssh {
   name = "vps"
   host = "203.0.113.10"
   user = "hal9000"
@@ -22,113 +22,117 @@ let go_url = "https://go.dev/dl/go${go_version}.linux-amd64.tar.gz"
 let just_version = "1.46.0"
 let just_url = "https://github.com/casey/just/releases/download/${just_version}/just-${just_version}-x86_64-unknown-linux-musl.tar.gz"
 
+let restart_runner = posix.service {
+  name = "forgejo-runner"
+  state = posix.ServiceState.restarted
+}
+let restart_docker = posix.service {
+  name = "docker"
+  state = posix.ServiceState.restarted
+}
+
 std.deploy {
   name = "runner"
   targets = [vps]
+  steps = [
+    restart_runner,
+    restart_docker,
 
-  let restart_runner = std.service {
-    name = "forgejo-runner"
-    state = std.SvcState.restarted
-  }
-  let restart_docker = std.service {
-    name = "docker"
-    state = std.SvcState.restarted
-  }
+    posix.pkg {
+      packages = ["git", "shellcheck", "curl", "nodejs", "npm", "gcc", "libc6-dev", "jq"]
+      source = posix.pkg_system {}
+    },
 
-  std.pkg {
-    packages = ["git", "shellcheck", "curl", "nodejs", "npm", "gcc", "libc6-dev", "jq"]
-    source = std.system {}
-  }
+    # Go
+    posix.unarchive {
+      src = posix.source_remote { url = go_url }
+      dest = "/usr/local"
+    },
+    posix.copy {
+      src = posix.source_inline { content = "export PATH=\"/usr/local/go/bin:$PATH\"\n" }
+      dest = "/etc/profile.d/go.sh"
+      perm = "0644"
+      owner = "root"
+      group = "root"
+    },
+    posix.symlink { target = "/usr/local/go/bin/go", link = "/usr/local/bin/go" },
 
-  # Go
-  std.unarchive {
-    src = std.remote { url = go_url }
-    dest = "/usr/local"
-  }
-  std.copy {
-    src = std.inline { content = "export PATH=\"/usr/local/go/bin:$PATH\"\n" }
-    dest = "/etc/profile.d/go.sh"
-    perm = "0644"
-    owner = "root"
-    group = "root"
-  }
-  std.symlink { target = "/usr/local/go/bin/go", link = "/usr/local/bin/go" }
+    # just
+    posix.unarchive {
+      src = posix.source_remote { url = just_url }
+      dest = "/usr/local/bin"
+    },
 
-  # just
-  std.unarchive {
-    src = std.remote { url = just_url }
-    dest = "/usr/local/bin"
-  }
+    # Docker
+    posix.pkg {
+      packages = [
+        "docker-ce", "docker-ce-cli", "containerd.io",
+        "docker-buildx-plugin", "docker-compose-plugin",
+      ]
+      source = posix.pkg_apt_repo {
+        url = "https://download.docker.com/linux/debian"
+        key_url = "https://download.docker.com/linux/debian/gpg"
+        components = ["stable"]
+      }
+    },
+    posix.copy {
+      src = posix.source_inline { content = "{\"features\":{\"buildkit\":true}}\n" }
+      dest = "/etc/docker/daemon.json"
+      perm = "0644"
+      owner = "root"
+      group = "root"
+      on_change = [restart_docker]
+    },
+    posix.service { name = "docker", state = posix.ServiceState.running, enabled = true },
 
-  # Docker
-  std.pkg {
-    packages = [
-      "docker-ce", "docker-ce-cli", "containerd.io",
-      "docker-buildx-plugin", "docker-compose-plugin",
-    ]
-    source = std.apt_repo {
-      url = "https://download.docker.com/linux/debian"
-      key_url = "https://download.docker.com/linux/debian/gpg"
-      components = ["stable"]
-    }
-  }
-  std.copy {
-    src = std.inline { content = "{\"features\":{\"buildkit\":true}}\n" }
-    dest = "/etc/docker/daemon.json"
-    perm = "0644"
-    owner = "root"
-    group = "root"
-    on_change = [restart_docker]
-  }
-  std.service { name = "docker", state = std.SvcState.running, enabled = true }
+    # Runner user
+    posix.user {
+      name = "forgejo-runner"
+      shell = "/bin/bash"
+      home = "/home/forgejo-runner"
+      system = true
+      groups = ["docker"]
+    },
 
-  # Runner user
-  std.user {
-    name = "forgejo-runner"
-    shell = "/bin/bash"
-    home = "/home/forgejo-runner"
-    system = true
-    groups = ["docker"]
-  }
+    # Runner binary
+    posix.copy {
+      src = posix.source_remote { url = runner_url }
+      dest = "/usr/local/bin/forgejo-runner"
+      perm = "0755"
+      owner = "root"
+      group = "root"
+    },
 
-  # Runner binary
-  std.copy {
-    src = std.remote { url = runner_url }
-    dest = "/usr/local/bin/forgejo-runner"
-    perm = "0755"
-    owner = "root"
-    group = "root"
-  }
+    posix.dir {
+      path = "/var/lib/forgejo-runner"
+      perm = "0755"
+      owner = "forgejo-runner"
+      group = "forgejo-runner"
+    },
 
-  std.dir {
-    path = "/var/lib/forgejo-runner"
-    perm = "0755"
-    owner = "forgejo-runner"
-    group = "forgejo-runner"
-  }
+    posix.copy {
+      src = posix.source_local { path = "./files/forgejo-runner-config.yml" }
+      dest = "/var/lib/forgejo-runner/config.yml"
+      perm = "0640"
+      owner = "forgejo-runner"
+      group = "forgejo-runner"
+      on_change = [restart_runner]
+    },
 
-  std.copy {
-    src = std.local { path = "./files/forgejo-runner-config.yml" }
-    dest = "/var/lib/forgejo-runner/config.yml"
-    perm = "0640"
-    owner = "forgejo-runner"
-    group = "forgejo-runner"
-    on_change = [restart_runner]
-  }
+    posix.copy {
+      src = posix.source_local { path = "./files/forgejo-runner.service" }
+      dest = "/etc/systemd/system/forgejo-runner.service"
+      perm = "0644"
+      owner = "root"
+      group = "root"
+      on_change = [restart_runner]
+    },
 
-  std.copy {
-    src = std.local { path = "./files/forgejo-runner.service" }
-    dest = "/etc/systemd/system/forgejo-runner.service"
-    perm = "0644"
-    owner = "root"
-    group = "root"
-    on_change = [restart_runner]
-  }
+    posix.run {
+      check = "systemctl is-enabled tmp.mount 2>/dev/null | grep -q masked"
+      apply = "sudo systemctl mask tmp.mount"
+    },
 
-  std.run {
-    check = "systemctl is-enabled tmp.mount 2>/dev/null | grep -q masked"
-    apply = "sudo systemctl mask tmp.mount"
-  }
-
-  std.service { name = "forgejo-runner", state = std.SvcState.running, enabled = true }
+    posix.service { name = "forgejo-runner", state = posix.ServiceState.running, enabled = true },
+  ]
 }

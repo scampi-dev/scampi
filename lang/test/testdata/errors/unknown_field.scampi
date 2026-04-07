@@ -1,5 +1,5 @@
 module main
 
-import "std"
+import "std/posix"
 
-std.pkg { packages = ["nginx"], source = std.system {}, bogus = "oops" }
+posix.pkg { packages = ["nginx"], source = posix.pkg_system {}, bogus = "oops" }

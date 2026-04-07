@@ -3,46 +3,49 @@ module main
 # Translated from .infra/site.scampi (inlined)
 
 import "std"
-import "std/target"
+import "std/posix"
 
-std.secrets { backend = "age", path = "secrets.age.json" }
+std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
 
-let vps = target.ssh {
+let vps = posix.ssh {
   name = "vps"
   host = "203.0.113.10"
   user = "hal9000"
 }
 
+let reload_caddy = posix.service {
+  name = "caddy"
+  state = posix.ServiceState.reloaded
+}
+
 std.deploy {
   name = "site"
   targets = [vps]
+  steps = [
+    reload_caddy,
 
-  let reload_caddy = std.service {
-    name = "caddy"
-    state = std.SvcState.reloaded
-  }
+    posix.pkg { packages = ["caddy"], source = posix.pkg_system {} },
 
-  std.pkg { packages = ["caddy"], source = std.system {} }
+    posix.dir { path = "/var/www/scampi.dev", perm = "0755" },
+    posix.dir { path = "/etc/caddy", perm = "0755", owner = "root", group = "root" },
 
-  std.dir { path = "/var/www/scampi.dev", perm = "0755" }
-  std.dir { path = "/etc/caddy", perm = "0755", owner = "root", group = "root" }
+    posix.copy {
+      src = posix.source_local { path = "./files/Caddyfile" }
+      dest = "/etc/caddy/Caddyfile"
+      perm = "0644"
+      owner = "root"
+      group = "root"
+      verify = "caddy validate --config %s"
+      on_change = [reload_caddy]
+    },
 
-  std.copy {
-    src = std.local { path = "./files/Caddyfile" }
-    dest = "/etc/caddy/Caddyfile"
-    perm = "0644"
-    owner = "root"
-    group = "root"
-    verify = "caddy validate --config %s"
-    on_change = [reload_caddy]
-  }
+    posix.unarchive {
+      src = posix.source_local { path = "./files/site.tar.gz" }
+      dest = "/var/www/scampi.dev"
+      owner = "hal9000"
+      group = "hal9000"
+    },
 
-  std.unarchive {
-    src = std.local { path = "./files/site.tar.gz" }
-    dest = "/var/www/scampi.dev"
-    owner = "hal9000"
-    group = "hal9000"
-  }
-
-  std.service { name = "caddy", state = std.SvcState.running, enabled = true }
+    posix.service { name = "caddy", state = posix.ServiceState.running, enabled = true },
+  ]
 }

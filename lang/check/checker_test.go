@@ -198,9 +198,10 @@ func TestCheckDeclDecl(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
+import "std/posix"
 
-decl create_user(name: string, groups: list[string]) Step {
-    std.user { name = self.name }
+decl create_user(name: string) std.Step {
+    posix.dir { path = "/home/${self.name}" }
 }
 `)
 }
@@ -208,7 +209,8 @@ decl create_user(name: string, groups: list[string]) Step {
 func TestCheckDeclStub(t *testing.T) {
 	expectNoErrors(t, `
 module main
-decl my_step(x: string, y: int) Step
+import "std"
+decl my_step(x: string, y: int) std.Step
 `)
 }
 
@@ -235,9 +237,6 @@ func TestResolveBuiltinTypes(t *testing.T) {
 		{"int", IntType},
 		{"bool", BoolType},
 		{"any", AnyType},
-		{"Step", StepType},
-		{"Target", TargetType},
-		{"Deploy", DeployType},
 	}
 	for _, tc := range cases {
 		name := &ast.DottedName{Parts: []*ast.Ident{{Name: tc.name}}}

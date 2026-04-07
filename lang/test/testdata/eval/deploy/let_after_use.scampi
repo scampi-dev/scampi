@@ -1,14 +1,16 @@
 module main
 
 import "std"
-import "std/target"
+import "std/posix"
 
-let vps = target.ssh { name = "vps", host = "10.0.0.1", user = "root" }
+let vps = posix.ssh { name = "vps", host = "10.0.0.1", user = "root" }
+
+let packages = ["nginx", "certbot"]
 
 std.deploy {
   name = "web"
   targets = [vps]
-
-  std.pkg { packages = packages, source = std.system {} }
-  let packages = ["nginx", "certbot"]
+  steps = [
+    posix.pkg { packages = packages, source = posix.pkg_system {} },
+  ]
 }

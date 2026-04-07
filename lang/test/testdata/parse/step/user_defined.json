@@ -1,5 +1,5 @@
 {
-  "imports": ["std"],
+  "imports": ["std", "std/posix"],
   "decls": [
     {"kind": "decl", "name": "create_user", "params": 2}
   ],

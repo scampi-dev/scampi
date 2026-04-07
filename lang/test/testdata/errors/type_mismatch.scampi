@@ -1,5 +1,5 @@
 module main
 
-import "std"
+import "std/posix"
 
-std.pkg { packages = 42, source = std.system {} }
+posix.pkg { packages = 42, source = posix.pkg_system {} }

@@ -1,13 +1,13 @@
 module main
 
 import "std"
-import "std/target"
+import "std/posix"
 
-std.secrets { backend = "age", path = "secrets.age.json" }
+std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
 
 let host = "203.0.113.10"
 
-let vps = target.ssh {
+let vps = posix.ssh {
   name = "vps"
   host = host
   user = "hal9000"
@@ -32,26 +32,28 @@ func base_packages(extra: list[string] = []) list[string] {
   return base + extra
 }
 
+let packages = base_packages(["nginx", "certbot"])
+
 std.deploy {
   name = "bootstrap"
   targets = [vps]
+  steps = [
+    posix.pkg { packages = packages, source = posix.pkg_system {} },
 
-  let packages = base_packages(["nginx", "certbot"])
-  std.pkg { packages = packages, source = std.system {} }
+    posix.firewall { port = "22/tcp" },
+    posix.firewall { port = "80/tcp" },
+    posix.firewall { port = "443/tcp" },
 
-  std.firewall { port = "22/tcp" }
-  std.firewall { port = "80/tcp" }
-  std.firewall { port = "443/tcp" }
+    posix.dir { path = "/var/www/html" },
 
-  std.dir { path = "/var/www/html" }
+    posix.copy {
+      src = posix.source_remote { url = runner_url }
+      dest = "/usr/local/bin/runner"
+      perm = "0755"
+      owner = "root"
+      group = "root"
+    },
 
-  std.copy {
-    src = std.remote { url = runner_url }
-    dest = "/usr/local/bin/runner"
-    perm = "0755"
-    owner = "root"
-    group = "root"
-  }
-
-  std.service { name = "nginx" }
+    posix.service { name = "nginx" },
+  ]
 }

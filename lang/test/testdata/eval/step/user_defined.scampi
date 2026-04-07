@@ -1,19 +1,19 @@
 module main
 
 import "std"
-import "std/target"
+import "std/posix"
 
 type TeamMember {
   name: string
   groups: list[string] = []
 }
 
-decl create_user(member: TeamMember) Step {
-  std.user { name = self.member.name, groups = self.member.groups }
-  std.dir { path = "/home/${self.member.name}/.ssh" }
+decl create_user(member: TeamMember) std.Step {
+  posix.user { name = self.member.name, groups = self.member.groups }
+  posix.dir { path = "/home/${self.member.name}/.ssh" }
 }
 
-let vps = target.ssh { name = "vps", host = "10.0.0.1", user = "root" }
+let vps = posix.ssh { name = "vps", host = "10.0.0.1", user = "root" }
 
 let team = [
   TeamMember { name = "alice", groups = ["wheel", "dev"] },
@@ -23,8 +23,5 @@ let team = [
 std.deploy {
   name = "users"
   targets = [vps]
-
-  for m in team {
-    create_user { member = m }
-  }
+  steps = [create_user { member = m } for m in team]
 }

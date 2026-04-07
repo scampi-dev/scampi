@@ -23,24 +23,6 @@ var (
 	AnyType    = &Builtin{Name: "any"}  // escape hatch for map[string, any]
 )
 
-// Engine-level opaque types produced by step invocations.
-var (
-	StepType          = &Builtin{Name: "Step"}
-	TargetType        = &Builtin{Name: "Target"}
-	DeployType        = &Builtin{Name: "Deploy"}
-	SecretsConfigType = &Builtin{Name: "SecretsConfig"}
-)
-
-// Composable value types (plugged into step fields).
-var (
-	SourceType    = &Builtin{Name: "Source"}
-	PkgSourceType = &Builtin{Name: "PkgSource"}
-	AuthType      = &Builtin{Name: "Auth"}
-	TLSType       = &Builtin{Name: "TLS"}
-	BodyType      = &Builtin{Name: "Body"}
-	CheckType     = &Builtin{Name: "Check"}
-)
-
 // Builtin is a named primitive or opaque type.
 type Builtin struct{ Name string }
 

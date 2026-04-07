@@ -1,18 +1,19 @@
 module main
 
 import "std"
-import "std/target"
+import "std/posix"
 
-std.secrets { backend = "file", path = "secrets.json" }
+std.secrets { backend = std.SecretsBackend.file, path = "secrets.json" }
 
-let vps = target.ssh { name = "vps", host = "10.0.0.1", user = "root" }
+let vps = posix.ssh { name = "vps", host = "10.0.0.1", user = "root" }
 
 std.deploy {
   name = "web"
   targets = [vps]
-
-  std.pkg { packages = ["nginx", "certbot"], source = std.system {} }
-  std.firewall { port = "80/tcp" }
-  std.firewall { port = "443/tcp" }
-  std.service { name = "nginx" }
+  steps = [
+    posix.pkg { packages = ["nginx", "certbot"], source = posix.pkg_system {} },
+    posix.firewall { port = "80/tcp" },
+    posix.firewall { port = "443/tcp" },
+    posix.service { name = "nginx" },
+  ]
 }

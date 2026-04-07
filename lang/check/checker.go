@@ -5,6 +5,7 @@ package check
 import (
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/token"
+	"scampi.dev/scampi/std"
 )
 
 // Checker walks a parsed AST via ast.Walk and performs type checking.
@@ -32,14 +33,14 @@ type Error struct {
 
 func (e Error) Error() string { return e.Msg }
 
-// New creates a checker with the std and std/target modules pre-loaded.
+// New creates a checker bootstrapped from the embedded standard
+// library stubs. All module scopes come from std.FS.
 func New() *Checker {
-	return &Checker{
-		modules: map[string]*Scope{
-			"std":    StdModule(),
-			"target": TargetModule(),
-		},
+	modules, err := BootstrapStd(std.FS)
+	if err != nil {
+		panic("check: bootstrap std: " + err.Error())
 	}
+	return &Checker{modules: modules}
 }
 
 // NewWithModules creates a checker with the given modules available
@@ -322,9 +323,11 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 }
 
 func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {
-	var ret Type = StepType
+	var ret Type
 	if d.Ret != nil {
 		ret = c.resolveType(d.Ret)
+	} else {
+		c.errAt(d.SrcSpan, "decl declaration requires a return type")
 	}
 	name := d.Name.Parts[0].Name
 	sym := c.scope.Lookup(name)
@@ -444,26 +447,6 @@ func builtinByName(name string) Type {
 		return BoolType
 	case "any":
 		return AnyType
-	case "Step":
-		return StepType
-	case "Target":
-		return TargetType
-	case "Deploy":
-		return DeployType
-	case "SecretsConfig":
-		return SecretsConfigType
-	case "Source":
-		return SourceType
-	case "PkgSource":
-		return PkgSourceType
-	case "Auth":
-		return AuthType
-	case "TLS":
-		return TLSType
-	case "Body":
-		return BodyType
-	case "Check":
-		return CheckType
 	}
 	return nil
 }

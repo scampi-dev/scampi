@@ -905,6 +905,10 @@ func TestLangPackageIsolation(t *testing.T) {
 			if strings.HasPrefix(importPath, langPrefix) {
 				continue
 			}
+			// Allow std/ — the standard library stubs.
+			if importPath == modulePrefix+"std" {
+				continue
+			}
 			// Anything else in the scampi module is forbidden.
 			if strings.HasPrefix(importPath, modulePrefix) {
 				rel := strings.TrimPrefix(p, root+"/")

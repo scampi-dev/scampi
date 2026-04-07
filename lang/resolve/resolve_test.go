@@ -7,7 +7,17 @@ import (
 	"testing/fstest"
 
 	"scampi.dev/scampi/lang/check"
+	"scampi.dev/scampi/std"
 )
+
+func stdModules(t *testing.T) map[string]*check.Scope {
+	t.Helper()
+	modules, err := check.BootstrapStd(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap std: %v", err)
+	}
+	return modules
+}
 
 func TestResolveIntraProject(t *testing.T) {
 	root := fstest.MapFS{
@@ -21,9 +31,7 @@ let host = "10.0.0.1"
 	r := New(Config{
 		ModulePath: "example.com/myproject",
 		RootFS:     root,
-		StdModules: map[string]*check.Scope{
-			"std": check.StdModule(),
-		},
+		StdModules: stdModules(t),
 	})
 	m := r.Resolve("example.com/myproject/targets")
 	if m == nil {
@@ -40,18 +48,15 @@ let host = "10.0.0.1"
 func TestResolveStdModule(t *testing.T) {
 	r := New(Config{
 		ModulePath: "example.com/myproject",
-		StdModules: map[string]*check.Scope{
-			"std":    check.StdModule(),
-			"target": check.TargetModule(),
-		},
+		StdModules: stdModules(t),
 	})
 	m := r.Resolve("std")
 	if m == nil {
 		t.Fatalf("resolve std failed: %v", r.Errors())
 	}
-	m2 := r.Resolve("std/target")
+	m2 := r.Resolve("std/posix")
 	if m2 == nil {
-		t.Fatalf("resolve std/target failed: %v", r.Errors())
+		t.Fatalf("resolve std/posix failed: %v", r.Errors())
 	}
 }
 
@@ -74,9 +79,7 @@ func helper() string { return "ok" }
 				LocalPath: "modules",
 			},
 		},
-		StdModules: map[string]*check.Scope{
-			"std": check.StdModule(),
-		},
+		StdModules: stdModules(t),
 	})
 	m := r.Resolve("example.com/shared/modules/utils")
 	if m == nil {
@@ -102,9 +105,7 @@ type Config { name: string }
 		Deps: []Dependency{
 			{Path: "example.com/lib", Version: "v2.0.0"},
 		},
-		StdModules: map[string]*check.Scope{
-			"std": check.StdModule(),
-		},
+		StdModules: stdModules(t),
 	})
 	m := r.Resolve("example.com/lib/core")
 	if m == nil {
@@ -142,9 +143,7 @@ let x = 1
 	r := New(Config{
 		ModulePath: "example.com/myproject",
 		RootFS:     root,
-		StdModules: map[string]*check.Scope{
-			"std": check.StdModule(),
-		},
+		StdModules: stdModules(t),
 	})
 	m1 := r.Resolve("example.com/myproject/utils")
 	m2 := r.Resolve("example.com/myproject/utils")
@@ -171,9 +170,7 @@ let api_url = "https://api.example.com"
 	r := New(Config{
 		ModulePath: "example.com/myproject",
 		RootFS:     root,
-		StdModules: map[string]*check.Scope{
-			"std": check.StdModule(),
-		},
+		StdModules: stdModules(t),
 	})
 	m := r.Resolve("example.com/myproject/targets")
 	if m == nil {
@@ -205,9 +202,7 @@ let from_file = true
 	r := New(Config{
 		ModulePath: "example.com/myproject",
 		RootFS:     root,
-		StdModules: map[string]*check.Scope{
-			"std": check.StdModule(),
-		},
+		StdModules: stdModules(t),
 	})
 	m := r.Resolve("example.com/myproject/targets")
 	if m == nil {

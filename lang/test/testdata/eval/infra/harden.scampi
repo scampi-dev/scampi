@@ -3,44 +3,47 @@ module main
 # Translated from .infra/harden.scampi (inlined)
 
 import "std"
-import "std/target"
+import "std/posix"
 
-std.secrets { backend = "age", path = "secrets.age.json" }
+std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
 
-let vps = target.ssh {
+let vps = posix.ssh {
   name = "vps"
   host = "203.0.113.10"
   user = "hal9000"
 }
 
+let restart_fail2ban = posix.service {
+  name = "fail2ban"
+  state = posix.ServiceState.restarted
+}
+
 std.deploy {
   name = "harden"
   targets = [vps]
+  steps = [
+    restart_fail2ban,
 
-  let restart_fail2ban = std.service {
-    name = "fail2ban"
-    state = std.SvcState.restarted
-  }
+    posix.pkg {
+      packages = ["fail2ban", "ufw", "unattended-upgrades"]
+      source = posix.pkg_system {}
+    },
 
-  std.pkg {
-    packages = ["fail2ban", "ufw", "unattended-upgrades"]
-    source = std.system {}
-  }
+    posix.copy {
+      src = posix.source_local { path = "./files/fail2ban-sshd.conf" }
+      dest = "/etc/fail2ban/jail.d/sshd.conf"
+      perm = "0644"
+      owner = "root"
+      group = "root"
+      on_change = [restart_fail2ban]
+    },
 
-  std.copy {
-    src = std.local { path = "./files/fail2ban-sshd.conf" }
-    dest = "/etc/fail2ban/jail.d/sshd.conf"
-    perm = "0644"
-    owner = "root"
-    group = "root"
-    on_change = [restart_fail2ban]
-  }
+    posix.service { name = "fail2ban", state = posix.ServiceState.running, enabled = true },
 
-  std.service { name = "fail2ban", state = std.SvcState.running, enabled = true }
+    posix.firewall { port = "22/tcp" },
+    posix.firewall { port = "80/tcp" },
+    posix.firewall { port = "443/tcp" },
 
-  std.firewall { port = "22/tcp" }
-  std.firewall { port = "80/tcp" }
-  std.firewall { port = "443/tcp" }
-
-  std.service { name = "ufw", state = std.SvcState.running, enabled = true }
+    posix.service { name = "ufw", state = posix.ServiceState.running, enabled = true },
+  ]
 }

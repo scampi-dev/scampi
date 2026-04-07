@@ -300,12 +300,18 @@ func (c *Checker) checkFieldInits(
 			)
 		}
 	}
-	// Check required fields are present.
+	// Check required fields are present. Optional types (T?) implicitly
+	// default to none, so they're never required.
 	for _, d := range decl {
-		if !d.HasDef && !seen[d.Name] {
+		if !d.HasDef && !isOptional(d.Type) && !seen[d.Name] {
 			c.errAt(span, "missing required field: "+d.Name)
 		}
 	}
+}
+
+func isOptional(t Type) bool {
+	_, ok := t.(*Optional)
+	return ok
 }
 
 // Collection literals
