@@ -3,8 +3,13 @@
 package eval
 
 import (
+	"io/fs"
+	"strings"
+
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/check"
+	"scampi.dev/scampi/lang/lex"
+	"scampi.dev/scampi/lang/parse"
 	"scampi.dev/scampi/lang/token"
 )
 
@@ -15,6 +20,13 @@ type Evaluator struct {
 
 	// Collected top-level values for the engine.
 	result Result
+
+	// stubFS is the stdlib stub filesystem for enum/type extraction.
+	stubFS fs.FS
+
+	// declReturns maps "module.decl" → return type name (e.g. "Step",
+	// "Target"). Built from stubs at init time.
+	declReturns map[string]string
 
 	// envLookup resolves env vars. Injected by caller.
 	envLookup func(string) (string, bool)
@@ -51,6 +63,13 @@ func WithSecrets(fn func(string) (string, error)) Option {
 	return func(e *Evaluator) { e.secretLookup = fn }
 }
 
+// WithStubs sets the stdlib stub filesystem for enum and decl type
+// resolution. Without this, the evaluator has no knowledge of module
+// enums or builtin return types.
+func WithStubs(fsys fs.FS) Option {
+	return func(e *Evaluator) { e.stubFS = fsys }
+}
+
 // Eval evaluates a type-checked AST file and returns the result.
 func Eval(f *ast.File, source []byte, opts ...Option) (*Result, []Error) {
 	ev := &Evaluator{
@@ -60,37 +79,99 @@ func Eval(f *ast.File, source []byte, opts ...Option) (*Result, []Error) {
 	for _, o := range opts {
 		o(ev)
 	}
-	ev.registerStdEnums()
+	ev.registerStubInfo()
 	ev.evalFile(f)
 	ev.result.Bindings = ev.env.vars
 	return &ev.result, ev.errs
 }
 
-// registerStdEnums populates the eval env with std module enums so
-// FQN access like std.SvcState.restarted resolves at runtime. This
-// mirrors check/std.go and will be replaced by stub-driven registration.
-func (ev *Evaluator) registerStdEnums() {
-	enums := map[string][]string{
-		"PkgState":   {"present", "absent", "latest"},
-		"SvcState":   {"running", "stopped", "restarted", "reloaded"},
-		"UserState":  {"present", "absent"},
-		"GroupState": {"present", "absent"},
-		"CtrState":   {"running", "stopped", "absent"},
-		"CtrRestart": {"always", "on_failure", "unless_stopped", "no"},
-		"MountState": {"mounted", "unmounted", "absent"},
-		"FsType":     {"nfs", "nfs4", "cifs", "ext4", "xfs", "btrfs", "tmpfs", "glusterfs", "ceph"},
-		"FwAction":   {"allow", "deny", "reject"},
-		"HttpMethod": {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+// registerStubInfo parses the stub filesystem and populates the eval
+// env with module enum maps and decl return type metadata.
+func (ev *Evaluator) registerStubInfo() {
+	if ev.stubFS == nil {
+		ev.declReturns = map[string]string{}
+		return
 	}
-	stdMap := &MapVal{}
-	for enumName, variants := range enums {
-		variantMap := &MapVal{}
-		for _, v := range variants {
-			variantMap.Set(v, &StringVal{V: v})
+	info := extractStubInfo(ev.stubFS)
+	ev.declReturns = info.declReturns
+	for modName, enums := range info.enums {
+		modMap := &MapVal{}
+		for enumName, variants := range enums {
+			variantMap := &MapVal{}
+			for _, v := range variants {
+				variantMap.Set(v, &StringVal{V: v})
+			}
+			modMap.Set(enumName, variantMap)
 		}
-		stdMap.Set(enumName, variantMap)
+		ev.env.set(modName, modMap)
 	}
-	ev.env.set("std", stdMap)
+}
+
+// stubInfo holds extracted metadata from parsed stub files.
+type stubInfo struct {
+	enums       map[string]map[string][]string // module → enum → variants
+	declReturns map[string]string              // "module.decl" → return type name
+}
+
+// extractStubInfo parses all .scampi files in the FS and returns enum
+// declarations and decl return types.
+func extractStubInfo(fsys fs.FS) stubInfo {
+	info := stubInfo{
+		enums:       map[string]map[string][]string{},
+		declReturns: map[string]string{},
+	}
+	_ = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".scampi") {
+			return err
+		}
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return nil
+		}
+		l := lex.New(path, data)
+		p := parse.New(l)
+		f := p.Parse()
+
+		modName := ""
+		if f.Module != nil {
+			modName = f.Module.Name.Name
+		}
+
+		for _, decl := range f.Decls {
+			switch d := decl.(type) {
+			case *ast.EnumDecl:
+				if info.enums[modName] == nil {
+					info.enums[modName] = map[string][]string{}
+				}
+				var variants []string
+				for _, v := range d.Variants {
+					variants = append(variants, v.Name)
+				}
+				info.enums[modName][d.Name.Name] = variants
+			case *ast.DeclDecl:
+				declName := d.Name.Parts[0].Name
+				if d.Ret != nil {
+					info.declReturns[modName+"."+declName] = typeExprName(d.Ret)
+				}
+			case *ast.FuncDecl:
+				if d.Ret != nil {
+					info.declReturns[modName+"."+d.Name.Name] = typeExprName(d.Ret)
+				}
+			}
+		}
+		return nil
+	})
+	return info
+}
+
+// typeExprName extracts the leaf type name from a type expression.
+func typeExprName(t ast.TypeExpr) string {
+	switch t := t.(type) {
+	case *ast.NamedType:
+		parts := t.Name.Parts
+		return parts[len(parts)-1].Name
+	}
+	return ""
 }
 
 func (ev *Evaluator) errAt(span token.Span, msg string) {
@@ -458,30 +539,26 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 		fields[f.Name.Name] = ev.evalExpr(f.Value)
 	}
 
-	// Determine what kind of value this produces based on the type name.
 	typeName := structLitTypeName(lit)
+	qualName := structLitQualifiedName(lit)
+	retType := ev.declReturns[qualName]
 
-	// Step invocations (std.pkg, std.copy, etc.) → StepVal
-	// Target invocations (target.ssh, etc.) → TargetVal.
-	// Deploy invocations → DeployVal.
-	// Secrets → SecretsVal.
-	switch typeName {
-	case "deploy":
+	switch retType {
+	case "Deploy":
 		return ev.evalDeploy(fields, lit)
-	case "secrets":
+	case "SecretsConfig":
 		return ev.evalSecrets(fields)
-	case "ssh", "local", "rest":
+	case "Target":
 		return ev.evalTarget(typeName, fields)
-	default:
-		if isStdStep(typeName) {
-			return &StepVal{StepName: typeName, Fields: fields}
-		}
-		// User-defined step: look up in env, expand body with self bound.
-		if fv, ok := ev.lookupStep(typeName); ok {
-			return ev.expandUserStep(fv, fields)
-		}
-		return &StructVal{TypeName: typeName, Fields: fields}
+	case "Step", "Source", "PkgSource", "Auth", "TLS", "Body", "Check":
+		return &StepVal{StepName: typeName, Fields: fields}
 	}
+
+	// User-defined decl: look up in env, expand body with self bound.
+	if fv, ok := ev.lookupStep(typeName); ok {
+		return ev.expandUserStep(fv, fields)
+	}
+	return &StructVal{TypeName: typeName, Fields: fields}
 }
 
 func (ev *Evaluator) lookupStep(name string) (*FuncVal, bool) {
@@ -538,18 +615,29 @@ func (ev *Evaluator) evalDeploy(
 			dv.Targets = l.Items
 		}
 	}
-	// Evaluate body statements. Bare step invocations inside the deploy
-	// body are collected as desired-state steps.
-	prev := ev.currentDeploy
-	ev.currentDeploy = dv
-	childEnv := newEnv(ev.env)
-	prevEnv := ev.env
-	ev.env = childEnv
-	for _, s := range lit.Body {
-		ev.evalStmt(s)
+	// Collect steps from the steps field (new model).
+	if s, ok := fields["steps"]; ok {
+		if l, ok := s.(*ListVal); ok {
+			for _, item := range l.Items {
+				if si, ok := item.(*StepVal); ok {
+					dv.Steps = append(dv.Steps, si)
+				}
+			}
+		}
 	}
-	ev.env = prevEnv
-	ev.currentDeploy = prev
+	// Also collect from body statements (legacy/block invocation model).
+	if len(lit.Body) > 0 {
+		prev := ev.currentDeploy
+		ev.currentDeploy = dv
+		childEnv := newEnv(ev.env)
+		prevEnv := ev.env
+		ev.env = childEnv
+		for _, s := range lit.Body {
+			ev.evalStmt(s)
+		}
+		ev.env = prevEnv
+		ev.currentDeploy = prev
+	}
 	return dv
 }
 
@@ -833,14 +921,23 @@ func structLitTypeName(lit *ast.StructLit) string {
 	return nt.Name.Parts[len(nt.Name.Parts)-1].Name
 }
 
-func isStdStep(name string) bool {
-	switch name {
-	case "copy", "dir", "symlink", "template", "unarchive",
-		"pkg", "service", "user", "group", "sysctl", "mount",
-		"firewall", "run", "request", "resource",
-		"local", "inline", "remote", "system",
-		"apt_repo", "dnf_repo":
-		return true
+// structLitQualifiedName returns "module.decl" for a struct lit like
+// posix.copy { ... } → "posix.copy". For unqualified names like
+// User { ... } → "User".
+func structLitQualifiedName(lit *ast.StructLit) string {
+	if lit.Type == nil {
+		return ""
 	}
-	return false
+	nt, ok := lit.Type.(*ast.NamedType)
+	if !ok {
+		return ""
+	}
+	parts := nt.Name.Parts
+	if len(parts) == 0 {
+		return ""
+	}
+	if len(parts) == 1 {
+		return parts[0].Name
+	}
+	return parts[0].Name + "." + parts[1].Name
 }

@@ -22,8 +22,6 @@ std.deploy {
   name = "site"
   targets = [vps]
   steps = [
-    reload_caddy,
-
     posix.pkg { packages = ["caddy"], source = posix.pkg_system {} },
 
     posix.dir { path = "/var/www/scampi.dev", perm = "0755" },

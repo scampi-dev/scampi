@@ -5,7 +5,6 @@ package check
 import (
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/token"
-	"scampi.dev/scampi/std"
 )
 
 // Checker walks a parsed AST via ast.Walk and performs type checking.
@@ -33,19 +32,12 @@ type Error struct {
 
 func (e Error) Error() string { return e.Msg }
 
-// New creates a checker bootstrapped from the embedded standard
-// library stubs. All module scopes come from std.FS.
-func New() *Checker {
-	modules, err := BootstrapStd(std.FS)
-	if err != nil {
-		panic("check: bootstrap std: " + err.Error())
+// New creates a checker with the given modules available for import
+// resolution. Callers typically pass the result of BootstrapModules.
+func New(modules map[string]*Scope) *Checker {
+	if modules == nil {
+		modules = map[string]*Scope{}
 	}
-	return &Checker{modules: modules}
-}
-
-// NewWithModules creates a checker with the given modules available
-// for import resolution.
-func NewWithModules(modules map[string]*Scope) *Checker {
 	return &Checker{modules: modules}
 }
 

@@ -12,7 +12,7 @@ import (
 
 func stdModules(t *testing.T) map[string]*check.Scope {
 	t.Helper()
-	modules, err := check.BootstrapStd(std.FS)
+	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
 		t.Fatalf("bootstrap std: %v", err)
 	}

@@ -22,8 +22,6 @@ std.deploy {
   name = "harden"
   targets = [vps]
   steps = [
-    restart_fail2ban,
-
     posix.pkg {
       packages = ["fail2ban", "ufw", "unattended-upgrades"]
       source = posix.pkg_system {}

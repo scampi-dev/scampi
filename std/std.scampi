@@ -15,7 +15,7 @@ func secret(name: string) string
 decl deploy(
   name:    string,
   targets: list[Target],
-  steps:   list[Step],
+  steps:   list[Step] = [],
 ) Deploy
 
 decl secrets(

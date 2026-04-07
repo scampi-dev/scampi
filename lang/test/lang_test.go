@@ -14,7 +14,17 @@ import (
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/parse"
+	"scampi.dev/scampi/std"
 )
+
+func stdModules(t *testing.T) map[string]*check.Scope {
+	t.Helper()
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	return modules
+}
 
 // Shared fixture walker
 // -----------------------------------------------------------------------------
@@ -89,7 +99,7 @@ func TestParse(t *testing.T) {
 		for _, e := range p.Errors() {
 			allErrs = append(allErrs, e.Error())
 		}
-		c := check.New()
+		c := check.New(stdModules(t))
 		c.Check(f)
 		for _, e := range c.Errors() {
 			allErrs = append(allErrs, e.Error())
@@ -124,7 +134,7 @@ func TestErrors(t *testing.T) {
 		for _, e := range p.Errors() {
 			allErrs = append(allErrs, e.Error())
 		}
-		c := check.New()
+		c := check.New(stdModules(t))
 		c.Check(f)
 		for _, e := range c.Errors() {
 			allErrs = append(allErrs, e.Error())
@@ -184,7 +194,7 @@ func TestEval(t *testing.T) {
 			t.Fatalf("lex/parse errors: %v", allErrs)
 		}
 
-		c := check.New()
+		c := check.New(stdModules(t))
 		c.Check(f)
 		for _, e := range c.Errors() {
 			allErrs = append(allErrs, e.Error())
@@ -193,7 +203,7 @@ func TestEval(t *testing.T) {
 			t.Fatalf("check errors: %v", allErrs)
 		}
 
-		r, errs := eval.Eval(f, []byte(src))
+		r, errs := eval.Eval(f, []byte(src), eval.WithStubs(std.FS))
 		for _, e := range errs {
 			allErrs = append(allErrs, e.Error())
 		}

@@ -35,9 +35,6 @@ std.deploy {
   name = "runner"
   targets = [vps]
   steps = [
-    restart_runner,
-    restart_docker,
-
     posix.pkg {
       packages = ["git", "shellcheck", "curl", "nodejs", "npm", "gcc", "libc6-dev", "jq"]
       source = posix.pkg_system {}

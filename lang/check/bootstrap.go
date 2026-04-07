@@ -11,53 +11,54 @@ import (
 	"scampi.dev/scampi/lang/parse"
 )
 
-// BootstrapStd parses and type-checks the standard library stubs from
-// the given filesystem. Returns a map of module leaf names to their
-// checked scopes: "std", "posix", "rest", "container".
+// BootstrapModules parses and type-checks module stubs from the given
+// filesystem. Returns a map of module names (from each file's module
+// declaration) to their checked scopes.
 //
-// The std module is checked first (it has no imports). Submodules are
-// checked with std available as an import.
-func BootstrapStd(fsys fs.FS) (map[string]*Scope, error) {
-	// Phase 1: parse and check std.scampi (no imports needed).
-	stdFile, err := parseStub(fsys, "std.scampi")
+// The root-level .scampi file is checked first (no imports). Submodule
+// files in subdirectories are checked with the root module available
+// as an import.
+func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
+	// Phase 1: find and check the root module (top-level .scampi file).
+	rootFile, rootName, err := parseRootModule(fsys)
 	if err != nil {
 		return nil, err
 	}
-	stdChecker := NewWithModules(nil)
-	stdChecker.Check(stdFile)
-	if errs := stdChecker.Errors(); len(errs) > 0 {
+	rootChecker := New(nil)
+	rootChecker.Check(rootFile)
+	if errs := rootChecker.Errors(); len(errs) > 0 {
 		return nil, errs[0]
 	}
-	stdScope := stdChecker.FileScope()
+	rootScope := rootChecker.FileScope()
 
 	modules := map[string]*Scope{
-		"std": stdScope,
+		rootName: rootScope,
 	}
 
-	// Phase 2: parse and check each submodule with std available.
+	// Phase 2: parse and check each submodule with root available.
 	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if d.IsDir() || !strings.HasSuffix(d.Name(), ".scampi") || path == "std.scampi" {
+		if d.IsDir() || !strings.HasSuffix(d.Name(), ".scampi") {
+			return nil
+		}
+		// Skip root-level files (already processed).
+		if !strings.Contains(path, "/") {
 			return nil
 		}
 		f, parseErr := parseStub(fsys, path)
 		if parseErr != nil {
 			return parseErr
 		}
-		c := NewWithModules(map[string]*Scope{"std": stdScope})
+		c := New(map[string]*Scope{rootName: rootScope})
 		c.Check(f)
 		if errs := c.Errors(); len(errs) > 0 {
 			return errs[0]
 		}
 
-		// Module name is the directory name (leaf of path).
-		dir := path[:strings.LastIndex(path, "/")]
-		if i := strings.LastIndex(dir, "/"); i >= 0 {
-			dir = dir[i+1:]
-		}
-		modules[dir] = c.FileScope()
+		modName := f.Module.Name.Name
+		modules[modName] = c.FileScope()
 		return nil
 	})
 	if err != nil {
@@ -65,6 +66,30 @@ func BootstrapStd(fsys fs.FS) (map[string]*Scope, error) {
 	}
 
 	return modules, nil
+}
+
+// parseRootModule finds and parses the top-level .scampi file in the
+// FS root. Returns the parsed file and its module name.
+func parseRootModule(fsys fs.FS) (*ast.File, string, error) {
+	entries, err := fs.ReadDir(fsys, ".")
+	if err != nil {
+		return nil, "", err
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".scampi") {
+			continue
+		}
+		f, parseErr := parseStub(fsys, e.Name())
+		if parseErr != nil {
+			return nil, "", parseErr
+		}
+		name := "main"
+		if f.Module != nil {
+			name = f.Module.Name.Name
+		}
+		return f, name, nil
+	}
+	return nil, "", fs.ErrNotExist
 }
 
 func parseStub(fsys fs.FS, path string) (*ast.File, error) {

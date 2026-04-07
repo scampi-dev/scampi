@@ -10,7 +10,7 @@ import (
 )
 
 func TestStdLibCompiles(t *testing.T) {
-	modules, err := check.BootstrapStd(std.FS)
+	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
 		t.Fatalf("bootstrap: %v", err)
 	}

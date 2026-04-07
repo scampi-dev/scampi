@@ -8,6 +8,7 @@ import (
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/parse"
+	"scampi.dev/scampi/std"
 )
 
 func evalSrc(t *testing.T, src string) *Result {
@@ -21,12 +22,16 @@ func evalSrc(t *testing.T, src string) *Result {
 	if errs := p.Errors(); len(errs) > 0 {
 		t.Fatalf("parse errors: %v", errs)
 	}
-	c := check.New()
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	c := check.New(modules)
 	c.Check(f)
 	if errs := c.Errors(); len(errs) > 0 {
 		t.Fatalf("check errors: %v", errs)
 	}
-	r, errs := Eval(f, []byte(src))
+	r, errs := Eval(f, []byte(src), WithStubs(std.FS))
 	if len(errs) > 0 {
 		t.Fatalf("eval errors: %v", errs)
 	}
@@ -136,7 +141,7 @@ func TestEvalSecrets(t *testing.T) {
 	src := `
 module main
 import "std"
-std.secrets { backend = "file", path = "secrets.json" }
+std.secrets { backend = std.SecretsBackend.file, path = "secrets.json" }
 `
 	r := evalSrc(t, src)
 	if r.Secrets == nil {
@@ -157,8 +162,8 @@ func TestEvalTarget(t *testing.T) {
 	src := `
 module main
 import "std"
-import "std/target"
-let vps = target.ssh { name = "vps", host = "10.0.0.1", user = "root" }
+import "std/posix"
+let vps = posix.ssh { name = "vps", host = "10.0.0.1", user = "root" }
 `
 	r := evalSrc(t, src)
 	if len(r.Targets) != 1 {

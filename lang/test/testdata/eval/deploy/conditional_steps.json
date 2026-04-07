@@ -3,6 +3,6 @@
     {"name": "vps", "kind": "ssh"}
   ],
   "deploys": [
-    {"name": "conditional", "steps": 4}
+    {"name": "conditional", "steps": 2}
   ]
 }

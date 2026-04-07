@@ -8,6 +8,7 @@ import (
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/parse"
+	"scampi.dev/scampi/std"
 )
 
 func parseAndCheck(t *testing.T, src string) ([]Error, *ast.File) {
@@ -21,7 +22,11 @@ func parseAndCheck(t *testing.T, src string) ([]Error, *ast.File) {
 	if errs := p.Errors(); len(errs) > 0 {
 		t.Fatalf("parser errors: %v", errs)
 	}
-	c := New()
+	modules, err := BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	c := New(modules)
 	c.Check(f)
 	return c.Errors(), f
 }
@@ -228,7 +233,7 @@ let x = 42
 // -----------------------------------------------------------------------------
 
 func TestResolveBuiltinTypes(t *testing.T) {
-	c := New()
+	c := New(nil)
 	cases := []struct {
 		name string
 		want Type

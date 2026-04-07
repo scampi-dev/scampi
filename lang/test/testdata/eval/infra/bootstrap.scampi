@@ -22,8 +22,6 @@ std.deploy {
   name = "bootstrap"
   targets = [vps_root]
   steps = [
-    restart_sshd,
-
     posix.user {
       name = "hal9000"
       shell = "/bin/bash"

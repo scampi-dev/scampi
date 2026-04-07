@@ -23,5 +23,8 @@ let team = [
 std.deploy {
   name = "users"
   targets = [vps]
-  steps = [create_user { member = m } for m in team]
+
+  for m in team {
+    create_user { member = m }
+  }
 }

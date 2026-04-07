@@ -145,7 +145,7 @@ func (r *Resolver) Resolve(importPath string) *Module {
 			r.errs = append(r.errs, Error{ImportPath: importPath, Msg: errs[0].Error()})
 			return nil
 		}
-		c := check.New()
+		c := check.New(r.cfg.StdModules)
 		c.Check(f)
 		if errs := c.Errors(); len(errs) > 0 {
 			r.errs = append(r.errs, Error{ImportPath: importPath, Msg: errs[0].Error()})
