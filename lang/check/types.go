@@ -69,6 +69,17 @@ type OpaqueType struct {
 func (*OpaqueType) typeTag()         {}
 func (o *OpaqueType) String() string { return o.Name }
 
+// BlockType is `block[T]` — a value that needs a statement block to
+// produce a T. Each fill produces an independent T value.
+type BlockType struct {
+	Inner Type // the type produced when the block is filled
+}
+
+func (*BlockType) typeTag() {}
+func (b *BlockType) String() string {
+	return "block[" + b.Inner.String() + "]"
+}
+
 // FieldDef is a field in a struct or step declaration.
 type FieldDef struct {
 	Name   string

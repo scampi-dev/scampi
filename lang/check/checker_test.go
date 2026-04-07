@@ -155,6 +155,29 @@ func takes_step(s: Step) int {
 `)
 }
 
+func TestCheckBlockExpr(t *testing.T) {
+	expectNoErrors(t, `
+module main
+import "std"
+import "std/posix"
+let vps = posix.local { name = "dev" }
+let d = std.deploy(name = "web", targets = [vps])
+d { posix.dir { path = "/tmp/test" } }
+`)
+}
+
+func TestCheckBlockExprInline(t *testing.T) {
+	expectNoErrors(t, `
+module main
+import "std"
+import "std/posix"
+
+std.deploy(name = "web", targets = [posix.local { name = "dev" }]) {
+    posix.dir { path = "/tmp/test" }
+}
+`)
+}
+
 // Enum declarations
 // -----------------------------------------------------------------------------
 

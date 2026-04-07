@@ -359,6 +359,19 @@ type FieldInit struct {
 	SrcSpan token.Span
 }
 
+// BlockExpr is `expr { stmts }` — fills a block[T] value with a
+// statement body to produce a T. The target expression must evaluate
+// to a block[T] type.
+type BlockExpr struct {
+	Target  Expr
+	Body    *Block
+	SrcSpan token.Span
+}
+
+func (e *BlockExpr) Span() token.Span { return e.SrcSpan }
+func (*BlockExpr) astNode()           {}
+func (*BlockExpr) exprNode()          {}
+
 // CallExpr is a function call `fn(arg, ...)` with positional or
 // keyword arguments.
 type CallExpr struct {

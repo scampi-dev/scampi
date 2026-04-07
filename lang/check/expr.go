@@ -32,6 +32,8 @@ func (c *Checker) typeOf(e ast.Expr) Type {
 		return c.resolveIdent(e)
 	case *ast.SelectorExpr:
 		return c.resolveSelector(e)
+	case *ast.BlockExpr:
+		return c.checkBlockExpr(e)
 	case *ast.CallExpr:
 		return c.checkCall(e)
 	case *ast.StructLit:
@@ -93,18 +95,20 @@ func (c *Checker) resolveDottedName(dn *ast.DottedName) Type {
 // -----------------------------------------------------------------------------
 
 func (c *Checker) resolveSelector(sel *ast.SelectorExpr) Type {
-	xType := c.typeOf(sel.X)
-	if xType == nil {
-		return nil
-	}
 	name := sel.Sel.Name
 
-	// Module namespace member access (import.member).
+	// Module namespace member access (import.member) — check before
+	// typeOf to avoid "undefined" errors on import namespace names.
 	if id, ok := sel.X.(*ast.Ident); ok {
 		sym := c.scope.Lookup(id.Name)
 		if sym != nil && sym.Kind == SymImport {
 			return c.resolveModuleMember(id.Name, []*ast.Ident{sel.Sel}, sel.SrcSpan)
 		}
+	}
+
+	xType := c.typeOf(sel.X)
+	if xType == nil {
+		return nil
 	}
 
 	// Struct field access.
@@ -246,6 +250,21 @@ func (c *Checker) checkStructLit(lit *ast.StructLit) Type {
 		}
 		return &Map{Key: StringType, Value: AnyType}
 	}
+	// Check if this is a block fill on a let-bound variable
+	// (e.g. `site { stmts }` where site is block[Deploy]).
+	if nt, ok := lit.Type.(*ast.NamedType); ok && len(nt.Name.Parts) == 1 {
+		name := nt.Name.Parts[0].Name
+		sym := c.scope.Lookup(name)
+		if sym != nil && sym.Kind == SymLet {
+			if bt, ok := sym.Type.(*BlockType); ok {
+				for _, s := range lit.Body {
+					ast.Walk(s, c.enter, c.leave)
+				}
+				return bt.Inner
+			}
+		}
+	}
+
 	t := c.resolveType(lit.Type)
 	if t == nil {
 		return nil
@@ -312,6 +331,27 @@ func (c *Checker) checkFieldInits(
 func isOptional(t Type) bool {
 	_, ok := t.(*Optional)
 	return ok
+}
+
+// Block expressions
+// -----------------------------------------------------------------------------
+
+func (c *Checker) checkBlockExpr(e *ast.BlockExpr) Type {
+	tt := c.typeOf(e.Target)
+	if tt == nil {
+		return nil
+	}
+	bt, ok := tt.(*BlockType)
+	if !ok {
+		c.errAt(e.Target.Span(), tt.String()+" is not a block type")
+		return nil
+	}
+	if e.Body != nil {
+		c.pushScope(ScopeDecl)
+		ast.Walk(e.Body, c.enter, c.leave)
+		c.popScope()
+	}
+	return bt.Inner
 }
 
 // Collection literals

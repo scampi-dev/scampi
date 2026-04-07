@@ -373,6 +373,8 @@ func (ev *Evaluator) evalExpr(e ast.Expr) Value {
 		return v
 	case *ast.SelectorExpr:
 		return ev.evalSelector(e)
+	case *ast.BlockExpr:
+		return ev.evalBlockExpr(e)
 	case *ast.CallExpr:
 		return ev.evalCall(e)
 	case *ast.StructLit:
@@ -490,6 +492,50 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 		}
 	}
 	return ev.callFunc(fv, positional, argMap)
+}
+
+func (ev *Evaluator) evalBlockExpr(e *ast.BlockExpr) Value {
+	target := ev.evalExpr(e.Target)
+	bv, ok := target.(*BlockVal)
+	if !ok {
+		ev.errAt(e.SrcSpan, "cannot fill non-block value")
+		return &NoneVal{}
+	}
+	return ev.fillBlock(bv, e.Body)
+}
+
+func (ev *Evaluator) fillBlock(bv *BlockVal, body *ast.Block) Value {
+	switch bv.Kind {
+	case "deploy":
+		return ev.fillDeploy(bv.Fields, body)
+	}
+	ev.errAt(body.SrcSpan, "unknown block kind: "+bv.Kind)
+	return &NoneVal{}
+}
+
+func (ev *Evaluator) fillDeploy(fields map[string]Value, body *ast.Block) Value {
+	dv := &DeployVal{}
+	if n, ok := fields["name"]; ok {
+		if s, ok := n.(*StringVal); ok {
+			dv.Name = s.V
+		}
+	}
+	if t, ok := fields["targets"]; ok {
+		if l, ok := t.(*ListVal); ok {
+			dv.Targets = l.Items
+		}
+	}
+	prev := ev.currentDeploy
+	ev.currentDeploy = dv
+	childEnv := newEnv(ev.env)
+	prevEnv := ev.env
+	ev.env = childEnv
+	if body != nil {
+		ev.evalBlock(body)
+	}
+	ev.env = prevEnv
+	ev.currentDeploy = prev
+	return dv
 }
 
 func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string]Value) Value {

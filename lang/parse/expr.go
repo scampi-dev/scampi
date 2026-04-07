@@ -117,17 +117,37 @@ func (p *Parser) parsePostfix() ast.Expr {
 				SrcSpan: token.Span{Start: x.Span().Start, End: endTok.End},
 			}
 		case token.LBrace:
-			// Struct-literal call syntax: TypeName { field = value }
-			// Only valid when the preceding expression is a name and
-			// we're not currently parsing a control-flow condition
-			// (where `{` always starts the body).
-			if p.inCond || !canTakeStructLit(x) {
+			if p.inCond {
+				return x
+			}
+			// After a call expression, { starts a block fill:
+			//   std.deploy(...) { stmts }
+			if _, isCall := x.(*ast.CallExpr); isCall {
+				x = p.parseBlockExprBody(x)
+				continue
+			}
+			// After a name, { starts a struct/decl literal:
+			//   TypeName { field = value }
+			if !canTakeStructLit(x) {
 				return x
 			}
 			x = p.parseStructLitBody(x)
 		default:
 			return x
 		}
+	}
+}
+
+// parseBlockExprBody parses `{ stmts }` after a block[T] expression.
+func (p *Parser) parseBlockExprBody(target ast.Expr) ast.Expr {
+	start := target.Span().Start
+	p.advance() // '{'
+	body := p.parseBlock()
+	endTok := p.expect(token.RBrace, "block body")
+	return &ast.BlockExpr{
+		Target:  target,
+		Body:    body,
+		SrcSpan: token.Span{Start: start, End: endTok.End},
 	}
 }
 

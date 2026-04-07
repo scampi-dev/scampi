@@ -466,6 +466,16 @@ func (c *Checker) resolveGenericType(t *ast.GenericType) Type {
 			return nil
 		}
 		return &Map{Key: k, Value: v}
+	case "block":
+		if len(t.Args) != 1 {
+			c.errAt(t.SrcSpan, "block takes exactly 1 type argument")
+			return nil
+		}
+		inner := c.resolveType(t.Args[0])
+		if inner == nil {
+			return nil
+		}
+		return &BlockType{Inner: inner}
 	}
 	c.errAt(t.SrcSpan, "unknown generic type: "+t.Name.Name)
 	return nil

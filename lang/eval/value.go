@@ -123,6 +123,17 @@ type TargetVal struct {
 func (*TargetVal) valueTag()        {}
 func (v *TargetVal) String() string { return "Target(" + v.Name + ")" }
 
+// BlockVal is a block handle — an unfilled block[T] value carrying
+// config fields. Produced by func calls that return block[T]. Filled
+// by a statement block to produce the inner value (e.g. DeployVal).
+type BlockVal struct {
+	Kind   string           // what kind of block ("deploy", etc.)
+	Fields map[string]Value // config fields from the call
+}
+
+func (*BlockVal) valueTag()        {}
+func (v *BlockVal) String() string { return "block(" + v.Kind + ")" }
+
 // DeployVal represents a resolved deploy declaration.
 type DeployVal struct {
 	Name    string

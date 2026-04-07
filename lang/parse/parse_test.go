@@ -107,6 +107,25 @@ type User {
 	}
 }
 
+func TestParseBlockExprInline(t *testing.T) {
+	f := parseFile(t, `
+module main
+func f() int { return 1 }
+f() { let x = 1 }
+`)
+	if len(f.Stmts) != 1 {
+		t.Fatalf("expected 1 stmt, got %d", len(f.Stmts))
+	}
+	es, ok := f.Stmts[0].(*ast.ExprStmt)
+	if !ok {
+		t.Fatalf("expected ExprStmt, got %T", f.Stmts[0])
+	}
+	_, ok = es.Expr.(*ast.BlockExpr)
+	if !ok {
+		t.Fatalf("expected BlockExpr, got %T", es.Expr)
+	}
+}
+
 func TestParseOpaqueType(t *testing.T) {
 	f := parseFile(t, `
 module main

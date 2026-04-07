@@ -12,11 +12,7 @@ enum SecretsBackend { age, file }
 func env(name: string, default: string?) string
 func secret(name: string) string
 
-decl deploy(
-  name:    string,
-  targets: list[Target],
-  steps:   list[Step] = [],
-) Deploy
+func deploy(name: string, targets: list[Target]) block[Deploy]
 
 decl secrets(
   backend: SecretsBackend,

@@ -132,6 +132,10 @@ func walkChildren(node Node, pre func(Node) bool, post func(Node)) {
 		}
 		walkStmtList(n.Body, pre, post)
 
+	case *BlockExpr:
+		walkExpr(n.Target, pre, post)
+		Walk(n.Body, pre, post)
+
 	case *CallExpr:
 		walkExpr(n.Fn, pre, post)
 		for _, a := range n.Args {
