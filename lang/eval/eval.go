@@ -173,7 +173,7 @@ func (ev *Evaluator) evalStmt(s ast.Stmt) {
 	case *ast.ExprStmt:
 		v := ev.evalExpr(s.Expr)
 		if ev.currentDeploy != nil {
-			if si, ok := v.(*StepInstanceVal); ok {
+			if si, ok := v.(*StepVal); ok {
 				ev.currentDeploy.Steps = append(ev.currentDeploy.Steps, si)
 			}
 		} else {
@@ -461,7 +461,7 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 	// Determine what kind of value this produces based on the type name.
 	typeName := structLitTypeName(lit)
 
-	// Step invocations (std.pkg, std.copy, etc.) → StepInstanceVal.
+	// Step invocations (std.pkg, std.copy, etc.) → StepVal
 	// Target invocations (target.ssh, etc.) → TargetVal.
 	// Deploy invocations → DeployVal.
 	// Secrets → SecretsVal.
@@ -474,7 +474,7 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 		return ev.evalTarget(typeName, fields)
 	default:
 		if isStdStep(typeName) {
-			return &StepInstanceVal{StepName: typeName, Fields: fields}
+			return &StepVal{StepName: typeName, Fields: fields}
 		}
 		// User-defined step: look up in env, expand body with self bound.
 		if fv, ok := ev.lookupStep(typeName); ok {
@@ -497,7 +497,7 @@ func (ev *Evaluator) lookupStep(name string) (*FuncVal, bool) {
 }
 
 // expandUserStep evaluates a user-defined step body with self bound to
-// the provided fields. All StepInstanceVals emitted by the body are
+// the provided fields. All StepVals emitted by the body are
 // collected and returned. If inside a deploy, they're also appended to
 // the current deploy's steps.
 func (ev *Evaluator) expandUserStep(fv *FuncVal, fields map[string]Value) Value {

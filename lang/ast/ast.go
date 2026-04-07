@@ -100,7 +100,7 @@ func (*FuncDecl) declNode()          {}
 type DeclDecl struct {
 	Name    *DottedName
 	Params  []*Field
-	Ret     TypeExpr // nil means defaults to StepInstance
+	Ret     TypeExpr // nil means defaults to Step
 	Body    *Block   // nil for stubs (builtins with no implementation)
 	SrcSpan token.Span
 }

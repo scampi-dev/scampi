@@ -25,7 +25,7 @@ var (
 
 // Engine-level opaque types produced by step invocations.
 var (
-	StepInstanceType  = &Builtin{Name: "StepInstance"}
+	StepType          = &Builtin{Name: "Step"}
 	TargetType        = &Builtin{Name: "Target"}
 	DeployType        = &Builtin{Name: "Deploy"}
 	SecretsConfigType = &Builtin{Name: "SecretsConfig"}

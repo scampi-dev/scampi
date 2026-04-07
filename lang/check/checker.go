@@ -304,7 +304,7 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 }
 
 func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {
-	var ret Type = StepInstanceType
+	var ret Type = StepType
 	if d.Ret != nil {
 		ret = c.resolveType(d.Ret)
 	}
@@ -426,8 +426,8 @@ func builtinByName(name string) Type {
 		return BoolType
 	case "any":
 		return AnyType
-	case "StepInstance":
-		return StepInstanceType
+	case "Step":
+		return StepType
 	case "Target":
 		return TargetType
 	case "Deploy":

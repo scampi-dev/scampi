@@ -8,7 +8,7 @@ struct TeamMember {
   groups: list[string] = []
 }
 
-decl create_user(member: TeamMember) StepInstance {
+decl create_user(member: TeamMember) Step {
   std.user { name = self.member.name, groups = self.member.groups }
   std.dir { path = "/home/${self.member.name}/.ssh" }
 }

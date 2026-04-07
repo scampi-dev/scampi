@@ -45,7 +45,7 @@ func TestGenerateBasic(t *testing.T) {
 		{
 			Kind:       "pkg",
 			Config:     &testPkgConfig{},
-			OutputType: "StepInstance",
+			OutputType: "Step",
 			Enums: map[string][]string{
 				"State": {"present", "absent", "latest"},
 			},
@@ -60,7 +60,7 @@ func TestGenerateBasic(t *testing.T) {
 	assertContains(t, out, "packages:")
 	assertContains(t, out, "list[string]")
 	assertContains(t, out, "PkgState = PkgState.present")
-	assertContains(t, out, ") StepInstance")
+	assertContains(t, out, ") Step")
 }
 
 func TestGenerateNoEnums(t *testing.T) {
@@ -69,7 +69,7 @@ func TestGenerateNoEnums(t *testing.T) {
 		{
 			Kind:       "copy",
 			Config:     &testCopyConfig{},
-			OutputType: "StepInstance",
+			OutputType: "Step",
 		},
 	}, Options{}, &buf)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestGenerateNoEnums(t *testing.T) {
 	assertContains(t, out, "src:")
 	assertContains(t, out, "verify:")
 	assertContains(t, out, "string?")
-	assertContains(t, out, ") StepInstance")
+	assertContains(t, out, ") Step")
 	assertNotContains(t, out, "enum")
 }
 
@@ -105,7 +105,7 @@ func TestGenerateTargetOutputType(t *testing.T) {
 func TestGenerateSummaryComment(t *testing.T) {
 	var buf bytes.Buffer
 	err := Generate("test", []StubInput{
-		{Kind: "pkg", Config: &testPkgConfig{}, OutputType: "StepInstance"},
+		{Kind: "pkg", Config: &testPkgConfig{}, OutputType: "Step"},
 	}, Options{}, &buf)
 	if err != nil {
 		t.Fatal(err)
@@ -116,9 +116,9 @@ func TestGenerateSummaryComment(t *testing.T) {
 func TestGenerateMultipleSteps(t *testing.T) {
 	var buf bytes.Buffer
 	err := Generate("test", []StubInput{
-		{Kind: "pkg", Config: &testPkgConfig{}, OutputType: "StepInstance",
+		{Kind: "pkg", Config: &testPkgConfig{}, OutputType: "Step",
 			Enums: map[string][]string{"State": {"present", "absent"}}},
-		{Kind: "copy", Config: &testCopyConfig{}, OutputType: "StepInstance"},
+		{Kind: "copy", Config: &testCopyConfig{}, OutputType: "Step"},
 		{Kind: "ssh", Config: &testSSHConfig{}, OutputType: "Target"},
 	}, Options{}, &buf)
 	if err != nil {
@@ -133,7 +133,7 @@ func TestGenerateMultipleSteps(t *testing.T) {
 func TestGenerateImplicitFields(t *testing.T) {
 	var buf bytes.Buffer
 	err := Generate("test", []StubInput{
-		{Kind: "pkg", Config: &testPkgConfig{}, OutputType: "StepInstance"},
+		{Kind: "pkg", Config: &testPkgConfig{}, OutputType: "Step"},
 	}, Options{}, &buf)
 	if err != nil {
 		t.Fatal(err)

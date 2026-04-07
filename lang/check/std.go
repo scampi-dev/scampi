@@ -139,7 +139,7 @@ func StdModule() *Scope {
 	}
 
 	// Desired-state steps.
-	onChangeField := &FieldDef{Name: "on_change", Type: &List{Elem: StepInstanceType}, HasDef: true}
+	onChangeField := &FieldDef{Name: "on_change", Type: &List{Elem: StepType}, HasDef: true}
 	descField := &FieldDef{Name: "desc", Type: &Optional{Inner: StringType}, HasDef: true}
 
 	steps := []struct {
@@ -237,7 +237,7 @@ func StdModule() *Scope {
 	for _, st := range steps {
 		s.Define(&Symbol{
 			Name: st.name,
-			Type: &DeclType{Name: st.name, Params: st.params, Ret: StepInstanceType},
+			Type: &DeclType{Name: st.name, Params: st.params, Ret: StepType},
 			Kind: SymDecl,
 		})
 	}

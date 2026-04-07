@@ -105,7 +105,7 @@ func emitStep(bw *builder, in StubInput) {
 
 	fields = append(fields,
 		fieldInfo{name: "desc", scampiType: "string?", optional: true},
-		fieldInfo{name: "on_change", scampiType: "list[StepInstance]", defVal: "[]", rawDefault: true},
+		fieldInfo{name: "on_change", scampiType: "list[Step]", defVal: "[]", rawDefault: true},
 	)
 
 	// Resolve types and compute column widths for alignment.

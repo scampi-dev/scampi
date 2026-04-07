@@ -170,7 +170,7 @@ func TestCheckDeclDecl(t *testing.T) {
 module main
 import "std"
 
-decl create_user(name: string, groups: list[string]) StepInstance {
+decl create_user(name: string, groups: list[string]) Step {
     std.user { name = self.name }
 }
 `)
@@ -179,7 +179,7 @@ decl create_user(name: string, groups: list[string]) StepInstance {
 func TestCheckDeclStub(t *testing.T) {
 	expectNoErrors(t, `
 module main
-decl my_step(x: string, y: int) StepInstance
+decl my_step(x: string, y: int) Step
 `)
 }
 
@@ -206,7 +206,7 @@ func TestResolveBuiltinTypes(t *testing.T) {
 		{"int", IntType},
 		{"bool", BoolType},
 		{"any", AnyType},
-		{"StepInstance", StepInstanceType},
+		{"Step", StepType},
 		{"Target", TargetType},
 		{"Deploy", DeployType},
 	}

@@ -21,7 +21,7 @@ func main() {
 		in := langstubs.StubInput{
 			Kind:       st.Kind(),
 			Config:     cfg,
-			OutputType: "StepInstance",
+			OutputType: "Step",
 		}
 		if ep, ok := cfg.(enumProvider); ok {
 			in.Enums = ep.FieldEnumValues()

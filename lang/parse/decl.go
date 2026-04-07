@@ -215,7 +215,7 @@ func (p *Parser) parseDeclDecl() *ast.DeclDecl {
 	p.expect(token.RParen, "decl parameters")
 
 	// Output type: required for builtins/steps that need to declare it,
-	// optional for user-defined (defaults to StepInstance). We accept
+	// optional for user-defined (defaults to Step). We accept
 	// either "no type + body" or "type + [body]". If the next token is
 	// LBrace, there's no output type and the body follows.
 	var ret ast.TypeExpr

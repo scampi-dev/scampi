@@ -125,7 +125,7 @@ decl copy(
   group:  string,
   verify: string?,
   desc:   string?,
-) StepInstance
+) Step
 ```
 
 - One file per std submodule (`std.scampi`, `std/container.scampi`,
@@ -133,7 +133,7 @@ decl copy(
 - Enum declarations precede the decls that use them
 - The `desc` and `on_change` fields are implicit on every decl (the
   generator adds them)
-- Output type is `StepInstance` for desired-state decls, `Target` for
+- Output type is `Step` for desired-state decls, `Target` for
   target decls, etc.
 
 ## Step kind → output type mapping
@@ -145,7 +145,7 @@ provided by the caller alongside each config struct:
 type StubInput struct {
     Kind       string // "pkg", "copy", "ssh", "deploy", etc.
     Config     any    // pointer to config struct
-    OutputType string // "StepInstance", "Target", "Deploy", "SecretsConfig"
+    OutputType string // "Step", "Target", "Deploy", "SecretsConfig"
 }
 ```
 
@@ -157,8 +157,8 @@ type StubInput struct {
 // In cmd/gen-stubs/main.go:
 func main() {
     inputs := []langstubs.StubInput{
-        {Kind: "copy", Config: &copy.CopyConfig{}, OutputType: "StepInstance"},
-        {Kind: "pkg",  Config: &pkg.PkgConfig{},   OutputType: "StepInstance"},
+        {Kind: "copy", Config: &copy.CopyConfig{}, OutputType: "Step"},
+        {Kind: "pkg",  Config: &pkg.PkgConfig{},   OutputType: "Step"},
         {Kind: "ssh",  Config: &ssh.Config{},       OutputType: "Target"},
         // ...
     }

@@ -170,7 +170,7 @@ func build_url(host: string, path: string = "/") string {
 func TestParseDeclWithBody(t *testing.T) {
 	f := parseFile(t, `
 module main
-decl create_user(name: string, shell: string = "/bin/bash") StepInstance {
+decl create_user(name: string, shell: string = "/bin/bash") Step {
     std.user { name = self.name, shell = self.shell }
 }
 `)
@@ -189,7 +189,7 @@ decl create_user(name: string, shell: string = "/bin/bash") StepInstance {
 func TestParseDeclStub(t *testing.T) {
 	f := parseFile(t, `
 module main
-decl pkg(packages: list[string], state: PkgState = PkgState.present) StepInstance
+decl pkg(packages: list[string], state: PkgState = PkgState.present) Step
 `)
 	s := f.Decls[0].(*ast.DeclDecl)
 	if s.Body != nil {
@@ -203,7 +203,7 @@ decl pkg(packages: list[string], state: PkgState = PkgState.present) StepInstanc
 func TestParseDeclDottedName(t *testing.T) {
 	f := parseFile(t, `
 module main
-decl container.instance(name: string) StepInstance
+decl container.instance(name: string) Step
 `)
 	s := f.Decls[0].(*ast.DeclDecl)
 	if len(s.Name.Parts) != 2 {
@@ -468,7 +468,7 @@ struct User {
     groups: list[string] = []
 }
 
-decl create_user(u: User) StepInstance {
+decl create_user(u: User) Step {
     std.user {
         name = u.name
         groups = u.groups

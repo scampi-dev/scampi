@@ -469,7 +469,7 @@ decl create_user(
     name:   string,
     groups: list[string] = [],
     shell:  string = "/bin/bash",
-) StepInstance {
+) Step {
     std.pkg { packages = ["shadow-utils"], source = std.system {} }
 
     std.user {
@@ -482,7 +482,7 @@ decl create_user(
 ```
 
 `self` refers to the decl's own field values inside the body. The body
-produces a sequence of `StepInstance` values through bare decl
+produces a sequence of `Step` values through bare decl
 invocations (see §4.7).
 
 **Builtin stub (no body):**
@@ -495,7 +495,7 @@ decl pkg(
     source:   PkgSource,
     state:    PkgState = PkgState.present,
     desc:     string?,
-) StepInstance
+) Step
 
 decl ssh(
     name:     string,
@@ -529,7 +529,7 @@ Decl **invocations** use braces with equals (matching struct literals):
 
 ```
 // declaration: parens, colons
-decl pkg(packages: list[string], source: PkgSource) StepInstance
+decl pkg(packages: list[string], source: PkgSource) Step
 
 // invocation: braces, equals
 std.pkg { packages = ["nginx"], source = std.system {} }
@@ -540,11 +540,11 @@ funcs) that produce typed records (constructed like struct literals).
 
 **Output type rules (v0):**
 
-- If omitted from a user-defined decl, output type is `StepInstance`
-- User-defined decls must produce `StepInstance` (no custom output
+- If omitted from a user-defined decl, output type is `Step`
+- User-defined decls must produce `Step` (no custom output
   types in v0)
 - Builtin decls in std can produce any value type defined in std
-  (`Target`, `Deploy`, `SecretsConfig`, or `StepInstance`)
+  (`Target`, `Deploy`, `SecretsConfig`, or `Step`)
 - A decl invocation's expression has the decl's output type: e.g.
   `let v = std.target.ssh { ... }` gives `v` the type `Target`
 
@@ -558,9 +558,9 @@ The engine consumes specific value types from the top-level scope:
 | `SecretsConfig` | 0 or 1         | Configures the secrets backend      |
 | `Target`        | 0 or more      | Execution environment registrations |
 | `Deploy`        | 1 or more      | Deployment specifications           |
-| `StepInstance`  | 0 at top-level | Only valid inside deploy bodies     |
+| `Step`          | 0 at top-level | Only valid inside deploy bodies     |
 
-A compile-time error is raised when a `StepInstance` expression
+A compile-time error is raised when a `Step` expression
 appears at top-level. The compiler traces this back to a typed
 expression (e.g. `std.pkg { ... }`) and suggests wrapping it in a
 `std.deploy` body.
@@ -644,7 +644,7 @@ on whether they appear as **statements** or **expressions**:
   state. The engine collects it as part of the enclosing deploy's
   convergence work.
 - **Expression (let-bound or used in another value)** — the decl
-  invocation produces a `StepInstance` (or other output type) value
+  invocation produces a `Step` (or other output type) value
   you can reuse. It is NOT automatically emitted as desired state.
 
 This positional semantics is what lets reactive hooks work without
@@ -677,10 +677,10 @@ std.deploy {
 
 Types:
 
-- `restart_sshd: StepInstance` (from `std.service`)
-- `on_change: list[StepInstance]`
+- `restart_sshd: Step` (from `std.service`)
+- `on_change: list[Step]`
 
-The same `StepInstance` value can be emitted as desired state AND
+The same `Step` value can be emitted as desired state AND
 referenced from one or more `on_change` lists — the engine handles
 the unification at runtime.
 
@@ -999,7 +999,7 @@ Defined in `std`, consumed by the engine from top-level scope:
 struct Target        { ... }   # opaque, produced by target.* steps
 struct Deploy        { ... }   # opaque, produced by std.deploy
 struct SecretsConfig { ... }   # opaque, produced by std.secrets
-struct StepInstance  { ... }   # opaque, produced by desired-state decls
+struct Step  { ... }   # opaque, produced by desired-state decls
 ```
 
 ### 7.3 Target, deploy, secrets stubs
@@ -1050,8 +1050,8 @@ decl secrets(
 
 ### 7.4 Desired-state decl stubs
 
-All produce `StepInstance` (the default output type). Every desired-
-state decl implicitly has `on_change: list[StepInstance] = []` —
+All produce `Step` (the default output type). Every desired-
+state decl implicitly has `on_change: list[Step] = []` —
 reactive decls to fire when this step changes. `desc: string?` is
 shown on each stub.
 
@@ -1067,7 +1067,7 @@ decl copy(
     group:  string,
     verify: string?,
     desc:   string?,
-) StepInstance
+) Step
 
 decl dir(
     path:  string,
@@ -1075,13 +1075,13 @@ decl dir(
     owner: string?,
     group: string?,
     desc:  string?,
-) StepInstance
+) Step
 
 decl symlink(
     target: string,
     link:   string,
     desc:   string?,
-) StepInstance
+) Step
 
 struct TemplateData {
     values: map[string, any] = {}
@@ -1097,7 +1097,7 @@ decl template(
     group:  string,
     verify: string?,
     desc:   string?,
-) StepInstance
+) Step
 
 decl unarchive(
     src:   Source,
@@ -1107,7 +1107,7 @@ decl unarchive(
     group: string?,
     perm:  string?,
     desc:  string?,
-) StepInstance
+) Step
 
 # Package management
 # ---------------------------------------------------------------------------
@@ -1117,7 +1117,7 @@ decl pkg(
     source:   PkgSource,
     state:    PkgState = PkgState.present,
     desc:     string?,
-) StepInstance
+) Step
 
 # Service management
 # ---------------------------------------------------------------------------
@@ -1127,7 +1127,7 @@ decl service(
     state:   SvcState = SvcState.running,
     enabled: bool = true,
     desc:    string?,
-) StepInstance
+) Step
 
 # User and group management
 # ---------------------------------------------------------------------------
@@ -1141,7 +1141,7 @@ decl user(
     password: string?,
     groups:   list[string] = [],
     desc:     string?,
-) StepInstance
+) Step
 
 decl group(
     name:   string,
@@ -1149,7 +1149,7 @@ decl group(
     gid:    int?,
     system: bool = false,
     desc:   string?,
-) StepInstance
+) Step
 
 # System configuration
 # ---------------------------------------------------------------------------
@@ -1159,7 +1159,7 @@ decl sysctl(
     value:   string,
     persist: bool = true,
     desc:    string?,
-) StepInstance
+) Step
 
 decl mount(
     src:   string,
@@ -1168,13 +1168,13 @@ decl mount(
     opts:  string = "defaults",
     state: MountState = MountState.mounted,
     desc:  string?,
-) StepInstance
+) Step
 
 decl firewall(
     port:   string,
     action: FwAction = FwAction.allow,
     desc:   string?,
-) StepInstance
+) Step
 
 # Command execution
 # ---------------------------------------------------------------------------
@@ -1184,7 +1184,7 @@ decl run(
     check:  string?,       # mutually exclusive with always
     always: bool = false,  # mutually exclusive with check
     desc:   string?,
-) StepInstance
+) Step
 
 # Container management (in std/container)
 # ---------------------------------------------------------------------------
@@ -1201,7 +1201,7 @@ decl container.instance(
     labels:      map[string, string]?,
     healthcheck: Healthcheck?,
     desc:        string?,
-) StepInstance
+) Step
 
 # REST (in std/rest)
 # ---------------------------------------------------------------------------
@@ -1213,7 +1213,7 @@ decl rest.request(
     body:    Body?,
     check:   Check?,
     desc:    string?,
-) StepInstance
+) Step
 
 decl rest.resource(
     query:    rest.request,
@@ -1222,7 +1222,7 @@ decl rest.resource(
     bindings: map[string, Check]?,
     state:    map[string, any]?,
     desc:     string?,
-) StepInstance
+) Step
 ```
 
 ---
@@ -1554,7 +1554,7 @@ struct TeamMember {
     admin:  bool = false
 }
 
-decl create_user(member: TeamMember) StepInstance {
+decl create_user(member: TeamMember) Step {
     std.user {
         name   = self.member.name
         groups = self.member.groups
@@ -1719,7 +1719,7 @@ std.deploy {
    - Exactly zero or one `SecretsConfig`
    - Zero or more `Target`
    - One or more `Deploy` (each carrying its collected desired-state
-     `StepInstance` values and any reactive steps referenced from
+     `Step` values and any reactive steps referenced from
      `on_change` lists)
 4. The engine receives this collection. No language code runs after
    this point.
@@ -1889,7 +1889,7 @@ replaces the current tree-sitter-starlark extension.
 
 1. **Phase 0**: This spec. Iterate until the syntax is locked.
 2. **Phase 1**: Parser + type checker + evaluator. Can parse and evaluate
-   `.scampi` files into the existing `spec.StepInstance` format.
+   `.scampi` files into the existing `spec.Step` format.
 3. **Phase 2**: Stub generation from Go struct tags. Standard library
    available.
 4. **Phase 3**: LSP on the new language. Replaces scampls' Starlark

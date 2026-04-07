@@ -101,16 +101,16 @@ func (v *StructVal) String() string {
 // Engine-level values
 // -----------------------------------------------------------------------------
 
-// StepInstanceVal represents a desired-state step invocation. It
-// carries the step name and resolved field values for the engine.
-type StepInstanceVal struct {
+// StepVal represents a desired-state step invocation. It carries
+// the step name and resolved field values for the engine.
+type StepVal struct {
 	StepName string
 	Fields   map[string]Value
 }
 
-func (*StepInstanceVal) valueTag() {}
-func (v *StepInstanceVal) String() string {
-	return "StepInstance(" + v.StepName + ")"
+func (*StepVal) valueTag() {}
+func (v *StepVal) String() string {
+	return "Step(" + v.StepName + ")"
 }
 
 // TargetVal represents a resolved target declaration.
@@ -127,7 +127,7 @@ func (v *TargetVal) String() string { return "Target(" + v.Name + ")" }
 type DeployVal struct {
 	Name    string
 	Targets []Value
-	Steps   []*StepInstanceVal
+	Steps   []*StepVal
 }
 
 func (*DeployVal) valueTag()        {}
