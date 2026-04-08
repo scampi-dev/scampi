@@ -4,7 +4,7 @@ codeberg_repo := "scampi-dev/scampi"
 # Issues
 # ##############################################################################
 
-[doc("List open issues (optional: --label 'Kind/Bug')")]
+[doc("List open issues (optional: --label 'Kind/Bug', --milestone ID)")]
 [positional-arguments]
 list-issues *args:
   #!/usr/bin/env bash
