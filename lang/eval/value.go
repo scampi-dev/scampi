@@ -127,8 +127,9 @@ func (v *TargetVal) String() string { return "Target(" + v.Name + ")" }
 // config fields. Produced by func calls that return block[T]. Filled
 // by a statement block to produce the inner value (e.g. DeployVal).
 type BlockVal struct {
-	Kind   string           // what kind of block ("deploy", etc.)
-	Fields map[string]Value // config fields from the call
+	Kind      string           // func name ("deploy", etc.)
+	InnerType string           // the T in block[T] ("Deploy", etc.)
+	Fields    map[string]Value // config fields from the call
 }
 
 func (*BlockVal) valueTag()        {}

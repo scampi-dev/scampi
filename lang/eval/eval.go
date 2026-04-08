@@ -174,8 +174,21 @@ func extractStubInfo(fsys fs.FS) stubInfo {
 				info.enums[modName][d.Name.Name] = variants
 			case *ast.DeclDecl:
 				declName := d.Name.Parts[0].Name
+				retName := ""
 				if d.Ret != nil {
-					info.declReturns[modName+"."+declName] = typeExprName(d.Ret)
+					retName = typeExprName(d.Ret)
+					info.declReturns[modName+"."+declName] = retName
+				}
+				if d.Body == nil {
+					var params []string
+					for _, p := range d.Params {
+						params = append(params, p.Name.Name)
+					}
+					info.funcs[modName] = append(info.funcs[modName], stubFunc{
+						Name:    declName,
+						Params:  params,
+						RetType: retName,
+					})
 				}
 			case *ast.FuncDecl:
 				retName := ""
@@ -565,11 +578,11 @@ func (ev *Evaluator) evalBlockExpr(e *ast.BlockExpr) Value {
 }
 
 func (ev *Evaluator) fillBlock(bv *BlockVal, body *ast.Block) Value {
-	switch bv.Kind {
-	case "deploy":
+	switch bv.InnerType {
+	case "Deploy":
 		return ev.fillDeploy(bv.Fields, body)
 	}
-	ev.errAt(body.SrcSpan, "unknown block kind: "+bv.Kind)
+	ev.errAt(body.SrcSpan, "cannot fill block of type "+bv.InnerType)
 	return &NoneVal{}
 }
 
@@ -609,8 +622,9 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 				fields[name] = positional[i]
 			}
 		}
-		if strings.HasPrefix(fv.RetType, "block[") {
-			return &BlockVal{Kind: fv.Name, Fields: fields}
+		if strings.HasPrefix(fv.RetType, "block[") && strings.HasSuffix(fv.RetType, "]") {
+			innerType := fv.RetType[6 : len(fv.RetType)-1]
+			return &BlockVal{Kind: fv.Name, InnerType: innerType, Fields: fields}
 		}
 		return &StepVal{StepName: fv.Name, Fields: fields}
 	}
@@ -666,8 +680,6 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 	retType := ev.declReturns[qualName]
 
 	switch retType {
-	case "Deploy":
-		return ev.evalDeploy(fields, lit)
 	case "SecretsConfig":
 		return ev.evalSecrets(fields)
 	case "Target":
@@ -720,47 +732,6 @@ func (ev *Evaluator) expandUserStep(fv *FuncVal, fields map[string]Value) Value 
 	// The body's step invocations were already collected by the deploy
 	// (if we're inside one) via the currentDeploy mechanism.
 	return &NoneVal{}
-}
-
-func (ev *Evaluator) evalDeploy(
-	fields map[string]Value,
-	lit *ast.StructLit,
-) *DeployVal {
-	dv := &DeployVal{}
-	if n, ok := fields["name"]; ok {
-		if s, ok := n.(*StringVal); ok {
-			dv.Name = s.V
-		}
-	}
-	if t, ok := fields["targets"]; ok {
-		if l, ok := t.(*ListVal); ok {
-			dv.Targets = l.Items
-		}
-	}
-	// Collect steps from the steps field (new model).
-	if s, ok := fields["steps"]; ok {
-		if l, ok := s.(*ListVal); ok {
-			for _, item := range l.Items {
-				if si, ok := item.(*StepVal); ok {
-					dv.Steps = append(dv.Steps, si)
-				}
-			}
-		}
-	}
-	// Also collect from body statements (legacy/block invocation model).
-	if len(lit.Body) > 0 {
-		prev := ev.currentDeploy
-		ev.currentDeploy = dv
-		childEnv := newEnv(ev.env)
-		prevEnv := ev.env
-		ev.env = childEnv
-		for _, s := range lit.Body {
-			ev.evalStmt(s)
-		}
-		ev.env = prevEnv
-		ev.currentDeploy = prev
-	}
-	return dv
 }
 
 func (ev *Evaluator) evalSecrets(fields map[string]Value) *SecretsVal {
