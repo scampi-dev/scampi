@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/lang/eval"
+	"scampi.dev/scampi/spec"
 )
 
 // mapFields maps eval.Value fields onto a Go config struct pointer
@@ -88,14 +89,83 @@ func setValue(dst reflect.Value, src eval.Value) error {
 	case *eval.NoneVal:
 		// Leave as zero value.
 	case *eval.StructVal:
-		// Nested struct value (e.g. Source, PkgSource composables).
-		// These need special handling per target field type.
-		// For now, store as-is if the destination is an interface.
-		if dst.Kind() == reflect.Interface {
+		// Composable types: convert StructVal to the Go type the
+		// engine expects based on the destination field type.
+		dstType := dst.Type()
+		switch {
+		case dstType == reflect.TypeOf(spec.SourceRef{}):
+			dst.Set(reflect.ValueOf(convertSourceRef(sv)))
+		case dstType == reflect.TypeOf(spec.PkgSourceRef{}):
+			dst.Set(reflect.ValueOf(convertPkgSourceRef(sv)))
+		case dst.Kind() == reflect.Interface:
 			dst.Set(reflect.ValueOf(sv))
+		case dst.Kind() == reflect.Struct:
+			if err := mapFields(sv.Fields, dst.Addr().Interface()); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
+}
+
+// Composable type converters
+// -----------------------------------------------------------------------------
+
+func convertSourceRef(sv *eval.StructVal) spec.SourceRef {
+	ref := spec.SourceRef{}
+	switch sv.TypeName {
+	case "source_local":
+		ref.Kind = spec.SourceLocal
+		if p, ok := sv.Fields["path"].(*eval.StringVal); ok {
+			ref.Path = p.V
+		}
+	case "source_inline":
+		ref.Kind = spec.SourceInline
+		if c, ok := sv.Fields["content"].(*eval.StringVal); ok {
+			ref.Content = c.V
+		}
+	case "source_remote":
+		ref.Kind = spec.SourceRemote
+		if u, ok := sv.Fields["url"].(*eval.StringVal); ok {
+			ref.URL = u.V
+		}
+	}
+	return ref
+}
+
+func convertPkgSourceRef(sv *eval.StructVal) spec.PkgSourceRef {
+	ref := spec.PkgSourceRef{}
+	switch sv.TypeName {
+	case "pkg_system":
+		ref.Kind = spec.PkgSourceNative
+	case "pkg_apt_repo":
+		ref.Kind = spec.PkgSourceApt
+		if u, ok := sv.Fields["url"].(*eval.StringVal); ok {
+			ref.URL = u.V
+		}
+		if k, ok := sv.Fields["key_url"].(*eval.StringVal); ok {
+			ref.KeyURL = k.V
+		}
+		if c, ok := sv.Fields["components"].(*eval.ListVal); ok {
+			for _, item := range c.Items {
+				if s, ok := item.(*eval.StringVal); ok {
+					ref.Components = append(ref.Components, s.V)
+				}
+			}
+		}
+		if s, ok := sv.Fields["suite"].(*eval.StringVal); ok {
+			ref.Suite = s.V
+		}
+	case "pkg_dnf_repo":
+		ref.Kind = spec.PkgSourceDnf
+		if u, ok := sv.Fields["url"].(*eval.StringVal); ok {
+			ref.URL = u.V
+		}
+		if k, ok := sv.Fields["key_url"].(*eval.StringVal); ok {
+			ref.KeyURL = k.V
+		}
+	}
+	return ref
 }
 
 // toSnake converts GoFieldName to snake_case.

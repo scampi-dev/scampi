@@ -5,7 +5,6 @@ package linker
 import (
 	"context"
 
-	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/eval"
@@ -23,7 +22,7 @@ func LoadConfig(
 	ctx context.Context,
 	cfgPath string,
 	src source.Source,
-	reg *engine.Registry,
+	reg Registry,
 ) (spec.Config, error) {
 	data, err := src.ReadFile(ctx, cfgPath)
 	if err != nil {

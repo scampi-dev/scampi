@@ -6,15 +6,21 @@
 package linker
 
 import (
-	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/spec"
 )
 
+// Registry provides step and target type lookups. Implemented by
+// engine.Registry — defined as an interface here to avoid a cycle.
+type Registry interface {
+	StepType(kind string) (spec.StepType, bool)
+	TargetType(kind string) (spec.TargetType, bool)
+}
+
 // Link converts a lang eval result into a spec.Config by walking all
 // values, interpreting them based on RetType/TypeName, and resolving
 // step and target names against the engine registry.
-func Link(result *eval.Result, reg *engine.Registry, path string) (spec.Config, error) {
+func Link(result *eval.Result, reg Registry, path string) (spec.Config, error) {
 	cfg := spec.Config{
 		Path:    path,
 		Targets: make(map[string]spec.TargetInstance),
@@ -39,7 +45,7 @@ func Link(result *eval.Result, reg *engine.Registry, path string) (spec.Config, 
 	return cfg, linkErr
 }
 
-func linkStructVal(sv *eval.StructVal, r *eval.Result, reg *engine.Registry, cfg *spec.Config) error {
+func linkStructVal(sv *eval.StructVal, r *eval.Result, reg Registry, cfg *spec.Config) error {
 	switch sv.RetType {
 	case "Target":
 		ti, err := linkTarget(sv, reg)
@@ -66,7 +72,7 @@ func bindingName(r *eval.Result, v eval.Value) string {
 	return ""
 }
 
-func linkBlockResult(bv *eval.BlockResultVal, reg *engine.Registry, cfg *spec.Config) error {
+func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.Config) error {
 	switch bv.TypeName {
 	case "Deploy":
 		db, err := linkDeploy(bv, reg)
@@ -78,7 +84,7 @@ func linkBlockResult(bv *eval.BlockResultVal, reg *engine.Registry, cfg *spec.Co
 	return nil
 }
 
-func linkTarget(sv *eval.StructVal, reg *engine.Registry) (spec.TargetInstance, error) {
+func linkTarget(sv *eval.StructVal, reg Registry) (spec.TargetInstance, error) {
 	tt, ok := reg.TargetType(sv.TypeName)
 	if !ok {
 		return spec.TargetInstance{}, &UnresolvedError{Kind: "target", Name: sv.TypeName}
@@ -93,7 +99,7 @@ func linkTarget(sv *eval.StructVal, reg *engine.Registry) (spec.TargetInstance, 
 	}, nil
 }
 
-func linkDeploy(bv *eval.BlockResultVal, reg *engine.Registry) (spec.DeployBlock, error) {
+func linkDeploy(bv *eval.BlockResultVal, reg Registry) (spec.DeployBlock, error) {
 	db := spec.DeployBlock{
 		Hooks: make(map[string][]spec.StepInstance),
 	}
@@ -126,7 +132,7 @@ func linkDeploy(bv *eval.BlockResultVal, reg *engine.Registry) (spec.DeployBlock
 	return db, nil
 }
 
-func linkStep(sv *eval.StructVal, reg *engine.Registry) (spec.StepInstance, error) {
+func linkStep(sv *eval.StructVal, reg Registry) (spec.StepInstance, error) {
 	st, ok := reg.StepType(sv.TypeName)
 	if !ok {
 		return spec.StepInstance{}, &UnresolvedError{Kind: "step", Name: sv.TypeName}

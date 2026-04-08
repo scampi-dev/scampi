@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package linker
+package linker_test
 
 import (
 	"testing"
@@ -10,6 +10,7 @@ import (
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/parse"
+	"scampi.dev/scampi/linker"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/std"
 )
@@ -76,13 +77,13 @@ func TestLinkUnresolvedStep(t *testing.T) {
 		},
 	}
 	reg := engine.NewRegistry()
-	_, err := Link(result, reg, "test.scampi")
+	_, err := linker.Link(result, reg, "test.scampi")
 	if err == nil {
 		t.Fatal("expected link error for unresolved step")
 	}
-	ue, ok := err.(*UnresolvedError)
+	ue, ok := err.(*linker.UnresolvedError)
 	if !ok {
-		t.Fatalf("expected *UnresolvedError, got %T: %v", err, err)
+		t.Fatalf("expected *linker.UnresolvedError, got %T: %v", err, err)
 	}
 	if ue.Kind != "step" || ue.Name != "nonexistent_step" {
 		t.Errorf("error: got kind=%q name=%q, want step/nonexistent_step", ue.Kind, ue.Name)
@@ -100,13 +101,13 @@ func TestLinkUnresolvedTarget(t *testing.T) {
 		},
 	}
 	reg := engine.NewRegistry()
-	_, err := Link(result, reg, "test.scampi")
+	_, err := linker.Link(result, reg, "test.scampi")
 	if err == nil {
 		t.Fatal("expected link error for unresolved target")
 	}
-	ue, ok := err.(*UnresolvedError)
+	ue, ok := err.(*linker.UnresolvedError)
 	if !ok {
-		t.Fatalf("expected *UnresolvedError, got %T: %v", err, err)
+		t.Fatalf("expected *linker.UnresolvedError, got %T: %v", err, err)
 	}
 	if ue.Kind != "target" || ue.Name != "nonexistent_target" {
 		t.Errorf("error: got kind=%q name=%q, want target/nonexistent_target", ue.Kind, ue.Name)
@@ -138,7 +139,7 @@ func evalAndLink(t *testing.T, src string) spec.Config {
 		t.Fatalf("eval: %v", errs)
 	}
 	reg := engine.NewRegistry()
-	cfg, err := Link(r, reg, "test.scampi")
+	cfg, err := linker.Link(r, reg, "test.scampi")
 	if err != nil {
 		t.Fatalf("link: %v", err)
 	}

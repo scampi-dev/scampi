@@ -9,10 +9,9 @@ import (
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/errs"
-	"scampi.dev/scampi/mod"
+	"scampi.dev/scampi/linker"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/star"
 )
 
 // ConfigLoader loads and evaluates a configuration file, returning
@@ -26,13 +25,13 @@ type ConfigLoader func(
 	src source.Source,
 ) (spec.Config, error)
 
-// LoadConfig decodes and validates user configuration using Starlark.
-// For scampi-lang files, use linker.LoadConfig instead.
+// LoadConfig decodes and validates user configuration by running the
+// scampi-lang pipeline (lex → parse → check → eval → link).
 func LoadConfig(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	_ *diagnostic.SourceStore, // TODO: wire source store for diagnostic spans
 	src source.Source,
 ) (spec.Config, error) {
 	cfgPath, absErr := filepath.Abs(cfgPath)
@@ -40,24 +39,8 @@ func LoadConfig(
 		panic(errs.BUG("filepath.Abs() failed: %w", absErr))
 	}
 
-	var evalOpts []star.EvalOption
-	modPath := filepath.Join(filepath.Dir(cfgPath), "scampi.mod")
-	if modData, readErr := src.ReadFile(ctx, modPath); readErr == nil {
-		if store != nil {
-			store.AddFile(modPath, modData)
-		}
-		m, parseErr := mod.Parse(modPath, modData)
-		if parseErr != nil {
-			impact, _ := emitEngineDiagnostic(em, modPath, parseErr)
-			if impact.ShouldAbort() {
-				return spec.Config{}, AbortError{Causes: []error{parseErr}}
-			}
-			return spec.Config{}, parseErr
-		}
-		evalOpts = append(evalOpts, star.WithModule(m, mod.DefaultCacheDir()))
-	}
-
-	cfg, err := star.Eval(ctx, cfgPath, store, src, evalOpts...)
+	reg := NewRegistry()
+	cfg, err := linker.LoadConfig(ctx, cfgPath, src, reg)
 	if err != nil {
 		impact, _ := emitEngineDiagnostic(em, cfgPath, err)
 		if impact.ShouldAbort() {
