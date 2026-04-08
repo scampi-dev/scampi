@@ -247,21 +247,59 @@ func assertLets(t *testing.T, r *eval.Result, want map[string]json.RawMessage) {
 	}
 }
 
+// findStructsByRetType returns StructVals with the given return type
+// from Bindings and Exprs.
+func findStructsByRetType(r *eval.Result, retType string) []*eval.StructVal {
+	var found []*eval.StructVal
+	for _, v := range r.Bindings {
+		if sv, ok := v.(*eval.StructVal); ok && sv.RetType == retType {
+			found = append(found, sv)
+		}
+	}
+	for _, v := range r.Exprs {
+		if sv, ok := v.(*eval.StructVal); ok && sv.RetType == retType {
+			found = append(found, sv)
+		}
+	}
+	return found
+}
+
+// findBlocks returns BlockResultVals with the given inner type.
+func findBlocks(r *eval.Result, typeName string) []*eval.BlockResultVal {
+	var found []*eval.BlockResultVal
+	for _, v := range r.Exprs {
+		if bv, ok := v.(*eval.BlockResultVal); ok && bv.TypeName == typeName {
+			found = append(found, bv)
+		}
+	}
+	for _, v := range r.Bindings {
+		if bv, ok := v.(*eval.BlockResultVal); ok && bv.TypeName == typeName {
+			found = append(found, bv)
+		}
+	}
+	return found
+}
+
 func assertTargets(t *testing.T, r *eval.Result, want []expectTarget) {
 	t.Helper()
 	if want == nil {
 		return
 	}
-	if len(r.Targets) != len(want) {
-		t.Errorf("targets: got %d, want %d", len(r.Targets), len(want))
+	targets := findStructsByRetType(r, "Target")
+	if len(targets) != len(want) {
+		t.Errorf("targets: got %d, want %d", len(targets), len(want))
 		return
 	}
 	for i, w := range want {
-		if r.Targets[i].Name != w.Name {
-			t.Errorf("target[%d] name: got %q, want %q", i, r.Targets[i].Name, w.Name)
+		name := ""
+		if n, ok := targets[i].Fields["name"].(*eval.StringVal); ok {
+			name = n.V
 		}
-		if r.Targets[i].Kind != w.Kind {
-			t.Errorf("target[%d] kind: got %q, want %q", i, r.Targets[i].Kind, w.Kind)
+		if name != w.Name {
+			t.Errorf("target[%d] name: got %q, want %q", i, name, w.Name)
+		}
+		if targets[i].TypeName != w.Kind {
+			t.Errorf("target[%d] kind: got %q, want %q", i, targets[i].TypeName, w.Kind)
 		}
 	}
 }
@@ -271,16 +309,21 @@ func assertDeploys(t *testing.T, r *eval.Result, want []expectDeploy) {
 	if want == nil {
 		return
 	}
-	if len(r.Deploys) != len(want) {
-		t.Errorf("deploys: got %d, want %d", len(r.Deploys), len(want))
+	deploys := findBlocks(r, "Deploy")
+	if len(deploys) != len(want) {
+		t.Errorf("deploys: got %d, want %d", len(deploys), len(want))
 		return
 	}
 	for i, w := range want {
-		if r.Deploys[i].Name != w.Name {
-			t.Errorf("deploy[%d] name: got %q, want %q", i, r.Deploys[i].Name, w.Name)
+		name := ""
+		if n, ok := deploys[i].Fields["name"].(*eval.StringVal); ok {
+			name = n.V
 		}
-		if w.Steps > 0 && len(r.Deploys[i].Steps) != w.Steps {
-			t.Errorf("deploy[%d] steps: got %d, want %d", i, len(r.Deploys[i].Steps), w.Steps)
+		if name != w.Name {
+			t.Errorf("deploy[%d] name: got %q, want %q", i, name, w.Name)
+		}
+		if w.Steps > 0 && len(deploys[i].Body) != w.Steps {
+			t.Errorf("deploy[%d] steps: got %d, want %d", i, len(deploys[i].Body), w.Steps)
 		}
 	}
 }
@@ -290,14 +333,24 @@ func assertSecrets(t *testing.T, r *eval.Result, want *expectSecrets) {
 	if want == nil {
 		return
 	}
-	if r.Secrets == nil {
-		t.Fatal("expected secrets config, got nil")
+	secrets := findStructsByRetType(r, "SecretsConfig")
+	if len(secrets) == 0 {
+		t.Fatal("expected secrets config, got none")
 	}
-	if r.Secrets.Backend != want.Backend {
-		t.Errorf("secrets backend: got %q, want %q", r.Secrets.Backend, want.Backend)
+	sv := secrets[0]
+	backend := ""
+	if b, ok := sv.Fields["backend"].(*eval.StringVal); ok {
+		backend = b.V
 	}
-	if r.Secrets.Path != want.Path {
-		t.Errorf("secrets path: got %q, want %q", r.Secrets.Path, want.Path)
+	path := ""
+	if p, ok := sv.Fields["path"].(*eval.StringVal); ok {
+		path = p.V
+	}
+	if backend != want.Backend {
+		t.Errorf("secrets backend: got %q, want %q", backend, want.Backend)
+	}
+	if path != want.Path {
+		t.Errorf("secrets path: got %q, want %q", path, want.Path)
 	}
 }
 

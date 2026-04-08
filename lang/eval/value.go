@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 // Package eval is the scampi-lang tree-walking evaluator. It takes a
-// parsed and type-checked AST and produces runtime values: the typed
-// outputs the engine consumes (targets, deploys, step instances).
+// parsed and type-checked AST and produces generic runtime values.
+// The evaluator has no knowledge of engine concepts — it just evaluates
+// typed configuration language into values the caller interprets.
 package eval
 
 import "fmt"
@@ -84,75 +85,53 @@ func (v *MapVal) Set(key string, val Value) {
 	v.Values = append(v.Values, val)
 }
 
-// Struct instance
+// Typed values
 // -----------------------------------------------------------------------------
 
-// StructVal is a runtime struct instance (field name → value).
+// StructVal is a runtime value produced by a decl invocation or a type
+// literal. It carries the declaration's return type so the linker can
+// interpret it without reparsing stubs.
 type StructVal struct {
-	TypeName string
+	TypeName string // leaf decl name ("copy", "ssh", "secrets")
+	QualName string // qualified name ("posix.copy", "posix.ssh")
+	RetType  string // return type from stubs ("Step", "Target", etc.)
 	Fields   map[string]Value
 }
 
 func (*StructVal) valueTag() {}
 func (v *StructVal) String() string {
+	if v.RetType != "" {
+		return v.RetType + "(" + v.TypeName + ")"
+	}
 	return v.TypeName + "{...}"
 }
 
-// Engine-level values
-// -----------------------------------------------------------------------------
-
-// StepVal represents a desired-state step invocation. It carries
-// the step name and resolved field values for the engine.
-type StepVal struct {
-	StepName string
-	Fields   map[string]Value
-}
-
-func (*StepVal) valueTag() {}
-func (v *StepVal) String() string {
-	return "Step(" + v.StepName + ")"
-}
-
-// TargetVal represents a resolved target declaration.
-type TargetVal struct {
-	Kind   string // "ssh", "local", "rest"
-	Name   string
-	Fields map[string]Value
-}
-
-func (*TargetVal) valueTag()        {}
-func (v *TargetVal) String() string { return "Target(" + v.Name + ")" }
-
-// BlockVal is a block handle — an unfilled block[T] value carrying
-// config fields. Produced by func calls that return block[T]. Filled
-// by a statement block to produce the inner value (e.g. DeployVal).
+// BlockVal is an unfilled block[T] handle. Produced by func calls
+// that return block[T]. Filled by a statement block to produce a
+// BlockResultVal.
 type BlockVal struct {
-	Kind      string           // func name ("deploy", etc.)
+	FuncName  string           // func that created this ("deploy", etc.)
 	InnerType string           // the T in block[T] ("Deploy", etc.)
 	Fields    map[string]Value // config fields from the call
 }
 
 func (*BlockVal) valueTag()        {}
-func (v *BlockVal) String() string { return "block(" + v.Kind + ")" }
+func (v *BlockVal) String() string { return "block(" + v.FuncName + ")" }
 
-// DeployVal represents a resolved deploy declaration.
-type DeployVal struct {
-	Name    string
-	Targets []Value
-	Steps   []*StepVal
+// BlockResultVal is a filled block[T] — the result of supplying a
+// statement body to a block[T] value. It carries the config fields
+// from the original call plus the values collected from the body.
+type BlockResultVal struct {
+	TypeName string           // the T in block[T] ("Deploy", etc.)
+	FuncName string           // func that created the block ("deploy")
+	Fields   map[string]Value // config from the call (name, targets, etc.)
+	Body     []Value          // values collected from the body
 }
 
-func (*DeployVal) valueTag()        {}
-func (v *DeployVal) String() string { return "Deploy(" + v.Name + ")" }
-
-// SecretsVal represents a resolved secrets configuration.
-type SecretsVal struct {
-	Backend string
-	Path    string
+func (*BlockResultVal) valueTag() {}
+func (v *BlockResultVal) String() string {
+	return v.TypeName + "(" + v.FuncName + ", " + fmt.Sprintf("%d body values", len(v.Body)) + ")"
 }
-
-func (*SecretsVal) valueTag()      {}
-func (*SecretsVal) String() string { return "SecretsConfig" }
 
 // FuncVal is a callable function (carries its AST + closure scope).
 // For stub funcs (no body), RetType indicates the return type name
@@ -172,10 +151,10 @@ func (v *FuncVal) String() string { return "func " + v.Name }
 // Result
 // -----------------------------------------------------------------------------
 
-// Result is the output of evaluating a scampi-lang program.
+// Result is the output of evaluating a scampi-lang program. It
+// contains only generic typed values — no engine-specific types.
+// The caller (linker) interprets these based on RetType/TypeName.
 type Result struct {
-	Targets  []*TargetVal
-	Deploys  []*DeployVal
-	Secrets  *SecretsVal
 	Bindings map[string]Value // all top-level let bindings
+	Exprs    []Value          // top-level bare expressions (block fills, decl invocations)
 }

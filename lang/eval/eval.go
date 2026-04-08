@@ -37,9 +37,10 @@ type Evaluator struct {
 	// source holds the original source bytes for string extraction.
 	source []byte
 
-	// stepEmit is called when a bare step invocation is encountered
-	// inside a deploy body. It appends to the current deploy's steps.
-	currentDeploy *DeployVal
+	// blockCollector collects values emitted as bare expressions
+	// inside a block body (block[T] fill). nil when not inside a
+	// block body.
+	blockCollector *[]Value
 }
 
 // Error is an eval-time error.
@@ -271,7 +272,6 @@ func (ev *Evaluator) evalDecl(d ast.Decl) {
 	case *ast.LetDecl:
 		v := ev.evalExpr(d.Value)
 		ev.env.set(d.Name.Name, v)
-		ev.collectTopLevel(v)
 	case *ast.FuncDecl:
 		var params []string
 		var defaults []any
@@ -303,19 +303,20 @@ func (ev *Evaluator) evalDecl(d ast.Decl) {
 	}
 }
 
-// collectTopLevel checks if a value is a Target/Deploy/Secrets and
-// adds it to the result.
-func (ev *Evaluator) collectTopLevel(v Value) {
+// emitValue sends a value to the current collector. Inside a block
+// body, values are collected into the block. At top level, values go
+// into result.Exprs.
+func (ev *Evaluator) emitValue(v Value) {
 	if v == nil {
 		return
 	}
-	switch val := v.(type) {
-	case *TargetVal:
-		ev.result.Targets = append(ev.result.Targets, val)
-	case *DeployVal:
-		ev.result.Deploys = append(ev.result.Deploys, val)
-	case *SecretsVal:
-		ev.result.Secrets = val
+	if _, none := v.(*NoneVal); none {
+		return
+	}
+	if ev.blockCollector != nil {
+		*ev.blockCollector = append(*ev.blockCollector, v)
+	} else {
+		ev.result.Exprs = append(ev.result.Exprs, v)
 	}
 }
 
@@ -326,13 +327,7 @@ func (ev *Evaluator) evalStmt(s ast.Stmt) {
 	switch s := s.(type) {
 	case *ast.ExprStmt:
 		v := ev.evalExpr(s.Expr)
-		if ev.currentDeploy != nil {
-			if si, ok := v.(*StepVal); ok {
-				ev.currentDeploy.Steps = append(ev.currentDeploy.Steps, si)
-			}
-		} else {
-			ev.collectTopLevel(v)
-		}
+		ev.emitValue(v)
 	case *ast.LetStmt:
 		v := ev.evalExpr(s.Decl.Value)
 		ev.env.set(s.Decl.Name.Name, v)
@@ -578,28 +573,9 @@ func (ev *Evaluator) evalBlockExpr(e *ast.BlockExpr) Value {
 }
 
 func (ev *Evaluator) fillBlock(bv *BlockVal, body *ast.Block) Value {
-	switch bv.InnerType {
-	case "Deploy":
-		return ev.fillDeploy(bv.Fields, body)
-	}
-	ev.errAt(body.SrcSpan, "cannot fill block of type "+bv.InnerType)
-	return &NoneVal{}
-}
-
-func (ev *Evaluator) fillDeploy(fields map[string]Value, body *ast.Block) Value {
-	dv := &DeployVal{}
-	if n, ok := fields["name"]; ok {
-		if s, ok := n.(*StringVal); ok {
-			dv.Name = s.V
-		}
-	}
-	if t, ok := fields["targets"]; ok {
-		if l, ok := t.(*ListVal); ok {
-			dv.Targets = l.Items
-		}
-	}
-	prev := ev.currentDeploy
-	ev.currentDeploy = dv
+	var collected []Value
+	prevCollector := ev.blockCollector
+	ev.blockCollector = &collected
 	childEnv := newEnv(ev.env)
 	prevEnv := ev.env
 	ev.env = childEnv
@@ -607,8 +583,35 @@ func (ev *Evaluator) fillDeploy(fields map[string]Value, body *ast.Block) Value 
 		ev.evalBlock(body)
 	}
 	ev.env = prevEnv
-	ev.currentDeploy = prev
-	return dv
+	ev.blockCollector = prevCollector
+	return &BlockResultVal{
+		TypeName: bv.InnerType,
+		FuncName: bv.FuncName,
+		Fields:   bv.Fields,
+		Body:     collected,
+	}
+}
+
+// fillBlockFromStmts is like fillBlock but takes raw statements
+// (from a StructLit body, used for ident { stmts } syntax).
+func (ev *Evaluator) fillBlockFromStmts(bv *BlockVal, stmts []ast.Stmt) Value {
+	var collected []Value
+	prevCollector := ev.blockCollector
+	ev.blockCollector = &collected
+	childEnv := newEnv(ev.env)
+	prevEnv := ev.env
+	ev.env = childEnv
+	for _, s := range stmts {
+		ev.evalStmt(s)
+	}
+	ev.env = prevEnv
+	ev.blockCollector = prevCollector
+	return &BlockResultVal{
+		TypeName: bv.InnerType,
+		FuncName: bv.FuncName,
+		Fields:   bv.Fields,
+		Body:     collected,
+	}
 }
 
 func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string]Value) Value {
@@ -624,9 +627,9 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 		}
 		if strings.HasPrefix(fv.RetType, "block[") && strings.HasSuffix(fv.RetType, "]") {
 			innerType := fv.RetType[6 : len(fv.RetType)-1]
-			return &BlockVal{Kind: fv.Name, InnerType: innerType, Fields: fields}
+			return &BlockVal{FuncName: fv.Name, InnerType: innerType, Fields: fields}
 		}
-		return &StepVal{StepName: fv.Name, Fields: fields}
+		return &StructVal{TypeName: fv.Name, RetType: fv.RetType, Fields: fields}
 	}
 
 	body, ok := fv.body.(*ast.Block)
@@ -679,20 +682,27 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 	qualName := structLitQualifiedName(lit)
 	retType := ev.declReturns[qualName]
 
-	switch retType {
-	case "SecretsConfig":
-		return ev.evalSecrets(fields)
-	case "Target":
-		return ev.evalTarget(typeName, fields)
-	case "Step", "Source", "PkgSource", "Auth", "TLS", "Body", "Check":
-		return &StepVal{StepName: typeName, Fields: fields}
-	}
-
-	// User-defined decl: look up in env, expand body with self bound.
+	// User-defined decl with body: expand with self bound.
 	if fv, ok := ev.lookupStep(typeName); ok {
 		return ev.expandUserStep(fv, fields)
 	}
-	return &StructVal{TypeName: typeName, Fields: fields}
+
+	// Block fill on a let-bound block value (ident { stmts }).
+	if retType == "" && len(lit.Body) > 0 {
+		v, ok := ev.env.get(typeName)
+		if ok {
+			if bv, ok := v.(*BlockVal); ok {
+				return ev.fillBlockFromStmts(bv, lit.Body)
+			}
+		}
+	}
+
+	return &StructVal{
+		TypeName: typeName,
+		QualName: qualName,
+		RetType:  retType,
+		Fields:   fields,
+	}
 }
 
 func (ev *Evaluator) lookupStep(name string) (*FuncVal, bool) {
@@ -729,34 +739,9 @@ func (ev *Evaluator) expandUserStep(fv *FuncVal, fields map[string]Value) Value 
 	ev.env = child
 	ev.evalBlock(stepDecl.Body)
 	ev.env = prevEnv
-	// The body's step invocations were already collected by the deploy
-	// (if we're inside one) via the currentDeploy mechanism.
+	// The body's step invocations are collected by the block
+	// collector if we're inside a block fill.
 	return &NoneVal{}
-}
-
-func (ev *Evaluator) evalSecrets(fields map[string]Value) *SecretsVal {
-	sv := &SecretsVal{}
-	if b, ok := fields["backend"]; ok {
-		if s, ok := b.(*StringVal); ok {
-			sv.Backend = s.V
-		}
-	}
-	if p, ok := fields["path"]; ok {
-		if s, ok := p.(*StringVal); ok {
-			sv.Path = s.V
-		}
-	}
-	return sv
-}
-
-func (ev *Evaluator) evalTarget(kind string, fields map[string]Value) *TargetVal {
-	tv := &TargetVal{Kind: kind, Fields: fields}
-	if n, ok := fields["name"]; ok {
-		if s, ok := n.(*StringVal); ok {
-			tv.Name = s.V
-		}
-	}
-	return tv
 }
 
 func (ev *Evaluator) evalIndex(idx *ast.IndexExpr) Value {
