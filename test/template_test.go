@@ -17,27 +17,27 @@ import (
 // TestTemplate_Inspect_SrcFile verifies template steps are inspectable with src files.
 func TestTemplate_Inspect_SrcFile(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="inspect-src",
-            src=local("/tmpl.txt"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "name": "world",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "inspect-src"
+    src = posix.source_local { path = "/tmpl.txt" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "name": "world",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -88,27 +88,27 @@ deploy(
 // TestTemplate_Inspect_Inline verifies template steps are inspectable with inline content.
 func TestTemplate_Inspect_Inline(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="inspect-inline",
-            src=inline("Port: {{.port}}"),
-            dest="/app.conf",
-            data={
-                "values": {
-                    "port": "8080",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "inspect-inline"
+    src = posix.source_inline { content = "Port: {{.port}}" }
+    dest = "/app.conf"
+    data = {
+      "values": {
+        "port": "8080",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -157,28 +157,28 @@ deploy(
 // TestTemplate_BasicRender verifies basic template rendering with values.
 func TestTemplate_BasicRender(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="render-test",
-            src=local("/tmpl.txt"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "name": "world",
-                    "count": 42,
-                },
-            },
-            perm="0644",
-            owner="testuser",
-            group="testgroup",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "render-test"
+    src = posix.source_local { path = "/tmpl.txt" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "name": "world",
+        "count": 42,
+      },
+    }
+    perm = "0644"
+    owner = "testuser"
+    group = "testgroup"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -246,27 +246,27 @@ deploy(
 // TestTemplate_InlineContent verifies template rendering with inline content.
 func TestTemplate_InlineContent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="inline-template",
-            src=inline("Inline: {{.msg}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "msg": "hello",
-                },
-            },
-            perm="0600",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "inline-template"
+    src = posix.source_inline { content = "Inline: {{.msg}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "msg": "hello",
+      },
+    }
+    perm = "0600"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -314,30 +314,30 @@ deploy(
 // TestTemplate_EnvOverride verifies env variables override values.
 func TestTemplate_EnvOverride(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="env-override",
-            src=inline("Port: {{.port}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "port": "8080",
-                },
-                "env": {
-                    "MY_PORT": "port",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "env-override"
+    src = posix.source_inline { content = "Port: {{.port}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "port": "8080",
+      },
+      "env": {
+        "MY_PORT": "port",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -387,30 +387,30 @@ deploy(
 // TestTemplate_EnvNotSet_UsesDefault verifies default is used when env not set.
 func TestTemplate_EnvNotSet_UsesDefault(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="env-default",
-            src=inline("Port: {{.port}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "port": "8080",
-                },
-                "env": {
-                    "MY_PORT": "port",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "env-default"
+    src = posix.source_inline { content = "Port: {{.port}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "port": "8080",
+      },
+      "env": {
+        "MY_PORT": "port",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource() // No env vars
 	tgt := target.NewMemTarget()
@@ -459,22 +459,22 @@ deploy(
 // TestTemplate_Idempotent verifies no changes when destination already matches.
 func TestTemplate_Idempotent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="idempotent",
-            src=inline("static content"),
-            dest="/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "idempotent"
+    src = posix.source_inline { content = "static content" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -536,22 +536,22 @@ deploy(
 // TestTemplate_ContentChange verifies changes are applied when content differs.
 func TestTemplate_ContentChange(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="content-change",
-            src=inline("new content"),
-            dest="/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "content-change"
+    src = posix.source_inline { content = "new content" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -617,22 +617,22 @@ deploy(
 // TestTemplate_Error_ParseError verifies template parse errors are reported.
 func TestTemplate_Error_ParseError(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="parse-error",
-            src=inline("{{.unclosed"),
-            dest="/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "parse-error"
+    src = posix.source_inline { content = "{{.unclosed" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -684,22 +684,22 @@ deploy(
 func TestTemplate_Error_ExecError(t *testing.T) {
 	// Calls len on nil — triggers an exec error distinct from missingkey=error
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="exec-error",
-            src=inline("{{len .missing}}"),
-            dest="/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "exec-error"
+    src = posix.source_inline { content = "{{len .missing}}" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -750,22 +750,22 @@ deploy(
 // TestTemplate_Error_SourceMissing verifies missing source file is reported.
 func TestTemplate_Error_SourceMissing(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="source-missing",
-            src=local("/nonexistent.txt"),
-            dest="/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "source-missing"
+    src = posix.source_local { path = "/nonexistent.txt" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -817,30 +817,30 @@ deploy(
 // TestTemplate_Error_EnvKeyNotInValues verifies env key not in values is reported.
 func TestTemplate_Error_EnvKeyNotInValues(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="env-key-missing",
-            src=inline("{{.port}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "port": "8080",
-                },
-                "env": {
-                    "MY_HOST": "host",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "env-key-missing"
+    src = posix.source_inline { content = "{{.port}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "port": "8080",
+      },
+      "env": {
+        "MY_HOST": "host",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -892,22 +892,22 @@ deploy(
 // TestTemplate_Error_DestDirMissing verifies missing dest directory is reported.
 func TestTemplate_Error_DestDirMissing(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="dest-dir-missing",
-            src=inline("content"),
-            dest="/nonexistent/dir/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "dest-dir-missing"
+    src = posix.source_inline { content = "content" }
+    dest = "/nonexistent/dir/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -958,22 +958,22 @@ deploy(
 // TestTemplate_ModeChange verifies mode changes are applied.
 func TestTemplate_ModeChange(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="mode-change",
-            src=inline("content"),
-            dest="/out.txt",
-            perm="0755",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "mode-change"
+    src = posix.source_inline { content = "content" }
+    dest = "/out.txt"
+    perm = "0755"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1022,22 +1022,22 @@ deploy(
 // TestTemplate_OwnerChange verifies owner changes are applied.
 func TestTemplate_OwnerChange(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="owner-change",
-            src=inline("content"),
-            dest="/out.txt",
-            perm="0644",
-            owner="newuser",
-            group="newgroup",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "owner-change"
+    src = posix.source_inline { content = "content" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "newuser"
+    group = "newgroup"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1087,29 +1087,29 @@ deploy(
 // TestTemplate_MultipleValues verifies multiple values work correctly.
 func TestTemplate_MultipleValues(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="multi-values",
-            src=inline("{{.host}}:{{.port}} - {{.name}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "host": "localhost",
-                    "port": 8080,
-                    "name": "myapp",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "multi-values"
+    src = posix.source_inline { content = "{{.host}}:{{.port}} - {{.name}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "host": "localhost",
+        "port": 8080,
+        "name": "myapp",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1153,22 +1153,22 @@ deploy(
 // TestTemplate_NoData verifies templates work without any data.
 func TestTemplate_NoData(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="no-data",
-            src=inline("static template"),
-            dest="/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "no-data"
+    src = posix.source_inline { content = "static template" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1212,30 +1212,30 @@ deploy(
 // TestTemplate_NestedValues verifies nested data structures work.
 func TestTemplate_NestedValues(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="nested",
-            src=inline("{{.server.host}}:{{.server.port}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "server": {
-                        "host": "example.com",
-                        "port": 443,
-                    },
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "nested"
+    src = posix.source_inline { content = "{{.server.host}}:{{.server.port}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "server": {
+          "host": "example.com",
+          "port": 443,
+        },
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1279,32 +1279,32 @@ deploy(
 // TestTemplate_MultipleEnvOverrides verifies multiple env overrides work.
 func TestTemplate_MultipleEnvOverrides(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="multi-env",
-            src=inline("{{.host}}:{{.port}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "host": "localhost",
-                    "port": "8080",
-                },
-                "env": {
-                    "MY_HOST": "host",
-                    "MY_PORT": "port",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "multi-env"
+    src = posix.source_inline { content = "{{.host}}:{{.port}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "host": "localhost",
+        "port": "8080",
+      },
+      "env": {
+        "MY_HOST": "host",
+        "MY_PORT": "port",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1350,32 +1350,32 @@ deploy(
 // TestTemplate_PartialEnvOverride verifies some env vars override while others use defaults.
 func TestTemplate_PartialEnvOverride(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="partial-env",
-            src=inline("{{.host}}:{{.port}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "host": "localhost",
-                    "port": "8080",
-                },
-                "env": {
-                    "MY_HOST": "host",
-                    "MY_PORT": "port",
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "partial-env"
+    src = posix.source_inline { content = "{{.host}}:{{.port}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "host": "localhost",
+        "port": "8080",
+      },
+      "env": {
+        "MY_HOST": "host",
+        "MY_PORT": "port",
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1422,22 +1422,22 @@ deploy(
 // TestTemplate_WriteFailure verifies write failure is handled.
 func TestTemplate_WriteFailure(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="write-fail",
-            src=inline("content"),
-            dest="/out.txt",
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "write-fail"
+    src = posix.source_inline { content = "content" }
+    dest = "/out.txt"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	innerTgt := target.NewMemTarget()

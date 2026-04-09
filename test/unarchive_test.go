@@ -94,16 +94,20 @@ func TestUnarchive_ExtractsAndWritesMarker(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/site.tar.gz"),
-		dest = "/var/www/site",
-		depth = 0,
-		desc = "extract site",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "/var/www/site"
+    depth = 0
+    desc = "extract site"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = archive
@@ -147,15 +151,19 @@ func TestUnarchive_IdempotentWhenMarkerMatches(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/site.tar.gz"),
-		dest = "/var/www/site",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "/var/www/site"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = archive
@@ -198,15 +206,19 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestUnarchive_UnsupportedFormat(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/archive.rar"),
-		dest = "/output",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/archive.rar" }
+    dest = "/output"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/archive.rar"] = []byte("not a real archive")
@@ -238,15 +250,19 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestUnarchive_MissingSourceArchive(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/missing.tar.gz"),
-		dest = "/output",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/missing.tar.gz" }
+    dest = "/output"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -278,15 +294,19 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestUnarchive_PartialOwnership(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/site.tar.gz"),
-		dest = "/var/www/site",
-		owner = "www-data",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "/var/www/site"
+    owner = "www-data"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = makeTarGz(t, map[string]string{"f": "x"})
@@ -319,14 +339,18 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestUnarchive_RelativeDest(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/site.tar.gz"),
-		dest = "relative/path",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "relative/path"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = makeTarGz(t, map[string]string{"f": "x"})
@@ -362,18 +386,22 @@ func TestUnarchive_WithOwnerGroupPerm(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/site.tar.gz"),
-		dest = "/var/www/site",
-		depth = 0,
-		owner = "www-data",
-		group = "nogroup",
-		perm = "0755",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "/var/www/site"
+    depth = 0
+    owner = "www-data"
+    group = "nogroup"
+    perm = "0755"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = archive
@@ -413,15 +441,19 @@ func TestUnarchive_ExtractionFailure(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{"f": "x"})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/site.tar.gz"),
-		dest = "/var/www/site",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "/var/www/site"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = archive
@@ -470,26 +502,22 @@ func TestUnarchive_OnChangeTriggersHook(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-	name="test",
-	targets=["local"],
-	steps=[
-		unarchive(
-			src = local("/site.tar.gz"),
-			dest = "/var/www/site",
-			depth = 0,
-			on_change = ["restart-app"],
-		),
-	],
-	hooks={
-		"restart-app": service(
-			name="app",
-			state="restarted",
-		),
-	},
-)
+let local = posix.local { name = "local" }
+
+let restart_app = posix.service { name = "app", state = posix.ServiceState.restarted }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "/var/www/site"
+    depth = 0
+    on_change = [restart_app]
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = archive
@@ -527,15 +555,19 @@ func TestUnarchive_GoNativeFallback(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/data.tar.gz"),
-		dest = "/output",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/data.tar.gz" }
+    dest = "/output"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/data.tar.gz"] = archive
@@ -589,15 +621,19 @@ func TestUnarchive_TempFileCleanedUpOnFailure(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{"f": "x"})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/site.tar.gz"),
-		dest = "/output",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/site.tar.gz" }
+    dest = "/output"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/site.tar.gz"] = archive
@@ -644,14 +680,18 @@ func TestUnarchive_DefaultDepthIsTopLevelOnly(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/data.tar.gz"),
-		dest = "/output",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/data.tar.gz" }
+    dest = "/output"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/data.tar.gz"] = archive
@@ -812,15 +852,19 @@ func TestUnarchive_TarXz(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/data.tar.xz"),
-		dest = "/output",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/data.tar.xz" }
+    dest = "/output"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/data.tar.xz"] = archive
@@ -861,15 +905,19 @@ func TestUnarchive_TarZst(t *testing.T) {
 	})
 
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	unarchive(
-		src = local("/data.tar.zst"),
-		dest = "/output",
-		depth = 0,
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.unarchive {
+    src = posix.source_local { path = "/data.tar.zst" }
+    dest = "/output"
+    depth = 0
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/data.tar.zst"] = archive

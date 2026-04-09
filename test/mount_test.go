@@ -40,10 +40,15 @@ func mountCommandFunc(mounts map[string]bool) func(string) (target.CommandResult
 
 func TestMount_CreateAndMount(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-    mount(src="10.10.2.2:/data", dest="/mnt/data", type="nfs"),
-])
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.mount { src = "10.10.2.2:/data", dest = "/mnt/data", fs_type = posix.MountType.nfs }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -76,10 +81,15 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestMount_Idempotent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-    mount(src="10.10.2.2:/data", dest="/mnt/data", type="nfs"),
-])
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.mount { src = "10.10.2.2:/data", dest = "/mnt/data", fs_type = posix.MountType.nfs }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -104,10 +114,15 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestMount_DriftRemount(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-    mount(src="10.10.2.2:/data", dest="/mnt/data", type="nfs"),
-])
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.mount { src = "10.10.2.2:/data", dest = "/mnt/data", fs_type = posix.MountType.nfs }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -136,10 +151,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestMount_Absent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-    mount(src="10.10.2.2:/data", dest="/mnt/data", type="nfs", state="absent"),
-])
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.mount {
+    src = "10.10.2.2:/data"
+    dest = "/mnt/data"
+    fs_type = posix.MountType.nfs
+    state = posix.MountState.absent
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -172,10 +197,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestMount_Unmounted(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-    mount(src="10.10.2.2:/data", dest="/mnt/data", type="nfs", state="unmounted"),
-])
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.mount {
+    src = "10.10.2.2:/data"
+    dest = "/mnt/data"
+    fs_type = posix.MountType.nfs
+    state = posix.MountState.unmounted
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -208,10 +243,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestMount_OptsChange(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-    mount(src="10.10.2.2:/data", dest="/mnt/data", type="nfs", opts="defaults,noatime"),
-])
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.mount {
+    src = "10.10.2.2:/data"
+    dest = "/mnt/data"
+    fs_type = posix.MountType.nfs
+    opts = "defaults,noatime"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -241,10 +286,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestMount_AbsentAlreadyGone(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-    mount(src="10.10.2.2:/data", dest="/mnt/data", type="nfs", state="absent"),
-])
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.mount {
+    src = "10.10.2.2:/data"
+    dest = "/mnt/data"
+    fs_type = posix.MountType.nfs
+    state = posix.MountState.absent
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()

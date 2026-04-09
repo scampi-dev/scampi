@@ -62,44 +62,66 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 
 func TestPlan_PkgLatest_RequiresPkgUpdate(t *testing.T) {
 	assertCapabilityMismatch(t, `
-target.local(name="local")
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[pkg(packages=["foo"], state="latest", source=system())],
-)
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.pkg {
+    packages = ["foo"]
+    state = posix.PkgState.latest
+    source = posix.pkg_system {}
+  }
+}
 `, newPkgOnlyTarget())
 }
 
 func TestPlan_Symlink_RequiresFilesystem(t *testing.T) {
 	assertCapabilityMismatch(t, `
-target.local(name="local")
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[symlink(target="/opt/app/config.yaml", link="/etc/app/config.yaml")],
-)
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.symlink { target = "/opt/app/config.yaml", link = "/etc/app/config.yaml" }
+}
 `, newSymlinkOnlyTarget())
 }
 
 func TestPlan_Run_RequiresCommand(t *testing.T) {
 	assertCapabilityMismatch(t, `
-target.local(name="local")
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[run(apply="echo hello", check="true")],
-)
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.run { apply = "echo hello", check = "true" }
+}
 `, newNoCommandTarget())
 }
 
 func TestPlan_Copy_RequiresOwnership(t *testing.T) {
 	assertCapabilityMismatch(t, `
-target.local(name="local")
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[copy(src=local("/a"), dest="/b", perm="0644", owner="user", group="group")],
-)
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_local { path = "/a" }
+    dest = "/b"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `, newMinimalTarget())
 }

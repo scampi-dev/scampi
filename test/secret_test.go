@@ -22,29 +22,29 @@ import (
 // through to template rendering.
 func TestSecret_ResolvesIntoTemplateData(t *testing.T) {
 	cfgStr := `
-secrets(backend="file", path="/secrets.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
+let local = posix.local { name = "local" }
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="secret-template",
-            src=inline("pass={{.db_pass}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "db_pass": secret("db_pass"),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+std.secrets { backend = std.SecretsBackend.file, path = "/secrets.json" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "secret-template"
+    src = posix.source_inline { content = "pass={{.db_pass}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "db_pass": std.secret("db_pass"),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -78,29 +78,29 @@ deploy(
 // TestSecret_NotFound verifies that a missing secret produces an abort.
 func TestSecret_NotFound(t *testing.T) {
 	cfgStr := `
-secrets(backend="file", path="/secrets.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
+let local = posix.local { name = "local" }
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="missing-secret",
-            src=inline("{{.token}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "token": secret("missing_key"),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+std.secrets { backend = std.SecretsBackend.file, path = "/secrets.json" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "missing-secret"
+    src = posix.source_inline { content = "{{.token}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "token": std.secret("missing_key"),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -137,27 +137,27 @@ deploy(
 // TestSecret_WrongArgType verifies secret() rejects non-string keys.
 func TestSecret_WrongArgType(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="bad-secret",
-            src=inline("{{.x}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "x": secret(42),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "bad-secret"
+    src = posix.source_inline { content = "{{.x}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "x": std.secret(42),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -193,27 +193,27 @@ deploy(
 // TestSecret_TooManyArgs verifies secret() rejects extra arguments.
 func TestSecret_TooManyArgs(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="too-many",
-            src=inline("{{.x}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "x": secret("a", "b"),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "too-many"
+    src = posix.source_inline { content = "{{.x}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "x": std.secret("a", "b"),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -232,27 +232,27 @@ deploy(
 // TestSecret_NoBackend verifies secret() without secrets() gives a clear error.
 func TestSecret_NoBackend(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="no-backend",
-            src=inline("{{.x}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "x": secret("something"),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "no-backend"
+    src = posix.source_inline { content = "{{.x}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "x": std.secret("something"),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -291,29 +291,29 @@ deploy(
 // TestSecrets_FileBackend verifies secrets(backend="file") configures the backend.
 func TestSecrets_FileBackend(t *testing.T) {
 	cfgStr := `
-secrets(backend="file", path="/my-secrets.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
+let local = posix.local { name = "local" }
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="explicit-backend",
-            src=inline("token={{.api_token}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "api_token": secret("api_token"),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+std.secrets { backend = std.SecretsBackend.file, path = "/my-secrets.json" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "explicit-backend"
+    src = posix.source_inline { content = "token={{.api_token}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "api_token": std.secret("api_token"),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -347,10 +347,15 @@ deploy(
 // TestSecrets_MissingPath verifies secrets() rejects a missing path argument.
 func TestSecrets_MissingPath(t *testing.T) {
 	cfgStr := `
-secrets(backend="file")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[])
+let local = posix.local { name = "local" }
+
+std.secrets { backend = std.SecretsBackend.file }
+
+std.deploy(name = "test", targets = [local]) {}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -369,10 +374,15 @@ deploy(name="test", targets=["local"], steps=[])
 // TestSecrets_AgeMissingPath verifies secrets(backend="age") rejects a missing path.
 func TestSecrets_AgeMissingPath(t *testing.T) {
 	cfgStr := `
-secrets(backend="age")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[])
+let local = posix.local { name = "local" }
+
+std.secrets { backend = std.SecretsBackend.age }
+
+std.deploy(name = "test", targets = [local]) {}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -391,11 +401,16 @@ deploy(name="test", targets=["local"], steps=[])
 // TestSecrets_CalledTwice verifies secrets() rejects a second call.
 func TestSecrets_CalledTwice(t *testing.T) {
 	cfgStr := `
-secrets(backend="file", path="/secrets.json")
-secrets(backend="file", path="/secrets.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[])
+let local = posix.local { name = "local" }
+
+std.secrets { backend = std.SecretsBackend.file, path = "/secrets.json" }
+std.secrets { backend = std.SecretsBackend.file, path = "/secrets.json" }
+
+std.deploy(name = "test", targets = [local]) {}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -415,10 +430,15 @@ deploy(name="test", targets=["local"], steps=[])
 // TestSecrets_UnknownBackend verifies secrets() rejects unknown backends.
 func TestSecrets_UnknownBackend(t *testing.T) {
 	cfgStr := `
-secrets(backend="vault")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[])
+let local = posix.local { name = "local" }
+
+std.secrets { backend = "vault" }
+
+std.deploy(name = "test", targets = [local]) {}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -437,10 +457,15 @@ deploy(name="test", targets=["local"], steps=[])
 // TestSecrets_MissingFile verifies secrets() errors when the file doesn't exist.
 func TestSecrets_MissingFile(t *testing.T) {
 	cfgStr := `
-secrets(backend="file", path="nonexistent.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[])
+let local = posix.local { name = "local" }
+
+std.secrets { backend = std.SecretsBackend.file, path = "nonexistent.json" }
+
+std.deploy(name = "test", targets = [local]) {}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -490,29 +515,29 @@ func TestSecret_AgeBackend(t *testing.T) {
 	id := ageTestKeypair(t)
 
 	cfgStr := `
-secrets(backend="age", path="/secrets.age.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
+let local = posix.local { name = "local" }
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="age-secret",
-            src=inline("pass={{.db_pass}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "db_pass": secret("db_pass"),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+std.secrets { backend = std.SecretsBackend.age, path = "/secrets.age.json" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "age-secret"
+    src = posix.source_inline { content = "pass={{.db_pass}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "db_pass": std.secret("db_pass"),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -551,29 +576,29 @@ func TestSecret_AgeNotFound(t *testing.T) {
 	id := ageTestKeypair(t)
 
 	cfgStr := `
-secrets(backend="age", path="/secrets.age.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
+let local = posix.local { name = "local" }
 
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[
-        template(
-            desc="missing-age-secret",
-            src=inline("{{.token}}"),
-            dest="/out.txt",
-            data={
-                "values": {
-                    "token": secret("missing_key"),
-                },
-            },
-            perm="0644",
-            owner="user",
-            group="group",
-        ),
-    ],
-)
+std.secrets { backend = std.SecretsBackend.age, path = "/secrets.age.json" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    desc = "missing-age-secret"
+    src = posix.source_inline { content = "{{.token}}" }
+    dest = "/out.txt"
+    data = {
+      "values": {
+        "token": std.secret("missing_key"),
+      },
+    }
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -613,10 +638,15 @@ func TestSecret_AgeMissingIdentity(t *testing.T) {
 	id := ageTestKeypair(t)
 
 	cfgStr := `
-secrets(backend="age", path="/secrets.age.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[])
+let local = posix.local { name = "local" }
+
+std.secrets { backend = std.SecretsBackend.age, path = "/secrets.age.json" }
+
+std.deploy(name = "test", targets = [local]) {}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -656,10 +686,15 @@ deploy(name="test", targets=["local"], steps=[])
 // TestSecret_AgeMissingFile verifies an error when the age secrets file doesn't exist.
 func TestSecret_AgeMissingFile(t *testing.T) {
 	cfgStr := `
-secrets(backend="age", path="nonexistent.age.json")
+module main
+import "std"
+import "std/posix"
 
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[])
+let local = posix.local { name = "local" }
+
+std.secrets { backend = std.SecretsBackend.age, path = "nonexistent.age.json" }
+
+std.deploy(name = "test", targets = [local]) {}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)

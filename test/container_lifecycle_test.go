@@ -84,10 +84,16 @@ func TestContainerLifecycle_CreateAndRun(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="%s", image="traefik/whoami"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "%s", image = "traefik/whoami" }
+}
 `, name)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -113,10 +119,16 @@ func TestContainerLifecycle_Idempotent(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="%s", image="traefik/whoami"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "%s", image = "traefik/whoami" }
+}
 `, name)
 
 	// First run: create
@@ -142,14 +154,20 @@ func TestContainerLifecycle_WithEnv(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		env={"MY_VAR": "hello", "MY_OTHER": "world"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    env = {"MY_VAR": "hello", "MY_OTHER": "world"}
+  }
+}
 `, name)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -176,27 +194,39 @@ func TestContainerLifecycle_EnvDrift(t *testing.T) {
 
 	// Create with initial env
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		env={"MY_VAR": "old_value"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    env = {"MY_VAR": "old_value"}
+  }
+}
 `, name)
 	applyContainerConfig(t, cfgStr, tgt)
 
 	// Update env — should trigger recreate
 	cfgStr2 := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		env={"MY_VAR": "new_value"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    env = {"MY_VAR": "new_value"}
+  }
+}
 `, name)
 	applyContainerConfig(t, cfgStr2, tgt)
 
@@ -218,14 +248,20 @@ func TestContainerLifecycle_Ports(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		ports=["18080:80"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    ports = ["18080:80"]
+  }
+}
 `, name)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -252,14 +288,20 @@ func TestContainerLifecycle_PortIPAndProto(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		ports=["127.0.0.1:18091:80", "18092:80/udp"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    ports = ["127.0.0.1:18091:80", "18092:80/udp"]
+  }
+}
 `, name)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -303,14 +345,20 @@ func TestContainerLifecycle_Labels(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		labels={"app": "myapp", "env": "test"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    labels = {"app": "myapp", "env": "test"}
+  }
+}
 `, name)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -336,14 +384,20 @@ func TestContainerLifecycle_Args(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		args=["--verbose", "--port", "8080"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    args = ["--verbose", "--port", "8080"]
+  }
+}
 `, name)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -374,14 +428,20 @@ func TestContainerLifecycle_Mounts(t *testing.T) {
 	mountDir := t.TempDir()
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="traefik/whoami",
-		mounts=["%s:/data:ro"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "traefik/whoami"
+    mounts = ["%s:/data:ro"]
+  }
+}
 `, name, mountDir)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -411,20 +471,25 @@ func TestContainerLifecycle_Healthcheck(t *testing.T) {
 	tgt := setupContainerTest(t, name)
 
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="%s",
-		image="nginx:alpine",
-		healthcheck=container.healthcheck.cmd(
-			cmd="wget -qO- http://localhost/ || exit 1",
-			interval="2s",
-			timeout="2s",
-			retries=3,
-			start_period="1s",
-		),
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "%s"
+    image = "nginx:alpine"
+    healthcheck = container.Healthcheck {
+      cmd = "wget -qO- http://localhost/ || exit 1"
+      interval = "2s"
+      timeout = "2s"
+      retries = 3
+    }
+  }
+}
 `, name)
 
 	applyContainerConfig(t, cfgStr, tgt)
@@ -457,19 +522,31 @@ func TestContainerLifecycle_Stopped(t *testing.T) {
 
 	// First create and run
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="%s", image="traefik/whoami"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "%s", image = "traefik/whoami" }
+}
 `, name)
 	applyContainerConfig(t, cfgStr, tgt)
 
 	// Now declare stopped
 	cfgStr2 := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="%s", image="traefik/whoami", state="stopped"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "%s", image = "traefik/whoami", state = container.State.stopped }
+}
 `, name)
 	applyContainerConfig(t, cfgStr2, tgt)
 
@@ -489,19 +566,31 @@ func TestContainerLifecycle_Absent(t *testing.T) {
 
 	// First create and run
 	cfgStr := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="%s", image="traefik/whoami"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "%s", image = "traefik/whoami" }
+}
 `, name)
 	applyContainerConfig(t, cfgStr, tgt)
 
 	// Now declare absent
 	cfgStr2 := fmt.Sprintf(`
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="%s", state="absent"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "%s", state = container.State.absent }
+}
 `, name)
 	applyContainerConfig(t, cfgStr2, tgt)
 

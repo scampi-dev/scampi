@@ -27,8 +27,16 @@ import (
 
 func TestRESTTarget_ConfigLoads(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="http://localhost:8080/api")
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = "http://localhost:8080/api" }
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -60,12 +68,20 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_ConfigWithBasicAuth(t *testing.T) {
 	cfgStr := `
-target.rest(
-    name="api",
-    base_url="http://localhost/api",
-    auth=rest.basic(user="admin", password="secret"),
-)
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target {
+  name = "api"
+  base_url = "http://localhost/api"
+  auth = rest.basic { user = "admin", password = "secret" }
+}
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	cfg := loadConfig(t, cfgStr)
 	restCfg := cfg.Targets["api"].Config.(*rest.Config)
@@ -81,16 +97,24 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_ConfigWithBearerAuth(t *testing.T) {
 	cfgStr := `
-target.rest(
-    name="api",
-    base_url="http://localhost/api",
-    auth=rest.bearer(
-        token_endpoint="/tokens",
-        identity="admin@test.com",
-        secret="pass123",
-    ),
-)
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target {
+  name = "api"
+  base_url = "http://localhost/api"
+  auth = rest.bearer {
+    token_endpoint = "/tokens"
+    identity = "admin@test.com"
+    secret = "pass123"
+  }
+}
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	cfg := loadConfig(t, cfgStr)
 	restCfg := cfg.Targets["api"].Config.(*rest.Config)
@@ -109,12 +133,20 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_ConfigWithHeaderAuth(t *testing.T) {
 	cfgStr := `
-target.rest(
-    name="api",
-    base_url="http://localhost/api",
-    auth=rest.header(name="X-API-Key", value="my-key"),
-)
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target {
+  name = "api"
+  base_url = "http://localhost/api"
+  auth = rest.header { name = "X-API-Key", value = "my-key" }
+}
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	cfg := loadConfig(t, cfgStr)
 	restCfg := cfg.Targets["api"].Config.(*rest.Config)
@@ -130,8 +162,16 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_ConfigWithTLSInsecure(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="https://localhost/api", tls=rest.tls.insecure())
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = "https://localhost/api", tls = rest.tls_insecure {} }
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	cfg := loadConfig(t, cfgStr)
 	restCfg := cfg.Targets["api"].Config.(*rest.Config)
@@ -143,8 +183,16 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_ConfigWithTLSSecure(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="https://localhost/api", tls=rest.tls.secure())
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = "https://localhost/api", tls = rest.tls_secure {} }
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	cfg := loadConfig(t, cfgStr)
 	restCfg := cfg.Targets["api"].Config.(*rest.Config)
@@ -156,8 +204,16 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_ConfigInvalidAuth(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="http://localhost/api", auth="not-an-auth")
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = "http://localhost/api", auth = "not-an-auth" }
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -174,8 +230,16 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_ConfigEmptyName(t *testing.T) {
 	cfgStr := `
-target.rest(name="", base_url="http://localhost/api")
-deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
+module main
+import "std"
+import "std/posix"
+import "std/rest"
+
+let api = rest.target { name = "", base_url = "http://localhost/api" }
+
+std.deploy(name = "test", targets = [api]) {
+  posix.run { apply = "echo ok", check = "true" }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -195,12 +259,21 @@ deploy(name="test", targets=["api"], steps=[run(apply="echo ok", check="true")])
 
 func TestRESTTarget_RejectsPOSIXSteps(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(
-    name="test",
-    targets=["local"],
-    steps=[copy(src=local("/a"), dest="/b", perm="0644", owner="user", group="group")],
-)
+module main
+import "std"
+import "std/posix"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_local { path = "/a" }
+    dest = "/b"
+    perm = "0644"
+    owner = "user"
+    group = "group"
+  }
+}
 `
 	tgt := newRESTOnlyTarget()
 	assertCapabilityMismatch(t, cfgStr, tgt)
@@ -524,16 +597,21 @@ func TestRestRequest_POST_WithStatusCheck(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.request(
-        desc="create item",
-        method="POST",
-        path="/items",
-        body=rest.body.json({"name": "test"}),
-        check=rest.status(code=200),
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.request {
+    desc = "create item"
+    method = "POST"
+    path = "/items"
+    body = rest.body_json { data = {"name": "test"} }
+    check = rest.status { code = 200 }
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -560,15 +638,20 @@ func TestRestRequest_POST_AlreadySatisfied(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.request(
-        desc="create item",
-        method="POST",
-        path="/items",
-        check=rest.status(code=200),
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.request {
+    desc = "create item"
+    method = "POST"
+    path = "/items"
+    check = rest.status { code = 200 }
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -597,16 +680,21 @@ func TestRestRequest_WithJQCheck(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.request(
-        desc="create host",
-        method="POST",
-        path="/hosts",
-        body=rest.body.json({"domain": "example.com"}),
-        check=rest.jq(expr='.[] | select(.domain == "example.com")'),
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.request {
+    desc = "create host"
+    method = "POST"
+    path = "/hosts"
+    body = rest.body_json { data = {"domain": "example.com"} }
+    check = rest.jq { expr = '.[] | select(.domain == "example.com")' }
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -631,15 +719,20 @@ func TestRestRequest_JQCheck_AlreadySatisfied(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.request(
-        desc="create host",
-        method="POST",
-        path="/hosts",
-        check=rest.jq(expr='.[] | select(.domain == "example.com")'),
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.request {
+    desc = "create host"
+    method = "POST"
+    path = "/hosts"
+    check = rest.jq { expr = '.[] | select(.domain == "example.com")' }
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -666,15 +759,20 @@ func TestRestRequest_NoCheck_AlwaysExecutes(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.request(
-        desc="update config",
-        method="PUT",
-        path="/config",
-        body=rest.body.json({"key": "value"}),
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.request {
+    desc = "update config"
+    method = "PUT"
+    path = "/config"
+    body = rest.body_json { data = {"key": "value"} }
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -702,14 +800,19 @@ func TestRestRequest_ExecuteError(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.request(
-        method="POST",
-        path="/items",
-        check=rest.status(code=200),
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.request {
+    method = "POST"
+    path = "/items"
+    check = rest.status { code = 200 }
+  }
+}
 `, srv.URL)
 
 	_, err := applyREST(t, cfgStr, srv.URL)
@@ -827,19 +930,24 @@ func TestRestResource_CreatesWhenAbsent(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        desc="test host",
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"name": "test", "port": 80},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    desc = "test host"
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"name": "test", "port": 80}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -874,18 +982,23 @@ func TestRestResource_NoopWhenSatisfied(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"name": "test", "port": 80},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"name": "test", "port": 80}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -917,20 +1030,25 @@ func TestRestResource_UpdatesOnDrift(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        found=rest.request(method="PUT", path="/hosts/{id}"),
-        bindings={"id": rest.jq(expr=".id")},
-        state={"name": "test", "port": 80},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    found = rest.request { method = "PUT", path = "/hosts/{id}" }
+    bindings = {"id": rest.jq { expr = ".id" }}
+    state = {"name": "test", "port": 80}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -971,18 +1089,23 @@ func TestRestResource_FoundWithoutState_FiresUnconditionally(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        found=rest.request(method="DELETE", path="/hosts/{id}"),
-        bindings={"id": rest.jq(expr=".id")},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    found = rest.request { method = "DELETE", path = "/hosts/{id}" }
+    bindings = {"id": rest.jq { expr = ".id" }}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -1009,18 +1132,23 @@ func TestRestResource_MissingOnly_IgnoresFound(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"name": "test", "port": 80},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"name": "test", "port": 80}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -1040,18 +1168,23 @@ func TestRestResource_QueryFails_Aborts(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"name": "test"},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"name": "test"}
+  }
+}
 `, srv.URL)
 
 	_, err := applyREST(t, cfgStr, srv.URL)
@@ -1076,18 +1209,23 @@ func TestRestResource_CreateFails_Aborts(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"name": "test"},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"name": "test"}
+  }
+}
 `, srv.URL)
 
 	_, err := applyREST(t, cfgStr, srv.URL)
@@ -1109,18 +1247,23 @@ func TestRestResource_IntFloat_Comparison(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"name": "test", "port": 80, "ssl": True},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"name": "test", "port": 80, "ssl": true}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -1154,18 +1297,23 @@ func TestRestResource_Idempotent_SecondApplyNoop(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET",
-            path="/hosts",
-            check=rest.jq(expr='.[] | select(.name == "test")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"name": "test", "port": 80},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = %q }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.name == "test")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"name": "test", "port": 80}
+  }
+}
 `, srv.URL)
 
 	// First apply: creates.
@@ -1189,21 +1337,26 @@ deploy(name="test", targets=["api"], steps=[
 
 func TestRestResource_ConfigLoads(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="http://localhost/api")
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        desc="test resource",
-        query=rest.request(
-            method="GET",
-            path="/items",
-            check=rest.jq(expr='.[] | select(.name == "x")'),
-        ),
-        missing=rest.request(method="POST", path="/items"),
-        found=rest.request(method="PUT", path="/items/{id}"),
-        bindings={"id": rest.jq(expr=".id")},
-        state={"name": "x", "value": 1},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = "http://localhost/api" }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    desc = "test resource"
+    query = rest.request {
+      method = "GET"
+      path = "/items"
+      check = rest.jq { expr = '.[] | select(.name == "x")' }
+    }
+    missing = rest.request { method = "POST", path = "/items" }
+    found = rest.request { method = "PUT", path = "/items/{id}" }
+    bindings = {"id": rest.jq { expr = ".id" }}
+    state = {"name": "x", "value": 1}
+  }
+}
 `
 	cfg := loadConfig(t, cfgStr)
 	if len(cfg.Deploy) == 0 {
@@ -1247,28 +1400,34 @@ func TestRef_CreatesWithResolvedValue(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
+module main
+import "std"
+import "std/rest"
 
-cert = rest.resource(
-    query=rest.request(
-        method="GET", path="/certs",
-        check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
-    ),
-    missing=rest.request(method="POST", path="/certs"),
-    state={"domain": "app.example.com"},
-)
+let api = rest.target { name = "api", base_url = %q }
 
-deploy(name="test", targets=["api"], steps=[
-    cert,
-    rest.resource(
-        query=rest.request(
-            method="GET", path="/hosts",
-            check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"domain": "app.example.com", "cert_id": ref(cert, ".id")},
-    ),
-])
+let cert = rest.resource {
+  query = rest.request {
+    method = "GET"
+    path = "/certs"
+    check = rest.jq { expr = '.[] | select(.domain == "app.example.com")' }
+  }
+  missing = rest.request { method = "POST", path = "/certs" }
+  state = {"domain": "app.example.com"}
+}
+
+std.deploy(name = "test", targets = [api]) {
+  cert
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.domain == "app.example.com")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"domain": "app.example.com", "cert_id": ref(cert, ".id")}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -1296,28 +1455,34 @@ func TestRef_ResolvesFromQueryResult(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
+module main
+import "std"
+import "std/rest"
 
-cert = rest.resource(
-    query=rest.request(
-        method="GET", path="/certs",
-        check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
-    ),
-    missing=rest.request(method="POST", path="/certs"),
-    state={"domain": "app.example.com"},
-)
+let api = rest.target { name = "api", base_url = %q }
 
-deploy(name="test", targets=["api"], steps=[
-    cert,
-    rest.resource(
-        query=rest.request(
-            method="GET", path="/hosts",
-            check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"domain": "app.example.com", "cert_id": ref(cert, ".id")},
-    ),
-])
+let cert = rest.resource {
+  query = rest.request {
+    method = "GET"
+    path = "/certs"
+    check = rest.jq { expr = '.[] | select(.domain == "app.example.com")' }
+  }
+  missing = rest.request { method = "POST", path = "/certs" }
+  state = {"domain": "app.example.com"}
+}
+
+std.deploy(name = "test", targets = [api]) {
+  cert
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.domain == "app.example.com")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"domain": "app.example.com", "cert_id": ref(cert, ".id")}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -1331,28 +1496,34 @@ deploy(name="test", targets=["api"], steps=[
 
 func TestRef_InvalidJQExpr(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="http://localhost/api")
+module main
+import "std"
+import "std/rest"
 
-cert = rest.resource(
-    query=rest.request(
-        method="GET", path="/certs",
-        check=rest.jq(expr='.[] | select(.domain == "x")'),
-    ),
-    missing=rest.request(method="POST", path="/certs"),
-    state={"domain": "x"},
-)
+let api = rest.target { name = "api", base_url = "http://localhost/api" }
 
-deploy(name="test", targets=["api"], steps=[
-    cert,
-    rest.resource(
-        query=rest.request(
-            method="GET", path="/hosts",
-            check=rest.jq(expr='.[] | select(.domain == "x")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"cert_id": ref(cert, "[invalid jq")},
-    ),
-])
+let cert = rest.resource {
+  query = rest.request {
+    method = "GET"
+    path = "/certs"
+    check = rest.jq { expr = '.[] | select(.domain == "x")' }
+  }
+  missing = rest.request { method = "POST", path = "/certs" }
+  state = {"domain": "x"}
+}
+
+std.deploy(name = "test", targets = [api]) {
+  cert
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.domain == "x")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"cert_id": ref(cert, "[invalid jq")}
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -1393,30 +1564,36 @@ func TestRef_UpdatesWithResolvedValue(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
+module main
+import "std"
+import "std/rest"
 
-cert = rest.resource(
-    query=rest.request(
-        method="GET", path="/certs",
-        check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
-    ),
-    missing=rest.request(method="POST", path="/certs"),
-    state={"domain": "app.example.com"},
-)
+let api = rest.target { name = "api", base_url = %q }
 
-deploy(name="test", targets=["api"], steps=[
-    cert,
-    rest.resource(
-        query=rest.request(
-            method="GET", path="/hosts",
-            check=rest.jq(expr='.[] | select(.domain == "app.example.com")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        found=rest.request(method="PUT", path="/hosts/{id}"),
-        bindings={"id": rest.jq(expr=".id")},
-        state={"domain": "app.example.com", "cert_id": ref(cert, ".id"), "port": 80},
-    ),
-])
+let cert = rest.resource {
+  query = rest.request {
+    method = "GET"
+    path = "/certs"
+    check = rest.jq { expr = '.[] | select(.domain == "app.example.com")' }
+  }
+  missing = rest.request { method = "POST", path = "/certs" }
+  state = {"domain": "app.example.com"}
+}
+
+std.deploy(name = "test", targets = [api]) {
+  cert
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.domain == "app.example.com")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    found = rest.request { method = "PUT", path = "/hosts/{id}" }
+    bindings = {"id": rest.jq { expr = ".id" }}
+    state = {"domain": "app.example.com", "cert_id": ref(cert, ".id"), "port": 80}
+  }
+}
 `, srv.URL)
 
 	rec, err := applyREST(t, cfgStr, srv.URL)
@@ -1440,27 +1617,33 @@ func TestRef_MissingFromStepsList(t *testing.T) {
 	defer srv.Close()
 
 	cfgStr := fmt.Sprintf(`
-target.rest(name="api", base_url=%q)
+module main
+import "std"
+import "std/rest"
 
-cert = rest.resource(
-    query=rest.request(
-        method="GET", path="/certs",
-        check=rest.jq(expr='.[] | select(.domain == "x")'),
-    ),
-    missing=rest.request(method="POST", path="/certs"),
-    state={"domain": "x"},
-)
+let api = rest.target { name = "api", base_url = %q }
 
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET", path="/hosts",
-            check=rest.jq(expr='.[] | select(.domain == "x")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"domain": "x", "cert_id": ref(cert, ".id")},
-    ),
-])
+let cert = rest.resource {
+  query = rest.request {
+    method = "GET"
+    path = "/certs"
+    check = rest.jq { expr = '.[] | select(.domain == "x")' }
+  }
+  missing = rest.request { method = "POST", path = "/certs" }
+  state = {"domain": "x"}
+}
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.domain == "x")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"domain": "x", "cert_id": ref(cert, ".id")}
+  }
+}
 `, srv.URL)
 
 	_, err := applyREST(t, cfgStr, srv.URL)
@@ -1471,17 +1654,23 @@ deploy(name="test", targets=["api"], steps=[
 
 func TestRef_NonStepArgument(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="http://localhost/api")
-deploy(name="test", targets=["api"], steps=[
-    rest.resource(
-        query=rest.request(
-            method="GET", path="/hosts",
-            check=rest.jq(expr='.[] | select(.domain == "x")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"cert_id": ref("not-a-step", ".id")},
-    ),
-])
+module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = "http://localhost/api" }
+
+std.deploy(name = "test", targets = [api]) {
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.domain == "x")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"cert_id": ref("not-a-step", ".id")}
+  }
+}
 `
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(cfgStr)
@@ -1498,28 +1687,34 @@ deploy(name="test", targets=["api"], steps=[
 
 func TestRef_ConfigLoads(t *testing.T) {
 	cfgStr := `
-target.rest(name="api", base_url="http://localhost/api")
+module main
+import "std"
+import "std/rest"
 
-cert = rest.resource(
-    query=rest.request(
-        method="GET", path="/certs",
-        check=rest.jq(expr='.[] | select(.domain == "x")'),
-    ),
-    missing=rest.request(method="POST", path="/certs"),
-    state={"domain": "x"},
-)
+let api = rest.target { name = "api", base_url = "http://localhost/api" }
 
-deploy(name="test", targets=["api"], steps=[
-    cert,
-    rest.resource(
-        query=rest.request(
-            method="GET", path="/hosts",
-            check=rest.jq(expr='.[] | select(.domain == "x")'),
-        ),
-        missing=rest.request(method="POST", path="/hosts"),
-        state={"domain": "x", "cert_id": ref(cert, ".id")},
-    ),
-])
+let cert = rest.resource {
+  query = rest.request {
+    method = "GET"
+    path = "/certs"
+    check = rest.jq { expr = '.[] | select(.domain == "x")' }
+  }
+  missing = rest.request { method = "POST", path = "/certs" }
+  state = {"domain": "x"}
+}
+
+std.deploy(name = "test", targets = [api]) {
+  cert
+  rest.resource {
+    query = rest.request {
+      method = "GET"
+      path = "/hosts"
+      check = rest.jq { expr = '.[] | select(.domain == "x")' }
+    }
+    missing = rest.request { method = "POST", path = "/hosts" }
+    state = {"domain": "x", "cert_id": ref(cert, ".id")}
+  }
+}
 `
 	cfg := loadConfig(t, cfgStr)
 	if len(cfg.Deploy) == 0 {

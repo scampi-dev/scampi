@@ -20,18 +20,22 @@ import (
 
 func TestVerify_CopyPassesAndWrites(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	copy(
-		src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
-		dest = "/sudoers-hal9000",
-		perm = "0440",
-		owner = "root",
-		group = "root",
-		verify = "visudo -cf %s",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_inline { content = "hal9000 ALL=(ALL) NOPASSWD:ALL\n" }
+    dest = "/sudoers-hal9000"
+    perm = "0440"
+    owner = "root"
+    group = "root"
+    verify = "visudo -cf %s"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -78,18 +82,22 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_CopyFailsAndLeavesDestUntouched(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	copy(
-		src = inline("INVALID SUDOERS\n"),
-		dest = "/sudoers-bad",
-		perm = "0440",
-		owner = "root",
-		group = "root",
-		verify = "visudo -cf %s",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_inline { content = "INVALID SUDOERS\n" }
+    dest = "/sudoers-bad"
+    perm = "0440"
+    owner = "root"
+    group = "root"
+    verify = "visudo -cf %s"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -127,18 +135,22 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_CopyMissingPlaceholder(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	copy(
-		src = inline("test\n"),
-		dest = "/dest.txt",
-		perm = "0644",
-		owner = "root",
-		group = "root",
-		verify = "visudo -cf",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_inline { content = "test\n" }
+    dest = "/dest.txt"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    verify = "visudo -cf"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -166,17 +178,21 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_CopyWithoutVerifyUnchanged(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	copy(
-		src = inline("plain content\n"),
-		dest = "/dest.txt",
-		perm = "0644",
-		owner = "root",
-		group = "root",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_inline { content = "plain content\n" }
+    dest = "/dest.txt"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -207,19 +223,23 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_TemplatePassesAndWrites(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	template(
-		src = inline("server_name {{ .host }};"),
-		dest = "/app.conf",
-		perm = "0644",
-		owner = "root",
-		group = "root",
-		data = {"values": {"host": "example.com"}},
-		verify = "nginx -t -c %s",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    src = posix.source_inline { content = "server_name {{ .host }};" }
+    dest = "/app.conf"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    data = {"values": {"host": "example.com"}}
+    verify = "nginx -t -c %s"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -258,19 +278,23 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_TemplateFailsAndLeavesDestUntouched(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	template(
-		src = inline("bad config {{ .x }}"),
-		dest = "/bad.conf",
-		perm = "0644",
-		owner = "root",
-		group = "root",
-		data = {"values": {"x": "broken"}},
-		verify = "nginx -t -c %s",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    src = posix.source_inline { content = "bad config {{ .x }}" }
+    dest = "/bad.conf"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    data = {"values": {"x": "broken"}}
+    verify = "nginx -t -c %s"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -308,18 +332,22 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_TemplateMissingPlaceholder(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	template(
-		src = inline("test"),
-		dest = "/dest.txt",
-		perm = "0644",
-		owner = "root",
-		group = "root",
-		verify = "nginx -t -c",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.template {
+    src = posix.source_inline { content = "test" }
+    dest = "/dest.txt"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    verify = "nginx -t -c"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -350,18 +378,22 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_CopyIdempotentSkipsVerify(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	copy(
-		src = inline("already there\n"),
-		dest = "/existing.txt",
-		perm = "0644",
-		owner = "root",
-		group = "root",
-		verify = "should-not-run %s",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_inline { content = "already there\n" }
+    dest = "/existing.txt"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    verify = "should-not-run %s"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -395,18 +427,22 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestVerify_TempFileCleanedUpOnFailure(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
+module main
+import "std"
+import "std/posix"
 
-deploy(name="test", targets=["local"], steps=[
-	copy(
-		src = inline("test content\n"),
-		dest = "/verified.txt",
-		perm = "0644",
-		owner = "root",
-		group = "root",
-		verify = "false %s",
-	),
-])
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.copy {
+    src = posix.source_inline { content = "test content\n" }
+    dest = "/verified.txt"
+    perm = "0644"
+    owner = "root"
+    group = "root"
+    verify = "false %s"
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
