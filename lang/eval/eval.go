@@ -41,6 +41,9 @@ type Evaluator struct {
 	// inside a block body (block[T] fill). nil when not inside a
 	// block body.
 	blockCollector *[]Value
+
+	// onEmit is called for each emitted value (optional).
+	onEmit func(Value, *Evaluator)
 }
 
 // Error is an eval-time error.
@@ -62,6 +65,15 @@ func WithEnv(fn func(string) (string, bool)) Option {
 // WithSecrets sets the secret resolver.
 func WithSecrets(fn func(string) (string, error)) Option {
 	return func(e *Evaluator) { e.secretLookup = fn }
+}
+
+// WithOnEmit registers a callback invoked whenever a value is emitted
+// at top level or into a block body. The callback can inspect the value
+// and set up state (e.g. configure secret backends when a SecretsConfig
+// is emitted). This keeps the eval generic while allowing callers to
+// react to domain-specific values.
+func WithOnEmit(fn func(Value, *Evaluator)) Option {
+	return func(e *Evaluator) { e.onEmit = fn }
 }
 
 // WithStubs sets the stdlib stub filesystem for enum and decl type
@@ -312,6 +324,9 @@ func (ev *Evaluator) emitValue(v Value) {
 	}
 	if _, none := v.(*NoneVal); none {
 		return
+	}
+	if ev.onEmit != nil {
+		ev.onEmit(v, ev)
 	}
 	if ev.blockCollector != nil {
 		*ev.blockCollector = append(*ev.blockCollector, v)
@@ -612,6 +627,12 @@ func (ev *Evaluator) fillBlockFromStmts(bv *BlockVal, stmts []ast.Stmt) Value {
 		Fields:   bv.Fields,
 		Body:     collected,
 	}
+}
+
+// SetSecretLookup allows callers (via WithOnEmit) to wire the secret
+// resolver after seeing a SecretsConfig value during evaluation.
+func (ev *Evaluator) SetSecretLookup(fn func(string) (string, error)) {
+	ev.secretLookup = fn
 }
 
 func (ev *Evaluator) callEnv(positional []Value, kwargs map[string]Value) Value {
