@@ -5,7 +5,6 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -116,11 +115,22 @@ std.deploy(name = "test", targets = [local]) {
 		t.Fatal("expected error for missing secret, got nil")
 	}
 
-	// The error may be wrapped in AbortError — check full chain.
-	errStr := fmt.Sprintf("%+v", err)
-	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "missing_key") && !strings.Contains(errStr, "secret") {
-		t.Fatalf("expected error about missing secret, got: %v", err)
+	// The error may be wrapped in AbortError — check causes.
+	errStr := unwrapAbortCauses(err)
+	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "secret") {
+		t.Fatalf("expected error about missing secret, got: %s", errStr)
 	}
+}
+
+func unwrapAbortCauses(err error) string {
+	if ae, ok := err.(engine.AbortError); ok {
+		var parts []string
+		for _, c := range ae.Causes {
+			parts = append(parts, c.Error())
+		}
+		return strings.Join(parts, "; ")
+	}
+	return err.Error()
 }
 
 // TestSecret_WrongArgType verifies secret() rejects non-string keys.
@@ -570,9 +580,9 @@ std.deploy(name = "test", targets = [local]) {
 		t.Fatal("expected error for missing secret, got nil")
 	}
 
-	errStr := fmt.Sprintf("%+v", err)
-	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "missing_key") && !strings.Contains(errStr, "secret") {
-		t.Fatalf("expected error about missing secret, got: %v", err)
+	errStr := unwrapAbortCauses(err)
+	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "secret") {
+		t.Fatalf("expected error about missing secret, got: %s", errStr)
 	}
 }
 
