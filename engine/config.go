@@ -42,11 +42,12 @@ func LoadConfig(
 	reg := NewRegistry()
 	cfg, err := linker.LoadConfig(ctx, cfgPath, src, reg)
 	if err != nil {
-		impact, _ := emitEngineDiagnostic(em, cfgPath, err)
-		if impact.ShouldAbort() {
+		impact, emitted := emitEngineDiagnostic(em, cfgPath, err)
+		if emitted && impact.ShouldAbort() {
 			return spec.Config{}, AbortError{Causes: []error{err}}
 		}
-		return spec.Config{}, err
+		// Non-diagnostic errors (parse, check, eval) — treat as abort.
+		return spec.Config{}, AbortError{Causes: []error{err}}
 	}
 
 	return cfg, nil
