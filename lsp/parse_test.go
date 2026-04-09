@@ -9,10 +9,7 @@ import (
 )
 
 func TestParseValidSource(t *testing.T) {
-	src := `
-x = 1
-y = "hello"
-`
+	src := "module main\n\nlet x = 1\nlet y = \"hello\"\n"
 	f, diags := Parse("test.scampi", []byte(src))
 	if len(diags) > 0 {
 		t.Errorf("expected no diagnostics, got %d: %v", len(diags), diags)
@@ -23,7 +20,7 @@ y = "hello"
 }
 
 func TestParseSyntaxError(t *testing.T) {
-	src := `x = (`
+	src := "module main\n@@@"
 	_, diags := Parse("test.scampi", []byte(src))
 	if len(diags) == 0 {
 		t.Fatal("expected diagnostics for syntax error")
@@ -38,35 +35,22 @@ func TestParseSyntaxError(t *testing.T) {
 	}
 }
 
-func TestParseSetLiteral(t *testing.T) {
-	src := `x = set([1, 2, 3])`
+func TestParseDeclarations(t *testing.T) {
+	src := "module main\n\nfunc greet(name: string) string {\n  return \"\"\n}\n\nlet count = 42\n"
 	f, diags := Parse("test.scampi", []byte(src))
 	if len(diags) > 0 {
-		t.Errorf("set literals should be allowed: %v", diags)
+		t.Errorf("expected no diagnostics: %v", diags)
 	}
 	if f == nil {
-		t.Error("expected non-nil AST")
+		t.Fatal("expected non-nil AST")
 	}
-}
-
-func TestParseWhileLoop(t *testing.T) {
-	src := `
-x = 0
-while x < 10:
-    x += 1
-`
-	f, diags := Parse("test.scampi", []byte(src))
-	if len(diags) > 0 {
-		t.Errorf("while loops should be allowed: %v", diags)
-	}
-	if f == nil {
-		t.Error("expected non-nil AST")
+	if len(f.Decls) != 2 {
+		t.Errorf("expected 2 declarations, got %d", len(f.Decls))
 	}
 }
 
 func TestParseDiagnosticPosition(t *testing.T) {
-	// Error on line 2 (1-indexed), the parser should give us line 1 (0-indexed).
-	src := "x = 1\ny = (\n"
+	src := "module main\n@@@\n"
 	_, diags := Parse("test.scampi", []byte(src))
 	if len(diags) == 0 {
 		t.Fatal("expected diagnostics")

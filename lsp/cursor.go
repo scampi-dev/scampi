@@ -108,6 +108,8 @@ func AnalyzeCursor(text string, line, col uint32) CursorContext {
 		case '{':
 			if len(stack) > 0 && stack[len(stack)-1].char == '}' {
 				stack = stack[:len(stack)-1]
+			} else {
+				return analyzeBraceContext(text, i, offset, ctx)
 			}
 		}
 	}
@@ -198,6 +200,37 @@ func inStringLiteral(text string, offset int) bool {
 		}
 	}
 	return inStr != 0
+}
+
+// analyzeBraceContext handles the cursor being inside { }.
+// If preceded by an identifier, it's a struct-lit/decl invocation.
+func analyzeBraceContext(text string, bracePos, offset int, ctx CursorContext) CursorContext {
+	funcName := identBeforeOffset(text, bracePos)
+	if funcName == "" {
+		return ctx
+	}
+
+	ctx.InCall = true
+	ctx.FuncName = funcName
+
+	inside := text[bracePos+1 : offset]
+	ctx.PresentKwargs = extractFieldNames(inside)
+	ctx.ActiveParam = countTopLevelCommas(inside)
+	ctx.ActiveKwarg = activeField(inside)
+
+	return ctx
+}
+
+// extractFieldNames finds field names (word =) in struct-lit context.
+// Similar to extractKwargNames but also matches "word =" (with spaces).
+func extractFieldNames(s string) []string {
+	return extractKwargNames(s)
+}
+
+// activeField returns the field name whose value is being typed.
+// Works for both "name = value" and "name=value" syntax.
+func activeField(inside string) string {
+	return activeKwarg(inside)
 }
 
 func analyzeListContext(text string, bracketPos, _ int, ctx CursorContext) CursorContext {

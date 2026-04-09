@@ -6,9 +6,12 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go.lsp.dev/protocol"
-	"go.starlark.net/syntax"
+	"go.lsp.dev/uri"
+
+	"scampi.dev/scampi/lang/ast"
 )
 
 func (s *Server) References(
@@ -37,100 +40,42 @@ func (s *Server) References(
 
 	s.log.Printf("references: %s %q", filePath, word)
 
-	// Skip builtins.
-	if _, ok := s.catalog.Lookup(word); ok {
-		return nil, nil
-	}
-
+	data := []byte(doc.Content)
 	var locs []protocol.Location
 
-	// All references in the current file.
-	locs = append(locs, findIdents(f, filePath, word)...)
-
-	// If the symbol comes from a load(), search the loaded file.
-	if resolved := s.loadSourceForName(f, filePath, word); resolved != "" {
-		locs = append(locs, refsInFile(resolved, word)...)
-	}
-
-	// If the symbol is defined here, search files that load this file.
-	if findDefinition(f, word) != nil {
-		locs = append(locs, s.refsFromLoaders(filePath, word)...)
+	if strings.Contains(word, ".") {
+		// Dotted name (posix.pkg, std.Step, etc.) — search for
+		// dotted references in AST nodes.
+		locs = append(locs, findDottedRefs(f, filePath, data, word)...)
+		if s.rootDir != "" {
+			locs = append(locs, s.refsInWorkspace(word, filePath)...)
+		}
+		if loc, ok := s.stubDefs.Lookup(word); ok {
+			locs = append(locs, loc)
+		}
+	} else {
+		// Bare name — search current file for ident matches.
+		locs = append(locs, findIdents(f, filePath, data, word)...)
+		// If we're in a stub file, also search workspace for the
+		// qualified form (e.g. "pkg" → "posix.pkg").
+		if modName := fileModuleName(f); modName != "" {
+			qualified := modName + "." + word
+			if s.rootDir != "" {
+				locs = append(locs, s.refsInWorkspace(qualified, filePath)...)
+			}
+		}
 	}
 
 	return dedup(locs, locationKey), nil
 }
 
-// findIdents walks the AST and returns locations of every Ident matching name.
-func findIdents(f *syntax.File, filePath, name string) []protocol.Location {
-	var locs []protocol.Location
-	syntax.Walk(f, func(n syntax.Node) bool {
-		if n == nil {
-			return true
-		}
-		if id, ok := n.(*syntax.Ident); ok && id.Name == name {
-			locs = append(locs, posToLocation(filePath, id.NamePos))
-		}
-		return true
-	})
-	return locs
-}
-
-// loadSourceForName checks if name is imported via load() and returns the
-// resolved file path and original name in that file.
-func (s *Server) loadSourceForName(f *syntax.File, filePath, name string) string {
-	for _, stmt := range f.Stmts {
-		load, ok := stmt.(*syntax.LoadStmt)
-		if !ok {
-			continue
-		}
-		for i, to := range load.To {
-			if to.Name != name {
-				continue
-			}
-			targetName := to.Name
-			if i < len(load.From) {
-				targetName = load.From[i].Name
-			}
-			_ = targetName // same name lookup in external file
-			return s.resolveLoad(filePath, load.ModuleName())
-		}
-	}
-	return ""
-}
-
-// refsFromLoaders finds .scampi files that load the given file and
-// searches them for references to name. Checks both same-directory
-// relative loads and module-path loads via scampi.mod.
-func (s *Server) refsFromLoaders(filePath, name string) []protocol.Location {
-	var locs []protocol.Location
-
-	// Same-directory relative loads.
-	dir := filepath.Dir(filePath)
-	base := filepath.Base(filePath)
-	for _, c := range scampiFilesIn(dir) {
-		if c == filePath {
-			continue
-		}
-		if loadsFile(c, base) {
-			locs = append(locs, refsInFile(c, name)...)
-		}
-	}
-
-	// Module-path loads: find workspace files that load this file via a
-	// module path resolved through scampi.mod.
-	if s.rootDir != "" {
-		locs = append(locs, s.refsFromModuleLoaders(filePath, name)...)
-	}
-
-	return locs
-}
-
-// refsFromModuleLoaders walks .scampi files under the workspace root and
-// checks if any of their load() module paths resolve to filePath.
-func (s *Server) refsFromModuleLoaders(filePath, name string) []protocol.Location {
+// refsInWorkspace walks all .scampi files under the workspace root and
+// finds references to the given qualified name (e.g. "posix.pkg").
+// excludePath is skipped (already searched by the caller).
+func (s *Server) refsInWorkspace(qualifiedName, excludePath string) []protocol.Location {
 	var locs []protocol.Location
 	_ = filepath.WalkDir(s.rootDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || filepath.Ext(path) != ".scampi" || path == filePath {
+		if err != nil || d.IsDir() || filepath.Ext(path) != ".scampi" || path == excludePath {
 			return nil
 		}
 		data, err := os.ReadFile(path)
@@ -141,73 +86,95 @@ func (s *Server) refsFromModuleLoaders(filePath, name string) []protocol.Locatio
 		if f == nil {
 			return nil
 		}
-		for _, stmt := range f.Stmts {
-			load, ok := stmt.(*syntax.LoadStmt)
-			if !ok {
-				continue
-			}
-			resolved := s.resolveLoad(path, load.ModuleName())
-			if resolved == filePath {
-				locs = append(locs, findIdents(f, path, name)...)
-				return nil
-			}
-		}
+		locs = append(locs, findDottedRefs(f, path, data, qualifiedName)...)
 		return nil
 	})
 	return locs
 }
 
-func refsInFile(path, name string) []protocol.Location {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil
-	}
-	f, _ := Parse(path, data)
-	if f == nil {
-		return nil
-	}
-	return findIdents(f, path, name)
-}
-
-// loadsFile checks whether the Starlark file at candidate contains a
-// load() statement referencing target (a basename in the same directory).
-func loadsFile(candidate, target string) bool {
-	data, err := os.ReadFile(candidate)
-	if err != nil {
-		return false
-	}
-	f, _ := Parse(candidate, data)
-	if f == nil {
-		return false
-	}
-	targetAbs := filepath.Join(filepath.Dir(candidate), target)
-	for _, stmt := range f.Stmts {
-		load, ok := stmt.(*syntax.LoadStmt)
-		if !ok {
-			continue
-		}
-		resolved := filepath.Join(filepath.Dir(candidate), load.ModuleName())
-		if abs, err := filepath.Abs(resolved); err == nil && abs == targetAbs {
+// findIdents walks the AST and returns locations of every Ident matching name.
+func findIdents(f *ast.File, filePath string, src []byte, name string) []protocol.Location {
+	var locs []protocol.Location
+	ast.Walk(f, func(n ast.Node) bool {
+		if n == nil {
 			return true
 		}
-	}
-	return false
+		if id, ok := n.(*ast.Ident); ok && id.Name == name {
+			locs = append(locs, protocol.Location{
+				URI:   uri.File(filePath),
+				Range: tokenSpanToRange(src, id.SrcSpan),
+			})
+		}
+		return true
+	}, nil)
+	return locs
 }
 
-// scampiFilesIn returns all .scampi files in the given directory.
-func scampiFilesIn(dir string) []string {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
-	var files []string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
+// findDottedRefs finds references to a qualified name like "posix.pkg"
+// in the AST. Matches StructLit type references (posix.pkg { ... }),
+// NamedType references (types in annotations), and DottedName nodes.
+func findDottedRefs(f *ast.File, filePath string, src []byte, qualifiedName string) []protocol.Location {
+	var locs []protocol.Location
+	ast.Walk(f, func(n ast.Node) bool {
+		if n == nil {
+			return true
 		}
-		if filepath.Ext(e.Name()) == ".scampi" {
-			files = append(files, filepath.Join(dir, e.Name()))
+		switch n := n.(type) {
+		case *ast.StructLit:
+			if n.Type != nil && typeExprString(n.Type) == qualifiedName {
+				locs = append(locs, protocol.Location{
+					URI:   uri.File(filePath),
+					Range: tokenSpanToRange(src, n.Type.Span()),
+				})
+			}
+		case *ast.NamedType:
+			if dottedString(n.Name) == qualifiedName {
+				locs = append(locs, protocol.Location{
+					URI:   uri.File(filePath),
+					Range: tokenSpanToRange(src, n.SrcSpan),
+				})
+			}
+		case *ast.DottedName:
+			if dottedString(n) == qualifiedName {
+				locs = append(locs, protocol.Location{
+					URI:   uri.File(filePath),
+					Range: tokenSpanToRange(src, n.SrcSpan),
+				})
+			}
+		case *ast.SelectorExpr:
+			// posix.pkg in expression context is parsed as SelectorExpr
+			if selectorString(n) == qualifiedName {
+				locs = append(locs, protocol.Location{
+					URI:   uri.File(filePath),
+					Range: tokenSpanToRange(src, n.SrcSpan),
+				})
+			}
 		}
+		return true
+	}, nil)
+	return locs
+}
+
+// fileModuleName returns the module name from the file's module
+// declaration, or "" if there is none.
+func fileModuleName(f *ast.File) string {
+	if f.Module != nil {
+		return f.Module.Name.Name
 	}
-	return files
+	return ""
+}
+
+func dottedString(dn *ast.DottedName) string {
+	var parts []string
+	for _, p := range dn.Parts {
+		parts = append(parts, p.Name)
+	}
+	return strings.Join(parts, ".")
+}
+
+func selectorString(sel *ast.SelectorExpr) string {
+	if id, ok := sel.X.(*ast.Ident); ok {
+		return id.Name + "." + sel.Sel.Name
+	}
+	return ""
 }

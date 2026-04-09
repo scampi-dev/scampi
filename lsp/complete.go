@@ -11,7 +11,8 @@ import (
 	"strings"
 
 	"go.lsp.dev/protocol"
-	"go.starlark.net/syntax"
+
+	"scampi.dev/scampi/lang/ast"
 )
 
 func (s *Server) Completion(
@@ -38,7 +39,7 @@ func (s *Server) Completion(
 	var items []protocol.CompletionItem
 
 	switch {
-	case cur.InCall && cur.FuncName == "secret" && cur.InString:
+	case cur.InCall && cur.FuncName == "std.secret" && cur.InString:
 		items = s.completeSecretKeys(params.TextDocument.URI, cur)
 	case cur.InCall && cur.ActiveKwarg != "" && cur.InString:
 		items = s.completeEnumValues(params.TextDocument.URI, cur)
@@ -61,7 +62,7 @@ func (s *Server) Completion(
 	}, nil
 }
 
-// completeTopLevel offers all top-level builtins (non-dotted and module names).
+// completeTopLevel offers all top-level names (non-dotted and module names).
 func (s *Server) completeTopLevel(prefix string) []protocol.CompletionItem {
 	var items []protocol.CompletionItem
 
@@ -101,7 +102,7 @@ func (s *Server) completeTopLevel(prefix string) []protocol.CompletionItem {
 	return items
 }
 
-// completeModule offers members of a dotted module prefix (e.g. "target." → "ssh", "local", "rest").
+// completeModule offers members of a dotted module prefix (e.g. "posix." → "copy", "dir", ...).
 func (s *Server) completeModule(word string) []protocol.CompletionItem {
 	dot := strings.LastIndexByte(word, '.')
 	if dot < 0 {
@@ -121,11 +122,17 @@ func (s *Server) completeModule(word string) []protocol.CompletionItem {
 		if !ok {
 			continue
 		}
+		insertText := member
+		if f.IsStep {
+			insertText = member + " {"
+		} else {
+			insertText = member + "("
+		}
 		items = append(items, protocol.CompletionItem{
 			Label:         member,
 			Kind:          protocol.CompletionItemKindFunction,
 			Detail:        f.Summary,
-			InsertText:    member + "(",
+			InsertText:    insertText,
 			Documentation: f.Summary,
 		})
 	}
@@ -167,7 +174,7 @@ func (s *Server) completeKwargs(docURI protocol.DocumentURI, cur CursorContext) 
 			Label:         p.Name,
 			Kind:          protocol.CompletionItemKindProperty,
 			Detail:        detail,
-			InsertText:    p.Name + "=",
+			InsertText:    p.Name + " = ",
 			Documentation: doc,
 		})
 	}
@@ -178,16 +185,25 @@ func (s *Server) completeKwargs(docURI protocol.DocumentURI, cur CursorContext) 
 // -----------------------------------------------------------------------------
 
 var typeCompletions = map[string][]protocol.CompletionItem{
-	"source": {
-		completionFunc("local", "Reference a local file"),
-		completionFunc("inline", "Use an inline string"),
-		completionFunc("remote", "Download a remote file"),
+	"posix.Source": {
+		completionDecl("posix.source_local", "Reference a local file"),
+		completionDecl("posix.source_inline", "Use an inline string"),
+		completionDecl("posix.source_remote", "Download a remote file"),
 	},
-	"pkg_source": {
-		completionCall("system", "Use the system package manager"),
-		completionFunc("apt_repo", "Add an APT repository"),
-		completionFunc("dnf_repo", "Add a DNF repository"),
+	"posix.PkgSource": {
+		completionDecl("posix.pkg_system", "Use the system package manager"),
+		completionDecl("posix.pkg_apt_repo", "Add an APT repository"),
+		completionDecl("posix.pkg_dnf_repo", "Add a DNF repository"),
 	},
+}
+
+func completionDecl(label, detail string) protocol.CompletionItem {
+	return protocol.CompletionItem{
+		Label:      label,
+		Kind:       protocol.CompletionItemKindFunction,
+		Detail:     detail,
+		InsertText: label + " {",
+	}
 }
 
 func completionFunc(label, detail string) protocol.CompletionItem {
@@ -196,15 +212,6 @@ func completionFunc(label, detail string) protocol.CompletionItem {
 		Kind:       protocol.CompletionItemKindFunction,
 		Detail:     detail,
 		InsertText: label + "(",
-	}
-}
-
-func completionCall(label, detail string) protocol.CompletionItem {
-	return protocol.CompletionItem{
-		Label:      label,
-		Kind:       protocol.CompletionItemKindFunction,
-		Detail:     detail,
-		InsertText: label + "()",
 	}
 }
 
@@ -299,8 +306,7 @@ func (s *Server) completeSecretKeys(docURI protocol.DocumentURI, cur CursorConte
 }
 
 // findSecretsPath extracts the path argument from a secrets() call in the
-// document and resolves it relative to the file's directory. Falls back to
-// regex scanning when the AST can't be parsed (common while editing).
+// document and resolves it relative to the file's directory.
 func findSecretsPath(filePath, content string) string {
 	// Try AST-based extraction first.
 	if p := findSecretsPathAST(filePath, content); p != "" {
@@ -317,37 +323,32 @@ func findSecretsPathAST(filePath, content string) string {
 	}
 
 	var secretsPath string
-	syntax.Walk(f, func(n syntax.Node) bool {
+	ast.Walk(f, func(n ast.Node) bool {
 		if n == nil || secretsPath != "" {
 			return false
 		}
-		call, ok := n.(*syntax.CallExpr)
+		// Look for a struct-lit invocation of "secrets" — in the new lang
+		// secrets config is a decl invocation: secrets { path = "...", ... }
+		sl, ok := n.(*ast.StructLit)
 		if !ok {
 			return true
 		}
-		fn, ok := call.Fn.(*syntax.Ident)
-		if !ok || fn.Name != "secrets" {
+		if sl.Type == nil {
 			return true
 		}
-		for _, arg := range call.Args {
-			binOp, ok := arg.(*syntax.BinaryExpr)
-			if !ok || binOp.Op != syntax.EQ {
-				continue
-			}
-			lhs, ok := binOp.X.(*syntax.Ident)
-			if !ok || lhs.Name != "path" {
-				continue
-			}
-			rhs, ok := binOp.Y.(*syntax.Literal)
-			if !ok {
-				continue
-			}
-			if s, ok := rhs.Value.(string); ok {
-				secretsPath = s
+		name := typeExprString(sl.Type)
+		if name != "secrets" && name != "std.secrets" {
+			return true
+		}
+		for _, fi := range sl.Fields {
+			if fi.Name.Name == "path" {
+				if str := stringLitValue(fi.Value); str != "" {
+					secretsPath = str
+				}
 			}
 		}
 		return true
-	})
+	}, nil)
 
 	if secretsPath == "" {
 		return ""
@@ -355,21 +356,42 @@ func findSecretsPathAST(filePath, content string) string {
 	return resolveSecretsPath(filePath, secretsPath)
 }
 
+func stringLitValue(e ast.Expr) string {
+	sl, ok := e.(*ast.StringLit)
+	if !ok || len(sl.Parts) != 1 {
+		return ""
+	}
+	if text, ok := sl.Parts[0].(*ast.StringText); ok {
+		return text.Raw
+	}
+	return ""
+}
+
 func findSecretsPathText(filePath, content string) string {
 	// Look for: path="something.json" near a secrets( call.
-	idx := strings.Index(content, "secrets(")
+	idx := strings.Index(content, "secrets")
 	if idx < 0 {
 		return ""
 	}
 	rest := content[idx:]
-	// Find path="..." within the next ~200 chars.
 	if len(rest) > 200 {
 		rest = rest[:200]
 	}
-	const marker = `path="`
+	const marker = `path = "`
 	pIdx := strings.Index(rest, marker)
 	if pIdx < 0 {
-		return ""
+		// Try without spaces.
+		const marker2 = `path="`
+		pIdx = strings.Index(rest, marker2)
+		if pIdx < 0 {
+			return ""
+		}
+		start := pIdx + len(marker2)
+		end := strings.IndexByte(rest[start:], '"')
+		if end < 0 {
+			return ""
+		}
+		return resolveSecretsPath(filePath, rest[start:start+end])
 	}
 	start := pIdx + len(marker)
 	end := strings.IndexByte(rest[start:], '"')

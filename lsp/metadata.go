@@ -3,14 +3,18 @@
 package lsp
 
 import (
+	"io/fs"
 	"sort"
+	"strings"
 
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/spec"
+	"scampi.dev/scampi/lang/ast"
+	"scampi.dev/scampi/lang/lex"
+	"scampi.dev/scampi/lang/parse"
+	"scampi.dev/scampi/std"
 )
 
-// BuiltinParam describes one parameter of a builtin function.
-type BuiltinParam struct {
+// ParamInfo describes one parameter of a stdlib function or decl.
+type ParamInfo struct {
 	Name       string
 	Type       string
 	Desc       string
@@ -20,52 +24,49 @@ type BuiltinParam struct {
 	EnumValues []string
 }
 
-// BuiltinFunc describes a predeclared Starlark builtin available in
-// scampi configuration files.
-type BuiltinFunc struct {
+// FuncInfo describes a function or decl from the standard library stubs.
+type FuncInfo struct {
 	Name    string
 	Summary string
-	Params  []BuiltinParam
+	Params  []ParamInfo
 	IsStep  bool
 }
 
-// Catalog holds all builtin metadata, indexed for fast lookup during
+// Catalog holds stdlib metadata, indexed for fast lookup during
 // completion, hover, and signature help.
 type Catalog struct {
-	funcs   map[string]BuiltinFunc
+	funcs   map[string]FuncInfo
 	names   []string
-	modules map[string][]string // "container" → ["instance", "healthcheck.cmd"]
+	modules map[string][]string // "posix" → ["copy", "dir", ...]
 }
 
 func NewCatalog() *Catalog {
 	c := &Catalog{
-		funcs:   make(map[string]BuiltinFunc),
+		funcs:   make(map[string]FuncInfo),
 		modules: make(map[string][]string),
 	}
-
-	c.loadStepBuiltins()
-	c.loadNonStepBuiltins()
+	c.loadFromStubs()
+	c.loadTestStubs()
 	c.buildIndex()
-
 	return c
 }
 
-// Lookup returns the builtin function with the given name, or false.
-func (c *Catalog) Lookup(name string) (BuiltinFunc, bool) {
+// Lookup returns the function with the given name, or false.
+func (c *Catalog) Lookup(name string) (FuncInfo, bool) {
 	f, ok := c.funcs[name]
 	return f, ok
 }
 
-// Names returns all builtin names in sorted order.
+// Names returns all registered names in sorted order.
 func (c *Catalog) Names() []string { return c.names }
 
 // ModuleMembers returns the sub-function names for a dotted module
-// (e.g. "container" → ["instance", "healthcheck.cmd"]).
+// (e.g. "posix" → ["copy", "dir", ...]).
 func (c *Catalog) ModuleMembers(module string) []string {
 	return c.modules[module]
 }
 
-// Modules returns the top-level module names (container, target, rest).
+// Modules returns the top-level module names.
 func (c *Catalog) Modules() []string {
 	out := make([]string, 0, len(c.modules))
 	for k := range c.modules {
@@ -75,300 +76,333 @@ func (c *Catalog) Modules() []string {
 	return out
 }
 
-// Step builtins — metadata from engine registry
+// Loading from stubs
 // -----------------------------------------------------------------------------
 
-func (c *Catalog) loadStepBuiltins() {
-	reg := engine.NewRegistry()
-	for _, st := range reg.StepTypes() {
-		doc := engine.LoadStepDoc(st.Kind())
-		c.funcs[st.Kind()] = stepDocToBuiltin(doc)
-	}
+// stubModule holds parsed metadata from a single .scampi stub file.
+type stubModule struct {
+	name  string
+	enums map[string][]string     // enum name → variants
+	types map[string][]*ast.Field // struct name → fields
+	funcs []FuncInfo
+	decls []FuncInfo
 }
 
-func stepDocToBuiltin(doc spec.StepDoc) BuiltinFunc {
-	params := make([]BuiltinParam, len(doc.Fields))
-	for i, f := range doc.Fields {
-		params[i] = BuiltinParam{
-			Name:       f.Name,
-			Type:       f.Type,
-			Desc:       f.Desc,
-			Default:    f.Default,
-			Required:   f.Required,
-			Examples:   f.Examples,
-			EnumValues: f.EnumValues,
+func (c *Catalog) loadFromStubs() {
+	modules := parseAllStubs()
+
+	// Collect enums across all modules for param EnumValues resolution.
+	allEnums := make(map[string][]string)
+	for _, mod := range modules {
+		for name, variants := range mod.enums {
+			allEnums[name] = variants
 		}
 	}
 
-	// Every step accepts on_change — only add if not already present from config.
-	has := make(map[string]bool, len(params))
-	for _, p := range params {
-		has[p.Name] = true
-	}
-	if !has["on_change"] {
-		params = append(params,
-			BuiltinParam{Name: "on_change", Type: "string | list", Desc: "Hook ID(s) to trigger on change"},
-		)
-	}
+	// Register funcs and decls from each module.
+	for _, mod := range modules {
+		for _, f := range mod.funcs {
+			name := qualifiedName(mod.name, f.Name)
+			f.Name = name
+			resolveEnumValues(f.Params, allEnums)
+			c.funcs[name] = f
+		}
+		for _, d := range mod.decls {
+			name := qualifiedName(mod.name, d.Name)
+			d.Name = name
+			resolveEnumValues(d.Params, allEnums)
+			c.funcs[name] = d
+		}
 
-	return BuiltinFunc{
-		Name:    doc.Kind,
-		Summary: doc.Summary,
-		Params:  params,
-		IsStep:  true,
+		// Register struct types as constructors (e.g. container.Healthcheck).
+		for typeName, fields := range mod.types {
+			name := qualifiedName(mod.name, typeName)
+			params := fieldsToParams(fields, mod.name)
+			resolveEnumValues(params, allEnums)
+			c.funcs[name] = FuncInfo{Name: name, Params: params}
+		}
 	}
 }
 
-// Non-step builtins — manually defined
+func qualifiedName(modName, name string) string {
+	return modName + "." + name
+}
+
+func parseAllStubs() []*stubModule {
+	var modules []*stubModule
+
+	entries, err := fs.ReadDir(std.FS, ".")
+	if err != nil {
+		return nil
+	}
+
+	for _, e := range entries {
+		if e.IsDir() {
+			// Check for submodule.
+			subEntries, err := fs.ReadDir(std.FS, e.Name())
+			if err != nil {
+				continue
+			}
+			for _, se := range subEntries {
+				if se.IsDir() || !strings.HasSuffix(se.Name(), ".scampi") {
+					continue
+				}
+				path := e.Name() + "/" + se.Name()
+				if mod := parseStubFile(path); mod != nil {
+					modules = append(modules, mod)
+				}
+			}
+		} else if strings.HasSuffix(e.Name(), ".scampi") {
+			if mod := parseStubFile(e.Name()); mod != nil {
+				modules = append(modules, mod)
+			}
+		}
+	}
+	return modules
+}
+
+func parseStubFile(path string) *stubModule {
+	data, err := fs.ReadFile(std.FS, path)
+	if err != nil {
+		return nil
+	}
+	l := lex.New(path, data)
+	p := parse.New(l)
+	f := p.Parse()
+	if f == nil {
+		return nil
+	}
+
+	modName := "main"
+	if f.Module != nil {
+		modName = f.Module.Name.Name
+	}
+
+	mod := &stubModule{
+		name:  modName,
+		enums: make(map[string][]string),
+		types: make(map[string][]*ast.Field),
+	}
+
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.EnumDecl:
+			var variants []string
+			for _, v := range d.Variants {
+				variants = append(variants, v.Name)
+			}
+			mod.enums[d.Name.Name] = variants
+
+		case *ast.TypeDecl:
+			if d.Fields != nil {
+				mod.types[d.Name.Name] = d.Fields
+			}
+
+		case *ast.FuncDecl:
+			bf := funcDeclToInfo(d, modName)
+			mod.funcs = append(mod.funcs, bf)
+
+		case *ast.DeclDecl:
+			bf := declDeclToInfo(d, modName)
+			mod.decls = append(mod.decls, bf)
+		}
+	}
+
+	return mod
+}
+
+func funcDeclToInfo(d *ast.FuncDecl, modName string) FuncInfo {
+	params := fieldsToParams(d.Params, modName)
+	return FuncInfo{
+		Name:   d.Name.Name,
+		Params: params,
+	}
+}
+
+func declDeclToInfo(d *ast.DeclDecl, modName string) FuncInfo {
+	params := fieldsToParams(d.Params, modName)
+	isStep := retTypeIsStep(d.Ret)
+	return FuncInfo{
+		Name:   declName(d),
+		Params: params,
+		IsStep: isStep,
+	}
+}
+
+func declName(d *ast.DeclDecl) string {
+	if len(d.Name.Parts) == 1 {
+		return d.Name.Parts[0].Name
+	}
+	var parts []string
+	for _, p := range d.Name.Parts {
+		parts = append(parts, p.Name)
+	}
+	return strings.Join(parts, ".")
+}
+
+func retTypeIsStep(t ast.TypeExpr) bool {
+	if t == nil {
+		return false
+	}
+	nt, ok := t.(*ast.NamedType)
+	if !ok {
+		return false
+	}
+	// std.Step
+	parts := nt.Name.Parts
+	if len(parts) == 2 && parts[0].Name == "std" && parts[1].Name == "Step" {
+		return true
+	}
+	if len(parts) == 1 && parts[0].Name == "Step" {
+		return true
+	}
+	return false
+}
+
+func fieldsToParams(fields []*ast.Field, modName string) []ParamInfo {
+	params := make([]ParamInfo, len(fields))
+	for i, f := range fields {
+		params[i] = ParamInfo{
+			Name:     f.Name.Name,
+			Type:     qualifiedTypeString(f.Type, modName),
+			Required: f.Default == nil && !isOptionalType(f.Type),
+		}
+	}
+	return params
+}
+
+func isOptionalType(t ast.TypeExpr) bool {
+	_, ok := t.(*ast.OptionalType)
+	return ok
+}
+
+// resolveEnumValues fills in EnumValues on params whose type matches
+// a known enum. Tries both qualified (posix.PkgState) and bare (PkgState)
+// names since stubs register enums by bare name.
+func resolveEnumValues(params []ParamInfo, enums map[string][]string) {
+	for i := range params {
+		typeName := params[i].Type
+		typeName = strings.TrimSuffix(typeName, "?")
+		if variants, ok := enums[typeName]; ok {
+			params[i].EnumValues = variants
+			continue
+		}
+		// Try the leaf name after the dot (posix.PkgState → PkgState).
+		if dot := strings.LastIndexByte(typeName, '.'); dot >= 0 {
+			leaf := typeName[dot+1:]
+			if variants, ok := enums[leaf]; ok {
+				params[i].EnumValues = variants
+			}
+		}
+	}
+}
+
+// qualifiedTypeString renders a type expression as a human-readable string,
+// qualifying bare type names with the module they came from. Builtin types
+// (string, int, bool, any) and already-dotted types (std.Step) are left as-is.
+func qualifiedTypeString(t ast.TypeExpr, modName string) string {
+	if t == nil {
+		return ""
+	}
+	switch t := t.(type) {
+	case *ast.NamedType:
+		parts := t.Name.Parts
+		if len(parts) == 1 {
+			name := parts[0].Name
+			if modName != "" && !isBuiltinType(name) {
+				return modName + "." + name
+			}
+			return name
+		}
+		var names []string
+		for _, p := range parts {
+			names = append(names, p.Name)
+		}
+		return strings.Join(names, ".")
+	case *ast.GenericType:
+		var args []string
+		for _, a := range t.Args {
+			args = append(args, qualifiedTypeString(a, modName))
+		}
+		return t.Name.Name + "[" + strings.Join(args, ", ") + "]"
+	case *ast.OptionalType:
+		return qualifiedTypeString(t.Inner, modName) + "?"
+	}
+	return ""
+}
+
+// typeExprString renders a type expression without module qualification.
+func typeExprString(t ast.TypeExpr) string {
+	if t == nil {
+		return ""
+	}
+	switch t := t.(type) {
+	case *ast.NamedType:
+		var parts []string
+		for _, p := range t.Name.Parts {
+			parts = append(parts, p.Name)
+		}
+		return strings.Join(parts, ".")
+	case *ast.GenericType:
+		var args []string
+		for _, a := range t.Args {
+			args = append(args, typeExprString(a))
+		}
+		return t.Name.Name + "[" + strings.Join(args, ", ") + "]"
+	case *ast.OptionalType:
+		return typeExprString(t.Inner) + "?"
+	}
+	return ""
+}
+
+var builtinTypes = map[string]bool{
+	"string": true, "int": true, "bool": true, "any": true, "none": true,
+}
+
+func isBuiltinType(name string) bool {
+	return builtinTypes[name]
+}
+
+// Test stubs (hardcoded until test framework has .scampi stubs)
 // -----------------------------------------------------------------------------
 
-func (c *Catalog) loadNonStepBuiltins() {
-	for _, b := range nonStepBuiltins() {
+func (c *Catalog) loadTestStubs() {
+	for _, b := range testStubs() {
 		c.funcs[b.Name] = b
 	}
 }
 
-func nonStepBuiltins() []BuiltinFunc {
-	return []BuiltinFunc{
+func testStubs() []FuncInfo {
+	return []FuncInfo{
 		{
-			Name:    "deploy",
-			Summary: "Deploy a set of steps to one or more targets",
-			Params: []BuiltinParam{
-				{Name: "name", Type: "string", Desc: "Deploy block name", Required: true},
-				{Name: "targets", Type: "list", Desc: "Target names to deploy to", Required: true},
-				{Name: "steps", Type: "list", Desc: "Steps to execute", Required: true},
-				{Name: "hooks", Type: "struct", Desc: "Hook ID to step mapping"},
-			},
-		},
-
-		// Source resolvers
-		{
-			Name:    "local",
-			Summary: "Reference a local file as a source",
-			Params: []BuiltinParam{
-				{Name: "path", Type: "string", Desc: "Path relative to config directory", Required: true},
+			Name: "test.target.in_memory",
+			Params: []ParamInfo{
+				{Name: "name", Type: "string", Required: true},
+				{Name: "files", Type: "map[string, string]"},
+				{Name: "packages", Type: "list[string]"},
+				{Name: "services", Type: "map[string, string]"},
+				{Name: "dirs", Type: "list[string]"},
 			},
 		},
 		{
-			Name:    "inline",
-			Summary: "Use an inline string as a source",
-			Params: []BuiltinParam{
-				{Name: "content", Type: "string", Desc: "Inline content", Required: true},
+			Name: "test.target.rest_mock",
+			Params: []ParamInfo{
+				{Name: "name", Type: "string", Required: true},
+				{Name: "routes", Type: "map[string, any]"},
 			},
 		},
 		{
-			Name:    "remote",
-			Summary: "Download a remote file as a source",
-			Params: []BuiltinParam{
-				{Name: "url", Type: "string", Desc: "URL to download", Required: true},
-				{Name: "checksum", Type: "string", Desc: "Expected checksum (algo:hex)"},
-			},
-		},
-
-		// Package sources
-		{
-			Name:    "system",
-			Summary: "Use the system package manager",
-		},
-		{
-			Name:    "apt_repo",
-			Summary: "Add an APT repository as a package source",
-			Params: []BuiltinParam{
-				{Name: "url", Type: "string", Desc: "Repository URL", Required: true},
-				{Name: "key_url", Type: "string", Desc: "GPG key URL", Required: true},
-				{Name: "components", Type: "list", Desc: "Repository components", Default: `"[\"main\"]"`},
-				{Name: "suite", Type: "string", Desc: "Distribution suite"},
+			Name: "test.response",
+			Params: []ParamInfo{
+				{Name: "status", Type: "int", Required: true},
+				{Name: "body", Type: "string"},
+				{Name: "headers", Type: "map[string, string]"},
 			},
 		},
 		{
-			Name:    "dnf_repo",
-			Summary: "Add a DNF repository as a package source",
-			Params: []BuiltinParam{
-				{Name: "url", Type: "string", Desc: "Repository base URL", Required: true},
-				{Name: "key_url", Type: "string", Desc: "GPG key URL", Required: true},
-			},
-		},
-
-		// Utilities
-		{
-			Name:    "ref",
-			Summary: "Reference output from another step",
-			Params: []BuiltinParam{
-				{Name: "step", Type: "step", Desc: "Step to reference", Required: true},
-				{Name: "field", Type: "string", Desc: "jq expression to extract", Required: true},
-			},
-		},
-		{
-			Name:    "env",
-			Summary: "Read an environment variable",
-			Params: []BuiltinParam{
-				{Name: "key", Type: "string", Desc: "Environment variable name", Required: true},
-				{Name: "default", Type: "string", Desc: "Default value if unset"},
-			},
-		},
-		{
-			Name:    "secret",
-			Summary: "Read a secret value from the configured backend",
-			Params: []BuiltinParam{
-				{Name: "key", Type: "string", Desc: "Secret key name", Required: true},
-			},
-		},
-		{
-			Name:    "secrets",
-			Summary: "Configure the secrets backend",
-			Params: []BuiltinParam{
-				{Name: "backend", Type: "string", Desc: "Backend type (age, file)", Required: true},
-				{Name: "path", Type: "string", Desc: "Path to secrets file"},
-				{Name: "recipients", Type: "list", Desc: "Age recipient public keys"},
-			},
-		},
-
-		// Target constructors
-		{
-			Name:    "target.local",
-			Summary: "Define a local execution target",
-			Params: []BuiltinParam{
-				{Name: "name", Type: "string", Desc: "Target name", Required: true},
-			},
-		},
-		{
-			Name:    "target.ssh",
-			Summary: "Define an SSH execution target",
-			Params: []BuiltinParam{
-				{Name: "name", Type: "string", Desc: "Target name", Required: true},
-				{Name: "host", Type: "string", Desc: "SSH hostname", Required: true},
-				{Name: "user", Type: "string", Desc: "SSH username", Required: true},
-				{Name: "port", Type: "int", Desc: "SSH port", Default: "22"},
-				{Name: "key", Type: "string", Desc: "Path to SSH private key"},
-				{Name: "insecure", Type: "bool", Desc: "Skip host key verification"},
-				{Name: "timeout", Type: "string", Desc: "Connection timeout"},
-			},
-		},
-		{
-			Name:    "target.rest",
-			Summary: "Define a REST API execution target",
-			Params: []BuiltinParam{
-				{Name: "name", Type: "string", Desc: "Target name", Required: true},
-				{Name: "base_url", Type: "string", Desc: "Base URL for API requests", Required: true},
-				{Name: "auth", Type: "struct", Desc: "Auth config (no_auth, basic, bearer, header)"},
-				{Name: "tls", Type: "struct", Desc: "TLS config (secure, insecure, ca_cert)"},
-			},
-		},
-
-		// REST composables
-		{Name: "rest.no_auth", Summary: "No authentication"},
-		{
-			Name:    "rest.basic",
-			Summary: "HTTP Basic authentication",
-			Params: []BuiltinParam{
-				{Name: "username", Type: "string", Desc: "Username", Required: true},
-				{Name: "password", Type: "string", Desc: "Password", Required: true},
-			},
-		},
-		{
-			Name:    "rest.bearer",
-			Summary: "Bearer token authentication",
-			Params: []BuiltinParam{
-				{Name: "token_endpoint", Type: "string", Desc: "OAuth2 token endpoint", Required: true},
-				{Name: "identity", Type: "string", Desc: "OAuth2 identity (username)", Required: true},
-				{Name: "secret", Type: "string", Desc: "OAuth2 secret (password)", Required: true},
-			},
-		},
-		{
-			Name:    "rest.header",
-			Summary: "Custom header authentication",
-			Params: []BuiltinParam{
-				{Name: "name", Type: "string", Desc: "Header name", Required: true},
-				{Name: "value", Type: "string", Desc: "Header value", Required: true},
-			},
-		},
-		{
-			Name:    "rest.status",
-			Summary: "Check response status code",
-			Params: []BuiltinParam{
-				{Name: "code", Type: "int", Desc: "Expected HTTP status code", Required: true},
-			},
-		},
-		{
-			Name:    "rest.jq",
-			Summary: "Check response body with a jq expression",
-			Params: []BuiltinParam{
-				{Name: "expr", Type: "string", Desc: "jq expression", Required: true},
-				{Name: "expected", Type: "string", Desc: "Expected value", Required: true},
-			},
-		},
-		{Name: "rest.tls.secure", Summary: "Use system CA trust store (default)"},
-		{Name: "rest.tls.insecure", Summary: "Skip TLS certificate verification"},
-		{
-			Name:    "rest.tls.ca_cert",
-			Summary: "Use a custom CA certificate",
-			Params: []BuiltinParam{
-				{Name: "path", Type: "string", Desc: "Path to CA certificate file", Required: true},
-			},
-		},
-		{
-			Name:    "rest.body.json",
-			Summary: "Set JSON request body",
-			Params: []BuiltinParam{
-				{Name: "data", Type: "struct", Desc: "JSON-serializable data", Required: true},
-			},
-		},
-		{
-			Name:    "rest.body.string",
-			Summary: "Set raw string request body",
-			Params: []BuiltinParam{
-				{Name: "content", Type: "string", Desc: "Raw body content", Required: true},
-				{Name: "content_type", Type: "string", Desc: "Content-Type header value"},
-			},
-		},
-
-		// container namespace
-		{
-			Name:    "container.healthcheck.cmd",
-			Summary: "Container health check command",
-			Params: []BuiltinParam{
-				{Name: "cmd", Type: "list", Desc: "Health check command", Required: true},
-				{Name: "interval", Type: "string", Desc: "Check interval", Default: `"30s"`},
-				{Name: "timeout", Type: "string", Desc: "Check timeout", Default: `"30s"`},
-				{Name: "retries", Type: "int", Desc: "Failure threshold", Default: "3"},
-				{Name: "start_period", Type: "string", Desc: "Grace period before checks start", Default: `"0s"`},
-			},
-		},
-
-		// Test builtins (available in *_test.scampi files)
-		{
-			Name:    "test.target.in_memory",
-			Summary: "Create an in-memory target for testing POSIX steps",
-			Params: []BuiltinParam{
-				{Name: "name", Type: "string", Desc: "Target name", Required: true},
-				{Name: "files", Type: "struct", Desc: "Pre-populated files (path → content)"},
-				{Name: "packages", Type: "list", Desc: "Pre-installed packages"},
-				{Name: "services", Type: "struct", Desc: "Service states (name → running/stopped)"},
-				{Name: "dirs", Type: "list", Desc: "Pre-existing directories"},
-			},
-		},
-		{
-			Name:    "test.target.rest_mock",
-			Summary: "Create a mock REST target for testing REST steps",
-			Params: []BuiltinParam{
-				{Name: "name", Type: "string", Desc: "Target name", Required: true},
-				{Name: "routes", Type: "struct", Desc: "Route responses (\"METHOD /path\" → test.response())"},
-			},
-		},
-		{
-			Name:    "test.response",
-			Summary: "Define a mock HTTP response for test.target.rest_mock routes",
-			Params: []BuiltinParam{
-				{Name: "status", Type: "int", Desc: "HTTP status code", Required: true},
-				{Name: "body", Type: "string", Desc: "Response body"},
-				{Name: "headers", Type: "struct", Desc: "Response headers"},
-			},
-		},
-		{
-			Name:    "test.assert.that",
-			Summary: "Create an assertion builder for a test target",
-			Params: []BuiltinParam{
-				{Name: "target", Type: "test_target", Desc: "Test target to assert against", Required: true},
+			Name: "test.assert.that",
+			Params: []ParamInfo{
+				{Name: "target", Type: "test_target", Required: true},
 			},
 		},
 	}

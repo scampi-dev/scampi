@@ -16,20 +16,23 @@ import (
 
 func testServer() *Server {
 	return &Server{
-		catalog: NewCatalog(),
-		docs:    NewDocuments(),
-		log:     log.New(io.Discard, "", 0),
+		catalog:  NewCatalog(),
+		modules:  bootstrapModules(),
+		stubDefs: NewStubDefs(),
+		docs:     NewDocuments(),
+		log:      log.New(io.Discard, "", 0),
 	}
 }
 
 func TestCompletionTopLevel(t *testing.T) {
 	s := testServer()
-	uri := protocol.DocumentURI("file:///test.scampi")
-	s.docs.Open(uri, "cop", 1)
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	// Top-level completion: modules are offered as namespaces.
+	s.docs.Open(docURI, "pos", 1)
 
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
 			Position:     protocol.Position{Line: 0, Character: 3},
 		},
 	})
@@ -37,30 +40,31 @@ func TestCompletionTopLevel(t *testing.T) {
 		t.Fatal(err)
 	}
 	if result == nil || len(result.Items) == 0 {
-		t.Fatal("expected completion items for 'cop'")
+		t.Fatal("expected completion items for 'pos'")
 	}
 
 	found := false
 	for _, item := range result.Items {
-		if item.Label == "copy" {
+		if item.Label == "posix" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("expected 'copy' in completion items")
+		t.Error("expected 'posix' module in completion items")
 	}
 }
 
 func TestCompletionKwargs(t *testing.T) {
 	s := testServer()
-	uri := protocol.DocumentURI("file:///test.scampi")
-	text := `copy(src=local("./f"), `
-	s.docs.Open(uri, text, 1)
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	// Cursor inside a call to posix.copy: posix.copy { src = posix.source_local { path = "./f" }, |
+	text := `posix.copy { src = posix.source_local { path = "./f" }, `
+	s.docs.Open(docURI, text, 1)
 
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
 			Position:     protocol.Position{Line: 0, Character: uint32(len(text))},
 		},
 	})
@@ -93,13 +97,13 @@ func TestCompletionKwargs(t *testing.T) {
 
 func TestCompletionModule(t *testing.T) {
 	s := testServer()
-	uri := protocol.DocumentURI("file:///test.scampi")
-	s.docs.Open(uri, "target.", 1)
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	s.docs.Open(docURI, "posix.", 1)
 
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
-			Position:     protocol.Position{Line: 0, Character: 7},
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: 0, Character: 6},
 		},
 	})
 	if err != nil {
@@ -113,9 +117,9 @@ func TestCompletionModule(t *testing.T) {
 	for _, item := range result.Items {
 		labels[item.Label] = true
 	}
-	for _, want := range []string{"ssh", "local", "rest"} {
+	for _, want := range []string{"ssh", "local", "copy"} {
 		if !labels[want] {
-			t.Errorf("missing target.%s in completions", want)
+			t.Errorf("missing posix.%s in completions", want)
 		}
 	}
 }
@@ -123,7 +127,7 @@ func TestCompletionModule(t *testing.T) {
 func TestCompletionEnumValues(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `service(name="nginx", state="`
+	text := `posix.service { name = "nginx", state = "`
 	s.docs.Open(docURI, text, 1)
 
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
@@ -153,7 +157,7 @@ func TestCompletionEnumValues(t *testing.T) {
 func TestCompletionSourceResolvers(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `copy(src=`
+	text := `posix.copy { src = `
 	s.docs.Open(docURI, text, 1)
 
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
@@ -173,7 +177,7 @@ func TestCompletionSourceResolvers(t *testing.T) {
 	for _, item := range result.Items {
 		labels[item.Label] = true
 	}
-	for _, want := range []string{"local", "inline", "remote"} {
+	for _, want := range []string{"posix.source_local", "posix.source_inline", "posix.source_remote"} {
 		if !labels[want] {
 			t.Errorf("missing source resolver: %s", want)
 		}
@@ -183,13 +187,13 @@ func TestCompletionSourceResolvers(t *testing.T) {
 func TestCompletionStringKwargOffersSecretAndEnv(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := "target.ssh(\n    name=\"test\",\n    host="
+	text := "posix.ssh {\n    name = \"test\",\n    host = "
 	s.docs.Open(docURI, text, 1)
 
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 2, Character: 9},
+			Position:     protocol.Position{Line: 2, Character: 11},
 		},
 	})
 	if err != nil {
@@ -222,13 +226,13 @@ func TestCompletionSecretKeys(t *testing.T) {
 	s := testServer()
 	mainPath := filepath.Join(dir, "test.scampi")
 	docURI := protocol.DocumentURI(uri.File(mainPath))
-	text := "secrets(backend=\"age\", path=\"secrets.age.json\")\nsecret(\""
+	text := "std.secrets { backend = \"age\", path = \"secrets.age.json\" }\nstd.secret(\""
 	s.docs.Open(docURI, text, 1)
 
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 1, Character: 8},
+			Position:     protocol.Position{Line: 1, Character: 12},
 		},
 	})
 	if err != nil {
@@ -253,7 +257,7 @@ func TestCompletionSecretKeys(t *testing.T) {
 func TestCompletionUserDefinedFuncKwargs(t *testing.T) {
 	dir := t.TempDir()
 
-	libContent := "def proxy_host(domain, forward_host, forward_port, certificate=None):\n    pass\n"
+	libContent := "module lib\n\nfunc proxy_host(domain: string, forward_host: string, forward_port: int = 443) string {\n  return \"\"\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "lib.scampi"), []byte(libContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -261,14 +265,15 @@ func TestCompletionUserDefinedFuncKwargs(t *testing.T) {
 	s := testServer()
 	mainPath := filepath.Join(dir, "main.scampi")
 	docURI := protocol.DocumentURI(uri.File(mainPath))
-	text := "load(\"lib.scampi\", \"proxy_host\")\nproxy_host()\n"
+	// User-defined function in same file
+	text := "module main\n\nfunc proxy_host(domain: string, forward_host: string, forward_port: int = 443) string {\n  return \"\"\n}\n\nproxy_host()\n"
 	s.docs.Open(docURI, text, 1)
 
-	// Cursor between the parens on line 1, col 11
+	// Cursor between the parens on line 6, col 11
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 1, Character: 11},
+			Position:     protocol.Position{Line: 6, Character: 11},
 		},
 	})
 	if err != nil {
@@ -282,7 +287,7 @@ func TestCompletionUserDefinedFuncKwargs(t *testing.T) {
 	for _, item := range result.Items {
 		labels[item.Label] = true
 	}
-	for _, want := range []string{"domain", "forward_host", "forward_port", "certificate"} {
+	for _, want := range []string{"domain", "forward_host", "forward_port"} {
 		if !labels[want] {
 			t.Errorf("missing kwarg: %s", want)
 		}

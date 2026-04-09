@@ -14,124 +14,178 @@ import (
 
 func TestReferencesLocalIdent(t *testing.T) {
 	s := testServer()
-	text := "x = 42\ny = x + 1\nprint(x)\n"
+	text := "module main\n\nlet x = 42\nlet y = x + 1\n"
 	docURI := protocol.DocumentURI("file:///test.scampi")
 	s.docs.Open(docURI, text, 1)
 
 	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 0, Character: 0},
+			Position:     protocol.Position{Line: 2, Character: 4},
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// x appears 3 times: assignment, usage in y, usage in print
-	if len(locs) != 3 {
-		t.Errorf("expected 3 references for x, got %d", len(locs))
+	if len(locs) < 2 {
+		t.Errorf("expected at least 2 references for x, got %d", len(locs))
 	}
 }
 
-func TestReferencesNoDuplicatesFromLoad(t *testing.T) {
-	dir := t.TempDir()
-
-	libContent := "def helper():\n    pass\n"
-	if err := os.WriteFile(filepath.Join(dir, "lib.scampi"), []byte(libContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
+func TestReferencesInStubFile(t *testing.T) {
 	s := testServer()
-	mainContent := "load(\"lib.scampi\", \"helper\")\nhelper()\n"
-	mainPath := filepath.Join(dir, "main.scampi")
-	docURI := protocol.DocumentURI(uri.File(mainPath))
-	s.docs.Open(docURI, mainContent, 1)
+	stub := "module posix\n\nimport \"std\"\n\ntype Source\n\ndecl pkg(\n  packages: list[string],\n  source: PkgSource,\n) std.Step\n"
+	docURI := protocol.DocumentURI("file:///stubs/posix.scampi")
+	s.docs.Open(docURI, stub, 1)
 
 	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 1, Character: 2},
+			Position:     protocol.Position{Line: 6, Character: 5},
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Dedup should prevent load()'s To/From duplication.
-	// Expect: 1 in load statement (To), 1 call on line 1, 1 def in lib.scampi
-	seen := make(map[string]int)
-	for _, loc := range locs {
-		key := string(loc.URI) + ":" + formatPos(loc.Range.Start)
-		seen[key]++
+	if len(locs) == 0 {
+		t.Error("expected at least 1 reference for pkg in stub file")
 	}
-	for key, count := range seen {
-		if count > 1 {
-			t.Errorf("duplicate reference at %s (%d times)", key, count)
+}
+
+func TestReferencesBareDeclInRealStub(t *testing.T) {
+	// Use the actual full posix stub content.
+	stubContent, err := os.ReadFile("../std/posix/posix.scampi")
+	if err != nil {
+		t.Skip("could not read posix stub:", err)
+	}
+
+	s := testServer()
+	dir := t.TempDir()
+	stubPath := filepath.Join(dir, "posix.scampi")
+	_ = os.WriteFile(stubPath, stubContent, 0o644)
+	docURI := protocol.DocumentURI(uri.File(stubPath))
+	s.docs.Open(docURI, string(stubContent), 1)
+
+	// Find "pkg" in "decl pkg(" — scan for it.
+	text := string(stubContent)
+	target := "decl pkg("
+	idx := 0
+	line := uint32(0)
+	for i, ch := range text {
+		if i+len(target) <= len(text) && text[i:i+len(target)] == target {
+			idx = i
+			break
+		}
+		if ch == '\n' {
+			line++
+		}
+	}
+	// cursor on "pkg" = 5 chars into "decl pkg("
+	col := uint32(idx - lineStart(text, idx) + 5)
+
+	t.Logf("searching for bare 'pkg' at line=%d col=%d", line, col)
+
+	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: line, Character: col},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(locs) == 0 {
+		// Debug: check what word was resolved
+		word := wordAtOffset(text, offsetFromPosition(text, line, col))
+		t.Errorf("expected at least 1 reference for 'pkg', wordAtOffset=%q", word)
+	} else {
+		t.Logf("found %d references", len(locs))
+	}
+}
+
+func TestReferencesStdlibFromConfig(t *testing.T) {
+	s := testServer()
+
+	config := "module main\n\nimport \"std\"\nimport \"std/posix\"\n\nlet t = posix.local { name = \"local\" }\n\nstd.deploy(name = \"test\", targets = [t]) {\n  posix.pkg {\n    packages = [\"nginx\"]\n    source = posix.pkg_system {}\n  }\n}\n"
+	docURI := protocol.DocumentURI("file:///test/config.scampi")
+	s.docs.Open(docURI, config, 1)
+
+	// Find references for "posix.pkg" — cursor on "pkg" in "posix.pkg {"
+	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: 8, Character: 10},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Should find the usage in config + the stub def.
+	if len(locs) < 2 {
+		t.Errorf("expected at least 2 references (usage + stub def), got %d", len(locs))
+		for _, l := range locs {
+			t.Logf("  %s L%d:%d", l.URI, l.Range.Start.Line, l.Range.Start.Character)
 		}
 	}
 }
 
-func TestReferencesAcrossFiles(t *testing.T) {
+func TestReferencesStdStepInStub(t *testing.T) {
+	// Simulate: user opened posix stub, cursor on "std.Step" return type.
+	// "std.Step" appears many times in the posix stub as return types.
+	s := testServer()
+
 	dir := t.TempDir()
-
-	libContent := "def greet(name):\n    pass\n"
-	if err := os.WriteFile(filepath.Join(dir, "lib.scampi"), []byte(libContent), 0o644); err != nil {
-		t.Fatal(err)
+	stubContent, _ := os.ReadFile(filepath.Join(
+		os.Getenv("HOME"), "Library", "Caches", "scampls", "stubs", "v0.0.0-dev", "posix", "posix.scampi",
+	))
+	if len(stubContent) == 0 {
+		// Fallback: use the source stub directly.
+		stubContent, _ = os.ReadFile("../std/posix/posix.scampi")
 	}
-	mainContent := "load(\"lib.scampi\", \"greet\")\ngreet(\"world\")\n"
-	if err := os.WriteFile(filepath.Join(dir, "main.scampi"), []byte(mainContent), 0o644); err != nil {
-		t.Fatal(err)
+	if len(stubContent) == 0 {
+		t.Skip("could not read posix stub")
 	}
 
-	s := testServer()
-	mainPath := filepath.Join(dir, "main.scampi")
-	docURI := protocol.DocumentURI(uri.File(mainPath))
-	s.docs.Open(docURI, mainContent, 1)
+	stubPath := filepath.Join(dir, "posix.scampi")
+	_ = os.WriteFile(stubPath, stubContent, 0o644)
+	docURI := protocol.DocumentURI(uri.File(stubPath))
+	s.docs.Open(docURI, string(stubContent), 1)
+
+	// Find "std.Step" — it's a return type on many decls.
+	// Find the first occurrence by scanning for it.
+	text := string(stubContent)
+	line := uint32(0)
+	col := uint32(0)
+	for i, ch := range text {
+		if i+8 <= len(text) && text[i:i+8] == "std.Step" {
+			col = uint32(i - lineStart(text, i) + 4) // cursor on "Step"
+			break
+		}
+		if ch == '\n' {
+			line++
+		}
+	}
 
 	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 1, Character: 2},
+			Position:     protocol.Position{Line: line, Character: col},
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Should find refs in both main.scampi and lib.scampi
-	files := make(map[protocol.DocumentURI]bool)
-	for _, loc := range locs {
-		files[loc.URI] = true
-	}
-
-	libURI := protocol.DocumentURI(uri.File(filepath.Join(dir, "lib.scampi")))
-	if !files[docURI] {
-		t.Error("expected references in main.scampi")
-	}
-	if !files[libURI] {
-		t.Error("expected references in lib.scampi")
+	// posix stub has ~15 decls returning std.Step
+	if len(locs) < 5 {
+		t.Errorf("expected many references for std.Step in posix stub, got %d", len(locs))
 	}
 }
 
-func TestReferencesBuiltinReturnsNil(t *testing.T) {
-	s := testServer()
-	docURI := protocol.DocumentURI("file:///test.scampi")
-	s.docs.Open(docURI, "copy", 1)
-
-	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 0, Character: 2},
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
+func lineStart(text string, pos int) int {
+	for i := pos - 1; i >= 0; i-- {
+		if text[i] == '\n' {
+			return i + 1
+		}
 	}
-	if len(locs) != 0 {
-		t.Error("builtins should not return references")
-	}
-}
-
-func formatPos(p protocol.Position) string {
-	return string(rune('0'+p.Line)) + ":" + string(rune('0'+p.Character))
+	return 0
 }

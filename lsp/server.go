@@ -14,16 +14,19 @@ import (
 	"go.lsp.dev/uri"
 	"go.uber.org/zap"
 
+	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/mod"
 )
 
 // Server implements the LSP protocol for scampi configuration files.
 type Server struct {
-	catalog *Catalog
-	docs    *Documents
-	client  protocol.Client
-	conn    jsonrpc2.Conn
-	log     *log.Logger
+	catalog  *Catalog
+	modules  map[string]*check.Scope
+	stubDefs *StubDefs
+	docs     *Documents
+	client   protocol.Client
+	conn     jsonrpc2.Conn
+	log      *log.Logger
 
 	rootDir  string
 	module   *mod.Module
@@ -49,15 +52,17 @@ func Serve(ctx context.Context, in io.Reader, out io.Writer, opts ...Option) err
 	logger := zap.NewNop()
 
 	s := &Server{
-		catalog: NewCatalog(),
-		docs:    NewDocuments(),
-		log:     log.New(io.Discard, "", 0),
+		catalog:  NewCatalog(),
+		modules:  bootstrapModules(),
+		stubDefs: NewStubDefs(),
+		docs:     NewDocuments(),
+		log:      log.New(io.Discard, "", 0),
 	}
 	for _, opt := range opts {
 		opt(s)
 	}
 
-	s.log.Printf("server starting, %d builtins loaded", len(s.catalog.Names()))
+	s.log.Printf("server starting, %d stdlib entries loaded", len(s.catalog.Names()))
 
 	ctx, conn, client := protocol.NewServer(ctx, s, stream, logger)
 	s.client = client
@@ -167,20 +172,7 @@ func (s *Server) diagnoseWorkspace(ctx context.Context) {
 		if err != nil || d.IsDir() || filepath.Ext(path) != ".scampi" {
 			return nil
 		}
-		data, readErr := os.ReadFile(path)
-		if readErr != nil {
-			return nil
-		}
-		docURI := protocol.DocumentURI(uri.File(path))
-		diags := s.evaluate(ctx, docURI, string(data))
-		if diags == nil {
-			diags = []protocol.Diagnostic{}
-		}
-		s.log.Printf("workspace diag: %s → %d", path, len(diags))
-		_ = s.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
-			URI:         docURI,
-			Diagnostics: diags,
-		})
+		s.diagnoseFile(ctx, path)
 		return nil
 	})
 }

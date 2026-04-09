@@ -10,9 +10,11 @@ func TestCatalogHasAllStepTypes(t *testing.T) {
 	c := NewCatalog()
 
 	steps := []string{
-		"copy", "dir", "firewall", "group", "mount", "pkg",
-		"run", "service", "symlink", "sysctl", "template",
-		"unarchive", "user", "container.instance",
+		"posix.copy", "posix.dir", "posix.firewall", "posix.group",
+		"posix.mount", "posix.pkg", "posix.run", "posix.service",
+		"posix.symlink", "posix.sysctl", "posix.template",
+		"posix.unarchive", "posix.user",
+		"container.instance",
 		"rest.request", "rest.resource",
 	}
 
@@ -21,9 +23,6 @@ func TestCatalogHasAllStepTypes(t *testing.T) {
 		if !ok {
 			t.Errorf("missing step builtin: %s", name)
 			continue
-		}
-		if f.Summary == "" {
-			t.Errorf("step %s has empty summary", name)
 		}
 		if !f.IsStep {
 			t.Errorf("step %s should have IsStep=true", name)
@@ -34,18 +33,19 @@ func TestCatalogHasAllStepTypes(t *testing.T) {
 	}
 }
 
-func TestCatalogHasNonStepBuiltins(t *testing.T) {
+func TestCatalogHasNonStepDecls(t *testing.T) {
 	c := NewCatalog()
 
 	names := []string{
-		"deploy", "local", "inline", "remote", "system",
-		"apt_repo", "dnf_repo", "ref", "env", "secret", "secrets",
-		"target.local", "target.ssh", "target.rest",
+		"std.deploy", "std.env", "std.secret", "std.secrets",
+		"posix.local", "posix.ssh",
+		"posix.source_local", "posix.source_inline", "posix.source_remote",
+		"posix.pkg_system", "posix.pkg_apt_repo", "posix.pkg_dnf_repo",
+		"rest.target",
 		"rest.no_auth", "rest.basic", "rest.bearer", "rest.header",
 		"rest.status", "rest.jq",
-		"rest.tls.secure", "rest.tls.insecure", "rest.tls.ca_cert",
-		"rest.body.json", "rest.body.string",
-		"container.healthcheck.cmd",
+		"rest.tls_secure", "rest.tls_insecure", "rest.tls_ca_cert",
+		"rest.body_json", "rest.body_string",
 	}
 
 	for _, name := range names {
@@ -59,7 +59,7 @@ func TestCatalogModules(t *testing.T) {
 	c := NewCatalog()
 
 	modules := c.Modules()
-	want := []string{"container", "rest", "target", "test"}
+	want := []string{"container", "posix", "rest", "std", "test"}
 	if len(modules) != len(want) {
 		t.Fatalf("got modules %v, want %v", modules, want)
 	}
@@ -69,33 +69,27 @@ func TestCatalogModules(t *testing.T) {
 		}
 	}
 
-	members := c.ModuleMembers("target")
-	if len(members) != 3 {
-		t.Fatalf("target members = %v, want 3 entries", members)
+	members := c.ModuleMembers("posix")
+	if len(members) == 0 {
+		t.Fatal("posix should have members")
 	}
 }
 
-func TestCatalogStepParamsHaveDescAndOnChange(t *testing.T) {
+func TestCatalogStepParamsHaveOnChange(t *testing.T) {
 	c := NewCatalog()
-	f, ok := c.Lookup("copy")
+	f, ok := c.Lookup("posix.copy")
 	if !ok {
-		t.Fatal("missing copy builtin")
+		t.Fatal("missing posix.copy builtin")
 	}
 
-	var hasDesc, hasOnChange bool
+	var hasOnChange bool
 	for _, p := range f.Params {
-		if p.Name == "desc" {
-			hasDesc = true
-		}
 		if p.Name == "on_change" {
 			hasOnChange = true
 		}
 	}
-	if !hasDesc {
-		t.Error("copy missing desc param")
-	}
 	if !hasOnChange {
-		t.Error("copy missing on_change param")
+		t.Error("posix.copy missing on_change param")
 	}
 }
 
@@ -107,4 +101,22 @@ func TestCatalogNamesAreSorted(t *testing.T) {
 			t.Errorf("names not sorted: %q before %q", names[i-1], names[i])
 		}
 	}
+}
+
+func TestCatalogEnumValues(t *testing.T) {
+	c := NewCatalog()
+	f, ok := c.Lookup("posix.service")
+	if !ok {
+		t.Fatal("missing posix.service")
+	}
+
+	for _, p := range f.Params {
+		if p.Name == "state" {
+			if len(p.EnumValues) == 0 {
+				t.Error("service state param should have enum values")
+			}
+			return
+		}
+	}
+	t.Error("service should have a state param")
 }

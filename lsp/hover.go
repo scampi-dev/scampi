@@ -79,7 +79,7 @@ func (s *Server) hoverKwarg(docURI protocol.DocumentURI, cur CursorContext) stri
 	return ""
 }
 
-func formatFuncDoc(f BuiltinFunc) string {
+func formatFuncDoc(f FuncInfo) string {
 	var b strings.Builder
 
 	// Signature in a fenced code block, like gopls.
@@ -112,7 +112,7 @@ func formatFuncDoc(f BuiltinFunc) string {
 	return b.String()
 }
 
-func formatSignature(f BuiltinFunc) string {
+func formatSignature(f FuncInfo) string {
 	var params []string
 	for _, p := range f.Params {
 		s := p.Name
@@ -124,7 +124,7 @@ func formatSignature(f BuiltinFunc) string {
 	return f.Name + "(" + strings.Join(params, ", ") + ")"
 }
 
-func formatParamDoc(funcName string, p BuiltinParam) string {
+func formatParamDoc(funcName string, p ParamInfo) string {
 	var b strings.Builder
 
 	// Signature block.

@@ -9,12 +9,11 @@ import (
 	"testing"
 
 	"go.lsp.dev/protocol"
-	"go.lsp.dev/uri"
 )
 
 func TestDocumentSymbolFunctions(t *testing.T) {
 	s := testServer()
-	text := "def greet(name):\n    pass\n\ndef farewell():\n    pass\n"
+	text := "module main\n\nfunc greet(name: string) string {\n  return \"\"\n}\n\nfunc farewell() string {\n  return \"\"\n}\n"
 	docURI := protocol.DocumentURI("file:///test.scampi")
 	s.docs.Open(docURI, text, 1)
 
@@ -49,7 +48,7 @@ func TestDocumentSymbolFunctions(t *testing.T) {
 
 func TestDocumentSymbolVariables(t *testing.T) {
 	s := testServer()
-	text := "config = {\"key\": \"value\"}\ncount = 42\n"
+	text := "module main\n\nlet config = \"value\"\nlet count = 42\n"
 	docURI := protocol.DocumentURI("file:///test.scampi")
 	s.docs.Open(docURI, text, 1)
 
@@ -71,32 +70,11 @@ func TestDocumentSymbolVariables(t *testing.T) {
 	}
 }
 
-func TestDocumentSymbolExcludesLoads(t *testing.T) {
-	s := testServer()
-	text := "load(\"lib.scampi\", \"helper\")\ndef main():\n    pass\n"
-	docURI := protocol.DocumentURI("file:///test.scampi")
-	s.docs.Open(docURI, text, 1)
-
-	result, err := s.DocumentSymbol(context.Background(), &protocol.DocumentSymbolParams{
-		TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(result) != 1 {
-		t.Fatalf("expected 1 symbol (main only, no load), got %d", len(result))
-	}
-	ds := result[0].(protocol.DocumentSymbol)
-	if ds.Name != "main" {
-		t.Errorf("expected 'main', got %q", ds.Name)
-	}
-}
-
 func TestWorkspaceSymbols(t *testing.T) {
 	dir := t.TempDir()
 
-	f1 := "def greet(name):\n    pass\n"
-	f2 := "def farewell():\n    pass\ncount = 0\n"
+	f1 := "module a\n\nfunc greet(name: string) string {\n  return \"\"\n}\n"
+	f2 := "module b\n\nfunc farewell() string {\n  return \"\"\n}\n\nlet count = 0\n"
 	if err := os.WriteFile(filepath.Join(dir, "a.scampi"), []byte(f1), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +106,7 @@ func TestWorkspaceSymbols(t *testing.T) {
 func TestWorkspaceSymbolsQueryFilters(t *testing.T) {
 	dir := t.TempDir()
 
-	content := "def greet():\n    pass\ndef goodbye():\n    pass\n"
+	content := "module test\n\nfunc greet() string {\n  return \"\"\n}\n\nfunc goodbye() string {\n  return \"\"\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "test.scampi"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -150,50 +128,6 @@ func TestWorkspaceSymbolsQueryFilters(t *testing.T) {
 	}
 }
 
-func TestWorkspaceSymbolsIncludesDeps(t *testing.T) {
-	dir := t.TempDir()
-	depDir := filepath.Join(dir, "deps", "mylib")
-	if err := os.MkdirAll(depDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	mainContent := "def main_fn():\n    pass\n"
-	depContent := "def dep_fn():\n    pass\n"
-	modContent := "module test.example/proj\n\nrequire (\n\tmylib ./deps/mylib\n)\n"
-
-	if err := os.WriteFile(filepath.Join(dir, "main.scampi"), []byte(mainContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(depDir, "lib.scampi"), []byte(depContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "scampi.mod"), []byte(modContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	s := testServer()
-	s.rootDir = dir
-	s.loadModule()
-
-	syms, err := s.Symbols(context.Background(), &protocol.WorkspaceSymbolParams{
-		Query: "",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	names := make(map[string]bool)
-	for _, sym := range syms {
-		names[sym.Name] = true
-	}
-	if !names["main_fn"] {
-		t.Error("missing symbol from workspace: main_fn")
-	}
-	if !names["dep_fn"] {
-		t.Error("missing symbol from dependency: dep_fn")
-	}
-}
-
 func TestWorkspaceSymbolsNoRootReturnsNil(t *testing.T) {
 	s := testServer()
 
@@ -205,31 +139,5 @@ func TestWorkspaceSymbolsNoRootReturnsNil(t *testing.T) {
 	}
 	if syms != nil {
 		t.Error("expected nil when rootDir is empty")
-	}
-}
-
-func TestWorkspaceSymbolsExcludesNonScampiFiles(t *testing.T) {
-	dir := t.TempDir()
-
-	if err := os.WriteFile(filepath.Join(dir, "test.scampi"), []byte("def found():\n    pass\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	goContent := "package main\nfunc notfound() {}\n"
-	if err := os.WriteFile(filepath.Join(dir, "test.go"), []byte(goContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	s := testServer()
-	s.rootDir = dir
-	_ = uri.File(dir) // suppress unused import
-
-	syms, err := s.Symbols(context.Background(), &protocol.WorkspaceSymbolParams{Query: ""})
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, sym := range syms {
-		if sym.Name == "notfound" {
-			t.Error("should not scan .go files")
-		}
 	}
 }

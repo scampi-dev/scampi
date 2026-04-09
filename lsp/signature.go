@@ -50,7 +50,7 @@ func (s *Server) SignatureHelp(
 	}, nil
 }
 
-func buildSignature(f BuiltinFunc) protocol.SignatureInformation {
+func buildSignature(f FuncInfo) protocol.SignatureInformation {
 	var paramLabels []string
 	var paramInfos []protocol.ParameterInformation
 	for _, p := range f.Params {

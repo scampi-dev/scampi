@@ -4,76 +4,55 @@ package lsp
 
 import (
 	"go.lsp.dev/protocol"
-	"go.starlark.net/syntax"
+
+	"scampi.dev/scampi/lang/ast"
+	"scampi.dev/scampi/lang/lex"
+	"scampi.dev/scampi/lang/parse"
+	"scampi.dev/scampi/lang/token"
 )
 
-// fileOptions mirrors the options in star/eval.go — Set, While, and
-// Recursion are enabled beyond core Starlark.
-var fileOptions = &syntax.FileOptions{
-	Set:       true,
-	While:     true,
-	Recursion: true,
-}
+// Parse parses scampi-lang source and returns the AST and any
+// diagnostics. The AST is always returned when possible (even with
+// errors) so callers can still do completion and hover on partial input.
+func Parse(filename string, content []byte) (*ast.File, []protocol.Diagnostic) {
+	l := lex.New(filename, content)
+	p := parse.New(l)
+	f := p.Parse()
 
-// Parse parses Starlark source and returns the AST and any diagnostics.
-// It uses the same FileOptions as the engine evaluator so parse errors
-// match what the engine would report.
-func Parse(filename string, content []byte) (*syntax.File, []protocol.Diagnostic) {
-	f, err := fileOptions.Parse(filename, content, 0)
-	if err != nil {
-		return nil, syntaxErrors(err)
+	var diags []protocol.Diagnostic
+	for _, e := range l.Errors() {
+		diags = append(diags, spanDiag(content, e.Span, e.Msg))
+	}
+	for _, e := range p.Errors() {
+		msg := e.Msg
+		if e.Hint != "" {
+			msg += "\nhint: " + e.Hint
+		}
+		diags = append(diags, spanDiag(content, e.Span, msg))
+	}
+
+	if len(diags) > 0 {
+		return f, diags
 	}
 	return f, nil
 }
 
-func syntaxErrors(err error) []protocol.Diagnostic {
-	if errs, ok := err.(syntax.Error); ok {
-		return []protocol.Diagnostic{syntaxDiag(errs)}
-	}
-	if errList, ok := err.(*syntax.Error); ok {
-		return []protocol.Diagnostic{syntaxDiag(*errList)}
-	}
-
-	// Starlark returns a list of errors for parse failures.
-	if el, ok := err.(interface{ Unwrap() []error }); ok {
-		var diags []protocol.Diagnostic
-		for _, e := range el.Unwrap() {
-			if se, ok := e.(syntax.Error); ok {
-				diags = append(diags, syntaxDiag(se))
-			}
-		}
-		if len(diags) > 0 {
-			return diags
-		}
-	}
-
-	// Fallback: unknown error shape, report at line 0.
-	return []protocol.Diagnostic{{
-		Range:    protocol.Range{},
-		Severity: protocol.DiagnosticSeverityError,
-		Source:   "scampi",
-		Message:  err.Error(),
-	}}
-}
-
-func syntaxDiag(e syntax.Error) protocol.Diagnostic {
-	// Starlark positions are 1-based; LSP positions are 0-based.
-	line := uint32(0)
-	if e.Pos.Line > 0 {
-		line = uint32(e.Pos.Line - 1)
-	}
-	col := uint32(0)
-	if e.Pos.Col > 0 {
-		col = uint32(e.Pos.Col - 1)
-	}
-
+// spanDiag converts a token.Span + message into an LSP diagnostic.
+func spanDiag(src []byte, s token.Span, msg string) protocol.Diagnostic {
+	start, end := token.ResolveSpan(src, s)
 	return protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: line, Character: col},
-			End:   protocol.Position{Line: line, Character: col},
+			Start: protocol.Position{
+				Line:      uint32(max(start.Line-1, 0)),
+				Character: uint32(max(start.Col-1, 0)),
+			},
+			End: protocol.Position{
+				Line:      uint32(max(end.Line-1, 0)),
+				Character: uint32(max(end.Col-1, 0)),
+			},
 		},
 		Severity: protocol.DiagnosticSeverityError,
 		Source:   "scampi",
-		Message:  e.Msg,
+		Message:  msg,
 	}
 }

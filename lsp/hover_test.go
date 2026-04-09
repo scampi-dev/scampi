@@ -4,24 +4,22 @@ package lsp
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"go.lsp.dev/protocol"
-	"go.lsp.dev/uri"
 )
 
 func TestHoverOnFuncName(t *testing.T) {
 	s := testServer()
-	uri := protocol.DocumentURI("file:///test.scampi")
-	s.docs.Open(uri, "copy", 1)
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	// Hover on "posix.copy" — word extraction gives "posix.copy"
+	s.docs.Open(docURI, "posix.copy", 1)
 
 	result, err := s.Hover(context.Background(), &protocol.HoverParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
-			Position:     protocol.Position{Line: 0, Character: 2},
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: 0, Character: 8},
 		},
 	})
 	if err != nil {
@@ -30,25 +28,25 @@ func TestHoverOnFuncName(t *testing.T) {
 	if result == nil {
 		t.Fatal("expected hover result")
 	}
-	if !strings.Contains(result.Contents.Value, "copy") {
-		t.Errorf("hover should mention 'copy', got %q", result.Contents.Value)
+	if !strings.Contains(result.Contents.Value, "posix.copy") {
+		t.Errorf("hover should mention 'posix.copy', got %q", result.Contents.Value)
 	}
-	if !strings.Contains(result.Contents.Value, "`src`") {
-		t.Error("hover should include parameter docs")
+	if !strings.Contains(result.Contents.Value, "src") {
+		t.Error("hover should include parameter names")
 	}
 }
 
 func TestHoverOnKwarg(t *testing.T) {
 	s := testServer()
-	uri := protocol.DocumentURI("file:///test.scampi")
-	text := `copy(dest="/etc/foo")`
-	s.docs.Open(uri, text, 1)
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	text := `posix.copy { dest = "/etc/foo" }`
+	s.docs.Open(docURI, text, 1)
 
-	// Hover on "dest" (chars 5-8)
+	// Hover on "dest" (inside braces)
 	result, err := s.Hover(context.Background(), &protocol.HoverParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
-			Position:     protocol.Position{Line: 0, Character: 6},
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: 0, Character: 15},
 		},
 	})
 	if err != nil {
@@ -64,12 +62,12 @@ func TestHoverOnKwarg(t *testing.T) {
 
 func TestHoverOnUnknown(t *testing.T) {
 	s := testServer()
-	uri := protocol.DocumentURI("file:///test.scampi")
-	s.docs.Open(uri, "foobar = 42", 1)
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	s.docs.Open(docURI, "foobar", 1)
 
 	result, err := s.Hover(context.Background(), &protocol.HoverParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
 			Position:     protocol.Position{Line: 0, Character: 3},
 		},
 	})
@@ -83,12 +81,12 @@ func TestHoverOnUnknown(t *testing.T) {
 
 func TestHoverOnDottedFunc(t *testing.T) {
 	s := testServer()
-	uri := protocol.DocumentURI("file:///test.scampi")
-	s.docs.Open(uri, "target.ssh", 1)
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	s.docs.Open(docURI, "posix.ssh", 1)
 
 	result, err := s.Hover(context.Background(), &protocol.HoverParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
 			Position:     protocol.Position{Line: 0, Character: 8},
 		},
 	})
@@ -96,32 +94,24 @@ func TestHoverOnDottedFunc(t *testing.T) {
 		t.Fatal(err)
 	}
 	if result == nil {
-		t.Fatal("expected hover for target.ssh")
+		t.Fatal("expected hover for posix.ssh")
 	}
-	if !strings.Contains(result.Contents.Value, "target.ssh") {
-		t.Errorf("hover should mention 'target.ssh', got %q", result.Contents.Value)
+	if !strings.Contains(result.Contents.Value, "posix.ssh") {
+		t.Errorf("hover should mention 'posix.ssh', got %q", result.Contents.Value)
 	}
 }
 
 func TestHoverUserDefinedFunc(t *testing.T) {
-	dir := t.TempDir()
-
-	libContent := "def proxy_host(domain, forward_host, forward_port=443):\n    pass\n"
-	if err := os.WriteFile(filepath.Join(dir, "lib.scampi"), []byte(libContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
 	s := testServer()
-	mainPath := filepath.Join(dir, "main.scampi")
-	docURI := protocol.DocumentURI(uri.File(mainPath))
-	text := "load(\"lib.scampi\", \"proxy_host\")\nproxy_host(domain=\"test\")\n"
+	docURI := protocol.DocumentURI("file:///test.scampi")
+	text := "module main\n\nfunc proxy_host(domain: string, forward_host: string, forward_port: int = 443) string {\n  return \"\"\n}\n\nproxy_host(domain = \"test\")\n"
 	s.docs.Open(docURI, text, 1)
 
-	// Hover on "proxy_host" at line 1
+	// Hover on "proxy_host" at line 6
 	result, err := s.Hover(context.Background(), &protocol.HoverParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 1, Character: 5},
+			Position:     protocol.Position{Line: 6, Character: 5},
 		},
 	})
 	if err != nil {

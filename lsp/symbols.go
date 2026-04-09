@@ -10,7 +10,9 @@ import (
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-	"go.starlark.net/syntax"
+
+	"scampi.dev/scampi/lang/ast"
+	"scampi.dev/scampi/lang/token"
 )
 
 func (s *Server) DocumentSymbol(
@@ -28,27 +30,46 @@ func (s *Server) DocumentSymbol(
 		return nil, nil
 	}
 
+	data := []byte(doc.Content)
 	var symbols []any
-	for _, stmt := range f.Stmts {
-		switch st := stmt.(type) {
-		case *syntax.DefStmt:
-			start, end := st.Span()
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *ast.FuncDecl:
 			symbols = append(symbols, protocol.DocumentSymbol{
-				Name:           st.Name.Name,
+				Name:           d.Name.Name,
 				Kind:           protocol.SymbolKindFunction,
-				Range:          spanToSymbolRange(start, end),
-				SelectionRange: posToLSPRange(st.Name.NamePos),
+				Range:          tokenSpanToRange(data, d.SrcSpan),
+				SelectionRange: tokenSpanToRange(data, d.Name.SrcSpan),
 			})
-		case *syntax.AssignStmt:
-			if ident, ok := st.LHS.(*syntax.Ident); ok {
-				start, end := st.Span()
-				symbols = append(symbols, protocol.DocumentSymbol{
-					Name:           ident.Name,
-					Kind:           protocol.SymbolKindVariable,
-					Range:          spanToSymbolRange(start, end),
-					SelectionRange: posToLSPRange(ident.NamePos),
-				})
-			}
+		case *ast.DeclDecl:
+			name := declName(d)
+			symbols = append(symbols, protocol.DocumentSymbol{
+				Name:           name,
+				Kind:           protocol.SymbolKindFunction,
+				Range:          tokenSpanToRange(data, d.SrcSpan),
+				SelectionRange: tokenSpanToRange(data, d.Name.SrcSpan),
+			})
+		case *ast.LetDecl:
+			symbols = append(symbols, protocol.DocumentSymbol{
+				Name:           d.Name.Name,
+				Kind:           protocol.SymbolKindVariable,
+				Range:          tokenSpanToRange(data, d.SrcSpan),
+				SelectionRange: tokenSpanToRange(data, d.Name.SrcSpan),
+			})
+		case *ast.TypeDecl:
+			symbols = append(symbols, protocol.DocumentSymbol{
+				Name:           d.Name.Name,
+				Kind:           protocol.SymbolKindStruct,
+				Range:          tokenSpanToRange(data, d.SrcSpan),
+				SelectionRange: tokenSpanToRange(data, d.Name.SrcSpan),
+			})
+		case *ast.EnumDecl:
+			symbols = append(symbols, protocol.DocumentSymbol{
+				Name:           d.Name.Name,
+				Kind:           protocol.SymbolKindEnum,
+				Range:          tokenSpanToRange(data, d.SrcSpan),
+				SelectionRange: tokenSpanToRange(data, d.Name.SrcSpan),
+			})
 		}
 	}
 
@@ -100,22 +121,34 @@ func appendSymbolsFromDir(symbols []protocol.SymbolInformation, dir, query strin
 			return nil
 		}
 
-		for _, stmt := range f.Stmts {
+		for _, d := range f.Decls {
 			var name string
 			var kind protocol.SymbolKind
-			var pos syntax.Position
+			var span token.Span
 
-			switch st := stmt.(type) {
-			case *syntax.DefStmt:
-				name = st.Name.Name
+			switch d := d.(type) {
+			case *ast.FuncDecl:
+				name = d.Name.Name
 				kind = protocol.SymbolKindFunction
-				pos = st.Name.NamePos
-			case *syntax.AssignStmt:
-				if ident, ok := st.LHS.(*syntax.Ident); ok {
-					name = ident.Name
-					kind = protocol.SymbolKindVariable
-					pos = ident.NamePos
+				span = d.Name.SrcSpan
+			case *ast.LetDecl:
+				name = d.Name.Name
+				kind = protocol.SymbolKindVariable
+				span = d.Name.SrcSpan
+			case *ast.DeclDecl:
+				if len(d.Name.Parts) > 0 {
+					name = d.Name.Parts[0].Name
 				}
+				kind = protocol.SymbolKindFunction
+				span = d.Name.SrcSpan
+			case *ast.TypeDecl:
+				name = d.Name.Name
+				kind = protocol.SymbolKindStruct
+				span = d.Name.SrcSpan
+			case *ast.EnumDecl:
+				name = d.Name.Name
+				kind = protocol.SymbolKindEnum
+				span = d.Name.SrcSpan
 			}
 
 			if name == "" {
@@ -130,34 +163,11 @@ func appendSymbolsFromDir(symbols []protocol.SymbolInformation, dir, query strin
 				Kind: kind,
 				Location: protocol.Location{
 					URI:   uri.File(path),
-					Range: posToLSPRange(pos),
+					Range: tokenSpanToRange(data, span),
 				},
 			})
 		}
 		return nil
 	})
 	return symbols
-}
-
-func spanToSymbolRange(start, end syntax.Position) protocol.Range {
-	startLine := uint32(0)
-	if start.Line > 0 {
-		startLine = uint32(start.Line - 1)
-	}
-	startCol := uint32(0)
-	if start.Col > 0 {
-		startCol = uint32(start.Col - 1)
-	}
-	endLine := startLine
-	if end.Line > 0 {
-		endLine = uint32(end.Line - 1)
-	}
-	endCol := startCol
-	if end.Col > 0 {
-		endCol = uint32(end.Col - 1)
-	}
-	return protocol.Range{
-		Start: protocol.Position{Line: startLine, Character: startCol},
-		End:   protocol.Position{Line: endLine, Character: endCol},
-	}
 }
