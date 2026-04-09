@@ -26,7 +26,12 @@ type (
 )
 
 func (REST) Kind() string   { return "rest" }
-func (REST) NewConfig() any { return &Config{} }
+func (REST) NewConfig() any {
+	return &Config{
+		Auth: NoAuthConfig{},
+		TLS:  SecureTLSConfig{},
+	}
+}
 func (REST) Create(_ context.Context, _ source.Source, tgt spec.TargetInstance) (target.Target, error) {
 	cfg, ok := tgt.Config.(*Config)
 	if !ok {

@@ -8,6 +8,7 @@ import (
 
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/target"
+	"scampi.dev/scampi/target/rest"
 )
 
 // convertPort parses a port string like "8080:80" or "127.0.0.1:8080:80/udp".
@@ -70,4 +71,54 @@ func convertHealthcheck(sv *eval.StructVal) *target.Healthcheck {
 		hc.Retries = int(r.V)
 	}
 	return hc
+}
+
+// convertAuth converts a StructVal to a rest.AuthConfig.
+func convertAuth(sv *eval.StructVal) rest.AuthConfig {
+	switch sv.TypeName {
+	case "no_auth":
+		return rest.NoAuthConfig{}
+	case "basic":
+		cfg := rest.BasicAuthConfig{}
+		if u, ok := sv.Fields["user"].(*eval.StringVal); ok {
+			cfg.User = u.V
+		}
+		if p, ok := sv.Fields["password"].(*eval.StringVal); ok {
+			cfg.Password = p.V
+		}
+		return cfg
+	case "bearer":
+		cfg := rest.BearerAuthConfig{}
+		if t, ok := sv.Fields["token_endpoint"].(*eval.StringVal); ok {
+			cfg.TokenEndpoint = t.V
+		}
+		if i, ok := sv.Fields["identity"].(*eval.StringVal); ok {
+			cfg.Identity = i.V
+		}
+		if s, ok := sv.Fields["secret"].(*eval.StringVal); ok {
+			cfg.Secret = s.V
+		}
+		return cfg
+	case "header":
+		cfg := rest.HeaderAuthConfig{}
+		if n, ok := sv.Fields["name"].(*eval.StringVal); ok {
+			cfg.Name = n.V
+		}
+		if v, ok := sv.Fields["value"].(*eval.StringVal); ok {
+			cfg.Value = v.V
+		}
+		return cfg
+	}
+	return rest.NoAuthConfig{}
+}
+
+// convertTLS converts a StructVal to a rest.TLSConfig.
+func convertTLS(sv *eval.StructVal) rest.TLSConfig {
+	switch sv.TypeName {
+	case "tls_secure":
+		return rest.SecureTLSConfig{}
+	case "tls_insecure":
+		return rest.InsecureTLSConfig{}
+	}
+	return rest.SecureTLSConfig{}
 }

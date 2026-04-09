@@ -7,6 +7,7 @@ package linker
 
 import (
 	"context"
+	"strings"
 
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/source"
@@ -111,10 +112,15 @@ func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.Config, lc
 }
 
 func linkTarget(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.TargetInstance, error) {
-	// Try leaf name first (e.g. "ssh"), then qualified.
+	// Try leaf name (e.g. "ssh"), qualified (e.g. "rest.target"),
+	// then module prefix (e.g. "rest" from "rest.target").
 	tt, ok := reg.TargetType(sv.TypeName)
 	if !ok {
 		tt, ok = reg.TargetType(sv.QualName)
+	}
+	if !ok && strings.Contains(sv.QualName, ".") {
+		mod := sv.QualName[:strings.IndexByte(sv.QualName, '.')]
+		tt, ok = reg.TargetType(mod)
 	}
 	if !ok {
 		return spec.TargetInstance{}, &UnresolvedError{Kind: "target", Name: sv.TypeName}

@@ -15,6 +15,7 @@ import (
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
+	"scampi.dev/scampi/target/rest"
 )
 
 // mapFields maps eval.Value fields onto a Go config struct pointer
@@ -137,6 +138,10 @@ func setValue(dst reflect.Value, src eval.Value, lc *linkConfig) error {
 			dst.Set(reflect.ValueOf(convertSourceRef(sv, lc)))
 		case dstType == reflect.TypeOf(spec.PkgSourceRef{}):
 			dst.Set(reflect.ValueOf(convertPkgSourceRef(sv)))
+		case dstType == reflect.TypeOf((*rest.AuthConfig)(nil)).Elem():
+			dst.Set(reflect.ValueOf(convertAuth(sv)))
+		case dstType == reflect.TypeOf((*rest.TLSConfig)(nil)).Elem():
+			dst.Set(reflect.ValueOf(convertTLS(sv)))
 		case dst.Kind() == reflect.Pointer && dstType.Elem() == reflect.TypeOf(target.Healthcheck{}):
 			dst.Set(reflect.ValueOf(convertHealthcheck(sv)))
 		case dst.Kind() == reflect.Interface:
