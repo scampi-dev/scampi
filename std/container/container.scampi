@@ -25,7 +25,7 @@ enum Restart { always, on_failure, unless_stopped, no }
 
 decl instance(
   name:        string,
-  image:       string,
+  image:       string = "",
   state:       State = State.running,
   restart:     Restart = Restart.unless_stopped,
   ports:       list[string]?,

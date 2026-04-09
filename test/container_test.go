@@ -15,10 +15,16 @@ import (
 
 func TestContainer_CreateAndRun(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", image="nginx:1.25"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", image = "nginx:1.25" }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -53,10 +59,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_Idempotent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", image="nginx:1.25"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", image = "nginx:1.25" }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -90,10 +102,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_ImageDrift_Recreates(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", image="nginx:1.26"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", image = "nginx:1.26" }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -126,14 +144,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_WithLabels(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		labels={"app": "myapp", "env": "prod"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    labels = {"app": "myapp", "env": "prod"}
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -165,14 +189,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_LabelsIdempotent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		labels={"app": "myapp"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    labels = {"app": "myapp"}
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -204,14 +234,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_LabelDrift_Recreates(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		labels={"env": "staging"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    labels = {"env": "staging"}
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -245,14 +281,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_PortWithIPAndProto(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		ports=["127.0.0.1:9090:80", "3000:3000/udp"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    ports = ["127.0.0.1:9090:80", "3000:3000/udp"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -301,14 +343,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_WithArgs(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		args=["--verbose", "--debug"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    args = ["--verbose", "--debug"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -337,14 +385,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_ArgsIdempotent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		args=["--verbose"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    args = ["--verbose"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -376,14 +430,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_ArgsDrift_Recreates(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		args=["--new-flag"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    args = ["--new-flag"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -417,10 +477,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_NoArgsDeclared_ImageDefaultIgnored(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", image="nginx:1.25"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", image = "nginx:1.25" }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -452,19 +518,25 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_WithHealthcheck(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		healthcheck=container.healthcheck.cmd(
-			cmd="curl -f http://localhost/",
-			interval="10s",
-			timeout="5s",
-			retries=5,
-		),
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    healthcheck = container.Healthcheck {
+      cmd = "curl -f http://localhost/"
+      interval = "10s"
+      timeout = "5s"
+      retries = 5
+    }
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -511,14 +583,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_HealthcheckDefaults(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		healthcheck=container.healthcheck.cmd(cmd="true"),
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    healthcheck = container.Healthcheck { cmd = "true" }
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -554,14 +632,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_HealthcheckDrift_Recreates(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		healthcheck=container.healthcheck.cmd(cmd="curl -f http://localhost/new"),
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    healthcheck = container.Healthcheck { cmd = "curl -f http://localhost/new" }
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -598,10 +682,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_NoHealthcheckDeclared_ImageDefaultIgnored(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", image="nginx:1.25"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", image = "nginx:1.25" }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -639,10 +729,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_Stopped(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", image="nginx:1.25", state="stopped"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", image = "nginx:1.25", state = container.State.stopped }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -672,10 +768,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_Absent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", state="absent"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", state = container.State.absent }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -704,10 +806,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_Absent_AlreadyGone(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", state="absent"),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", state = container.State.absent }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -734,14 +842,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_WithEnv(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		env={"DB_HOST": "db.local", "DB_PORT": "5432"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    env = {"DB_HOST": "db.local", "DB_PORT": "5432"}
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -773,14 +887,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_EnvIdempotent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		env={"DB_HOST": "db.local"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    env = {"DB_HOST": "db.local"}
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -812,14 +932,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_EnvDrift_Recreates(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		env={"DB_HOST": "db.new"},
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    env = {"DB_HOST": "db.new"}
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -853,14 +979,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_WithMounts(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		mounts=["/opt/data:/data", "/opt/config:/config:ro"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    mounts = ["/opt/data:/data", "/opt/config:/config:ro"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -891,14 +1023,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_MountIdempotent(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		mounts=["/opt/data:/data"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    mounts = ["/opt/data:/data"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -930,14 +1068,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_MountDrift_Recreates(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		mounts=["/opt/new:/data"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    mounts = ["/opt/new:/data"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -973,14 +1117,20 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_MountSourceMissing_Aborts(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		mounts=["/nonexistent:/data"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    mounts = ["/nonexistent:/data"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1002,15 +1152,21 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_MountSourcePromised_Deferred(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	dir(path="/opt/data"),
-	container.instance(
-		name="app",
-		image="nginx:1.25",
-		mounts=["/opt/data:/data"],
-	),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  posix.dir { path = "/opt/data" }
+  container.instance {
+    name = "app"
+    image = "nginx:1.25"
+    mounts = ["/opt/data:/data"]
+  }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
@@ -1039,10 +1195,16 @@ deploy(name="test", targets=["local"], steps=[
 
 func TestContainer_PortDrift_Recreates(t *testing.T) {
 	cfgStr := `
-target.local(name="local")
-deploy(name="test", targets=["local"], steps=[
-	container.instance(name="app", image="nginx:1.25", ports=["9090:80"]),
-])
+module main
+import "std"
+import "std/posix"
+import "std/container"
+
+let local = posix.local { name = "local" }
+
+std.deploy(name = "test", targets = [local]) {
+  container.instance { name = "app", image = "nginx:1.25", ports = ["9090:80"] }
+}
 `
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()

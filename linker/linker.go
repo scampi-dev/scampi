@@ -111,7 +111,11 @@ func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.Config, lc
 }
 
 func linkTarget(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.TargetInstance, error) {
+	// Try leaf name first (e.g. "ssh"), then qualified.
 	tt, ok := reg.TargetType(sv.TypeName)
+	if !ok {
+		tt, ok = reg.TargetType(sv.QualName)
+	}
 	if !ok {
 		return spec.TargetInstance{}, &UnresolvedError{Kind: "target", Name: sv.TypeName}
 	}
@@ -159,7 +163,13 @@ func linkDeploy(bv *eval.BlockResultVal, reg Registry, lc *linkConfig) (spec.Dep
 }
 
 func linkStep(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.StepInstance, error) {
-	st, ok := reg.StepType(sv.TypeName)
+	// Try qualified name first (e.g. "container.instance"), then leaf.
+	name := sv.QualName
+	st, ok := reg.StepType(name)
+	if !ok {
+		name = sv.TypeName
+		st, ok = reg.StepType(name)
+	}
 	if !ok {
 		return spec.StepInstance{}, &UnresolvedError{Kind: "step", Name: sv.TypeName}
 	}

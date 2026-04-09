@@ -35,6 +35,10 @@ func mapFields(fields map[string]eval.Value, cfg any, lc *linkConfig) error {
 			continue
 		}
 		name := toSnake(f.Name)
+		// Keywords can't be field names — check common renames.
+		if name == "type" {
+			name = "fs_type"
+		}
 		val, ok := fields[name]
 		if !ok {
 			// Apply default from struct tag if present.
