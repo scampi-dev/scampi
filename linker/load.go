@@ -4,6 +4,7 @@ package linker
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"scampi.dev/scampi/errs"
@@ -109,7 +110,7 @@ func makeSecretWirer(ctx context.Context, cfgPath string, src source.Source) fun
 					return "", err
 				}
 				if !found {
-					return "", nil
+					return "", fmt.Errorf("secret %q not found", key)
 				}
 				return v, nil
 			})

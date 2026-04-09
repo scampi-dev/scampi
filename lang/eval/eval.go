@@ -682,13 +682,16 @@ func (ev *Evaluator) callSecret(positional []Value, kwargs map[string]Value) Val
 			name = s.V
 		}
 	}
-	if ev.secretLookup != nil {
-		v, err := ev.secretLookup(name)
-		if err == nil {
-			return &StringVal{V: v}
-		}
+	if ev.secretLookup == nil {
+		ev.errAt(token.Span{}, "secret() called but no secret backend configured")
+		return &StringVal{V: ""}
 	}
-	return &StringVal{V: ""}
+	v, err := ev.secretLookup(name)
+	if err != nil {
+		ev.errAt(token.Span{}, "secret lookup failed: "+err.Error())
+		return &StringVal{V: ""}
+	}
+	return &StringVal{V: v}
 }
 
 func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string]Value) Value {
