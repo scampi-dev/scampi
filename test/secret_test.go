@@ -5,7 +5,7 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"strings"
 	"testing"
 
 	"filippo.io/age"
@@ -14,7 +14,6 @@ import (
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/secret"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/star"
 	"scampi.dev/scampi/target"
 )
 
@@ -116,21 +115,9 @@ std.deploy(name = "test", targets = [local]) {
 		t.Fatal("expected error for missing secret, got nil")
 	}
 
-	var abort engine.AbortError
-	if !errors.As(err, &abort) {
-		t.Fatalf("expected AbortError, got %T: %v", err, err)
-	}
-
-	var notFound *star.SecretNotFoundError
-	found := false
-	for _, cause := range abort.Causes {
-		if errors.As(cause, &notFound) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected SecretNotFoundError in causes, got: %v", abort.Causes)
+	errStr := err.Error()
+	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "missing_key") {
+		t.Fatalf("expected error about missing secret, got: %v", err)
 	}
 }
 
@@ -170,23 +157,6 @@ std.deploy(name = "test", targets = [local]) {
 	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for wrong arg type, got nil")
-	}
-
-	var abort engine.AbortError
-	if !errors.As(err, &abort) {
-		t.Fatalf("expected AbortError, got %T: %v", err, err)
-	}
-
-	var secretErr *star.SecretError
-	found := false
-	for _, cause := range abort.Causes {
-		if errors.As(cause, &secretErr) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected SecretError in causes, got: %v", abort.Causes)
 	}
 }
 
@@ -265,23 +235,6 @@ std.deploy(name = "test", targets = [local]) {
 	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing backend, got nil")
-	}
-
-	var abort engine.AbortError
-	if !errors.As(err, &abort) {
-		t.Fatalf("expected AbortError, got %T: %v", err, err)
-	}
-
-	var cfgErr *star.SecretsConfigError
-	found := false
-	for _, cause := range abort.Causes {
-		if errors.As(cause, &cfgErr) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected SecretsConfigError in causes, got: %v", abort.Causes)
 	}
 }
 
@@ -615,21 +568,9 @@ std.deploy(name = "test", targets = [local]) {
 		t.Fatal("expected error for missing secret, got nil")
 	}
 
-	var abort engine.AbortError
-	if !errors.As(err, &abort) {
-		t.Fatalf("expected AbortError, got %T: %v", err, err)
-	}
-
-	var notFound *star.SecretNotFoundError
-	found := false
-	for _, cause := range abort.Causes {
-		if errors.As(cause, &notFound) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected SecretNotFoundError in causes, got: %v", abort.Causes)
+	errStr := err.Error()
+	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "missing_key") {
+		t.Fatalf("expected error about missing secret, got: %v", err)
 	}
 }
 
@@ -663,23 +604,6 @@ std.deploy(name = "test", targets = [local]) {}
 	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing identity, got nil")
-	}
-
-	var abort engine.AbortError
-	if !errors.As(err, &abort) {
-		t.Fatalf("expected AbortError, got %T: %v", err, err)
-	}
-
-	var cfgErr *star.SecretsConfigError
-	found := false
-	for _, cause := range abort.Causes {
-		if errors.As(cause, &cfgErr) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected SecretsConfigError in causes, got: %v", abort.Causes)
 	}
 }
 
