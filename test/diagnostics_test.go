@@ -13,6 +13,7 @@ import (
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/source"
+	"scampi.dev/scampi/target"
 )
 
 func TestDiagnostics(t *testing.T) {
@@ -52,7 +53,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 	expect := loadExpected(t, expectPath)
 
 	src := source.LocalPosixSource{}
-	tgt := allCapNoImplTarget{}
+	tgt := target.NewMemTarget()
 
 	rec := &recordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
