@@ -30,7 +30,8 @@ type Error struct {
 	Msg  string
 }
 
-func (e Error) Error() string { return e.Msg }
+func (e Error) Error() string                { return e.Msg }
+func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
 
 // New creates a checker with the given modules available for import
 // resolution. Callers typically pass the result of BootstrapModules.

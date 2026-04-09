@@ -17,9 +17,8 @@ type Error struct {
 	Msg  string
 }
 
-func (e Error) Error() string {
-	return fmt.Sprintf("%s: %s", e.Kind.String(), e.Msg)
-}
+func (e Error) Error() string                { return fmt.Sprintf("%s: %s", e.Kind.String(), e.Msg) }
+func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
 
 // ErrKind identifies a class of lexer error. The kind is stable across
 // releases and suitable for diagnostic IDs.

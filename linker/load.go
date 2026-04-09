@@ -36,29 +36,29 @@ func LoadConfig(
 	l := lex.New(cfgPath, data)
 	p := parse.New(l)
 	f := p.Parse()
-	if errs := l.Errors(); len(errs) > 0 {
-		return spec.Config{}, errs[0]
+	if lexErrs := l.Errors(); len(lexErrs) > 0 {
+		return spec.Config{}, wrapLangErrors(lexErrs, cfgPath, data)
 	}
-	if errs := p.Errors(); len(errs) > 0 {
-		return spec.Config{}, errs[0]
+	if parseErrs := p.Errors(); len(parseErrs) > 0 {
+		return spec.Config{}, wrapLangErrors(parseErrs, cfgPath, data)
 	}
 
 	// Type check.
 	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
-		return spec.Config{}, errs.WrapErrf(err, "bootstrap std")
+		return spec.Config{}, wrapLangError(err, cfgPath, data)
 	}
 	c := check.New(modules)
 	c.Check(f)
-	if errs := c.Errors(); len(errs) > 0 {
-		return spec.Config{}, errs[0]
+	if checkErrs := c.Errors(); len(checkErrs) > 0 {
+		return spec.Config{}, wrapLangErrors(checkErrs, cfgPath, data)
 	}
 
 	// Evaluate with secret backend wiring.
 	onEmit := makeSecretWirer(ctx, cfgPath, src)
-	result, errs := eval.Eval(f, data, eval.WithStubs(std.FS), eval.WithOnEmit(onEmit))
-	if len(errs) > 0 {
-		return spec.Config{}, errs[0]
+	result, evalErrs := eval.Eval(f, data, eval.WithStubs(std.FS), eval.WithOnEmit(onEmit))
+	if len(evalErrs) > 0 {
+		return spec.Config{}, wrapLangErrors(evalErrs, cfgPath, data)
 	}
 
 	// Link.
@@ -115,15 +115,15 @@ func makeSecretWirer(ctx context.Context, cfgPath string, src source.Source) fun
 				readFile,
 			)
 			if idErr != nil {
-				ev.AddError(fmt.Sprintf("age identity resolution: %s", idErr))
-			} else {
-				ab, abErr := secret.NewAgeBackend(data, identities)
-				if abErr != nil {
-					ev.AddError(fmt.Sprintf("age backend: %s", abErr))
-				} else {
-					b = ab
-				}
+				ev.AddError(fmt.Sprintf("secrets backend \"age\": cannot resolve identity keys: %s", idErr))
+				return
 			}
+			ab, abErr := secret.NewAgeBackend(data, identities)
+			if abErr != nil {
+				ev.AddError(fmt.Sprintf("secrets backend \"age\": cannot decrypt %q: %s", path, abErr))
+				return
+			}
+			b = ab
 		}
 		if b != nil {
 			ev.SetSecretLookup(func(key string) (string, error) {

@@ -31,12 +31,19 @@ func LoadConfig(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
-	_ *diagnostic.SourceStore, // TODO: wire source store for diagnostic spans
+	store *diagnostic.SourceStore,
 	src source.Source,
 ) (spec.Config, error) {
 	cfgPath, absErr := filepath.Abs(cfgPath)
 	if absErr != nil {
 		panic(errs.BUG("filepath.Abs() failed: %w", absErr))
+	}
+
+	// Add source file to store for diagnostic source rendering.
+	if store != nil {
+		if data, readErr := src.ReadFile(ctx, cfgPath); readErr == nil {
+			store.AddFile(cfgPath, data)
+		}
 	}
 
 	reg := NewRegistry()

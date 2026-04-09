@@ -50,9 +50,12 @@ type Evaluator struct {
 type Error struct {
 	Span token.Span
 	Msg  string
+	Hint string
 }
 
-func (e Error) Error() string { return e.Msg }
+func (e Error) Error() string                { return e.Msg }
+func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
+func (e Error) GetHint() string              { return e.Hint }
 
 // Option configures the evaluator.
 type Option func(*Evaluator)
@@ -264,15 +267,49 @@ func (ev *Evaluator) errAt(span token.Span, msg string) {
 	ev.errs = append(ev.errs, Error{Span: span, Msg: msg})
 }
 
+func (ev *Evaluator) errWithHint(span token.Span, msg, hint string) {
+	ev.errs = append(ev.errs, Error{Span: span, Msg: msg, Hint: hint})
+}
+
 // evalFile evaluates a complete file.
 func (ev *Evaluator) evalFile(f *ast.File) {
-	// Evaluate declarations (registering functions, steps, structs).
+	// Register function and type declarations first (order-independent).
 	for _, d := range f.Decls {
-		ev.evalDecl(d)
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			ev.evalDecl(d)
+		case *ast.DeclDecl:
+			ev.evalDecl(d)
+		case *ast.TypeDecl, *ast.EnumDecl:
+			// Type declarations don't produce runtime values.
+		}
 	}
-	// Evaluate top-level statements (step invocations produce top-level values).
-	for _, s := range f.Stmts {
-		ev.evalStmt(s)
+
+	// Evaluate let-bindings and statements in source order.
+	// This ensures secrets() runs before secret() even when
+	// secrets is a bare expression and secret is in a let.
+	di, si := 0, 0
+	for di < len(f.Decls) || si < len(f.Stmts) {
+		// Pick whichever comes first in source.
+		var declSpan, stmtSpan uint32
+		if di < len(f.Decls) {
+			declSpan = f.Decls[di].Span().Start
+		}
+		if si < len(f.Stmts) {
+			stmtSpan = f.Stmts[si].Span().Start
+		}
+
+		if di < len(f.Decls) && (si >= len(f.Stmts) || declSpan <= stmtSpan) {
+			d := f.Decls[di]
+			di++
+			if _, ok := d.(*ast.LetDecl); ok {
+				ev.evalDecl(d)
+			}
+			// Skip func/decl/type/enum — already registered above.
+		} else {
+			ev.evalStmt(f.Stmts[si])
+			si++
+		}
 	}
 }
 
@@ -574,7 +611,7 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 			positional = append(positional, v)
 		}
 	}
-	return ev.callFunc(fv, positional, argMap)
+	return ev.callFunc(fv, positional, argMap, call.SrcSpan)
 }
 
 func (ev *Evaluator) evalBlockExpr(e *ast.BlockExpr) Value {
@@ -659,7 +696,7 @@ func (ev *Evaluator) SetSecretLookup(fn func(string) (string, error)) {
 	ev.secretLookup = fn
 }
 
-func (ev *Evaluator) callEnv(positional []Value, kwargs map[string]Value) Value {
+func (ev *Evaluator) callEnv(positional []Value, kwargs map[string]Value, span token.Span) Value {
 	name := ""
 	if len(positional) > 0 {
 		if s, ok := positional[0].(*StringVal); ok {
@@ -691,10 +728,11 @@ func (ev *Evaluator) callEnv(positional []Value, kwargs map[string]Value) Value 
 	if def != "" {
 		return &StringVal{V: def}
 	}
+	ev.errAt(span, "required environment variable \""+name+"\" is not set")
 	return &StringVal{V: ""}
 }
 
-func (ev *Evaluator) callSecret(positional []Value, kwargs map[string]Value) Value {
+func (ev *Evaluator) callSecret(positional []Value, kwargs map[string]Value, span token.Span) Value {
 	name := ""
 	if len(positional) > 0 {
 		if s, ok := positional[0].(*StringVal); ok {
@@ -707,18 +745,20 @@ func (ev *Evaluator) callSecret(positional []Value, kwargs map[string]Value) Val
 		}
 	}
 	if ev.secretLookup == nil {
-		ev.errAt(token.Span{}, "secret() called but no secret backend configured")
+		ev.errWithHint(span,
+			"secret() called but no secret backend configured",
+			"add std.secrets { backend = std.SecretsBackend.age, path = \"secrets.age.json\" } before any secret() call")
 		return &StringVal{V: ""}
 	}
 	v, err := ev.secretLookup(name)
 	if err != nil {
-		ev.errAt(token.Span{}, "secret lookup failed: "+err.Error())
+		ev.errAt(span, "secret lookup failed: "+err.Error())
 		return &StringVal{V: ""}
 	}
 	return &StringVal{V: v}
 }
 
-func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string]Value) Value {
+func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string]Value, callSpan token.Span) Value {
 	// Stub func (no body) — produce value based on return type.
 	if fv.body == nil && fv.RetType != "" {
 		fields := make(map[string]Value, len(fv.Params))
@@ -733,9 +773,9 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 		// Scalar builtins with runtime callbacks.
 		switch fv.Name {
 		case "env":
-			return ev.callEnv(positional, kwargs)
+			return ev.callEnv(positional, kwargs, callSpan)
 		case "secret":
-			return ev.callSecret(positional, kwargs)
+			return ev.callSecret(positional, kwargs, callSpan)
 		case "range":
 			return ev.callRange(positional, kwargs)
 		}

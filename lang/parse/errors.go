@@ -42,3 +42,5 @@ func (e Error) Error() string {
 	}
 	return b.String()
 }
+
+func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }

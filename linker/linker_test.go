@@ -3,14 +3,18 @@
 package linker_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/parse"
 	"scampi.dev/scampi/linker"
+	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/std"
 )
@@ -111,6 +115,67 @@ func TestLinkUnresolvedTarget(t *testing.T) {
 	}
 	if ue.Kind != "target" || ue.Name != "nonexistent_target" {
 		t.Errorf("error: got kind=%q name=%q, want target/nonexistent_target", ue.Kind, ue.Name)
+	}
+}
+
+func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
+	src := source.NewMemSource()
+	src.Files["/config.scampi"] = []byte("module main\n@@@ garbage\n")
+	reg := engine.NewRegistry()
+
+	_, err := linker.LoadConfig(context.Background(), "/config.scampi", src, reg)
+	if err == nil {
+		t.Fatal("expected error for broken syntax")
+	}
+
+	// May be single Diagnostic or Diagnostics slice.
+	var d diagnostic.Diagnostic
+	var ds diagnostic.Diagnostics
+	if errors.As(err, &ds) {
+		if len(ds) == 0 {
+			t.Fatal("expected at least one diagnostic")
+		}
+		d = ds[0]
+	} else if !errors.As(err, &d) {
+		t.Fatalf("expected diagnostic.Diagnostic, got %T: %v", err, err)
+	}
+	tmpl := d.EventTemplate()
+	if tmpl.Source == nil {
+		t.Fatal("diagnostic should have source span")
+	}
+	if tmpl.Source.StartLine == 0 {
+		t.Error("diagnostic source span should have non-zero line")
+	}
+}
+
+func TestLoadConfig_SecretErrorDiagnostic(t *testing.T) {
+	src := source.NewMemSource()
+	src.Files["/config.scampi"] = []byte(`module main
+import "std"
+import "std/posix"
+let local = posix.local { name = "local" }
+let x = std.secret("missing_key")
+std.deploy(name = "test", targets = [local]) {
+  posix.dir { path = "/tmp/test" }
+}
+`)
+	reg := engine.NewRegistry()
+
+	_, err := linker.LoadConfig(context.Background(), "/config.scampi", src, reg)
+	if err == nil {
+		t.Fatal("expected error for secret() without backend")
+	}
+
+	var d diagnostic.Diagnostic
+	if !errors.As(err, &d) {
+		t.Fatalf("expected diagnostic.Diagnostic, got %T: %v", err, err)
+	}
+	tmpl := d.EventTemplate()
+	if tmpl.Source == nil {
+		t.Fatal("diagnostic should have source span")
+	}
+	if tmpl.Source.StartLine != 5 {
+		t.Errorf("expected error at line 5 (secret call), got line %d", tmpl.Source.StartLine)
 	}
 }
 
