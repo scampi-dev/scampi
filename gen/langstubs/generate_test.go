@@ -110,7 +110,7 @@ func TestGenerateSummaryComment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertContains(t, buf.String(), "# Ensure packages are present or absent")
+	assertContains(t, buf.String(), "// Ensure packages are present or absent")
 }
 
 func TestGenerateMultipleSteps(t *testing.T) {

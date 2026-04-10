@@ -68,10 +68,10 @@ When a local module is ready to be shared:
 4. Update your project's `scampi.mod`:
 
 ```text
-# Before (local)
+// Before (local)
 my/helpers ./modules/helpers
 
-# After (remote)
+// After (remote)
 codeberg.org/yourname/helpers v1.0.0
 ```
 

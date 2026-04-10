@@ -279,7 +279,7 @@ func TestInterpolationWithMapLiteral(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestLineComment(t *testing.T) {
-	assertTokens(t, "foo # this is a comment\nbar", []want{
+	assertTokens(t, "foo // this is a comment\nbar", []want{
 		{token.Ident, "foo"},
 		{token.Semi, "\n"},
 		{token.Ident, "bar"},
@@ -287,9 +287,71 @@ func TestLineComment(t *testing.T) {
 	})
 }
 
-func TestCommentAtEOF(t *testing.T) {
-	assertTokens(t, "foo # trailing comment no newline", []want{
+func TestLineCommentAtEOF(t *testing.T) {
+	assertTokens(t, "foo // trailing comment no newline", []want{
 		{token.Ident, "foo"},
+		{token.Semi, ""},
+	})
+}
+
+func TestBlockCommentInline(t *testing.T) {
+	assertTokens(t, "foo /* inline */ bar", []want{
+		{token.Ident, "foo"},
+		{token.Ident, "bar"},
+		{token.Semi, ""},
+	})
+}
+
+func TestBlockCommentMultiline(t *testing.T) {
+	assertTokens(t, "foo /* line one\nline two */ bar", []want{
+		{token.Ident, "foo"},
+		{token.Semi, ""},
+		{token.Ident, "bar"},
+		{token.Semi, ""},
+	})
+}
+
+func TestBlockCommentNested(t *testing.T) {
+	assertTokens(t, "foo /* outer /* inner */ still outer */ bar", []want{
+		{token.Ident, "foo"},
+		{token.Ident, "bar"},
+		{token.Semi, ""},
+	})
+}
+
+func TestBlockCommentDeeplyNested(t *testing.T) {
+	assertTokens(t, "foo /* a /* b /* c */ b */ a */ bar", []want{
+		{token.Ident, "foo"},
+		{token.Ident, "bar"},
+		{token.Semi, ""},
+	})
+}
+
+func TestBlockCommentUnterminated(t *testing.T) {
+	_, errs := tokenize(t, "foo /* never closed")
+	if len(errs) != 1 {
+		t.Fatalf("got %d errors, want 1: %v", len(errs), errs)
+	}
+	if errs[0].Kind != ErrUnterminatedComment {
+		t.Errorf("got error kind %v, want ErrUnterminatedComment", errs[0].Kind)
+	}
+}
+
+func TestBlockCommentUnterminatedNested(t *testing.T) {
+	_, errs := tokenize(t, "foo /* outer /* inner */ ")
+	if len(errs) != 1 {
+		t.Fatalf("got %d errors, want 1: %v", len(errs), errs)
+	}
+	if errs[0].Kind != ErrUnterminatedComment {
+		t.Errorf("got error kind %v, want ErrUnterminatedComment", errs[0].Kind)
+	}
+}
+
+func TestSlashIsDivisionNotComment(t *testing.T) {
+	assertTokens(t, "a / b", []want{
+		{token.Ident, "a"},
+		{token.Slash, "/"},
+		{token.Ident, "b"},
 		{token.Semi, ""},
 	})
 }

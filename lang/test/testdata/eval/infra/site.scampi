@@ -1,6 +1,6 @@
 module main
 
-# Translated from .infra/site.scampi (inlined)
+// Translated from .infra/site.scampi (inlined)
 
 import "std"
 import "std/posix"

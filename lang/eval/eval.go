@@ -747,7 +747,8 @@ func (ev *Evaluator) callSecret(positional []Value, kwargs map[string]Value, spa
 	if ev.secretLookup == nil {
 		ev.errWithHint(span,
 			"secret() called but no secret backend configured",
-			"add std.secrets { backend = std.SecretsBackend.age, path = \"secrets.age.json\" } before any secret() call")
+			`add std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }`+
+				" before any secret() call")
 		return &StringVal{V: ""}
 	}
 	v, err := ev.secretLookup(name)

@@ -1,6 +1,6 @@
 module main
 
-# Translated from .infra/runner.scampi (inlined)
+// Translated from .infra/runner.scampi (inlined)
 
 import "std"
 import "std/posix"
@@ -37,7 +37,7 @@ std.deploy(name = "runner", targets = [vps]) {
     source = posix.pkg_system {}
   }
 
-  # Go
+  // Go
   posix.unarchive {
     src = posix.source_remote { url = go_url }
     dest = "/usr/local"
@@ -51,13 +51,13 @@ std.deploy(name = "runner", targets = [vps]) {
   }
   posix.symlink { target = "/usr/local/go/bin/go", link = "/usr/local/bin/go" }
 
-  # just
+  // just
   posix.unarchive {
     src = posix.source_remote { url = just_url }
     dest = "/usr/local/bin"
   }
 
-  # Docker
+  // Docker
   posix.pkg {
     packages = [
       "docker-ce", "docker-ce-cli", "containerd.io",
@@ -79,7 +79,7 @@ std.deploy(name = "runner", targets = [vps]) {
   }
   posix.service { name = "docker", state = posix.ServiceState.running, enabled = true }
 
-  # Runner user
+  // Runner user
   posix.user {
     name = "forgejo-runner"
     shell = "/bin/bash"
@@ -88,7 +88,7 @@ std.deploy(name = "runner", targets = [vps]) {
     groups = ["docker"]
   }
 
-  # Runner binary
+  // Runner binary
   posix.copy {
     src = posix.source_remote { url = runner_url }
     dest = "/usr/local/bin/forgejo-runner"

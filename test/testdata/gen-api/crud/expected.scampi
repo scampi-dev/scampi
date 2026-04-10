@@ -1,18 +1,18 @@
-# Generated from spec.yaml by scampi gen api (test)
-#
-# Test API 1.0
-#
-# This file was mechanically generated from an OpenAPI specification.
-# It is provided as-is with no warranty. Scampi's license does not
-# apply to generated output. If the source specification carries its
-# own license terms, those terms govern this file.
-#
-# Usage: load("spec.api.scampi", ...)
+// Generated from spec.yaml by scampi gen api (test)
+//
+// Test API 1.0
+//
+// This file was mechanically generated from an OpenAPI specification.
+// It is provided as-is with no warranty. Scampi's license does not
+// apply to generated output. If the source specification carries its
+// own license terms, those terms govern this file.
+//
+// Usage: load("spec.api.scampi", ...)
 
-# Items
-# -----------------------------------------------------------------------------
+// Items
+// -----------------------------------------------------------------------------
 
-# GET /items — List items
+// GET /items — List items
 def list_items(check = None):
     return rest.request(
         method = "GET",
@@ -20,7 +20,7 @@ def list_items(check = None):
         check = check,
     )
 
-# POST /items — Create an item
+// POST /items — Create an item
 def create_item(name = None, count = None):
     body = {}
     if name != None:
@@ -39,10 +39,10 @@ def create_item(name = None, count = None):
     )
 
 
-# {Id}
-# -----------------------------------------------------------------------------
+// {Id}
+// -----------------------------------------------------------------------------
 
-# PUT /items/{id} — Update an item
+// PUT /items/{id} — Update an item
 def update_item(id, name = None):
     body = {}
     if name != None:
@@ -58,7 +58,7 @@ def update_item(id, name = None):
         path = "/items/" + id,
     )
 
-# DELETE /items/{id} — Delete an item
+// DELETE /items/{id} — Delete an item
 def delete_item(id):
     return rest.request(
         method = "DELETE",

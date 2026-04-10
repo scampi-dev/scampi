@@ -1,7 +1,7 @@
 module main
 
-# Exercises: conditional map mutation inside func body, nested if,
-# optional params with none-checks.
+// Exercises: conditional map mutation inside func body, nested if,
+// optional params with none-checks.
 
 import "std"
 

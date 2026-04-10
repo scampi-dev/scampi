@@ -1,6 +1,6 @@
 module main
 
-# Translated from .infra/tools.scampi (inlined, no multi-file imports)
+// Translated from .infra/tools.scampi (inlined, no multi-file imports)
 
 import "std"
 import "std/posix"

@@ -123,21 +123,21 @@ scampi gen api npm-openapi.yaml
 Produces:
 
 ```starlark {filename="npm-openapi.api.scampi"}
-# Generated from npm-openapi.yaml by scampi gen api
-#
-# Nginx Proxy Manager API (subset) 1.0.0
-#
-# This file was mechanically generated from an OpenAPI specification.
-# It is provided as-is with no warranty. Scampi's license does not
-# apply to generated output. If the source specification carries its
-# own license terms, those terms govern this file.
-#
-# Usage: load("npm-openapi.api.scampi", ...)
+// Generated from npm-openapi.yaml by scampi gen api
+//
+// Nginx Proxy Manager API (subset) 1.0.0
+//
+// This file was mechanically generated from an OpenAPI specification.
+// It is provided as-is with no warranty. Scampi's license does not
+// apply to generated output. If the source specification carries its
+// own license terms, those terms govern this file.
+//
+// Usage: load("npm-openapi.api.scampi", ...)
 
-# Certificates
-# -----------------------------------------------------------------------------
+// Certificates
+// -----------------------------------------------------------------------------
 
-# GET /nginx/certificates — List all certificates
+// GET /nginx/certificates — List all certificates
 def get_certificates(check = None):
     return rest.request(
         method = "GET",
@@ -145,7 +145,7 @@ def get_certificates(check = None):
         check = check,
     )
 
-# POST /nginx/certificates — Create a new certificate
+// POST /nginx/certificates — Create a new certificate
 def create_certificate(
         domain_names = None,
         provider = None,
@@ -169,10 +169,10 @@ def create_certificate(
     )
 
 
-# Proxy Hosts
-# -----------------------------------------------------------------------------
+// Proxy Hosts
+// -----------------------------------------------------------------------------
 
-# GET /nginx/proxy-hosts — List all proxy hosts
+// GET /nginx/proxy-hosts — List all proxy hosts
 def get_proxy_hosts(check = None):
     return rest.request(
         method = "GET",
@@ -180,7 +180,7 @@ def get_proxy_hosts(check = None):
         check = check,
     )
 
-# ... more functions for create, update, delete ...
+// ... more functions for create, update, delete ...
 ```
 
 You then write a thin wrapper module that adds convergence semantics.

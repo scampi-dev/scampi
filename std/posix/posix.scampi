@@ -1,17 +1,17 @@
-# SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-only
 
 module posix
 
 import "std"
 
-# Opaque types
-# -----------------------------------------------------------------------------
+// Opaque types
+// -----------------------------------------------------------------------------
 
 type Source
 type PkgSource
 
-# Enums
-# -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
 
 enum PkgState { present, absent, latest }
 enum ServiceState { running, stopped, restarted, reloaded }
@@ -21,8 +21,8 @@ enum MountType { nfs, nfs4, cifs, ext4, xfs, btrfs, tmpfs, glusterfs, ceph }
 enum MountState { mounted, unmounted, absent }
 enum FirewallAction { allow, deny, reject }
 
-# Targets
-# -----------------------------------------------------------------------------
+// Targets
+// -----------------------------------------------------------------------------
 
 decl ssh(
   name:     string,
@@ -36,8 +36,8 @@ decl ssh(
 
 decl local(name: string) std.Target
 
-# Source composables
-# -----------------------------------------------------------------------------
+// Source composables
+// -----------------------------------------------------------------------------
 
 decl source_local(path: string) Source
 decl source_inline(content: string) Source
@@ -55,8 +55,8 @@ decl pkg_dnf_repo(
   key_url: string?,
 ) PkgSource
 
-# File operations
-# -----------------------------------------------------------------------------
+// File operations
+// -----------------------------------------------------------------------------
 
 decl copy(
   src:       Source,
@@ -108,8 +108,8 @@ decl unarchive(
   on_change: list[std.Step] = [],
 ) std.Step
 
-# Package management
-# -----------------------------------------------------------------------------
+// Package management
+// -----------------------------------------------------------------------------
 
 decl pkg(
   packages:  list[string],
@@ -119,8 +119,8 @@ decl pkg(
   on_change: list[std.Step] = [],
 ) std.Step
 
-# Service management
-# -----------------------------------------------------------------------------
+// Service management
+// -----------------------------------------------------------------------------
 
 decl service(
   name:      string,
@@ -130,8 +130,8 @@ decl service(
   on_change: list[std.Step] = [],
 ) std.Step
 
-# User and group management
-# -----------------------------------------------------------------------------
+// User and group management
+// -----------------------------------------------------------------------------
 
 decl user(
   name:      string,
@@ -154,8 +154,8 @@ decl group(
   on_change: list[std.Step] = [],
 ) std.Step
 
-# System configuration
-# -----------------------------------------------------------------------------
+// System configuration
+// -----------------------------------------------------------------------------
 
 decl sysctl(
   key:       string,
@@ -182,8 +182,8 @@ decl firewall(
   on_change: list[std.Step] = [],
 ) std.Step
 
-# Command execution
-# -----------------------------------------------------------------------------
+// Command execution
+// -----------------------------------------------------------------------------
 
 decl run(
   apply:     string,

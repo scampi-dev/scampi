@@ -1,19 +1,19 @@
-# SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-only
 
 module rest
 
 import "std"
 
-# Composable types
-# -----------------------------------------------------------------------------
+// Composable types
+// -----------------------------------------------------------------------------
 
 type Auth
 type TLS
 type Body
 type Check
 
-# Target
-# -----------------------------------------------------------------------------
+// Target
+// -----------------------------------------------------------------------------
 
 decl target(
   name:     string,
@@ -22,8 +22,8 @@ decl target(
   tls:      TLS?,
 ) std.Target
 
-# Auth composables
-# -----------------------------------------------------------------------------
+// Auth composables
+// -----------------------------------------------------------------------------
 
 decl no_auth() Auth
 decl basic(user: string, password: string) Auth
@@ -34,27 +34,27 @@ decl bearer(
 ) Auth
 decl header(name: string, value: string) Auth
 
-# TLS composables
-# -----------------------------------------------------------------------------
+// TLS composables
+// -----------------------------------------------------------------------------
 
 decl tls_secure() TLS
 decl tls_insecure() TLS
 decl tls_ca_cert(path: string) TLS
 
-# Body composables
-# -----------------------------------------------------------------------------
+// Body composables
+// -----------------------------------------------------------------------------
 
 decl body_json(data: any) Body
 decl body_string(content: string) Body
 
-# Check composables
-# -----------------------------------------------------------------------------
+// Check composables
+// -----------------------------------------------------------------------------
 
 decl status(code: int) Check
 decl jq(expr: string) Check
 
-# Steps
-# -----------------------------------------------------------------------------
+// Steps
+// -----------------------------------------------------------------------------
 
 decl request(
   method:    string,

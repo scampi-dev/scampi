@@ -113,8 +113,10 @@ func (l *Lexer) Next() token.Token {
 	return l.emit(token.Illegal, start, uint32(l.pos))
 }
 
-// skipWSAndComments advances past spaces, tabs, newlines, and '#'
-// comments. Returns (tok, true) when a newline triggers ASI.
+// skipWSAndComments advances past spaces, tabs, newlines, line
+// comments (`// ...`) and nested block comments (`/* ... */`).
+// Returns (tok, true) when a newline triggers ASI; a block comment
+// containing a newline is treated as a newline for ASI purposes.
 func (l *Lexer) skipWSAndComments() (token.Token, bool) {
 	for l.pos < len(l.src) {
 		c := l.src[l.pos]
@@ -128,13 +130,75 @@ func (l *Lexer) skipWSAndComments() (token.Token, bool) {
 				return tok, true
 			}
 			l.pos++
-		case '#':
-			for l.pos < len(l.src) && l.src[l.pos] != '\n' {
-				l.pos++
+		case '/':
+			// Need lookahead to distinguish // line comment, /* block
+			// comment, and / division operator. Bare / falls through
+			// to scanPunct.
+			if l.pos+1 >= len(l.src) {
+				return token.Token{}, false
+			}
+			next := l.src[l.pos+1]
+			switch next {
+			case '/':
+				// Line comment: skip to end-of-line. Don't consume the
+				// newline — the next iteration handles it for ASI.
+				l.pos += 2
+				for l.pos < len(l.src) && l.src[l.pos] != '\n' {
+					l.pos++
+				}
+			case '*':
+				// Nested block comment.
+				if tok, ok := l.skipBlockComment(); ok {
+					return tok, true
+				}
+			default:
+				return token.Token{}, false
 			}
 		default:
 			return token.Token{}, false
 		}
+	}
+	return token.Token{}, false
+}
+
+// skipBlockComment consumes a `/* ... */` block comment that starts
+// at l.pos. Block comments nest: `/* /* */ */` is one comment, not
+// two. If the comment contains a newline and the previous token can
+// terminate a statement, returns a Semi token to trigger ASI (as if
+// the comment were a newline). Records ErrUnterminatedComment if the
+// comment runs off the end of the source.
+func (l *Lexer) skipBlockComment() (token.Token, bool) {
+	startPos := uint32(l.pos)
+	l.pos += 2 // consume opening /*
+	depth := 1
+	sawNewline := false
+	for l.pos < len(l.src) && depth > 0 {
+		c := l.src[l.pos]
+		if c == '/' && l.pos+1 < len(l.src) && l.src[l.pos+1] == '*' {
+			depth++
+			l.pos += 2
+			continue
+		}
+		if c == '*' && l.pos+1 < len(l.src) && l.src[l.pos+1] == '/' {
+			depth--
+			l.pos += 2
+			continue
+		}
+		if c == '\n' {
+			sawNewline = true
+		}
+		l.pos++
+	}
+	if depth > 0 {
+		l.addErr(
+			ErrUnterminatedComment,
+			token.Span{Start: startPos, End: uint32(l.pos)},
+			"unterminated block comment",
+		)
+	}
+	if sawNewline && l.prev.EndsStatement() && len(l.interp) == 0 {
+		end := uint32(l.pos)
+		return l.emit(token.Semi, end, end), true
 	}
 	return token.Token{}, false
 }

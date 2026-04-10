@@ -186,8 +186,8 @@ func (g *apiGenerator) generate() error {
 			g.line("")
 		}
 		g.line("")
-		g.line("# %s", group.title)
-		g.line("# -----------------------------------------------------------------------------")
+		g.line("// %s", group.title)
+		g.line("// -----------------------------------------------------------------------------")
 
 		for _, path := range group.paths {
 			item := g.doc.Paths.Find(path)
@@ -206,20 +206,20 @@ func (g *apiGenerator) generate() error {
 
 func (g *apiGenerator) header() {
 	g.line(
-		"# Generated from %s by scampi gen api (%s)",
+		"// Generated from %s by scampi gen api (%s)",
 		filepath.Base(g.specPath),
 		g.scampiVersion,
 	)
-	g.line("#")
-	g.line("# %s %s", g.doc.Info.Title, g.doc.Info.Version)
-	g.line("#")
-	g.line("# This file was mechanically generated from an OpenAPI specification.")
-	g.line("# It is provided as-is with no warranty. Scampi's license does not")
-	g.line("# apply to generated output. If the source specification carries its")
-	g.line("# own license terms, those terms govern this file.")
+	g.line("//")
+	g.line("// %s %s", g.doc.Info.Title, g.doc.Info.Version)
+	g.line("//")
+	g.line("// This file was mechanically generated from an OpenAPI specification.")
+	g.line("// It is provided as-is with no warranty. Scampi's license does not")
+	g.line("// apply to generated output. If the source specification carries its")
+	g.line("// own license terms, those terms govern this file.")
 	starFile := strings.TrimSuffix(filepath.Base(g.specPath), filepath.Ext(g.specPath)) + ".api.scampi"
-	g.line("#")
-	g.line(`# Usage: load("%s", ...)`, starFile)
+	g.line("//")
+	g.line(`// Usage: load("%s", ...)`, starFile)
 }
 
 func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operation) {
@@ -234,7 +234,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 	if summary == "" {
 		summary = method + " " + path
 	}
-	g.line("# %s %s — %s", method, path, summary)
+	g.line("// %s %s — %s", method, path, summary)
 
 	g.writeFuncSignature(funcName, params.all())
 

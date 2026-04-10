@@ -1,6 +1,6 @@
 module main
 
-# Translated from .infra/harden.scampi (inlined)
+// Translated from .infra/harden.scampi (inlined)
 
 import "std"
 import "std/posix"

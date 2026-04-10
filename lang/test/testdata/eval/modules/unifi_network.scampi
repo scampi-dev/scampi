@@ -1,8 +1,8 @@
 module main
 
-# Translated from .modules/unifi/network.scampi
-# Exercises: func with many kwargs, mutable nested maps, conditional
-# key insertion, string splitting, int parsing.
+// Translated from .modules/unifi/network.scampi
+// Exercises: func with many kwargs, mutable nested maps, conditional
+// key insertion, string splitting, int parsing.
 
 import "std"
 

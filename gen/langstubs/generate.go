@@ -37,7 +37,7 @@ func Generate(moduleName string, inputs []StubInput, opts Options, w io.Writer) 
 	bw.line("module " + moduleName)
 	bw.line("")
 	if opts.AutoGenNotice {
-		bw.line("# Auto-generated from Go struct tags. Do not edit.")
+		bw.line("// Auto-generated from Go struct tags. Do not edit.")
 		bw.line("")
 	}
 
@@ -85,7 +85,7 @@ func emitStep(bw *builder, in StubInput) {
 
 	for f := range t.Fields() {
 		if summary := f.Tag.Get("summary"); summary != "" {
-			bw.line("# " + summary)
+			bw.line("// " + summary)
 			break
 		}
 	}

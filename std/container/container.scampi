@@ -1,11 +1,11 @@
-# SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-only
 
 module container
 
 import "std"
 
-# Types
-# -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
 
 type Healthcheck {
   cmd:      string
@@ -14,14 +14,14 @@ type Healthcheck {
   retries:  int?
 }
 
-# Enums
-# -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
 
 enum State { running, stopped, absent }
 enum Restart { always, on_failure, unless_stopped, no }
 
-# Steps
-# -----------------------------------------------------------------------------
+// Steps
+// -----------------------------------------------------------------------------
 
 decl instance(
   name:        string,
