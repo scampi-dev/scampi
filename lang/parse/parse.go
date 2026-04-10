@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package parse is the scampi-lang parser. It consumes tokens from
+// Package parse is the scampi parser. It consumes tokens from
 // lang/lex and produces an AST defined in lang/ast. The parser is
 // recursive descent with one-token lookahead and error recovery.
 package parse

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package token defines the tokens produced by the scampi-lang lexer
+// Package token defines the tokens produced by the scampi lexer
 // and consumed by the parser. Tokens carry only byte offsets into the
 // source; line and column are resolved lazily from the offsets when
 // needed for diagnostics.
@@ -98,7 +98,7 @@ func (k Kind) IsLiteral() bool {
 
 // EndsStatement reports whether a token of this kind, when appearing
 // at the end of a line, should trigger automatic semicolon insertion.
-// Mirrors Go's ASI rules, adapted to scampi-lang.
+// Mirrors Go's ASI rules, adapted to scampi.
 func (k Kind) EndsStatement() bool {
 	switch k {
 	case Ident, Int, String, StringEnd,

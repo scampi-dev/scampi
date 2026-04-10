@@ -15,7 +15,7 @@ import (
 )
 
 // ConfigLoader loads and evaluates a configuration file, returning
-// a spec.Config. Different frontends (Starlark, scampi-lang) provide
+// a spec.Config. Different frontends (Starlark, scampi) provide
 // different loaders.
 type ConfigLoader func(
 	ctx context.Context,
@@ -26,7 +26,7 @@ type ConfigLoader func(
 ) (spec.Config, error)
 
 // LoadConfig decodes and validates user configuration by running the
-// scampi-lang pipeline (lex → parse → check → eval → link).
+// scampi pipeline (lex → parse → check → eval → link).
 func LoadConfig(
 	ctx context.Context,
 	em diagnostic.Emitter,

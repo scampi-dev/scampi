@@ -867,11 +867,12 @@ func hasRationaleAboveBlock(file *ast.File, fset *token.FileSet, callLine int) b
 	return false
 }
 
-// TestLangPackageIsolation enforces that scampi-lang (under lang/) is
-// standalone: it may import only Go stdlib and other lang/ packages.
-// This keeps the language frontend free of engine internals so it can
-// be consumed from tools (LSP, alternate frontends) without pulling in
-// the rest of scampi, and so it could later be extracted cleanly.
+// TestLangPackageIsolation enforces that the scampi language frontend
+// (under lang/) is standalone: it may import only Go stdlib and other
+// lang/ packages. This keeps the frontend free of engine internals so
+// it can be consumed from tools (LSP, alternate frontends) without
+// pulling in the rest of scampi, and so it could later be extracted
+// cleanly.
 func TestLangPackageIsolation(t *testing.T) {
 	root := ".."
 	const modulePrefix = "scampi.dev/scampi/"

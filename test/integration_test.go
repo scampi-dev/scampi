@@ -1057,7 +1057,7 @@ std.deploy(name = "test", targets = [local]) {
 }
 
 // TestHook_UnknownRef verifies that referencing an undefined variable
-// in on_change produces a compile error. In scampi-lang, on_change
+// in on_change produces a compile error. In scampi, on_change
 // takes step values — using an undefined name is a type error.
 func TestHook_UnknownRef(t *testing.T) {
 	cfgStr := `
@@ -1139,7 +1139,7 @@ std.deploy(name = "test", targets = [local]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	// In scampi-lang, forward references (hook_b → hook_a before
+	// In scampi, forward references (hook_b → hook_a before
 	// hook_a is defined) are caught by the eval. This is a compile
 	// error, not a runtime hook cycle.
 	_, err := loadAndResolve(t, cfgStr, src, tgt, em, store)

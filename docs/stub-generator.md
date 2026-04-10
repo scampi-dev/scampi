@@ -1,7 +1,7 @@
 # Stub Generator
 
 The stub generator reads Go step config structs via reflection and emits
-`.scampi` stub files for the scampi-lang type checker and LSP. It is a
+`.scampi` stub files for the scampi type checker and LSP. It is a
 build-time tool — its output is consumed by `lang/`, but it has no
 dependency on `lang/` or any other scampi internal package.
 
@@ -87,9 +87,9 @@ enum PkgState { present, absent, latest }
 The enum type name is derived as `StepName + FieldName` (e.g.
 `Pkg` + `State` = `PkgState`).
 
-## Go type → scampi-lang type mapping
+## Go type → scampi type mapping
 
-| Go type                | scampi-lang type      |
+| Go type                | scampi type           |
 | ---------------------- | --------------------- |
 | `string`               | `string`              |
 | `int`                  | `int`                 |

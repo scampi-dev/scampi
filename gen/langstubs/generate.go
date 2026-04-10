@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package langstubs generates scampi-lang stub files from Go step
+// Package langstubs generates scampi stub files from Go step
 // config structs via reflection. It imports only stdlib — the caller
 // provides concrete config struct pointers.
 package langstubs
@@ -27,7 +27,7 @@ type Options struct {
 	OpaqueTypes   []string // opaque type declarations to emit (e.g. "Step", "Target")
 }
 
-// Generate writes scampi-lang stub declarations for the named module.
+// Generate writes scampi stub declarations for the named module.
 func Generate(moduleName string, inputs []StubInput, opts Options, w io.Writer) error {
 	if moduleName == "" {
 		return errs.BUG("moduleName is required")

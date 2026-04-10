@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/lang/token"
 )
 
-// Parse parses scampi-lang source and returns the AST and any
+// Parse parses scampi source and returns the AST and any
 // diagnostics. The AST is always returned when possible (even with
 // errors) so callers can still do completion and hover on partial input.
 func Parse(filename string, content []byte) (*ast.File, []protocol.Diagnostic) {

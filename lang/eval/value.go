@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package eval is the scampi-lang tree-walking evaluator. It takes a
+// Package eval is the scampi tree-walking evaluator. It takes a
 // parsed and type-checked AST and produces generic runtime values.
 // The evaluator has no knowledge of engine concepts — it just evaluates
 // typed configuration language into values the caller interprets.
@@ -151,7 +151,7 @@ func (v *FuncVal) String() string { return "func " + v.Name }
 // Result
 // -----------------------------------------------------------------------------
 
-// Result is the output of evaluating a scampi-lang program. It
+// Result is the output of evaluating a scampi program. It
 // contains only generic typed values — no engine-specific types.
 // The caller (linker) interprets these based on RetType/TypeName.
 type Result struct {

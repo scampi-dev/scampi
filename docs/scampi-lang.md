@@ -1,13 +1,13 @@
-# scampi-lang specification
+# scampi language specification
 
 Draft v0.1 — 2026-04-03
 
 ## Overview
 
-scampi-lang is a statically-typed, declarative-first configuration language for
-the scampi convergence engine. A scampi-lang program evaluates to a set of
-desired-state declarations and one or more targets. The engine consumes these
-declarations — no language code runs during execution.
+scampi is a statically-typed, declarative-first configuration language for the
+scampi convergence engine. A scampi program evaluates to a set of desired-state
+declarations and one or more targets. The engine consumes these declarations —
+no language code runs during execution.
 
 The language has three conceptual layers:
 
@@ -313,7 +313,7 @@ unifi.Network(...)
 Import declarations appear at the top of the file, before any other
 declarations or statements.
 
-**Module system**: scampi-lang uses scampi's existing module system
+**Module system**: scampi uses its existing module system
 (see `mod/` package and `scampi.mod` manifests). The system is
 Go-inspired:
 
@@ -350,7 +350,7 @@ A typical config imports `"std"` for deploy/secrets/env/secret, adds
 `"std/posix"` for system-level steps and targets, and adds `"std/rest"`
 or `"std/container"` when needed.
 
-All standard library steps are defined as scampi-lang stubs (generated
+All standard library steps are defined as scampi stubs (generated
 from Go struct tags). See §7.
 
 There is no auto-import. Every file that uses builtins must
@@ -596,7 +596,7 @@ funcs) that produce typed records (constructed like type literals).
 
 ### 4.4 Top-level scope and the engine
 
-A scampi-lang project evaluates to a flat collection of typed values.
+A scampi project evaluates to a flat collection of typed values.
 The engine consumes specific value types from the top-level scope:
 
 | Value type      | Cardinality    | Meaning                             |
@@ -1017,7 +1017,7 @@ implementation simple.
 
 ### 6.5 References
 
-scampi-lang has no dedicated reference operator. Names are resolved
+scampi has no dedicated reference operator. Names are resolved
 through normal scoping rules:
 
 - Targets, variables, functions, types: use their bare name
@@ -1342,7 +1342,7 @@ decl instance(
 
 ## 8. Full example: real infrastructure
 
-The following translates the existing `.infra/` configs to scampi-lang.
+The following translates the existing `.infra/` configs to scampi.
 Assumes the project's `scampi.mod` declares:
 
 ```

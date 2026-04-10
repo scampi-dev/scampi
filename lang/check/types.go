@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package check implements the scampi-lang type system and type checker.
+// Package check implements the scampi type system and type checker.
 // It operates on parsed ASTs and resolves types, scopes, and validity.
 package check
 

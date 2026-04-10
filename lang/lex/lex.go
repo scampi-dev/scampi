@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package lex is the scampi-lang lexer. It scans a source byte buffer
+// Package lex is the scampi lexer. It scans a source byte buffer
 // and emits a stream of tokens with byte offsets. Line and column are
 // resolved lazily by the token package when needed for diagnostics.
 // The lexer performs validation (unterminated strings, bad escapes,

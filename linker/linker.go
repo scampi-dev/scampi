@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package linker bridges the scampi-lang frontend and the engine.
+// Package linker bridges the scampi frontend and the engine.
 // It takes the evaluator's generic Result (StructVals, BlockResultVals)
 // and resolves them against the engine registry to produce spec.Config.
 package linker

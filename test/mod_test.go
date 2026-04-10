@@ -144,7 +144,7 @@ func errContains(err error, substrings ...string) bool {
 // TestModuleLoad_Basic verifies that a config can load a function from a
 // module and use it, producing a valid deploy block.
 func TestModuleLoad_Basic(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/helpers", "v1.0.0")
 
 	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
@@ -194,7 +194,7 @@ deploy(
 // TestModuleLoad_Subpath verifies that a subpath load
 // (e.g. codeberg.org/user/mod/sub/path) resolves correctly within the cache.
 func TestModuleLoad_Subpath(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/toolkit", "v2.3.1")
 
 	subDir := filepath.Join(modDir, "net")
@@ -249,7 +249,7 @@ deploy(
 // load a sibling file relatively, and that the relative load resolves within
 // the module's cache directory rather than the user's config directory.
 func TestModuleLoad_InternalRelativeLoad(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/utils", "v0.1.0")
 
 	if err := os.WriteFile(filepath.Join(modDir, "helpers.scampi"), []byte(`
@@ -307,7 +307,7 @@ deploy(
 // TestModuleLoad_NotInRequireTable verifies that loading a module not listed in
 // scampi.mod produces an error mentioning "not found".
 func TestModuleLoad_NotInRequireTable(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	cacheParent := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cacheParent)
 
@@ -359,7 +359,7 @@ deploy(
 // TestModuleLoad_NotCached verifies that loading a module that's in the
 // require table but not in the cache produces an error about it not being cached.
 func TestModuleLoad_NotCached(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	cacheParent := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cacheParent)
 	// Deliberately do NOT create the module directory in the cache.
@@ -489,7 +489,7 @@ func createEmptyRepo(t *testing.T) string {
 // The cache is pre-populated so the test doesn't require internet access;
 // the actual git-clone path is covered by TestFetch_* in mod/fetch_test.go.
 func TestModuleAdd_ThenLoad(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	const modPath = "codeberg.org/test/greetings"
 	const version = "v1.0.0"
 
@@ -607,7 +607,7 @@ func TestModuleAdd_NotAModule(t *testing.T) {
 // TestModuleLoad_NoModFile verifies backward compatibility: a config with no
 // scampi.mod and only built-in steps still works correctly.
 func TestModuleLoad_NoModFile(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(`
 target.local(name="host")
@@ -638,7 +638,7 @@ deploy(
 // TestModuleLoad_Local verifies that local modules (version is a relative
 // path) resolve directly from the filesystem without going through the cache.
 func TestModuleLoad_Local(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	projDir := t.TempDir()
 
 	// Create a local module directory
@@ -698,7 +698,7 @@ deploy(
 
 // TestModuleLoad_LocalAbsPath verifies that absolute-path local modules work.
 func TestModuleLoad_LocalAbsPath(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi-lang import")
+	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	projDir := t.TempDir()
 	localMod := t.TempDir()
 

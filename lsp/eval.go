@@ -132,7 +132,7 @@ func readModuleEntry(dir, name string) ([]byte, string) {
 	return nil, ""
 }
 
-// evaluate runs the scampi-lang full pipeline (lex → parse → check →
+// evaluate runs the scampi full pipeline (lex → parse → check →
 // eval → attribute static checks) on the editor's current buffer and
 // returns LSP diagnostics for everything it finds. The pipeline runs
 // against an overlay source so the in-memory content is used instead

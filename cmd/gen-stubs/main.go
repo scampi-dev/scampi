@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// gen-stubs generates scampi-lang stub files from the engine registry.
+// gen-stubs generates scampi stub files from the engine registry.
 // Uses the same step/target configs the engine uses — always in sync.
 package main
 

@@ -30,7 +30,7 @@ They intentionally avoid:
 - disk-heavy work beyond config loading
 */
 
-// Benchmark: loadConfig (scampi-lang evaluation)
+// Benchmark: loadConfig (scampi evaluation)
 // -----------------------------------------------------------------------------
 
 func BenchmarkLoadConfig(b *testing.B) {

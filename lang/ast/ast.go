@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package ast defines the abstract syntax tree for scampi-lang.
+// Package ast defines the abstract syntax tree for scampi.
 // Every node carries a Span so diagnostics can point back to source.
 package ast
 
