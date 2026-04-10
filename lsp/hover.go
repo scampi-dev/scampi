@@ -4,6 +4,7 @@ package lsp
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"go.lsp.dev/protocol"
@@ -82,33 +83,72 @@ func (s *Server) hoverKwarg(docURI protocol.DocumentURI, cur CursorContext) stri
 func formatFuncDoc(f FuncInfo) string {
 	var b strings.Builder
 
-	// Signature in a fenced code block, like gopls.
-	b.WriteString("```python\n" + formatSignature(f) + "\n```\n\n")
+	// Signature in a fenced code block, like gopls. Followed by a horizontal
+	// rule that visually separates the signature from the description and
+	// parameter list.
+	b.WriteString("```scampi\n" + formatSignature(f) + "\n```\n\n---\n\n")
 
 	if f.Summary != "" {
-		b.WriteString("---\n\n" + f.Summary + "\n")
+		b.WriteString(f.Summary + "\n\n")
 	}
 
-	if len(f.Params) == 0 {
-		return b.String()
+	if len(f.Params) > 0 {
+		b.WriteString(formatParamTable(f.Params))
 	}
 
-	b.WriteString("\n---\n\n")
-	for _, p := range f.Params {
-		line := "`" + p.Name + "` *" + p.Type + "*"
-		if p.Required {
-			line += " **required**"
+	// Trailing horizontal rule + blank line so the floating window has visual
+	// closure at the bottom rather than touching content to the border.
+	b.WriteString("\n---\n")
+	return b.String()
+}
+
+// formatParamTable renders the parameter list as an aligned monospace block
+// inside a fenced code block. Columns are name, type, required-marker, then
+// description (with default and examples appended inline). Code-block content
+// is rendered in a monospace font in editors that support markdown hovers, so
+// the spaces here line up properly — unlike a markdown table, which renders
+// poorly in many editors (notably Neovim's floating windows).
+func formatParamTable(params []ParamInfo) string {
+	nameW, typeW := 0, 0
+	for _, p := range params {
+		if l := len(p.Name); l > nameW {
+			nameW = l
 		}
-		line += "\n" + p.Desc
+		if l := len(p.Type); l > typeW {
+			typeW = l
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString("```\n")
+	for _, p := range params {
+		req := ""
+		if p.Required {
+			req = "required"
+		}
+		line := fmt.Sprintf("%-*s  %-*s  %-8s", nameW, p.Name, typeW, p.Type, req)
+		// Append description and metadata. If neither column 3 nor any trailing
+		// info exists, strip the trailing padding so the line ends cleanly.
+		extra := p.Desc
 		if p.Default != "" {
-			line += " (default: " + p.Default + ")"
+			if extra != "" {
+				extra += " "
+			}
+			extra += "(default: " + p.Default + ")"
 		}
 		if len(p.Examples) > 0 {
-			line += " (e.g. " + strings.Join(p.Examples, ", ") + ")"
+			if extra != "" {
+				extra += " "
+			}
+			extra += "(e.g. " + strings.Join(p.Examples, ", ") + ")"
 		}
-		b.WriteString(line + "\n\n")
+		if extra != "" {
+			line += "  " + extra
+		}
+		line = strings.TrimRight(line, " ")
+		b.WriteString(line + "\n")
 	}
-
+	b.WriteString("```\n")
 	return b.String()
 }
 
@@ -127,28 +167,25 @@ func formatSignature(f FuncInfo) string {
 func formatParamDoc(funcName string, p ParamInfo) string {
 	var b strings.Builder
 
-	// Signature block.
+	// Signature block: shows the param in context of its function.
 	req := "optional"
 	if p.Required {
 		req = "required"
 	}
-	b.WriteString("```python\n")
-	b.WriteString(funcName + "(" + p.Name + ": " + p.Type + ")  # " + req + "\n")
-	b.WriteString("```\n\n---\n\n")
+	b.WriteString("```scampi\n")
+	b.WriteString(funcName + "(" + p.Name + ": " + p.Type + ")  // " + req + "\n")
+	b.WriteString("```\n\n")
 
-	// Description.
-	b.WriteString(p.Desc + "\n")
-
-	// Metadata.
-	if p.Default != "" || len(p.Examples) > 0 {
-		b.WriteString("\n---\n\n")
-		if p.Default != "" {
-			b.WriteString("**Default:** " + p.Default + "\n\n")
-		}
-		if len(p.Examples) > 0 {
-			b.WriteString("**Examples:** `" + strings.Join(p.Examples, "`, `") + "`\n")
-		}
+	if p.Desc != "" {
+		b.WriteString(p.Desc + "\n\n")
 	}
 
-	return b.String()
+	if p.Default != "" {
+		b.WriteString("**Default:** `" + p.Default + "`\n\n")
+	}
+	if len(p.Examples) > 0 {
+		b.WriteString("**Examples:** `" + strings.Join(p.Examples, "`, `") + "`\n")
+	}
+
+	return strings.TrimRight(b.String(), "\n") + "\n"
 }
