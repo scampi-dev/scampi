@@ -200,18 +200,18 @@ func TestCompletionStringKwargOffersSecretAndEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 	if result == nil || len(result.Items) == 0 {
-		t.Fatal("expected secret/env completions for string kwarg")
+		t.Fatal("expected std.secret/std.env completions for string kwarg")
 	}
 
 	labels := make(map[string]bool)
 	for _, item := range result.Items {
 		labels[item.Label] = true
 	}
-	if !labels["secret"] {
-		t.Error("expected 'secret' completion for string kwarg")
+	if !labels["std.secret"] {
+		t.Error("expected 'std.secret' completion for string kwarg")
 	}
-	if !labels["env"] {
-		t.Error("expected 'env' completion for string kwarg")
+	if !labels["std.env"] {
+		t.Error("expected 'std.env' completion for string kwarg")
 	}
 }
 

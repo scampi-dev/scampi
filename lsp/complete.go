@@ -184,38 +184,43 @@ func (s *Server) completeKwargs(docURI protocol.DocumentURI, cur CursorContext) 
 // Type-based kwarg value completions
 // -----------------------------------------------------------------------------
 
-var typeCompletions = map[string][]protocol.CompletionItem{
-	"posix.Source": {
-		completionDecl("posix.source_local", "Reference a local file"),
-		completionDecl("posix.source_inline", "Use an inline string"),
-		completionDecl("posix.source_remote", "Download a remote file"),
-	},
-	"posix.PkgSource": {
-		completionDecl("posix.pkg_system", "Use the system package manager"),
-		completionDecl("posix.pkg_apt_repo", "Add an APT repository"),
-		completionDecl("posix.pkg_dnf_repo", "Add a DNF repository"),
-	},
-}
-
-func completionDecl(label, detail string) protocol.CompletionItem {
+// completionForReturnType builds a completion item for a catalog entry that
+// returns the requested type. Decls (which take struct-literal bodies) get
+// `name {` insertion; funcs get `name(` insertion.
+func (s *Server) completionForReturnType(name string) protocol.CompletionItem {
+	f, _ := s.catalog.Lookup(name)
+	insert := name + "("
+	if isDecl(f) {
+		insert = name + " {"
+	}
 	return protocol.CompletionItem{
-		Label:      label,
+		Label:      name,
 		Kind:       protocol.CompletionItemKindFunction,
-		Detail:     detail,
-		InsertText: label + " {",
+		Detail:     f.Summary,
+		InsertText: insert,
 	}
 }
 
-func completionFunc(label, detail string) protocol.CompletionItem {
-	return protocol.CompletionItem{
-		Label:      label,
-		Kind:       protocol.CompletionItemKindFunction,
-		Detail:     detail,
-		InsertText: label + "(",
-	}
+// isDecl reports whether a FuncInfo represents a `decl` (struct-literal body)
+// rather than a `func` (call expression). Decls return a non-builtin type but
+// don't take a parenthesised arg list at the call site — they're invoked with
+// brace bodies. The catalog stores both as FuncInfo, so we infer from naming
+// convention used in the std stubs: decls are the things callers reach for
+// when they need a value of a specific type.
+//
+// In the current std/, decls are distinguished by being the only non-step
+// FuncInfo entries with a non-empty ReturnType (funcs may also have one, but
+// none of the type-targeted constructors are funcs today). If a future func
+// produces a typed value, this check needs to honour an explicit kind flag.
+func isDecl(f FuncInfo) bool {
+	return f.ReturnType != "" && !f.IsStep
 }
 
 // completeKwargValue offers type-appropriate values for a kwarg being typed.
+// Looks up all catalog entries whose return type matches the param type and
+// offers them as completions. This works uniformly for typed constructors
+// (posix.source_local for posix.Source, posix.pkg_system for posix.PkgSource)
+// and for value-producer funcs (std.secret, std.env for string).
 func (s *Server) completeKwargValue(docURI protocol.DocumentURI, cur CursorContext) []protocol.CompletionItem {
 	f, ok := s.lookupFunc(docURI, cur.FuncName)
 	if !ok {
@@ -226,16 +231,17 @@ func (s *Server) completeKwargValue(docURI protocol.DocumentURI, cur CursorConte
 		if p.Name != cur.ActiveKwarg {
 			continue
 		}
-		if items, ok := typeCompletions[p.Type]; ok {
-			return items
+		// Strip optional `?` so `posix.Source?` matches `posix.Source`.
+		typeName := strings.TrimSuffix(p.Type, "?")
+		names := s.catalog.ByReturnType(typeName)
+		if len(names) == 0 {
+			return nil
 		}
-		// For string params, offer secret() and env() as common value producers.
-		if p.Type == "string" {
-			return []protocol.CompletionItem{
-				completionFunc("secret", "Read a secret value"),
-				completionFunc("env", "Read an environment variable"),
-			}
+		items := make([]protocol.CompletionItem, 0, len(names))
+		for _, n := range names {
+			items = append(items, s.completionForReturnType(n))
 		}
+		return items
 	}
 	return nil
 }

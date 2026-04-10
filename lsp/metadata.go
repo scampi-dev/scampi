@@ -26,24 +26,27 @@ type ParamInfo struct {
 
 // FuncInfo describes a function or decl from the standard library stubs.
 type FuncInfo struct {
-	Name    string
-	Summary string
-	Params  []ParamInfo
-	IsStep  bool
+	Name       string
+	Summary    string
+	Params     []ParamInfo
+	IsStep     bool
+	ReturnType string // qualified return type, empty for funcs without one
 }
 
 // Catalog holds stdlib metadata, indexed for fast lookup during
 // completion, hover, and signature help.
 type Catalog struct {
-	funcs   map[string]FuncInfo
-	names   []string
-	modules map[string][]string // "posix" → ["copy", "dir", ...]
+	funcs     map[string]FuncInfo
+	names     []string
+	modules   map[string][]string // "posix" → ["copy", "dir", ...]
+	byRetType map[string][]string // "posix.Source" → ["posix.source_local", ...]
 }
 
 func NewCatalog() *Catalog {
 	c := &Catalog{
-		funcs:   make(map[string]FuncInfo),
-		modules: make(map[string][]string),
+		funcs:     make(map[string]FuncInfo),
+		modules:   make(map[string][]string),
+		byRetType: make(map[string][]string),
 	}
 	c.loadFromStubs()
 	c.loadTestStubs()
@@ -74,6 +77,13 @@ func (c *Catalog) Modules() []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// ByReturnType returns names of catalog entries whose return type matches
+// the given qualified type (e.g. "posix.Source"). Used by completion to
+// suggest constructors for typed kwargs.
+func (c *Catalog) ByReturnType(typeName string) []string {
+	return c.byRetType[typeName]
 }
 
 // Loading from stubs
@@ -214,18 +224,20 @@ func parseStubFile(path string) *stubModule {
 func funcDeclToInfo(d *ast.FuncDecl, modName string) FuncInfo {
 	params := fieldsToParams(d.Params, modName)
 	return FuncInfo{
-		Name:   d.Name.Name,
-		Params: params,
+		Name:       d.Name.Name,
+		Params:     params,
+		ReturnType: qualifiedTypeString(d.Ret, modName),
 	}
 }
 
 func declDeclToInfo(d *ast.DeclDecl, modName string) FuncInfo {
 	params := fieldsToParams(d.Params, modName)
-	isStep := retTypeIsStep(d.Ret)
+	retType := qualifiedTypeString(d.Ret, modName)
 	return FuncInfo{
-		Name:   declName(d),
-		Params: params,
-		IsStep: isStep,
+		Name:       declName(d),
+		Params:     params,
+		IsStep:     retTypeIsStep(d.Ret),
+		ReturnType: retType,
 	}
 }
 
@@ -427,6 +439,16 @@ func (c *Catalog) buildIndex() {
 		mod := parts[0]
 		member := name[len(mod)+1:] // everything after first dot
 		c.modules[mod] = append(c.modules[mod], member)
+	}
+
+	// Build return-type index. Iterating in sorted order keeps the
+	// completion list deterministic across runs.
+	for _, name := range c.names {
+		f := c.funcs[name]
+		if f.ReturnType == "" {
+			continue
+		}
+		c.byRetType[f.ReturnType] = append(c.byRetType[f.ReturnType], name)
 	}
 }
 
