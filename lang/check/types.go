@@ -126,6 +126,26 @@ func (s *DeclType) String() string {
 	return "decl " + s.Name + "(...) " + s.Ret.String()
 }
 
+// AttrType is an attribute type declared via `type @name { ... }`.
+// It lives in a separate `@`-prefixed namespace from regular types
+// and cannot be used in type expressions or struct literals — only
+// as an `@name(args)` decoration on annotatable positions.
+//
+// Marker attribute types have an empty Fields list. Single-field
+// types support positional argument binding (with variadic sugar
+// for list-typed fields). Multi-field types accept at most one
+// positional argument bound to the first field; the rest must be
+// keyword arguments.
+type AttrType struct {
+	Name   string // bare name without `@` (e.g. "nonempty", "path")
+	Fields []*FieldDef
+}
+
+func (*AttrType) typeTag() {}
+func (a *AttrType) String() string {
+	return "@" + a.Name
+}
+
 // IsAssignableTo reports whether a value of type src can be used
 // where type dst is expected. Handles optional promotion (T → T?),
 // none → T?, and any escape hatch.

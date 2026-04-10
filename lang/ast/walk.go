@@ -46,6 +46,10 @@ func walkChildren(node Node, pre func(Node) bool, post func(Node)) {
 		Walk(n.Name, pre, post)
 		walkFieldList(n.Fields, pre, post)
 
+	case *AttrTypeDecl:
+		Walk(n.Name, pre, post)
+		walkFieldList(n.Fields, pre, post)
+
 	case *EnumDecl:
 		Walk(n.Name, pre, post)
 		walkList(n.Variants, pre, post)

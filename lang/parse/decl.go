@@ -86,11 +86,19 @@ func (p *Parser) parseDecl() ast.Decl {
 
 // parseTypeDecl:
 //
-//	type Name { field: type = default, ... }   // with fields
-//	type Name                                  // opaque (no body)
-func (p *Parser) parseTypeDecl() *ast.TypeDecl {
+//	type Name { field: type = default, ... }    // regular type with fields
+//	type Name                                    // opaque (no body)
+//	type @Name { field: type = default, ... }    // attribute type
+//	type @Name {}                                // marker attribute type
+//
+// Dispatches to parseAttrTypeDecl when the token after `type` is `@`.
+func (p *Parser) parseTypeDecl() ast.Decl {
 	start := p.cur.Pos
 	p.advance() // 'type'
+
+	if p.cur.Kind == token.At {
+		return p.parseAttrTypeDecl(start)
+	}
 
 	name := p.parseIdent("type name")
 	if name == nil {
@@ -119,6 +127,35 @@ func (p *Parser) parseTypeDecl() *ast.TypeDecl {
 	}
 
 	return &ast.TypeDecl{
+		Name:    name,
+		Fields:  fields,
+		SrcSpan: token.Span{Start: start, End: endTok.End},
+	}
+}
+
+// parseAttrTypeDecl parses the body of `type @name { ... }` after the
+// caller has already consumed the `type` keyword. The current token
+// must be `@`.
+func (p *Parser) parseAttrTypeDecl(start uint32) *ast.AttrTypeDecl {
+	p.advance() // '@'
+	name := p.parseIdent("attribute type name")
+	if name == nil {
+		p.synchronize()
+		return nil
+	}
+	// Body is required (even empty `{}` for markers). Unlike regular
+	// type declarations, attribute types are never opaque — there is
+	// no use case for a forward declaration without a body.
+	p.expect(token.LBrace, "attribute type body")
+	fields := p.parseFields(token.RBrace)
+	endTok := p.expect(token.RBrace, "attribute type body")
+	if p.cur.Kind == token.Semi {
+		p.advance()
+	}
+	if fields == nil {
+		fields = []*ast.Field{}
+	}
+	return &ast.AttrTypeDecl{
 		Name:    name,
 		Fields:  fields,
 		SrcSpan: token.Span{Start: start, End: endTok.End},

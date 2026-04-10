@@ -72,6 +72,25 @@ func (d *TypeDecl) Span() token.Span { return d.SrcSpan }
 func (*TypeDecl) astNode()           {}
 func (*TypeDecl) declNode()          {}
 
+// AttrTypeDecl is an attribute type declaration: `type @name { ... }`.
+// Attribute types live in a separate `@`-prefixed namespace from
+// regular types — they cannot be used in type expressions or
+// instantiated as struct literals. They're consumed only as `@name`
+// or `@name(args)` decorations on Fields and other annotatable
+// positions.
+//
+// Marker attribute types have no fields: `type @marker {}`.
+// Otherwise the field schema describes the accepted arguments.
+type AttrTypeDecl struct {
+	Name    *Ident
+	Fields  []*Field // empty list for markers; never nil
+	SrcSpan token.Span
+}
+
+func (d *AttrTypeDecl) Span() token.Span { return d.SrcSpan }
+func (*AttrTypeDecl) astNode()           {}
+func (*AttrTypeDecl) declNode()          {}
+
 // EnumDecl is an `enum Name { variant, ... }` declaration.
 type EnumDecl struct {
 	Name     *Ident

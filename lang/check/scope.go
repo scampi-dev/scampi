@@ -34,13 +34,14 @@ type Symbol struct {
 type SymbolKind uint8
 
 const (
-	SymLet    SymbolKind = iota // let binding
-	SymParam                    // function/step parameter
-	SymFunc                     // function declaration
-	SymDecl                     // step declaration
-	SymType                     // struct type
-	SymEnum                     // enum type
-	SymImport                   // imported module namespace
+	SymLet      SymbolKind = iota // let binding
+	SymParam                      // function/step parameter
+	SymFunc                       // function declaration
+	SymDecl                       // step declaration
+	SymType                       // struct type
+	SymEnum                       // enum type
+	SymImport                     // imported module namespace
+	SymAttrType                   // attribute type (declared as `type @name { ... }`)
 )
 
 // NewScope creates a child scope of parent.

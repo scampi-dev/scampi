@@ -343,6 +343,226 @@ func TestScopeDuplicateInSameScope(t *testing.T) {
 	}
 }
 
+// Attribute types and binding
+// -----------------------------------------------------------------------------
+
+func TestCheckAttrTypeMarker(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @nonempty {}
+
+func f(@nonempty name: string) string
+`)
+}
+
+func TestCheckAttrTypeUnknown(t *testing.T) {
+	expectError(t, `
+module main
+
+func f(@undefined name: string) string
+`, "unknown attribute: @undefined")
+}
+
+func TestCheckAttrTypeMarkerRejectsArgs(t *testing.T) {
+	expectError(t, `
+module main
+type @nonempty {}
+
+func f(@nonempty("oops") name: string) string
+`, "marker attribute @nonempty takes no arguments")
+}
+
+func TestCheckAttrTypeSinglePositional(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @since { version: string }
+
+func f(@since("0.5") name: string) string
+`)
+}
+
+func TestCheckAttrTypeSinglePositionalNamedForm(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @since { version: string }
+
+func f(@since(version="0.5") name: string) string
+`)
+}
+
+func TestCheckAttrTypeWrongArgType(t *testing.T) {
+	expectError(t, `
+module main
+type @since { version: string }
+
+func f(@since(42) name: string) string
+`, "cannot bind int to attribute @since")
+}
+
+func TestCheckAttrTypeUnknownNamedArg(t *testing.T) {
+	expectError(t, `
+module main
+type @since { version: string }
+
+func f(@since(zzz="0.5") name: string) string
+`, "attribute @since has no field zzz")
+}
+
+func TestCheckAttrTypeMissingRequired(t *testing.T) {
+	expectError(t, `
+module main
+type @since { version: string }
+
+func f(@since name: string) string
+`, "attribute @since missing required field version")
+}
+
+func TestCheckAttrTypeWithDefault(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @deprecated { message: string = "" }
+
+func f(@deprecated name: string) string
+`)
+}
+
+func TestCheckAttrTypeVariadicMultiple(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @oneof { values: list[string] }
+
+func f(@oneof("present", "absent", "latest") state: string) string
+`)
+}
+
+func TestCheckAttrTypeVariadicSingle(t *testing.T) {
+	// Single positional with a list field should also be variadic-bound.
+	expectNoErrors(t, `
+module main
+type @oneof { values: list[string] }
+
+func f(@oneof("only") state: string) string
+`)
+}
+
+func TestCheckAttrTypeVariadicAsList(t *testing.T) {
+	// A list literal as the single positional binds directly.
+	expectNoErrors(t, `
+module main
+type @oneof { values: list[string] }
+
+func f(@oneof(["a", "b"]) state: string) string
+`)
+}
+
+func TestCheckAttrTypeVariadicWrongElementType(t *testing.T) {
+	expectError(t, `
+module main
+type @oneof { values: list[string] }
+
+func f(@oneof("ok", 42, "also") state: string) string
+`, "cannot bind int")
+}
+
+func TestCheckAttrTypeMultiFieldAllNamed(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @path {
+  absolute:   bool = false
+  must_exist: bool = false
+}
+
+func f(@path(absolute=true, must_exist=true) p: string) string
+`)
+}
+
+func TestCheckAttrTypeMultiFieldFirstPositional(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @path {
+  absolute:   bool = false
+  must_exist: bool = false
+}
+
+func f(@path(true, must_exist=true) p: string) string
+`)
+}
+
+func TestCheckAttrTypeMultiFieldTooManyPositionals(t *testing.T) {
+	expectError(t, `
+module main
+type @path {
+  absolute:   bool = false
+  must_exist: bool = false
+}
+
+func f(@path(true, true) p: string) string
+`, "accepts at most one positional argument")
+}
+
+func TestCheckAttrTypePositionalAndNamedSameField(t *testing.T) {
+	expectError(t, `
+module main
+type @path {
+  absolute:   bool = false
+  must_exist: bool = false
+}
+
+func f(@path(true, absolute=true) p: string) string
+`, "already bound by positional")
+}
+
+func TestCheckAttrTypeStackedAttrs(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @nonempty {}
+type @path { absolute: bool = false }
+
+func f(
+    @nonempty
+    @path(absolute=true)
+    p: string,
+) string
+`)
+}
+
+func TestCheckAttrTypeOnStructField(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type @nonempty {}
+
+type User {
+    @nonempty
+    name: string
+}
+`)
+}
+
+func TestCheckAttrTypeOnDeclParam(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type Step
+type @nonempty {}
+
+decl posix.copy(
+    @nonempty
+    src: string,
+) Step
+`)
+}
+
+func TestCheckAttrTypeNamespacedUnknown(t *testing.T) {
+	// std has no attribute types registered yet (Stage 4 territory),
+	// so this exercises the dotted-name resolution path: it should
+	// emit a clean "unknown attribute" diagnostic, not crash.
+	expectError(t, `
+module main
+import "std"
+
+func f(@std.secret name: string) string
+`, "unknown attribute: @std.secret")
+}
+
 func TestScopeMutability(t *testing.T) {
 	file := NewScope(nil, ScopeFile)
 	fn := NewScope(file, ScopeFunc)

@@ -82,6 +82,10 @@ func (c *Checker) enter(n ast.Node) bool {
 		c.checkTypeDecl(n)
 		return false // children already visited by checkTypeDecl
 
+	case *ast.AttrTypeDecl:
+		c.checkAttrTypeDecl(n)
+		return false
+
 	case *ast.EnumDecl:
 		return false // fully registered in forward pass
 
@@ -229,6 +233,13 @@ func (c *Checker) registerDecl(d ast.Decl) {
 		c.scope.Define(&Symbol{
 			Name: d.Name.Name, Type: t, Kind: SymType, Span: d.SrcSpan,
 		})
+	case *ast.AttrTypeDecl:
+		c.scope.Define(&Symbol{
+			Name: "@" + d.Name.Name,
+			Type: &AttrType{Name: d.Name.Name},
+			Kind: SymAttrType,
+			Span: d.SrcSpan,
+		})
 	case *ast.EnumDecl:
 		var variants []string
 		for _, v := range d.Variants {
@@ -275,7 +286,43 @@ func (c *Checker) checkTypeDecl(d *ast.TypeDecl) {
 			c.errAt(f.SrcSpan, "unknown type in field "+f.Name.Name)
 			continue
 		}
+		c.checkFieldAttributes(f)
 		st.Fields = append(st.Fields, &FieldDef{
+			Name:   f.Name.Name,
+			Type:   ft,
+			HasDef: f.Default != nil,
+		})
+	}
+}
+
+// checkAttrTypeDecl resolves the field types of an attribute type
+// declaration `type @name { ... }`. The attribute type's Fields slice
+// is populated on the AttrType already registered during the forward
+// declaration pass.
+func (c *Checker) checkAttrTypeDecl(d *ast.AttrTypeDecl) {
+	sym := c.scope.Lookup("@" + d.Name.Name)
+	if sym == nil {
+		return
+	}
+	at, ok := sym.Type.(*AttrType)
+	if !ok {
+		return
+	}
+	for _, f := range d.Fields {
+		ft := c.resolveType(f.Type)
+		if ft == nil {
+			c.errAt(f.SrcSpan, "unknown type in attribute field "+f.Name.Name)
+			continue
+		}
+		// Attribute fields cannot themselves carry attributes —
+		// keeping the model finite. Diagnose if anyone tries it.
+		if len(f.Attributes) > 0 {
+			c.errAt(
+				f.Attributes[0].SrcSpan,
+				"attribute fields cannot themselves carry attributes",
+			)
+		}
+		at.Fields = append(at.Fields, &FieldDef{
 			Name:   f.Name.Name,
 			Type:   ft,
 			HasDef: f.Default != nil,
@@ -287,6 +334,9 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 	var ret Type
 	if d.Ret != nil {
 		ret = c.resolveType(d.Ret)
+	}
+	for _, p := range d.Params {
+		c.checkFieldAttributes(p)
 	}
 	sym := c.scope.Lookup(d.Name.Name)
 	if sym != nil {
@@ -321,6 +371,9 @@ func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {
 		ret = c.resolveType(d.Ret)
 	} else {
 		c.errAt(d.SrcSpan, "decl declaration requires a return type")
+	}
+	for _, p := range d.Params {
+		c.checkFieldAttributes(p)
 	}
 	name := d.Name.Parts[0].Name
 	sym := c.scope.Lookup(name)

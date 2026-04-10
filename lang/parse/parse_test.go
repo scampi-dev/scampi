@@ -702,6 +702,71 @@ type X {
 	}
 }
 
+func TestParseAttrTypeMarker(t *testing.T) {
+	f := parseFile(t, `
+module main
+type @nonempty {}
+`)
+	if len(f.Decls) != 1 {
+		t.Fatalf("expected 1 decl, got %d", len(f.Decls))
+	}
+	atd, ok := f.Decls[0].(*ast.AttrTypeDecl)
+	if !ok {
+		t.Fatalf("expected AttrTypeDecl, got %T", f.Decls[0])
+	}
+	if atd.Name.Name != "nonempty" {
+		t.Errorf("attr type name: got %q, want %q", atd.Name.Name, "nonempty")
+	}
+	if len(atd.Fields) != 0 {
+		t.Errorf("marker should have 0 fields, got %d", len(atd.Fields))
+	}
+}
+
+func TestParseAttrTypeWithFields(t *testing.T) {
+	f := parseFile(t, `
+module main
+type @path {
+    absolute:   bool = false
+    must_exist: bool = false
+}
+`)
+	atd, ok := f.Decls[0].(*ast.AttrTypeDecl)
+	if !ok {
+		t.Fatalf("expected AttrTypeDecl, got %T", f.Decls[0])
+	}
+	if atd.Name.Name != "path" {
+		t.Errorf("attr type name: got %q", atd.Name.Name)
+	}
+	if len(atd.Fields) != 2 {
+		t.Fatalf("expected 2 fields, got %d", len(atd.Fields))
+	}
+	if atd.Fields[0].Name.Name != "absolute" || atd.Fields[1].Name.Name != "must_exist" {
+		t.Errorf("field names: got [%s, %s]",
+			atd.Fields[0].Name.Name, atd.Fields[1].Name.Name)
+	}
+}
+
+func TestParseAttrTypeMixedWithRegularType(t *testing.T) {
+	f := parseFile(t, `
+module main
+type Step
+type @nonempty {}
+type User { name: string }
+`)
+	if len(f.Decls) != 3 {
+		t.Fatalf("expected 3 decls, got %d", len(f.Decls))
+	}
+	if _, ok := f.Decls[0].(*ast.TypeDecl); !ok {
+		t.Errorf("decl[0]: expected TypeDecl, got %T", f.Decls[0])
+	}
+	if _, ok := f.Decls[1].(*ast.AttrTypeDecl); !ok {
+		t.Errorf("decl[1]: expected AttrTypeDecl, got %T", f.Decls[1])
+	}
+	if _, ok := f.Decls[2].(*ast.TypeDecl); !ok {
+		t.Errorf("decl[2]: expected TypeDecl, got %T", f.Decls[2])
+	}
+}
+
 func TestParseAttributeEmptyParens(t *testing.T) {
 	f := parseFile(t, `
 module main
