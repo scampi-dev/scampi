@@ -52,8 +52,18 @@ return {
   {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
-      vim.filetype.add({ extension = { scampi = "scampi" } })
-      vim.treesitter.language.register("python", "scampi")
+      -- Map .scampi extension to the scampi filetype.
+      vim.filetype.add({
+        extension = { scampi = "scampi" },
+        filename = { ["scampi.mod"] = "scampi.mod" },
+      })
+      -- gcc / Comment.nvim use this for `.scampi` and `scampi.mod` files.
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = { "scampi", "scampi.mod" },
+        callback = function(args)
+          vim.bo[args.buf].commentstring = "// %s"
+        end,
+      })
     end,
   },
   {
