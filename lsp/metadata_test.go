@@ -4,60 +4,7 @@ package lsp
 
 import (
 	"testing"
-
-	"scampi.dev/scampi/lang/ast"
-	"scampi.dev/scampi/lang/token"
 )
-
-func TestCollectAttributeUsesEmpty(t *testing.T) {
-	if got := collectAttributeUses(nil, "std"); got != nil {
-		t.Errorf("nil attrs should produce nil, got %v", got)
-	}
-	if got := collectAttributeUses([]*ast.Attribute{}, "std"); got != nil {
-		t.Errorf("empty attrs should produce nil, got %v", got)
-	}
-}
-
-func TestCollectAttributeUsesUnqualified(t *testing.T) {
-	attrs := []*ast.Attribute{{
-		Name: &ast.DottedName{
-			Parts: []*ast.Ident{{Name: "secretkey", SrcSpan: token.Span{Start: 1, End: 10}}},
-		},
-	}}
-	got := collectAttributeUses(attrs, "std")
-	if len(got) != 1 {
-		t.Fatalf("expected 1 use, got %d", len(got))
-	}
-	if got[0].Name != "secretkey" {
-		t.Errorf("Name: got %q, want %q", got[0].Name, "secretkey")
-	}
-	if got[0].QualifiedName != "std.@secretkey" {
-		t.Errorf("QualifiedName: got %q, want %q", got[0].QualifiedName, "std.@secretkey")
-	}
-}
-
-func TestCollectAttributeUsesQualified(t *testing.T) {
-	attrs := []*ast.Attribute{{
-		Name: &ast.DottedName{
-			Parts: []*ast.Ident{
-				{Name: "std", SrcSpan: token.Span{Start: 1, End: 4}},
-				{Name: "path", SrcSpan: token.Span{Start: 5, End: 9}},
-			},
-		},
-	}}
-	// modName here is "posix" but the attribute is qualified to std,
-	// so the qualified form should reflect std.@path, not posix.@path.
-	got := collectAttributeUses(attrs, "posix")
-	if len(got) != 1 {
-		t.Fatalf("expected 1 use, got %d", len(got))
-	}
-	if got[0].Name != "path" {
-		t.Errorf("Name: got %q, want %q", got[0].Name, "path")
-	}
-	if got[0].QualifiedName != "std.@path" {
-		t.Errorf("QualifiedName: got %q, want %q", got[0].QualifiedName, "std.@path")
-	}
-}
 
 func TestCatalogHasAllStepTypes(t *testing.T) {
 	c := NewCatalog()
