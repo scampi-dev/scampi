@@ -193,6 +193,95 @@ let vps = ssh.target { name = "vps", host = "10.0.0.1", user = "root" }
 	}
 }
 
+// Matchers
+// -----------------------------------------------------------------------------
+
+// Matcher constructors are stub funcs returning the opaque
+// `Matcher` type. The default stub-func code path lifts each call
+// into a StructVal with TypeName = the func name and Fields = the
+// kwargs. The verifier (in target/test/) reads those two fields to
+// dispatch by matcher kind. This test pins that contract — if it
+// breaks, the verifier breaks too.
+func TestEvalMatchers(t *testing.T) {
+	src := `
+module main
+import "std/posix"
+import "std/test/matchers"
+
+let m_exact   = matchers.has_exact_content("hello")
+let m_sub     = matchers.has_substring("world")
+let m_regex   = matchers.matches_regex("^foo")
+let m_empty   = matchers.is_empty()
+let m_present = matchers.is_present()
+let m_absent  = matchers.is_absent()
+let m_svc     = matchers.has_svc_status(posix.ServiceState.running)
+let m_pkg     = matchers.has_pkg_status(posix.PkgState.present)
+`
+	r := evalSrc(t, src)
+
+	for name, want := range map[string]struct {
+		typeName string
+		field    string
+		val      string
+	}{
+		"m_exact":   {"has_exact_content", "content", "hello"},
+		"m_sub":     {"has_substring", "substring", "world"},
+		"m_regex":   {"matches_regex", "pattern", "^foo"},
+		"m_empty":   {"is_empty", "", ""},
+		"m_present": {"is_present", "", ""},
+		"m_absent":  {"is_absent", "", ""},
+	} {
+		v, ok := r.Bindings[name]
+		if !ok {
+			t.Errorf("%s: missing from bindings", name)
+			continue
+		}
+		sv, ok := v.(*StructVal)
+		if !ok {
+			t.Errorf("%s: got %T, want *StructVal", name, v)
+			continue
+		}
+		if sv.TypeName != want.typeName {
+			t.Errorf("%s: TypeName=%q, want %q", name, sv.TypeName, want.typeName)
+		}
+		if sv.RetType != "Matcher" {
+			t.Errorf("%s: RetType=%q, want %q", name, sv.RetType, "Matcher")
+		}
+		if want.field != "" {
+			s, ok := sv.Fields[want.field].(*StringVal)
+			if !ok || s.V != want.val {
+				t.Errorf("%s: Fields[%q]=%v, want %q",
+					name, want.field, sv.Fields[want.field], want.val)
+			}
+		}
+	}
+
+	// Status matchers carry the enum variant value verbatim. The
+	// evaluator currently represents enum values as StringVal of
+	// the variant name — pin that so the verifier can read it.
+	svc, ok := r.Bindings["m_svc"].(*StructVal)
+	if !ok {
+		t.Fatalf("m_svc: not a StructVal")
+	}
+	if svc.TypeName != "has_svc_status" || svc.RetType != "Matcher" {
+		t.Errorf("m_svc: got %q/%q", svc.TypeName, svc.RetType)
+	}
+	if status, ok := svc.Fields["status"].(*StringVal); !ok || status.V != "running" {
+		t.Errorf("m_svc: status=%v", svc.Fields["status"])
+	}
+
+	pkg, ok := r.Bindings["m_pkg"].(*StructVal)
+	if !ok {
+		t.Fatalf("m_pkg: not a StructVal")
+	}
+	if pkg.TypeName != "has_pkg_status" || pkg.RetType != "Matcher" {
+		t.Errorf("m_pkg: got %q/%q", pkg.TypeName, pkg.RetType)
+	}
+	if status, ok := pkg.Fields["status"].(*StringVal); !ok || status.V != "present" {
+		t.Errorf("m_pkg: status=%v", pkg.Fields["status"])
+	}
+}
+
 // For loop
 // -----------------------------------------------------------------------------
 
