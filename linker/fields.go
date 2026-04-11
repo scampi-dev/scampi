@@ -37,7 +37,7 @@ func mapFields(fields map[string]eval.Value, cfg any, lc *linkConfig) error {
 		if !f.IsExported() {
 			continue
 		}
-		name := toSnake(f.Name)
+		name := ToSnake(f.Name)
 		// Keywords can't be field names — check common renames.
 		if name == "type" {
 			name = "fs_type"
@@ -316,8 +316,11 @@ func repoSlug(rawURL string) string {
 	return host
 }
 
-// toSnake converts GoFieldName to snake_case.
-func toSnake(s string) string {
+// ToSnake converts GoFieldName to snake_case. Exported because the
+// stub-drift lint in test/stub_drift_test.go must apply the exact
+// same name conversion the linker uses when mapping evaluated scampi
+// fields onto Go config structs.
+func ToSnake(s string) string {
 	runes := []rune(s)
 	var b strings.Builder
 	for i, r := range runes {
