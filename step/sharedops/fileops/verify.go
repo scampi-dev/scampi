@@ -15,8 +15,8 @@ import (
 
 // VerifiedWrite writes content to a temp file, runs verifyCmd against it,
 // and only writes to dest if the command exits 0. The temp file is always
-// cleaned up. The verifyCmd must contain %s which is replaced with the
-// temp file path.
+// cleaned up. The verifyCmd must contain exactly one %s which is replaced
+// with the temp file path.
 //
 // The temp file preserves the basename of dest so that tools which
 // auto-detect format from the filename (e.g. Caddy, nginx) work correctly.
@@ -27,6 +27,15 @@ func VerifiedWrite(
 	content []byte,
 	verifyCmd string,
 ) error {
+	// Reject anything other than exactly one `%s` up front. Literal
+	// verify strings are caught at link time by the @std.pattern
+	// attribute on copy.verify / template.verify, so this guards
+	// the runtime path where the value came from std.env, std.secret,
+	// or another non-literal source.
+	if n := strings.Count(verifyCmd, "%s"); n != 1 {
+		return &VerifyPlaceholderError{Cmd: verifyCmd, Count: n}
+	}
+
 	fsTgt := target.Must[target.Filesystem]("verify", tgt)
 	cmdTgt := target.Must[target.Command]("verify", tgt)
 

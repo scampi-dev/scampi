@@ -37,6 +37,39 @@ func (e *VerifyError) EventTemplate() event.Template {
 	}
 }
 
+// VerifyPlaceholderError is returned when a verify command does not
+// contain exactly one `%s` placeholder. The static @std.pattern
+// attribute on copy.verify and template.verify catches literal verify
+// strings at link time, so this only fires when the verify string came
+// from a non-literal source (env var, secret, computed expression).
+//
+// The error counts as `Count` rather than as a binary "valid/invalid"
+// so the message can show the user *which* malformation they hit
+// (zero placeholders vs three placeholders are different mistakes).
+type VerifyPlaceholderError struct {
+	diagnostic.FatalError
+	Cmd    string
+	Count  int
+	Source spec.SourceSpan
+}
+
+func (e *VerifyPlaceholderError) Error() string {
+	return fmt.Sprintf(
+		"verify command must contain exactly one %%s placeholder, got %d: %q",
+		e.Count,
+		e.Cmd,
+	)
+}
+
+func (e *VerifyPlaceholderError) EventTemplate() event.Template {
+	return event.Template{
+		ID:   "builtin.VerifyPlaceholderError",
+		Text: `verify command must contain exactly one %s placeholder, got {{.Count}}: {{.Cmd}}`,
+		Hint: "rewrite the verify command so the temp file path appears exactly once as %s",
+		Data: e,
+	}
+}
+
 // VerifyIOError is returned when verify infrastructure (temp dirs, temp files,
 // running the verify command) fails due to I/O errors.
 type VerifyIOError struct {
