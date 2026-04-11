@@ -139,6 +139,9 @@ type FuncType struct {
 
 func (*FuncType) typeTag() {}
 func (f *FuncType) String() string {
+	if f.Ret == nil {
+		return "func(...)"
+	}
 	return "func(...) " + f.Ret.String()
 }
 
