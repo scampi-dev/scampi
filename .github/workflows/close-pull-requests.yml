@@ -1,0 +1,48 @@
+name: Close pull requests
+
+# scampi is developed on Codeberg. The GitHub repository is a read-only
+# mirror — pull requests opened here are auto-closed with a redirect to
+# the canonical repository.
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              "Hi, and thanks for taking the time to contribute to scampi!",
+              "",
+              "This GitHub repository is a **read-only mirror**. scampi is developed on Codeberg, and pull requests need to be filed there:",
+              "",
+              "**https://codeberg.org/scampi-dev/scampi**",
+              "",
+              "If you're new to Codeberg: it's a non-profit, EU-hosted Forgejo instance. Account creation is free and the workflow is the same as GitHub — fork, branch, push, open PR.",
+              "",
+              "Sorry for the friction, and sorry I can't accept this PR here. Hope to see you over on Codeberg!",
+            ].join("\n");
+
+            const pr = context.payload.pull_request;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: body,
+            });
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              state: "closed",
+            });

@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          check-latest: true
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Build release binaries
+        run: |
+          just cross release
+          (cd release && sha256sum * | tee SHA256SUMS)
+          ls -lh release/
+
+      - name: Fetch release notes from Codeberg
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          API="https://codeberg.org/api/v1/repos/scampi-dev/scampi/releases/tags/${TAG}"
+
+          echo "==> Waiting for Codeberg release ${TAG}..."
+          HTTP_CODE=000
+          for i in $(seq 1 30); do
+            HTTP_CODE=$(curl -fsSL -o /tmp/cb-release.json -w '%{http_code}' "$API" || echo "$?")
+            if [[ "$HTTP_CODE" == "200" ]]; then
+              echo "==> Found Codeberg release on attempt $i"
+              break
+            fi
+            echo "    attempt $i: HTTP $HTTP_CODE, retrying in 10s..."
+            sleep 10
+          done
+
+          if [[ "$HTTP_CODE" == "200" ]]; then
+            jq -r '.body' /tmp/cb-release.json > /tmp/notes.md
+            {
+              echo ""
+              echo "---"
+              echo ""
+              echo "Released from [Codeberg](https://codeberg.org/scampi-dev/scampi/releases/tag/${TAG}). The GitHub repository is a read-only mirror — issues and pull requests should be filed on Codeberg."
+            } >> /tmp/notes.md
+          else
+            echo "::warning::Codeberg release not found after retries, using fallback notes"
+            {
+              echo "Released from [Codeberg](https://codeberg.org/scampi-dev/scampi/releases/tag/${TAG})."
+              echo ""
+              echo "The GitHub repository is a read-only mirror — issues and pull requests should be filed on Codeberg."
+            } > /tmp/notes.md
+          fi
+
+      - name: Determine prerelease
+        id: prerelease
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            *-*) echo "value=true"  >> "$GITHUB_OUTPUT" ;;
+            *)   echo "value=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          body_path: /tmp/notes.md
+          prerelease: ${{ steps.prerelease.outputs.value }}
+          fail_on_unmatched_files: true

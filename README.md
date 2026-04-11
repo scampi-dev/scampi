@@ -4,6 +4,10 @@
 
 [![CI](https://codeberg.org/scampi-dev/scampi/badges/workflows/ci.yml/badge.svg?branch=main)](https://codeberg.org/scampi-dev/scampi/actions?workflow=ci.yml) [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](https://codeberg.org/scampi-dev/scampi/src/branch/main/LICENSE)
 
+> [!NOTE]
+> **scampi is developed on [Codeberg](https://codeberg.org/scampi-dev/scampi).**
+> The GitHub repository is a read-only mirror — please file issues and pull requests on Codeberg. Account creation is free and the workflow is the same as GitHub.
+
 Hi, I'm **scampi** — your friendly infrastructure crustacean. I do IaC convergence, garlic buttery smooth.
 
 ## What is scampi?
