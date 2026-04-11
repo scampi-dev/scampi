@@ -4,8 +4,6 @@ package template
 
 import (
 	"io/fs"
-	"path/filepath"
-	"strings"
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
@@ -55,24 +53,13 @@ func (t Template) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &TemplateConfig{}, step.Config)
 	}
 
-	if !filepath.IsAbs(cfg.Dest) {
-		return nil, sharedops.RelativePathError{
-			Field:  "dest",
-			Path:   cfg.Dest,
-			Source: step.Fields["dest"].Value,
-		}
-	}
-
+	// dest absoluteness, perm format, and verify-placeholder shape
+	// are validated at link time by stub attributes (@std.path,
+	// @std.filemode, @std.pattern). Perm parsing here remains
+	// because the runtime needs the parsed fs.FileMode value.
 	mode, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 	if err != nil {
 		return nil, err
-	}
-
-	if cfg.Verify != "" && !strings.Contains(cfg.Verify, "%s") {
-		return nil, sharedops.VerifyMissingPlaceholderError{
-			Cmd:    cfg.Verify,
-			Source: step.Fields["verify"].Value,
-		}
 	}
 
 	return &templateAction{

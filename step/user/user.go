@@ -88,10 +88,6 @@ func (u User) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &UserConfig{}, step.Config)
 	}
 
-	if err := cfg.Validate(step); err != nil {
-		return nil, err
-	}
-
 	return &userAction{
 		desc:   cfg.Desc,
 		name:   cfg.Name,
@@ -103,19 +99,6 @@ func (u User) Plan(step spec.StepInstance) (spec.Action, error) {
 		groups: cfg.Groups,
 		step:   step,
 	}, nil
-}
-
-func (c *UserConfig) Validate(step spec.StepInstance) error {
-	switch c.State {
-	case statePresent, stateAbsent:
-	default:
-		return InvalidStateError{
-			Got:     c.State,
-			Allowed: StateValues,
-			Source:  step.Fields["state"].Value,
-		}
-	}
-	return nil
 }
 
 func (a *userAction) Desc() string { return a.desc }

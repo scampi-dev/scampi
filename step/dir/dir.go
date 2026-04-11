@@ -4,7 +4,6 @@ package dir
 
 import (
 	"context"
-	"path/filepath"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/errs"
@@ -45,20 +44,9 @@ func (d Dir) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &DirConfig{}, step.Config)
 	}
 
-	if !filepath.IsAbs(cfg.Path) {
-		return nil, sharedops.RelativePathError{
-			Field:  "path",
-			Path:   cfg.Path,
-			Source: step.Fields["path"].Value,
-		}
-	}
-
-	if cfg.Perm != "" {
-		if _, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value); err != nil {
-			return nil, err
-		}
-	}
-
+	// Path absoluteness and perm format are validated at link time
+	// by @std.path(absolute=true) and @std.filemode on the stub.
+	// Owner/group mutual requirement is cross-field — stays here.
 	if cfg.Owner != "" && cfg.Group == "" {
 		return nil, PartialOwnershipError{
 			Set: "owner", Missing: "group",

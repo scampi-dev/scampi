@@ -44,14 +44,8 @@ func (s Symlink) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &SymlinkConfig{}, step.Config)
 	}
 
-	if !filepath.IsAbs(cfg.Link) {
-		return nil, sharedops.RelativePathError{
-			Field:  "link",
-			Path:   cfg.Link,
-			Source: step.Fields["link"].Value,
-		}
-	}
-
+	// Link absoluteness is validated at link time by
+	// @std.path(absolute=true) on symlink.link in the stub.
 	return &symlinkAction{
 		desc:   cfg.Desc,
 		kind:   s.Kind(),

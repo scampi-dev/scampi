@@ -4,7 +4,6 @@ package unarchive
 
 import (
 	"io/fs"
-	"path/filepath"
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
@@ -49,14 +48,10 @@ func (u Unarchive) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &UnarchiveConfig{}, step.Config)
 	}
 
-	if !filepath.IsAbs(cfg.Dest) {
-		return nil, sharedops.RelativePathError{
-			Field:  "dest",
-			Path:   cfg.Dest,
-			Source: step.Fields["dest"].Value,
-		}
-	}
-
+	// dest absoluteness and perm format are link-time checks via
+	// @std.path(absolute=true) and @std.filemode on the stub.
+	// Archive format detection (filename-based) and owner/group
+	// mutual requirement are runtime/cross-field — they stay.
 	fmt, ok := detectFormat(cfg.Src.Path)
 	if !ok {
 		return nil, UnsupportedArchiveError{

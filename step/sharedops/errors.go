@@ -95,27 +95,6 @@ func (e PermissionDeniedError) EventTemplate() event.Template {
 	}
 }
 
-type RelativePathError struct {
-	diagnostic.FatalError
-	Field  string
-	Path   string
-	Source spec.SourceSpan
-}
-
-func (e RelativePathError) Error() string {
-	return fmt.Sprintf("relative path %q not allowed for %s", e.Path, e.Field)
-}
-
-func (e RelativePathError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.RelativePath",
-		Text:   `{{.Field}}: relative path not allowed`,
-		Hint:   "target paths must be absolute (start with /)",
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
 // EscalationFailedError wraps a target.EscalationError with diagnostic metadata.
 type EscalationFailedError struct {
 	diagnostic.FatalError
@@ -159,28 +138,6 @@ func (e StagingFailedError) EventTemplate() event.Template {
 		Text: `failed to stage temp file for "{{.Path}}"`,
 		Hint: "ensure /tmp is writable on the target",
 		Data: e.StagingError,
-	}
-}
-
-// VerifyMissingPlaceholderError is raised at plan time when verify is set
-// but does not contain the %s placeholder.
-type VerifyMissingPlaceholderError struct {
-	diagnostic.FatalError
-	Cmd    string
-	Source spec.SourceSpan
-}
-
-func (e VerifyMissingPlaceholderError) Error() string {
-	return fmt.Sprintf("verify command %q must contain %%s placeholder", e.Cmd)
-}
-
-func (e VerifyMissingPlaceholderError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.VerifyMissingPlaceholder",
-		Text:   `verify command must contain %%s placeholder`,
-		Hint:   `try: verify = "{{.Cmd}} %s"`,
-		Data:   e,
-		Source: &e.Source,
 	}
 }
 

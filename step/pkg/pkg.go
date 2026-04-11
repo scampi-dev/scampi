@@ -89,32 +89,10 @@ func (*PkgConfig) FieldEnumValues() map[string][]string {
 func (Pkg) Kind() string   { return "pkg" }
 func (Pkg) NewConfig() any { return &PkgConfig{} }
 
-func (c *PkgConfig) Validate(step spec.StepInstance) error {
-	if len(c.Packages) == 0 {
-		return EmptyPackagesError{
-			Source: step.Fields["packages"].Value,
-		}
-	}
-	switch c.State {
-	case statePresent, stateAbsent, stateLatest:
-	default:
-		return InvalidStateError{
-			Got:     c.State,
-			Allowed: StateValues,
-			Source:  step.Fields["state"].Value,
-		}
-	}
-	return nil
-}
-
 func (p Pkg) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*PkgConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &PkgConfig{}, step.Config)
-	}
-
-	if err := cfg.Validate(step); err != nil {
-		return nil, err
 	}
 
 	return &pkgAction{

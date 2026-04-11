@@ -146,21 +146,19 @@ func (Firewall) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &FirewallConfig{}, step.Config)
 	}
 
+	// Action is a typed enum in the stub — lang/check enforces.
+	// Port format is partially validated by @std.pattern; the
+	// parser still runs because the runtime needs the structured
+	// FirewallPort value, and only ParseFirewallPort knows how to
+	// extract Port/EndPort/Proto from the string. A parse error
+	// reaching this point means a non-literal port expression
+	// bypassed the static check — surface the same typed error.
 	port, parseErr := ParseFirewallPort(cfg.Port)
 	if parseErr != nil {
 		return nil, InvalidPortError{
 			Port:   cfg.Port,
 			Detail: parseErr.Error(),
 			Source: step.Fields["port"].Value,
-		}
-	}
-
-	switch cfg.Action {
-	case "allow", "deny", "reject":
-	default:
-		return nil, InvalidActionError{
-			Action: cfg.Action,
-			Source: step.Fields["action"].Value,
 		}
 	}
 

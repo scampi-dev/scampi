@@ -10,65 +10,6 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
-type MissingFieldError struct {
-	diagnostic.FatalError
-	Field  string
-	Source spec.SourceSpan
-}
-
-func (e MissingFieldError) Error() string {
-	return fmt.Sprintf("mount: %s is required", e.Field)
-}
-
-func (e MissingFieldError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.mount.MissingField",
-		Text:   "mount: {{.Field}} is required",
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
-type InvalidStateError struct {
-	diagnostic.FatalError
-	Got    string
-	Source spec.SourceSpan
-}
-
-func (e InvalidStateError) Error() string {
-	return fmt.Sprintf("invalid state %q", e.Got)
-}
-
-func (e InvalidStateError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.mount.InvalidState",
-		Text:   `invalid state "{{.Got}}"`,
-		Hint:   `expected one of: "mounted", "unmounted", "absent"`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
-type InvalidTypeError struct {
-	diagnostic.FatalError
-	Got    string
-	Source spec.SourceSpan
-}
-
-func (e InvalidTypeError) Error() string {
-	return fmt.Sprintf("unsupported filesystem type %q", e.Got)
-}
-
-func (e InvalidTypeError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.mount.InvalidType",
-		Text:   `unsupported filesystem type "{{.Got}}"`,
-		Hint:   `supported types: nfs, nfs4, cifs, ceph, ext4, xfs, btrfs, tmpfs, glusterfs`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
 type MountCommandError struct {
 	diagnostic.FatalError
 	Op     string

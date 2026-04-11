@@ -4,54 +4,11 @@ package container
 
 import (
 	"fmt"
-	"strings"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
-
-type InvalidStateError struct {
-	diagnostic.FatalError
-	Got     string
-	Allowed []string
-	Source  spec.SourceSpan
-}
-
-func (e InvalidStateError) Error() string {
-	return fmt.Sprintf("invalid container state %q (allowed: %s)", e.Got, strings.Join(e.Allowed, ", "))
-}
-
-func (e InvalidStateError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.container.InvalidState",
-		Text:   `invalid container state "{{.Got}}"`,
-		Hint:   `allowed: running, stopped, absent`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
-type InvalidRestartError struct {
-	diagnostic.FatalError
-	Got     string
-	Allowed []string
-	Source  spec.SourceSpan
-}
-
-func (e InvalidRestartError) Error() string {
-	return fmt.Sprintf("invalid restart policy %q (allowed: %s)", e.Got, strings.Join(e.Allowed, ", "))
-}
-
-func (e InvalidRestartError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.container.InvalidRestart",
-		Text:   `invalid restart policy "{{.Got}}"`,
-		Hint:   `allowed: always, on-failure, unless-stopped, no`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
 
 type EmptyImageError struct {
 	diagnostic.FatalError

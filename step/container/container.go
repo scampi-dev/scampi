@@ -135,25 +135,9 @@ func (Instance) Plan(step spec.StepInstance) (spec.Action, error) {
 }
 
 func (c *InstanceConfig) validate(step spec.StepInstance) error {
-	switch c.State {
-	case stateRunning, stateStopped, stateAbsent:
-	default:
-		return InvalidStateError{
-			Got:     c.State,
-			Allowed: StateValues,
-			Source:  step.Fields["state"].Value,
-		}
-	}
-
-	switch c.Restart {
-	case restartAlways, restartOnFailure, restartUnlessStopped, restartNo:
-	default:
-		return InvalidRestartError{
-			Got:     c.Restart,
-			Allowed: RestartValues,
-			Source:  step.Fields["restart"].Value,
-		}
-	}
+	// State and Restart are typed enums in the stub — lang/check
+	// rejects non-variant values, so we don't need a runtime
+	// switch-default to catch them.
 
 	if c.State != stateAbsent && c.Image == "" {
 		return EmptyImageError{

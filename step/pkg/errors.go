@@ -81,48 +81,6 @@ func (e PkgCacheError) EventTemplate() event.Template {
 	}
 }
 
-// EmptyPackagesError is raised when packages list is empty.
-type EmptyPackagesError struct {
-	diagnostic.FatalError
-	Source spec.SourceSpan
-}
-
-func (e EmptyPackagesError) Error() string {
-	return "packages must not be empty"
-}
-
-func (e EmptyPackagesError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.pkg.EmptyPackages",
-		Text:   "packages must not be empty",
-		Hint:   "provide at least one package name",
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
-// InvalidStateError is raised when the state field has an unrecognized value.
-type InvalidStateError struct {
-	diagnostic.FatalError
-	Got     string
-	Allowed []string
-	Source  spec.SourceSpan
-}
-
-func (e InvalidStateError) Error() string {
-	return fmt.Sprintf("invalid state %q", e.Got)
-}
-
-func (e InvalidStateError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.pkg.InvalidState",
-		Text:   `invalid state "{{.Got}}"`,
-		Hint:   `expected one of: {{join ", " .Allowed}}`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
 // RepoKeyInstallError is emitted when installing a repo signing key fails.
 type RepoKeyInstallError struct {
 	diagnostic.FatalError

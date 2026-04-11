@@ -93,24 +93,3 @@ func (e InvalidPortError) EventTemplate() event.Template {
 		Source: &e.Source,
 	}
 }
-
-// InvalidActionError is returned during validation when the action is not recognized.
-type InvalidActionError struct {
-	diagnostic.FatalError
-	Action string
-	Source spec.SourceSpan
-}
-
-func (e InvalidActionError) Error() string {
-	return fmt.Sprintf("invalid action %q", e.Action)
-}
-
-func (e InvalidActionError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.firewall.InvalidAction",
-		Text:   `invalid action "{{.Action}}"`,
-		Hint:   `use one of: "allow", "deny", "reject"`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}

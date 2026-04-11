@@ -82,10 +82,6 @@ func (g Group) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &GroupConfig{}, step.Config)
 	}
 
-	if err := cfg.Validate(step); err != nil {
-		return nil, err
-	}
-
 	return &groupAction{
 		desc:   cfg.Desc,
 		name:   cfg.Name,
@@ -94,19 +90,6 @@ func (g Group) Plan(step spec.StepInstance) (spec.Action, error) {
 		system: cfg.System,
 		step:   step,
 	}, nil
-}
-
-func (c *GroupConfig) Validate(step spec.StepInstance) error {
-	switch c.State {
-	case statePresent, stateAbsent:
-	default:
-		return InvalidStateError{
-			Got:     c.State,
-			Allowed: StateValues,
-			Source:  step.Fields["state"].Value,
-		}
-	}
-	return nil
 }
 
 func (a *groupAction) Desc() string            { return a.desc }

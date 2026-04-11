@@ -4,11 +4,8 @@
 package mount
 
 import (
-	"path/filepath"
-
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
 )
 
 // FsType represents a supported filesystem type.
@@ -66,28 +63,28 @@ func (f FsType) String() string {
 	}
 }
 
-func parseFsType(s string) (FsType, bool) {
+func parseFsType(s string) FsType {
 	switch s {
 	case fsNFS:
-		return FsNFS, true
+		return FsNFS
 	case fsNFS4:
-		return FsNFS4, true
+		return FsNFS4
 	case fsCIFS:
-		return FsCIFS, true
+		return FsCIFS
 	case fsExt4:
-		return FsExt4, true
+		return FsExt4
 	case fsXFS:
-		return FsXFS, true
+		return FsXFS
 	case fsBtrfs:
-		return FsBtrfs, true
+		return FsBtrfs
 	case fsTmpfs:
-		return FsTmpfs, true
+		return FsTmpfs
 	case fsGlusterfs:
-		return FsGlusterfs, true
+		return FsGlusterfs
 	case fsCeph:
-		return FsCeph, true
+		return FsCeph
 	default:
-		return 0, false
+		panic(errs.BUG("invalid mount fs_type %q — should have been caught by lang typechecker", s))
 	}
 }
 
@@ -183,42 +180,13 @@ func (Mount) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &MountConfig{}, step.Config)
 	}
 
-	if cfg.Dest == "" {
-		return nil, MissingFieldError{
-			Field:  "dest",
-			Source: step.Source,
-		}
-	}
-
-	if cfg.Type == "" {
-		return nil, MissingFieldError{
-			Field:  "type",
-			Source: step.Source,
-		}
-	}
-
-	fstyp, ok := parseFsType(cfg.Type)
-	if !ok {
-		return nil, InvalidTypeError{
-			Got:    cfg.Type,
-			Source: step.Fields["type"].Value,
-		}
-	}
-
-	if cfg.Src == "" {
-		return nil, MissingFieldError{
-			Field:  "src",
-			Source: step.Source,
-		}
-	}
-
-	if !filepath.IsAbs(cfg.Dest) {
-		return nil, sharedops.RelativePathError{
-			Field:  "dest",
-			Path:   cfg.Dest,
-			Source: step.Fields["dest"].Value,
-		}
-	}
+	// Field shapes are validated at link time:
+	//   - src: @std.nonempty
+	//   - dest: @std.path(absolute=true) (catches both empty and relative)
+	//   - fs_type, state: typed enums in the stub (lang/check enforces)
+	// Only the typed-enum conversions and the absent-mode src
+	// auto-fill remain.
+	fstyp := parseFsType(cfg.Type)
 
 	opts := cfg.Opts
 	if opts == "" {
@@ -234,10 +202,7 @@ func (Mount) Plan(step spec.StepInstance) (spec.Action, error) {
 	case stateAbsent:
 		state = StateAbsent
 	default:
-		return nil, InvalidStateError{
-			Got:    cfg.State,
-			Source: step.Fields["state"].Value,
-		}
+		panic(errs.BUG("invalid mount state %q — should have been caught by lang typechecker", cfg.State))
 	}
 
 	if state == StateAbsent && cfg.Src == "" {

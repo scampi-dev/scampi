@@ -91,10 +91,6 @@ func (s Service) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &ServiceConfig{}, step.Config)
 	}
 
-	if err := cfg.Validate(step); err != nil {
-		return nil, err
-	}
-
 	return &serviceAction{
 		desc:    cfg.Desc,
 		name:    cfg.Name,
@@ -102,19 +98,6 @@ func (s Service) Plan(step spec.StepInstance) (spec.Action, error) {
 		enabled: cfg.Enabled,
 		step:    step,
 	}, nil
-}
-
-func (c *ServiceConfig) Validate(step spec.StepInstance) error {
-	switch c.State {
-	case stateRunning, stateStopped, stateRestarted, stateReloaded:
-	default:
-		return InvalidStateError{
-			Got:     c.State,
-			Allowed: StateValues,
-			Source:  step.Fields["state"].Value,
-		}
-	}
-	return nil
 }
 
 func (a *serviceAction) Desc() string { return a.desc }

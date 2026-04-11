@@ -4,34 +4,11 @@ package user
 
 import (
 	"fmt"
-	"strings"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
-
-// InvalidStateError is raised when the state field has an unrecognized value.
-type InvalidStateError struct {
-	diagnostic.FatalError
-	Got     string
-	Allowed []string
-	Source  spec.SourceSpan
-}
-
-func (e InvalidStateError) Error() string {
-	return fmt.Sprintf("invalid state %q (expected one of: %s)", e.Got, strings.Join(e.Allowed, ", "))
-}
-
-func (e InvalidStateError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.user.InvalidState",
-		Text:   `invalid state "{{.Got}}"`,
-		Hint:   `expected one of: {{join ", " .Allowed}}`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
 
 // UserCreateError is emitted when creating a user fails.
 type UserCreateError struct {

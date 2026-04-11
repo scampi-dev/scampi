@@ -10,28 +10,6 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
-// InvalidStateError is raised when the state field has an unrecognized value.
-type InvalidStateError struct {
-	diagnostic.FatalError
-	Got     string
-	Allowed []string
-	Source  spec.SourceSpan
-}
-
-func (e InvalidStateError) Error() string {
-	return fmt.Sprintf("invalid state %q", e.Got)
-}
-
-func (e InvalidStateError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     "builtin.service.InvalidState",
-		Text:   `invalid state "{{.Got}}"`,
-		Hint:   `expected one of: {{join ", " .Allowed}}`,
-		Data:   e,
-		Source: &e.Source,
-	}
-}
-
 // ServiceCommandError is emitted when a service command (start/stop/enable/disable) fails.
 type ServiceCommandError struct {
 	diagnostic.FatalError

@@ -4,8 +4,6 @@ package copy
 
 import (
 	"io/fs"
-	"path/filepath"
-	"strings"
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
@@ -51,24 +49,17 @@ func (c Copy) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &CopyConfig{}, step.Config)
 	}
 
-	if !filepath.IsAbs(cfg.Dest) {
-		return nil, sharedops.RelativePathError{
-			Field:  "dest",
-			Path:   cfg.Dest,
-			Source: step.Fields["dest"].Value,
-		}
-	}
-
+	// dest absoluteness, perm format, and verify-placeholder shape
+	// are validated at link time by the @std.path(absolute=true),
+	// @std.filemode, and @std.pattern attributes on copy's stub.
+	// We still parse perm here because the runtime needs the
+	// fs.FileMode value, but a parse error reaching this point
+	// indicates a non-literal expression (e.g. perm = std.env(...))
+	// that bypassed the static check — fail with the same error
+	// shape as the link-time check would have produced.
 	mode, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 	if err != nil {
 		return nil, err
-	}
-
-	if cfg.Verify != "" && !strings.Contains(cfg.Verify, "%s") {
-		return nil, sharedops.VerifyMissingPlaceholderError{
-			Cmd:    cfg.Verify,
-			Source: step.Fields["verify"].Value,
-		}
 	}
 
 	return &copyAction{
