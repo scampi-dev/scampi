@@ -14,8 +14,6 @@ import (
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/check"
-	"scampi.dev/scampi/lang/lex"
-	"scampi.dev/scampi/lang/parse"
 	"scampi.dev/scampi/lang/token"
 	"scampi.dev/scampi/linker"
 	"scampi.dev/scampi/mod"
@@ -35,7 +33,9 @@ func bootstrapModules() map[string]*check.Scope {
 
 // loadUserModules parses and type-checks user module dependencies from
 // scampi.mod, adding their scopes to the module map so the checker can
-// resolve imports in user code.
+// resolve imports in user code. Errors from individual modules are
+// logged and the module is skipped — the LSP must keep working even
+// if a dependency is broken.
 func (s *Server) loadUserModules() {
 	if s.module == nil {
 		return
@@ -47,19 +47,17 @@ func (s *Server) loadUserModules() {
 			s.log.Printf("user module %s: no entry point in %s", dep.Path, dir)
 			continue
 		}
-
-		l := lex.New(path, data)
-		p := parse.New(l)
-		f := p.Parse()
-		if f == nil || f.Module == nil {
-			s.log.Printf("user module %s: parse failed", dep.Path)
+		f, fileScope, err := linker.LoadModule(s.modules, path, data)
+		if err != nil {
+			s.log.Printf("user module %s: %v", dep.Path, err)
 			continue
 		}
-
-		c := check.New(s.modules)
-		c.Check(f)
+		if f == nil || f.Module == nil {
+			s.log.Printf("user module %s: no module declaration", dep.Path)
+			continue
+		}
 		modName := f.Module.Name.Name
-		s.modules[modName] = c.FileScope()
+		s.modules[modName] = fileScope
 
 		// Register funcs/decls into catalog and goto-def index.
 		s.registerModuleEntries(f, modName, path, data)
