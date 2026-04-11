@@ -7,5 +7,5 @@ package std
 
 import "embed"
 
-//go:embed *.scampi */*.scampi
+//go:embed *.scampi */*.scampi */*/*.scampi
 var FS embed.FS

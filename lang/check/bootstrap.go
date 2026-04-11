@@ -15,11 +15,14 @@ import (
 // filesystem. Returns a map of module names (from each file's module
 // declaration) to their checked scopes.
 //
-// The root-level .scampi file is checked first (no imports). Submodule
-// files in subdirectories are checked with the root module available
-// as an import.
+// Submodule stubs may import other submodules — bootstrap iterates
+// to a fixed point so the order in which fs.WalkDir visits files
+// doesn't matter. Each pass checks every module whose imports are
+// already satisfied; the loop terminates when either every module
+// has been checked or a pass made no progress (in which case the
+// remaining modules have unresolved imports — e.g. an actual cycle
+// or a typo — and we surface their first error).
 func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
-	// Phase 1: find and check the root module (top-level .scampi file).
 	rootFile, rootName, err := parseRootModule(fsys)
 	if err != nil {
 		return nil, err
@@ -29,21 +32,65 @@ func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
 	if errs := rootChecker.Errors(); len(errs) > 0 {
 		return nil, errs[0]
 	}
-	rootScope := rootChecker.FileScope()
 
 	modules := map[string]*Scope{
-		rootName: rootScope,
+		rootName: rootChecker.FileScope(),
 	}
 
-	// Phase 2: parse and check each submodule with root available.
-	err = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, walkErr error) error {
+	pending, err := parseSubmodules(fsys)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fixed-point loop. Each pass tries to check every still-pending
+	// module against the current `modules` map. If a module checks
+	// cleanly, it joins `modules` and is removed from `pending`. If
+	// no module makes progress on a pass, the remaining ones are
+	// either cyclic or refer to modules that don't exist — bail with
+	// the first error we hit.
+	for len(pending) > 0 {
+		progressed := false
+		for path, file := range pending {
+			c := New(modules)
+			c.Check(file)
+			if errs := c.Errors(); len(errs) > 0 {
+				continue
+			}
+			modules[file.Module.Name.Name] = c.FileScope()
+			delete(pending, path)
+			progressed = true
+		}
+		if !progressed {
+			// Pick any remaining module and surface its real error
+			// — at this point its imports definitely won't resolve,
+			// so the checker error is the meaningful one.
+			for _, file := range pending {
+				c := New(modules)
+				c.Check(file)
+				if errs := c.Errors(); len(errs) > 0 {
+					return nil, errs[0]
+				}
+			}
+			break
+		}
+	}
+
+	return modules, nil
+}
+
+// parseSubmodules walks the filesystem and parses every non-root
+// .scampi file it finds, returning them keyed by path so the caller
+// can drive the type-check loop.
+func parseSubmodules(fsys fs.FS) (map[string]*ast.File, error) {
+	pending := make(map[string]*ast.File)
+	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 		if d.IsDir() || !strings.HasSuffix(d.Name(), ".scampi") {
 			return nil
 		}
-		// Skip root-level files (already processed).
+		// Skip root-level files (the root module is parsed separately).
 		if !strings.Contains(path, "/") {
 			return nil
 		}
@@ -51,21 +98,16 @@ func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
 		if parseErr != nil {
 			return parseErr
 		}
-		c := New(map[string]*Scope{rootName: rootScope})
-		c.Check(f)
-		if errs := c.Errors(); len(errs) > 0 {
-			return errs[0]
+		if f.Module == nil {
+			return nil
 		}
-
-		modName := f.Module.Name.Name
-		modules[modName] = c.FileScope()
+		pending[path] = f
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	return modules, nil
+	return pending, nil
 }
 
 // parseRootModule finds and parses the top-level .scampi file in the
