@@ -24,7 +24,14 @@ race:
 containers:
   SCAMPI_TEST_CONTAINERS=1 go test -v ./test/...
 
-[doc("Run all tests with race-detector and containers")]
+[doc("Run everything except container-gated tests (pre-commit gate)")]
+nocontainers:
+  go test -race -v ./...
+  just test testkit
+  go test ./test -bench=. -benchmem -count=1 -benchtime=1x
+  just test fuzz 5s
+
+[doc("Run all tests with race-detector and containers (pre-push gate)")]
 everything:
   SCAMPI_TEST_CONTAINERS=1 go test -race -v ./...
   just test testkit
