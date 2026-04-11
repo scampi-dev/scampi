@@ -29,6 +29,17 @@ type Checker struct {
 	// `@nonempty` annotation on a field declared in `module std`
 	// resolves to the qualified name `std.@nonempty`.
 	modName string
+
+	// allBindings is a flat fallback map of every value-shaped
+	// symbol the checker has resolved during the walk (lets,
+	// params, for-loop vars), regardless of scope nesting. Tools
+	// that operate after the walk (LSP completion, hover) can look
+	// up nested bindings here even though their original scopes
+	// have been popped from c.scope. Last-write-wins on shadowing
+	// — sufficient for completion, not enough for any feature that
+	// needs scope-correct visibility. A future scope-tree refactor
+	// will subsume this.
+	allBindings map[string]*Symbol
 }
 
 // Error is a type-checker error.
@@ -46,7 +57,10 @@ func New(modules map[string]*Scope) *Checker {
 	if modules == nil {
 		modules = map[string]*Scope{}
 	}
-	return &Checker{modules: modules}
+	return &Checker{
+		modules:     modules,
+		allBindings: make(map[string]*Symbol),
+	}
 }
 
 // Errors returns accumulated checker errors.
@@ -55,6 +69,26 @@ func (c *Checker) Errors() []Error { return c.errs }
 // FileScope returns the top-level scope after checking. Useful for
 // extracting a module's exported symbols.
 func (c *Checker) FileScope() *Scope { return c.scope }
+
+// AllBindings returns the flat fallback map of every value binding
+// the checker resolved during the walk. Includes file-scope and
+// nested bindings (lets, params, for-loop vars). Last-write-wins on
+// name shadowing. Used by the LSP to resolve receiver references
+// inside function bodies where the original scope has been popped.
+func (c *Checker) AllBindings() map[string]*Symbol { return c.allBindings }
+
+// recordBinding records a non-import symbol in the flat fallback
+// map. Imports are excluded — they only make sense in their file
+// scope and would pollute the fallback lookups.
+func (c *Checker) recordBinding(sym *Symbol) {
+	if sym == nil || sym.Kind == SymImport {
+		return
+	}
+	if c.allBindings == nil {
+		c.allBindings = make(map[string]*Symbol)
+	}
+	c.allBindings[sym.Name] = sym
+}
 
 // Check type-checks a parsed file using ast.Walk for traversal.
 func (c *Checker) Check(f *ast.File) {
@@ -150,12 +184,14 @@ func (c *Checker) enter(n ast.Node) bool {
 				elemT = lt.Elem
 			}
 			if elemT != nil {
-				c.scope.Define(&Symbol{
+				sym := &Symbol{
 					Name: n.Var.Name,
 					Type: elemT,
 					Kind: SymLet,
 					Span: n.Var.SrcSpan,
-				})
+				}
+				c.scope.Define(sym)
+				c.recordBinding(sym)
 			}
 		}
 		if n.Body != nil {
@@ -370,9 +406,11 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 		c.returnType = ret
 		for _, p := range d.Params {
 			pt := c.resolveType(p.Type)
-			c.scope.Define(&Symbol{
+			pSym := &Symbol{
 				Name: p.Name.Name, Type: pt, Kind: SymParam, Span: p.SrcSpan,
-			})
+			}
+			c.scope.Define(pSym)
+			c.recordBinding(pSym)
 		}
 		ast.Walk(d.Body, c.enter, c.leave)
 		c.returnType = prevRet
@@ -415,9 +453,11 @@ func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {
 			pt := c.resolveType(p.Type)
 			fd := &FieldDef{Name: p.Name.Name, Type: pt, HasDef: p.Default != nil}
 			stepParams = append(stepParams, fd)
-			c.scope.Define(&Symbol{
+			pSym := &Symbol{
 				Name: p.Name.Name, Type: pt, Kind: SymParam, Span: p.SrcSpan,
-			})
+			}
+			c.scope.Define(pSym)
+			c.recordBinding(pSym)
 		}
 		c.selfFields = stepParams
 		ast.Walk(d.Body, c.enter, c.leave)
@@ -447,13 +487,15 @@ func (c *Checker) checkLetDecl(d *ast.LetDecl) {
 	if sym != nil && sym.Kind == SymLet {
 		sym.Type = resolved
 	} else {
-		c.scope.Define(&Symbol{
+		sym = &Symbol{
 			Name: d.Name.Name,
 			Type: resolved,
 			Kind: SymLet,
 			Span: d.SrcSpan,
-		})
+		}
+		c.scope.Define(sym)
 	}
+	c.recordBinding(sym)
 }
 
 // Type resolution

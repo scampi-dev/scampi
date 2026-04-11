@@ -13,6 +13,9 @@ import (
 	"go.lsp.dev/protocol"
 
 	"scampi.dev/scampi/lang/ast"
+	"scampi.dev/scampi/lang/check"
+	"scampi.dev/scampi/lang/lex"
+	"scampi.dev/scampi/lang/parse"
 )
 
 func (s *Server) Completion(
@@ -51,13 +54,13 @@ func (s *Server) Completion(
 	case cur.InCall && cur.ActiveKwarg != "":
 		items = s.completeKwargValue(params.TextDocument.URI, cur)
 	case cur.InList:
-		items = s.completeTopLevel(cur.WordUnderCursor)
+		items = s.completeTopLevel(params.TextDocument.URI, cur.WordUnderCursor)
 	case cur.InCall:
 		items = s.completeKwargs(params.TextDocument.URI, cur)
 	case isDotPrefix(cur.WordUnderCursor):
-		items = s.completeModule(cur.WordUnderCursor)
+		items = s.completeModule(params.TextDocument.URI, cur.WordUnderCursor)
 	default:
-		items = s.completeTopLevel(cur.WordUnderCursor)
+		items = s.completeTopLevel(params.TextDocument.URI, cur.WordUnderCursor)
 	}
 
 	s.log.Printf("completion: returning %d items", len(items))
@@ -67,8 +70,13 @@ func (s *Server) Completion(
 	}, nil
 }
 
-// completeTopLevel offers all top-level names (non-dotted and module names).
-func (s *Server) completeTopLevel(prefix string) []protocol.CompletionItem {
+// completeTopLevel offers all top-level names: stdlib catalog
+// members, module namespaces, and user-defined funcs/decls/types/
+// lets from the current document.
+func (s *Server) completeTopLevel(
+	docURI protocol.DocumentURI,
+	prefix string,
+) []protocol.CompletionItem {
 	var items []protocol.CompletionItem
 
 	for _, name := range s.catalog.Names() {
@@ -104,11 +112,114 @@ func (s *Server) completeTopLevel(prefix string) []protocol.CompletionItem {
 		})
 	}
 
+	// Offer user-defined names from the current document — funcs,
+	// decls, types, top-level lets, and any nested lets/params the
+	// checker captured in its flat fallback map.
+	items = append(items, s.userDeclItems(docURI, prefix)...)
+
 	return items
 }
 
-// completeModule offers members of a dotted module prefix (e.g. "posix." → "copy", "dir", ...).
-func (s *Server) completeModule(word string) []protocol.CompletionItem {
+// userDeclItems returns completion items for every user-defined
+// name reachable from the current document. Pulls from the file
+// scope (top-level decls + imports) and the checker's flat
+// AllBindings (nested let/param bindings).
+func (s *Server) userDeclItems(
+	docURI protocol.DocumentURI,
+	prefix string,
+) []protocol.CompletionItem {
+	doc, ok := s.docs.Get(docURI)
+	if !ok {
+		return nil
+	}
+	filePath := uriToPath(docURI)
+	if filePath == "" {
+		return nil
+	}
+	c := tolerantCheck(filePath, []byte(doc.Content), s.modules)
+	if c == nil {
+		return nil
+	}
+	scope := c.FileScope()
+	if scope == nil {
+		return nil
+	}
+
+	// Deduplicate by name; file scope wins over allBindings.
+	seen := make(map[string]bool)
+	var items []protocol.CompletionItem
+
+	add := func(name string, sym *check.Symbol) {
+		if seen[name] {
+			return
+		}
+		if prefix != "" && !strings.HasPrefix(name, prefix) {
+			return
+		}
+		// Skip imports — they're already offered as module names
+		// via the catalog path, no need to double-count.
+		if sym.Kind == check.SymImport {
+			return
+		}
+		seen[name] = true
+		items = append(items, userDeclItem(name, sym))
+	}
+
+	for name, sym := range scope.Symbols() {
+		add(name, sym)
+	}
+	for name, sym := range c.AllBindings() {
+		add(name, sym)
+	}
+	return items
+}
+
+// userDeclItem builds a completion item for a user-defined name.
+// Picks an LSP item kind based on the symbol kind and produces a
+// sensible insertText (function names get a trailing `(`, struct
+// types get a `{`, etc.).
+func userDeclItem(name string, sym *check.Symbol) protocol.CompletionItem {
+	kind := protocol.CompletionItemKindVariable
+	insert := name
+	switch sym.Kind {
+	case check.SymFunc:
+		kind = protocol.CompletionItemKindFunction
+		insert = name + "("
+	case check.SymDecl:
+		kind = protocol.CompletionItemKindFunction
+		insert = name + " {"
+	case check.SymType:
+		kind = protocol.CompletionItemKindStruct
+		insert = name + " {"
+	case check.SymEnum:
+		kind = protocol.CompletionItemKindEnum
+	case check.SymLet, check.SymParam:
+		kind = protocol.CompletionItemKindVariable
+	}
+	detail := ""
+	if sym.Type != nil {
+		detail = sym.Type.String()
+	}
+	return protocol.CompletionItem{
+		Label:      name,
+		Kind:       kind,
+		Detail:     detail,
+		InsertText: insert,
+	}
+}
+
+// completeModule offers members of a dotted prefix. The lhs of the
+// dot is interpreted in priority order:
+//
+//  1. **Module name** — if `mod` matches a known module in the
+//     catalog (e.g. `posix.`), offer that module's members.
+//  2. **UFCS receiver** — if `mod` is a let-bound variable in the
+//     current document, offer free functions whose first parameter
+//     accepts the variable's type. This is what makes
+//     `t.assert_file_exists("/p")` discoverable when `t` is a
+//     `test.Target` and the function is declared as
+//     `func assert_file_exists(t Target, p string)`.
+func (s *Server) completeModule(docURI protocol.DocumentURI, word string) []protocol.CompletionItem {
 	dot := strings.LastIndexByte(word, '.')
 	if dot < 0 {
 		return nil
@@ -141,7 +252,140 @@ func (s *Server) completeModule(word string) []protocol.CompletionItem {
 			Documentation: f.Summary,
 		})
 	}
+	if len(items) > 0 {
+		return items
+	}
+
+	// Module-name path didn't match anything. Try UFCS — `mod` may
+	// be a value reference whose type has free functions in scope
+	// that accept it as a first arg.
+	return s.completeUFCS(docURI, mod, prefix)
+}
+
+// completeUFCS offers UFCS-eligible free functions for a `varname.`
+// callsite. It runs the lang pipeline (parse + check) on the current
+// document tolerantly, looks up `varName` in the file scope first
+// and falls back to the checker's flat allBindings map if the
+// receiver lives inside a function body or other nested scope.
+// Then it walks file-scope functions and module exports, returning
+// those whose first parameter accepts the receiver's type.
+//
+// Fails open: any missing parse/scope/binding returns nil — the
+// user is mid-edit and the LSP just won't show UFCS completions for
+// that moment.
+func (s *Server) completeUFCS(
+	docURI protocol.DocumentURI,
+	varName, prefix string,
+) []protocol.CompletionItem {
+	doc, ok := s.docs.Get(docURI)
+	if !ok {
+		return nil
+	}
+	filePath := uriToPath(docURI)
+	if filePath == "" {
+		return nil
+	}
+	c := tolerantCheck(filePath, []byte(doc.Content), s.modules)
+	if c == nil {
+		return nil
+	}
+	scope := c.FileScope()
+	if scope == nil {
+		return nil
+	}
+
+	// File scope first (top-level lets). Fall back to the flat
+	// allBindings map for nested bindings (lets inside function
+	// bodies, parameters, for-loop vars).
+	sym := scope.Lookup(varName)
+	if sym == nil || sym.Type == nil {
+		if alt, ok := c.AllBindings()[varName]; ok && alt.Type != nil {
+			sym = alt
+		}
+	}
+	if sym == nil || sym.Type == nil {
+		return nil
+	}
+	recvType := sym.Type
+
+	var items []protocol.CompletionItem
+
+	// File-scope functions (top-level decls in this document).
+	for name, fnSym := range scope.Symbols() {
+		if !ufcsAccepts(fnSym, recvType) {
+			continue
+		}
+		if prefix != "" && !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		items = append(items, ufcsItem(name, fnSym))
+	}
+
+	// Functions from imported modules.
+	for _, modScope := range s.modules {
+		for name, fnSym := range modScope.Symbols() {
+			if !ufcsAccepts(fnSym, recvType) {
+				continue
+			}
+			if prefix != "" && !strings.HasPrefix(name, prefix) {
+				continue
+			}
+			items = append(items, ufcsItem(name, fnSym))
+		}
+	}
+
 	return items
+}
+
+// ufcsAccepts reports whether sym is a function whose first param
+// accepts the receiver type — i.e. whether `recv.<sym.Name>(...)`
+// would resolve to `<sym.Name>(recv, ...)` under UFCS rules.
+func ufcsAccepts(sym *check.Symbol, recv check.Type) bool {
+	if sym == nil || sym.Kind != check.SymFunc {
+		return false
+	}
+	ft, ok := sym.Type.(*check.FuncType)
+	if !ok || len(ft.Params) == 0 {
+		return false
+	}
+	return check.IsAssignableTo(recv, ft.Params[0].Type)
+}
+
+// ufcsItem builds a completion item for a UFCS-eligible function.
+// Returns the bare name (no module qualifier) since the user's
+// receiver expression already supplies the prefix.
+func ufcsItem(name string, sym *check.Symbol) protocol.CompletionItem {
+	return protocol.CompletionItem{
+		Label:      name,
+		Kind:       protocol.CompletionItemKindMethod,
+		Detail:     "(ufcs) " + sym.Type.String(),
+		InsertText: name + "(",
+	}
+}
+
+// tolerantCheck runs lex+parse+check on a buffer and returns the
+// Checker even when there are parse or check errors. The
+// forward-declaration pass populates the file scope before any
+// expression-level walking, and the checker's flat AllBindings map
+// captures every binding seen during the walk regardless of which
+// scope it lived in. Both are usable from this point forward by
+// the LSP for completion and hover.
+//
+// Returns nil only when the parser produces no file at all.
+func tolerantCheck(
+	path string,
+	data []byte,
+	modules map[string]*check.Scope,
+) *check.Checker {
+	l := lex.New(path, data)
+	p := parse.New(l)
+	f := p.Parse()
+	if f == nil {
+		return nil
+	}
+	c := check.New(modules)
+	c.Check(f)
+	return c
 }
 
 // completeKwargs offers keyword arguments for the function being called.

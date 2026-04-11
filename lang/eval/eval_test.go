@@ -241,3 +241,101 @@ let found = "b" in xs
 `)
 	_ = r
 }
+
+// UFCS — runtime dispatch for `x.f(args)` resolves to `f(x, args)`
+// when no field on x matches and a free function f exists.
+// -----------------------------------------------------------------------------
+
+func TestEvalUFCSBasic(t *testing.T) {
+	r := evalSrc(t, `
+module main
+
+func double(n: int) int {
+  return n + n
+}
+
+let result = (5).double()
+`)
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	iv, ok := v.(*IntVal)
+	if !ok {
+		t.Fatalf("expected IntVal, got %T", v)
+	}
+	if iv.V != 10 {
+		t.Errorf("expected 10, got %d", iv.V)
+	}
+}
+
+func TestEvalUFCSChained(t *testing.T) {
+	r := evalSrc(t, `
+module main
+
+func inc(n: int) int {
+  return n + 1
+}
+
+func double(n: int) int {
+  return n + n
+}
+
+let result = (3).inc().double().inc()
+`)
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	iv, ok := v.(*IntVal)
+	if !ok {
+		t.Fatalf("expected IntVal, got %T", v)
+	}
+	// (3).inc() = 4 → .double() = 8 → .inc() = 9
+	if iv.V != 9 {
+		t.Errorf("expected 9, got %d", iv.V)
+	}
+}
+
+func TestEvalUFCSWithExtraArgs(t *testing.T) {
+	r := evalSrc(t, `
+module main
+
+func add(a: int, b: int) int {
+  return a + b
+}
+
+let result = (10).add(32)
+`)
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	iv, ok := v.(*IntVal)
+	if !ok {
+		t.Fatalf("expected IntVal, got %T", v)
+	}
+	if iv.V != 42 {
+		t.Errorf("expected 42, got %d", iv.V)
+	}
+}
+
+// TestEvalUFCSDoesNotShadowModuleAccess — `posix.copy(...)` is a
+// module member call. The Tier 1 path runs before any UFCS attempt.
+func TestEvalUFCSDoesNotShadowModuleAccess(t *testing.T) {
+	r := evalSrc(t, `
+module main
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "h" }
+
+std.deploy(name = "t", targets = [host]) {
+  posix.dir { path = "/etc/foo" }
+}
+`)
+	if len(r.Exprs) == 0 && len(r.Bindings) == 0 {
+		t.Fatal("expected at least the host binding and deploy expr")
+	}
+}

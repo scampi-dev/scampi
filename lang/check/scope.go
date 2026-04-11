@@ -75,6 +75,13 @@ func (s *Scope) Lookup(name string) *Symbol {
 	return nil
 }
 
+// Symbols returns the symbols defined directly in this scope (no
+// parent traversal). Order is unspecified. Used by LSP completion to
+// enumerate UFCS-eligible functions.
+func (s *Scope) Symbols() map[string]*Symbol {
+	return s.symbols
+}
+
 // AllowsMutation reports whether this scope (or an enclosing one)
 // permits collection mutation. Only func-body scopes allow it.
 func (s *Scope) AllowsMutation() bool {

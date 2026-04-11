@@ -203,8 +203,16 @@ func inStringLiteral(text string, offset int) bool {
 }
 
 // analyzeBraceContext handles the cursor being inside { }.
-// If preceded by an identifier, it's a struct-lit/decl invocation.
+// If preceded by an identifier, it's a struct-lit/decl invocation —
+// EXCEPT when the brace belongs to a `func`/`decl` body, in which
+// case the cursor is inside a function body and we should leave the
+// context as a plain expression position so dot-prefix and
+// top-level completion work correctly.
 func analyzeBraceContext(text string, bracePos, offset int, ctx CursorContext) CursorContext {
+	if isFunctionBodyBrace(text, bracePos) {
+		return ctx
+	}
+
 	funcName := identBeforeOffset(text, bracePos)
 	if funcName == "" {
 		return ctx
@@ -219,6 +227,45 @@ func analyzeBraceContext(text string, bracePos, offset int, ctx CursorContext) C
 	ctx.ActiveKwarg = activeField(inside)
 
 	return ctx
+}
+
+// isFunctionBodyBrace reports whether the `{` at bracePos is the
+// start of a `func`/`decl` body rather than a struct literal. The
+// shape we're matching is:
+//
+//	func name(params) ReturnType {
+//	decl name(params) ReturnType {
+//	decl mod.name(params) ReturnType {
+//
+// Detection: walk backward from the brace, skip the optional
+// return-type identifier, skip whitespace, expect a `)` (the params
+// list close). If found, it's a function body. Struct literals
+// (`Type {`, `mod.Type {`) have no `)` immediately before the type
+// name.
+func isFunctionBodyBrace(text string, bracePos int) bool {
+	// Walk back over whitespace immediately before the brace.
+	pos := bracePos - 1
+	for pos >= 0 && (text[pos] == ' ' || text[pos] == '\t') {
+		pos--
+	}
+	// Skip the optional return-type identifier (and qualifying dots).
+	for pos >= 0 {
+		ch := text[pos]
+		if ch == '_' || ch == '.' ||
+			(ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+			(ch >= '0' && ch <= '9') {
+			pos--
+			continue
+		}
+		break
+	}
+	// Skip whitespace between the return type and the params list.
+	for pos >= 0 && (text[pos] == ' ' || text[pos] == '\t' || text[pos] == '\n') {
+		pos--
+	}
+	// A `)` immediately here means the brace closes a func/decl
+	// body, not a struct literal.
+	return pos >= 0 && text[pos] == ')'
 }
 
 // extractFieldNames finds field names (word =) in struct-lit context.

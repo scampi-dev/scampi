@@ -305,3 +305,112 @@ proxy_host()
 		}
 	}
 }
+
+// TestCompletionTopLevelIncludesUserDecls — completion at the start
+// of an expression should include user-defined funcs/types/lets from
+// the current document, not just stdlib catalog members. This is
+// the path that was empty when typing `b` before `b()` in the
+// user-reported repro.
+func TestCompletionTopLevelIncludesUserDecls(t *testing.T) {
+	dir := t.TempDir()
+	mainPath := filepath.Join(dir, "main.scampi")
+
+	s := testServer()
+	docURI := protocol.DocumentURI(uri.File(mainPath))
+	text := `module main
+
+type X {
+  name: string
+}
+
+func b() X {
+  return X { name = "hello" }
+}
+
+func bb() string {
+  b
+}
+`
+	s.docs.Open(docURI, text, 1)
+
+	// Cursor right after `b` on line 11 (`  b`)
+	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: 11, Character: 3},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil {
+		t.Fatal("nil result")
+	}
+	labels := make(map[string]bool)
+	for _, item := range result.Items {
+		labels[item.Label] = true
+	}
+	if !labels["b"] {
+		t.Errorf("expected user-defined func 'b' in top-level completion, got %v", labels)
+	}
+}
+
+// TestCompletionUFCS — when the user types `var.` where `var` is a
+// let-bound variable, completion should offer free functions in
+// scope whose first parameter accepts the variable's type. Mirrors
+// the lang/check resolution rules in resolveCallee.
+func TestCompletionUFCS(t *testing.T) {
+	dir := t.TempDir()
+	mainPath := filepath.Join(dir, "main.scampi")
+
+	s := testServer()
+	docURI := protocol.DocumentURI(uri.File(mainPath))
+	text := `module main
+
+func double(n: int) int {
+  return n + n
+}
+
+func inc(n: int) int {
+  return n + 1
+}
+
+func shout(s: string) string {
+  return s
+}
+
+let n = 5
+n.
+`
+	s.docs.Open(docURI, text, 1)
+
+	// Cursor right after `n.` on the last (line 15) — empty prefix
+	// expecting `double` and `inc` (both take int as first arg) but
+	// NOT `shout` (takes string).
+	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
+			Position:     protocol.Position{Line: 15, Character: 2},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result == nil {
+		t.Fatal("expected completion result")
+	}
+
+	labels := make(map[string]bool)
+	for _, item := range result.Items {
+		labels[item.Label] = true
+	}
+	if !labels["double"] {
+		t.Errorf("missing UFCS completion: double")
+	}
+	if !labels["inc"] {
+		t.Errorf("missing UFCS completion: inc")
+	}
+	if labels["shout"] {
+		t.Errorf("shout should NOT be offered (string param, int receiver)")
+	}
+}

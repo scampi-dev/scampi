@@ -400,9 +400,18 @@ func (*BlockExpr) exprNode()          {}
 
 // CallExpr is a function call `fn(arg, ...)` with positional or
 // keyword arguments.
+//
+// UFCS is true when the type checker has identified this call as a
+// uniform-function-call-syntax site: `x.f(args)` semantically calls
+// `f(x, args...)`. The receiver `x` lives in `Fn.(*SelectorExpr).X`
+// and the callee name in `Fn.(*SelectorExpr).Sel`. The AST shape is
+// preserved (no rewrite) so source-level tooling and diagnostics can
+// still point at the original syntax; downstream consumers (eval,
+// codegen) check this flag and dispatch accordingly.
 type CallExpr struct {
 	Fn      Expr
 	Args    []*CallArg
+	UFCS    bool
 	SrcSpan token.Span
 }
 

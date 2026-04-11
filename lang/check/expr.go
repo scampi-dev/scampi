@@ -192,6 +192,18 @@ func (c *Checker) chainAccess(t Type, parts []*ast.Ident, span token.Span) Type 
 // -----------------------------------------------------------------------------
 
 func (c *Checker) checkCall(call *ast.CallExpr) Type {
+	// UFCS detection: `x.f(args)` semantically calls `f(x, args)`
+	// when no field/module member matches but a free function `f`
+	// in scope accepts x's type. We detect this by annotating the
+	// CallExpr — no AST rewrite, so source spans and diagnostics
+	// from `x.f(...)` keep their original shape. Downstream
+	// consumers (eval) read the flag and dispatch accordingly.
+	if ft := c.detectUFCS(call); ft != nil {
+		call.UFCS = true
+		c.typeCheckCallArgs(call, ft, true)
+		return ft.Ret
+	}
+
 	fnType := c.typeOf(call.Fn)
 	if fnType == nil {
 		return nil
@@ -201,8 +213,81 @@ func (c *Checker) checkCall(call *ast.CallExpr) Type {
 		c.errAt(call.SrcSpan, "cannot call "+fnType.String())
 		return nil
 	}
+	c.typeCheckCallArgs(call, ft, false)
+	return ft.Ret
+}
+
+// detectUFCS reports whether `call` is a UFCS site (`x.f(args)`
+// where x is a value, not a module, and f is a free function in
+// scope whose first parameter accepts x's type). Returns the
+// resolved function type so the caller can validate args, or nil
+// when this isn't a UFCS site — caller falls through to the
+// standard typeOf path.
+//
+// Module access (`posix.copy(...)`) and struct-field-call
+// (`obj.method(...)` where method is a function-typed field) are
+// not UFCS — both are handled by the existing
+// typeOf/resolveSelector path and this function leaves them alone
+// so the field/member resolution wins by design.
+func (c *Checker) detectUFCS(call *ast.CallExpr) *FuncType {
+	sel, ok := call.Fn.(*ast.SelectorExpr)
+	if !ok {
+		return nil
+	}
+	// Skip module-namespace access — `posix.copy(...)` is not UFCS.
+	if id, ok := sel.X.(*ast.Ident); ok {
+		if sym := c.scope.Lookup(id.Name); sym != nil && sym.Kind == SymImport {
+			return nil
+		}
+	}
+	// Type the receiver. If it can't be typed, leave the call
+	// alone — typeOf will emit the right error in the main path.
+	xType := c.typeOf(sel.X)
+	if xType == nil {
+		return nil
+	}
+	// Skip when the receiver's struct type already has a field
+	// matching `sel.Sel.Name` — that's a struct-field call, not
+	// UFCS. Field access wins by design.
+	if st, ok := xType.(*StructType); ok {
+		for _, f := range st.Fields {
+			if f.Name == sel.Sel.Name {
+				return nil
+			}
+		}
+	}
+	// UFCS lookup: free function in scope, first param accepts
+	// receiver type.
+	sym := c.scope.Lookup(sel.Sel.Name)
+	if sym == nil {
+		return nil
+	}
+	ft, ok := sym.Type.(*FuncType)
+	if !ok || len(ft.Params) == 0 {
+		return nil
+	}
+	if !IsAssignableTo(xType, ft.Params[0].Type) {
+		return nil
+	}
+	return ft
+}
+
+// typeCheckCallArgs validates positional and keyword call arguments
+// against a function type. When ufcs is true, the receiver
+// implicitly fills params[0] and the explicit args in call.Args
+// are checked against params[1:].
+func (c *Checker) typeCheckCallArgs(call *ast.CallExpr, ft *FuncType, ufcs bool) {
+	recvOffset := 0
+	if ufcs {
+		recvOffset = 1
+	}
+	availParams := len(ft.Params) - recvOffset
+	if availParams < 0 {
+		availParams = 0
+	}
+
 	minArgs := 0
-	for _, p := range ft.Params {
+	for _, p := range ft.Params[recvOffset:] {
 		if !p.HasDef {
 			minArgs++
 		}
@@ -210,7 +295,7 @@ func (c *Checker) checkCall(call *ast.CallExpr) Type {
 	if len(call.Args) < minArgs {
 		c.errAt(call.SrcSpan, "too few arguments")
 	}
-	if len(call.Args) > len(ft.Params) {
+	if len(call.Args) > availParams {
 		c.errAt(call.SrcSpan, "too many arguments")
 	}
 	for i, arg := range call.Args {
@@ -218,23 +303,21 @@ func (c *Checker) checkCall(call *ast.CallExpr) Type {
 		if argT == nil {
 			continue
 		}
-		// For keyword args, find the param by name.
 		var paramT Type
 		if arg.Name != nil {
-			for _, p := range ft.Params {
+			for _, p := range ft.Params[recvOffset:] {
 				if p.Name == arg.Name.Name {
 					paramT = p.Type
 					break
 				}
 			}
-		} else if i < len(ft.Params) {
-			paramT = ft.Params[i].Type
+		} else if i < availParams {
+			paramT = ft.Params[recvOffset+i].Type
 		}
 		if paramT != nil && !IsAssignableTo(argT, paramT) {
 			c.errAt(arg.Value.Span(), "argument type mismatch: got "+argT.String()+", want "+paramT.String())
 		}
 	}
-	return ft.Ret
 }
 
 // Struct/step literal checking

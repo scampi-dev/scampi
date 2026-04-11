@@ -609,14 +609,41 @@ func (ev *Evaluator) evalDottedName(dn *ast.DottedName) Value {
 }
 
 func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
-	fn := ev.evalExpr(call.Fn)
-	fv, ok := fn.(*FuncVal)
-	if !ok {
-		ev.errAt(call.SrcSpan, "cannot call non-function")
-		return &NoneVal{}
+	// UFCS dispatch: when the type checker has marked this call
+	// as `x.f(args)` ≡ `f(x, args)`, evaluate the receiver from
+	// `call.Fn.(*ast.SelectorExpr).X`, look up `f` (the trailing
+	// identifier) in env, and prepend the receiver as the first
+	// positional arg. The AST shape stays as a SelectorExpr-Fn
+	// call so source spans and tooling are unaffected.
+	var fv *FuncVal
+	var leadingArgs []Value
+	if call.UFCS {
+		sel := call.Fn.(*ast.SelectorExpr)
+		recv := ev.evalExpr(sel.X)
+		v, ok := ev.env.get(sel.Sel.Name)
+		if !ok {
+			ev.errAt(call.SrcSpan, "ufcs: undefined "+sel.Sel.Name)
+			return &NoneVal{}
+		}
+		fn, ok := v.(*FuncVal)
+		if !ok {
+			ev.errAt(call.SrcSpan, "ufcs: "+sel.Sel.Name+" is not a function")
+			return &NoneVal{}
+		}
+		fv = fn
+		leadingArgs = []Value{recv}
+	} else {
+		fn := ev.evalExpr(call.Fn)
+		v, ok := fn.(*FuncVal)
+		if !ok {
+			ev.errAt(call.SrcSpan, "cannot call non-function")
+			return &NoneVal{}
+		}
+		fv = v
 	}
+
 	argMap := make(map[string]Value, len(call.Args))
-	var positional []Value
+	positional := leadingArgs
 	for _, a := range call.Args {
 		v := ev.evalExpr(a.Value)
 		if a.Name != nil {

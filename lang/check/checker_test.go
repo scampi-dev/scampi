@@ -607,6 +607,138 @@ func f(@std.secret name: string) string
 `, "unknown attribute: @std.secret")
 }
 
+// UFCS — `x.f(args)` desugars to `f(x, args)`
+// -----------------------------------------------------------------------------
+
+// TestUFCSBasic — a free function whose first param matches the
+// receiver's type can be called as a method on the receiver.
+func TestUFCSBasic(t *testing.T) {
+	expectNoErrors(t, `
+module main
+
+func double(n: int) int {
+  return n
+}
+
+func test() int {
+  let x = 5
+  return x.double()
+}
+`)
+}
+
+// TestUFCSWithExtraArgs — UFCS calls forward additional arguments
+// past the receiver to the function's remaining parameters.
+func TestUFCSWithExtraArgs(t *testing.T) {
+	expectNoErrors(t, `
+module main
+
+func clamp(n: int, lo: int, hi: int) int {
+  return n
+}
+
+func test() int {
+  let x = 5
+  return x.clamp(0, 10)
+}
+`)
+}
+
+// TestUFCSChained — chained UFCS calls work because each call's
+// return value becomes the receiver of the next call.
+func TestUFCSChained(t *testing.T) {
+	expectNoErrors(t, `
+module main
+
+func double(n: int) int {
+  return n
+}
+
+func inc(n: int) int {
+  return n
+}
+
+func test() int {
+  let x = 5
+  return x.double().inc()
+}
+`)
+}
+
+// TestUFCSReceiverTypeMismatch — if the function's first param type
+// doesn't accept the receiver's type, UFCS resolution fails. The
+// fallback path then errors via the standard "no field" message
+// because the selector is not a valid field access either.
+func TestUFCSReceiverTypeMismatch(t *testing.T) {
+	expectError(t, `
+module main
+
+func double(n: int) int {
+  return n
+}
+
+func test() int {
+  let s = "hello"
+  return s.double()
+}
+`, "cannot access .double on string")
+}
+
+// TestUFCSFunctionNotInScope — if the named function doesn't exist
+// in scope at all, the existing "no field" path fires.
+func TestUFCSFunctionNotInScope(t *testing.T) {
+	expectError(t, `
+module main
+
+func test() int {
+  let x = 5
+  return x.nonexistent()
+}
+`, "cannot access .nonexistent on int")
+}
+
+// TestUFCSDoesNotShadowModuleAccess — `posix.copy(...)` is a module
+// member call, not UFCS. The Tier 1 (import-namespace) path runs
+// before any UFCS attempt.
+func TestUFCSDoesNotShadowModuleAccess(t *testing.T) {
+	expectNoErrors(t, `
+module main
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "h" }
+
+std.deploy(name = "t", targets = [host]) {
+  posix.dir { path = "/etc/foo" }
+}
+`)
+}
+
+// TestUFCSStructFieldBeatsUFCS — when a struct has a function-typed
+// field, the field-access path wins over the UFCS fallback. (Scampi
+// doesn't have user-defined function-typed fields today, so this
+// just verifies that adding a free function doesn't accidentally
+// shadow existing field access semantics.)
+func TestUFCSDoesNotConflictWithExistingFields(t *testing.T) {
+	// Posix.PkgState is an enum; .present is a variant access, not
+	// a UFCS call. Adding a free function called `present` in scope
+	// should not break the existing access.
+	expectNoErrors(t, `
+module main
+import "std"
+import "std/posix"
+
+func present(s: string) string {
+  return s
+}
+
+func test() posix.PkgState {
+  return posix.PkgState.present
+}
+`)
+}
+
 func TestScopeMutability(t *testing.T) {
 	file := NewScope(nil, ScopeFile)
 	fn := NewScope(file, ScopeFunc)
