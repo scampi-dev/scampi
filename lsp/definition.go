@@ -35,17 +35,26 @@ func (s *Server) Definition(
 		params.Position.Character+1,
 	)
 
-	word := wordAtOffset(doc.Content, offsetFromPosition(
-		doc.Content,
-		params.Position.Line,
-		params.Position.Character,
-	))
+	cur := AnalyzeCursor(doc.Content, params.Position.Line, params.Position.Character)
+	word := cur.WordUnderCursor
 	if word == "" {
 		return nil, nil
 	}
 
-	// Search current file for definition first.
 	data := []byte(doc.Content)
+
+	// Struct-literal field reference: cursor sits on a field name
+	// inside a `Type { field = ... }` invocation. Resolve the type
+	// to a stub decl/func/type and jump to the matching parameter
+	// declaration. Detected by InCall (analyzeBraceContext sets it
+	// for struct-lit braces) plus a known func name.
+	if cur.InCall && cur.FuncName != "" && !strings.ContainsAny(word, ".") {
+		if loc, ok := s.stubDefs.LookupParam(cur.FuncName, word); ok {
+			return []protocol.Location{loc}, nil
+		}
+	}
+
+	// Search current file for definition first.
 	if span := findDefinition(f, word); span != nil {
 		return []protocol.Location{spanToLocation(filePath, data, *span)}, nil
 	}

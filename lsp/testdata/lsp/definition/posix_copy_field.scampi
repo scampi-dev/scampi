@@ -1,0 +1,12 @@
+module main
+
+import "std"
+import "std/posix"
+
+std.deploy(name = "x", targets = []) {
+  posix.copy {
+    src = posix.source_local { path = "/etc/passwd" }
+    dest = "/tmp/p"
+    pe‸rm = "0644"
+  }
+}
