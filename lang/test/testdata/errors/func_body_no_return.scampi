@@ -1,0 +1,11 @@
+module main
+
+type X {
+  name: string
+}
+
+// Empty body with declared return type — soundness gap pre-#172.
+// At runtime the call would return None where the type system
+// promised X. Must be caught at check time.
+func b() X {
+}

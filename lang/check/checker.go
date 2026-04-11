@@ -383,6 +383,23 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 	if d.Ret != nil {
 		ret = c.resolveType(d.Ret)
 	}
+	// A function with a body must declare a return type. Funcs are
+	// pure (no side effects), so a body without a return is a no-op.
+	// Stubs (no body) are allowed without a return type so builtin
+	// declarations and forward decls keep working.
+	if d.Body != nil && d.Ret == nil {
+		c.errAt(d.SrcSpan,
+			"func "+d.Name.Name+" with a body requires a return type")
+	}
+	// A function with a declared return type and a body must
+	// actually return something. Without this check, an empty body
+	// silently produces None at runtime where the type system
+	// promised X — a soundness gap.
+	if d.Body != nil && d.Ret != nil && !blockHasReturn(d.Body) {
+		c.errAt(d.SrcSpan,
+			"func "+d.Name.Name+
+				": declared return type but body has no return statement")
+	}
 	for _, p := range d.Params {
 		c.checkFieldAttributes(p)
 	}
@@ -416,6 +433,32 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 		c.returnType = prevRet
 		c.popScope()
 	}
+}
+
+// blockHasReturn reports whether b contains at least one
+// `return expr` statement (with a non-nil value), anywhere in
+// the body — including inside nested if/for/else blocks. Bare
+// `return` (Value == nil) does not count: a function declared to
+// return X must actually produce an X.
+//
+// This is intentionally simple — it does not verify that *every*
+// path returns. Tier 2 control-flow analysis is tracked separately.
+func blockHasReturn(b *ast.Block) bool {
+	if b == nil {
+		return false
+	}
+	found := false
+	ast.Walk(b, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if r, ok := n.(*ast.ReturnStmt); ok && r.Value != nil {
+			found = true
+			return false
+		}
+		return true
+	}, nil)
+	return found
 }
 
 func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {

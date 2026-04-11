@@ -1,0 +1,9 @@
+module main
+
+// Body present but no return type declared. Funcs are pure
+// (no side effects), so a body without a return type is a no-op
+// — disallow it. Stubs (no body) without a return type are still
+// allowed for forward declarations.
+func b() {
+  let x = 1
+}
