@@ -97,6 +97,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
+			pattern:        "lsp/oneshot.go",
+			allowedImports: "os,runtime/debug",
+		},
+		{
 			pattern:        "osutil/configdir.go",
 			allowedImports: "os",
 		},
