@@ -68,11 +68,11 @@ The two compose independently.
 
 The POSIX module ships three source resolvers:
 
-| Resolver               | Description                       |
-| ---------------------- | --------------------------------- |
-| `posix.source_local`   | File on the local machine         |
-| `posix.source_inline`  | String literal embedded in config |
-| `posix.source_remote`  | URL fetched via HTTP/HTTPS        |
+| Resolver              | Description                       |
+| --------------------- | --------------------------------- |
+| `posix.source_local`  | File on the local machine         |
+| `posix.source_inline` | String literal embedded in config |
+| `posix.source_remote` | URL fetched via HTTP/HTTPS        |
 
 Every step that accepts a `src` field works with every source resolver. You
 don't need a different step to download a file vs. copy a local one — the step

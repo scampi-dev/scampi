@@ -10,23 +10,23 @@ zypper (openSUSE), pkg (FreeBSD), brew (macOS).
 
 ## Fields
 
-| Field       | Type           | Required | Default                | Description                                  |
-| ----------- | -------------- | :------: | ---------------------- | -------------------------------------------- |
-| `packages`  | list\[string]  |    ✓     |                        | Package names to manage (`@std.nonempty`)    |
-| `source`    | `PkgSource`    |    ✓     |                        | Package source — see [below](#package-sources) |
-| `state`     | `PkgState`     |          | `PkgState.present`     | Desired state                                |
-| `desc`      | string?        |          |                        | Human-readable description                   |
-| `on_change` | list\[Step]    |          |                        | Steps to trigger when packages change        |
+| Field       | Type          | Required | Default            | Description                                    |
+| ----------- | ------------- | :------: | ------------------ | ---------------------------------------------- |
+| `packages`  | list\[string] |    ✓     |                    | Package names to manage (`@std.nonempty`)      |
+| `source`    | `PkgSource`   |    ✓     |                    | Package source — see [below](#package-sources) |
+| `state`     | `PkgState`    |          | `PkgState.present` | Desired state                                  |
+| `desc`      | string?       |          |                    | Human-readable description                     |
+| `on_change` | list\[Step]   |          |                    | Steps to trigger when packages change          |
 
 ## States
 
 `posix.PkgState` is an enum:
 
-| Value                 | Behavior                                                                        |
-| --------------------- | ------------------------------------------------------------------------------- |
-| `PkgState.present`    | Install if not already installed. Don't touch if already present (any version). |
-| `PkgState.absent`     | Remove if installed. No-op if already absent.                                   |
-| `PkgState.latest`     | Install or upgrade to the latest version available in the package index.        |
+| Value              | Behavior                                                                        |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `PkgState.present` | Install if not already installed. Don't touch if already present (any version). |
+| `PkgState.absent`  | Remove if installed. No-op if already absent.                                   |
+| `PkgState.latest`  | Install or upgrade to the latest version available in the package index.        |
 
 ## Package sources
 
@@ -34,11 +34,11 @@ The `source` field tells scampi where packages come from. Use
 `posix.pkg_system {}` for the target's built-in package manager, or a typed
 source decl for third-party repositories:
 
-| Source                 | Description                                  |
-| ---------------------- | -------------------------------------------- |
-| `posix.pkg_system`     | System package manager (apt, dnf, apk, etc.) |
-| `posix.pkg_apt_repo`   | Third-party APT repository (Debian/Ubuntu)   |
-| `posix.pkg_dnf_repo`   | Third-party DNF repository (Fedora/RHEL)     |
+| Source               | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `posix.pkg_system`   | System package manager (apt, dnf, apk, etc.) |
+| `posix.pkg_apt_repo` | Third-party APT repository (Debian/Ubuntu)   |
+| `posix.pkg_dnf_repo` | Third-party DNF repository (Fedora/RHEL)     |
 
 For third-party repositories, the step handles GPG key installation, repo
 configuration, and cache refresh automatically before installing packages.
@@ -47,21 +47,21 @@ configuration, and cache refresh automatically before installing packages.
 
 Configure an APT repository (Debian/Ubuntu).
 
-| Field        | Type            | Required | Description                                       |
-| ------------ | --------------- | :------: | ------------------------------------------------- |
-| `url`        | string          |    ✓     | Repository URL                                    |
-| `key_url`    | string          |    ✓     | URL to the GPG signing key                        |
-| `components` | list\[string]?  |          | Repository components (defaults to `["main"]`)    |
-| `suite`      | string?         |          | Distribution codename (auto-detected from target) |
+| Field        | Type           | Required | Description                                       |
+| ------------ | -------------- | :------: | ------------------------------------------------- |
+| `url`        | string         |    ✓     | Repository URL                                    |
+| `key_url`    | string         |    ✓     | URL to the GPG signing key                        |
+| `components` | list\[string]? |          | Repository components (defaults to `["main"]`)    |
+| `suite`      | string?        |          | Distribution codename (auto-detected from target) |
 
 ### `posix.pkg_dnf_repo`
 
 Configure a DNF repository (Fedora/RHEL).
 
-| Field     | Type     | Required | Description                                              |
-| --------- | -------- | :------: | -------------------------------------------------------- |
-| `url`     | string   |    ✓     | Repository base URL                                      |
-| `key_url` | string?  |          | URL to the GPG signing key (optional for unsigned repos) |
+| Field     | Type    | Required | Description                                              |
+| --------- | ------- | :------: | -------------------------------------------------------- |
+| `url`     | string  |    ✓     | Repository base URL                                      |
+| `key_url` | string? |          | URL to the GPG signing key (optional for unsigned repos) |
 
 ### Op chain
 

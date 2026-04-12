@@ -199,16 +199,16 @@ Attributes annotate types and parameters with extra meaning — validation
 rules, deprecation notices, documentation hints. Built-in attributes from
 `std` cover the common cases:
 
-| Attribute       | Purpose                                                  |
-| --------------- | -------------------------------------------------------- |
-| `@std.nonempty` | String parameter must not be empty                       |
-| `@std.path`     | Validate as a filesystem path (`absolute=true` optional) |
-| `@std.filemode` | Validate as octal/ls/posix file permissions              |
-| `@std.pattern`  | Match a regex (`regex="..."`)                            |
-| `@std.oneof`    | Must be one of a fixed set of strings                    |
-| `@std.secretkey`| String is a secret-store key (LSP completion enabled)    |
-| `@std.deprecated` | Emit a warning at every use                            |
-| `@std.since`    | Records the version a parameter was introduced          |
+| Attribute         | Purpose                                                  |
+| ----------------- | -------------------------------------------------------- |
+| `@std.nonempty`   | String parameter must not be empty                       |
+| `@std.path`       | Validate as a filesystem path (`absolute=true` optional) |
+| `@std.filemode`   | Validate as octal/ls/posix file permissions              |
+| `@std.pattern`    | Match a regex (`regex="..."`)                            |
+| `@std.oneof`      | Must be one of a fixed set of strings                    |
+| `@std.secretkey`  | String is a secret-store key (LSP completion enabled)    |
+| `@std.deprecated` | Emit a warning at every use                              |
+| `@std.since`      | Records the version a parameter was introduced           |
 
 You'll see them sprinkled across the standard library:
 
@@ -232,14 +232,14 @@ typed diagnostic — long before anything touches a target.
 
 scampi has a small set of top-level declaration kinds:
 
-| Kind         | Purpose                                                            |
-| ------------ | ------------------------------------------------------------------ |
-| `let`        | Bind a value to a name                                             |
-| `func`       | Define a function (called with parens)                             |
-| `decl`       | Define a declarative constructor (called with struct-literal braces) |
-| `type`       | Define a struct type                                               |
-| `enum`       | Define a closed set of named values                                |
-| `attribute`  | Define an attribute usable on parameters                           |
+| Kind        | Purpose                                                              |
+| ----------- | -------------------------------------------------------------------- |
+| `let`       | Bind a value to a name                                               |
+| `func`      | Define a function (called with parens)                               |
+| `decl`      | Define a declarative constructor (called with struct-literal braces) |
+| `type`      | Define a struct type                                                 |
+| `enum`      | Define a closed set of named values                                  |
+| `attribute` | Define an attribute usable on parameters                             |
 
 You can write your own `func` and `decl` — they're first-class. A user-defined
 `decl` is a great way to compose a reusable step pattern:
@@ -319,15 +319,15 @@ methods. It's also why `std.range` and `std.secret` look like methods on `std`
 The standard library is split into focused namespaces. You import only what
 you need.
 
-| Import              | What's inside                                                                                      |
-| ------------------- | -------------------------------------------------------------------------------------------------- |
-| `std`               | Core types (`Step`, `Target`), validation attributes, `deploy`, `secret`, `env`, `range`, secrets config |
-| `std/local`         | `local.target` — execute steps on the local machine                                                |
-| `std/ssh`           | `ssh.target` — execute steps on a remote host over SSH                                             |
-| `std/posix`         | All POSIX steps (copy, dir, template, pkg, service, user, group, mount, firewall, sysctl, run, …) and source/pkg composables |
-| `std/rest`          | REST target, request/resource steps, auth and TLS composables                                      |
-| `std/container`    | Container management (Docker, Podman)                                                              |
-| `std/test`          | Test framework: mock targets, assertions, matchers                                                 |
+| Import          | What's inside                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `std`           | Core types (`Step`, `Target`), validation attributes, `deploy`, `secret`, `env`, `range`, secrets config                     |
+| `std/local`     | `local.target` — execute steps on the local machine                                                                          |
+| `std/ssh`       | `ssh.target` — execute steps on a remote host over SSH                                                                       |
+| `std/posix`     | All POSIX steps (copy, dir, template, pkg, service, user, group, mount, firewall, sysctl, run, …) and source/pkg composables |
+| `std/rest`      | REST target, request/resource steps, auth and TLS composables                                                                |
+| `std/container` | Container management (Docker, Podman)                                                                                        |
+| `std/test`      | Test framework: mock targets, assertions, matchers                                                                           |
 
 A typical "real" config imports `std` plus one target module plus the step
 modules it uses. The webserver example at the top of this page imports `std`,

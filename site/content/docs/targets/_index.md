@@ -24,11 +24,11 @@ bind them to different deploy blocks.
 
 Each target type lives in its own module under `std/`:
 
-| Module          | Target           | Use for                                    |
-| --------------- | ---------------- | ------------------------------------------ |
-| `std/local`     | `local.target`   | Steps that run on the machine scampi is on |
-| `std/ssh`       | `ssh.target`     | Steps that run on a remote host over SSH   |
-| `std/rest`      | `rest.target`    | HTTP requests against a REST API           |
+| Module      | Target         | Use for                                    |
+| ----------- | -------------- | ------------------------------------------ |
+| `std/local` | `local.target` | Steps that run on the machine scampi is on |
+| `std/ssh`   | `ssh.target`   | Steps that run on a remote host over SSH   |
+| `std/rest`  | `rest.target`  | HTTP requests against a REST API           |
 
 ## Available targets
 

@@ -7,17 +7,17 @@ permission management.
 
 ## Fields
 
-| Field       | Type        | Required | Description                                                              |
-| ----------- | ----------- | :------: | ------------------------------------------------------------------------ |
-| `src`       | `Source`    |    ✓     | Source resolver — see [below](#source-resolvers)                         |
-| `dest`      | string      |    ✓     | Output file path on target (must be absolute, validated by `@std.path`)  |
-| `perm`      | string      |    ✓     | File permissions (`@std.filemode`)                                       |
-| `owner`     | string      |    ✓     | Owner user name or UID (`@std.nonempty`)                                 |
-| `group`     | string      |    ✓     | Group name or GID (`@std.nonempty`)                                      |
-| `data`      | any?        |          | Data sources for template rendering — see [below](#data-fields)          |
-| `verify`    | string?     |          | Command to validate content before writing (`%s` = temp file path)       |
-| `desc`      | string?     |          | Human-readable description                                               |
-| `on_change` | list\[Step] |          | Steps to trigger when this template modifies the destination             |
+| Field       | Type        | Required | Description                                                             |
+| ----------- | ----------- | :------: | ----------------------------------------------------------------------- |
+| `src`       | `Source`    |    ✓     | Source resolver — see [below](#source-resolvers)                        |
+| `dest`      | string      |    ✓     | Output file path on target (must be absolute, validated by `@std.path`) |
+| `perm`      | string      |    ✓     | File permissions (`@std.filemode`)                                      |
+| `owner`     | string      |    ✓     | Owner user name or UID (`@std.nonempty`)                                |
+| `group`     | string      |    ✓     | Group name or GID (`@std.nonempty`)                                     |
+| `data`      | any?        |          | Data sources for template rendering — see [below](#data-fields)         |
+| `verify`    | string?     |          | Command to validate content before writing (`%s` = temp file path)      |
+| `desc`      | string?     |          | Human-readable description                                              |
+| `on_change` | list\[Step] |          | Steps to trigger when this template modifies the destination            |
 
 ### Source resolvers
 
@@ -34,10 +34,10 @@ The `src` field accepts a `posix.Source` from one of three resolvers:
 
 The `data` value supports two top-level keys:
 
-| Key      | Type                   | Description                                          |
-| -------- | ---------------------- | ---------------------------------------------------- |
-| `values` | map[string, any]       | Arbitrary key-value pairs accessible in the template |
-| `env`    | map[string, string]    | Map template variable names to environment variables |
+| Key      | Type                | Description                                          |
+| -------- | ------------------- | ---------------------------------------------------- |
+| `values` | map[string, any]    | Arbitrary key-value pairs accessible in the template |
+| `env`    | map[string, string] | Map template variable names to environment variables |
 
 ## How it works
 

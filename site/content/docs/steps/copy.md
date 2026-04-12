@@ -6,16 +6,16 @@ Copy files or inline content to the target with owner and permission management.
 
 ## Fields
 
-| Field       | Type         | Required | Description                                                              |
-| ----------- | ------------ | :------: | ------------------------------------------------------------------------ |
-| `src`       | `Source`     |    ✓     | Source resolver — see [below](#source-resolvers)                         |
-| `dest`      | string       |    ✓     | Destination file path on target (must be absolute, validated by `@std.path`) |
-| `perm`      | string       |    ✓     | File permissions — `0644`, `u=rw,g=r,o=r`, or `rw-r--r--` (`@std.filemode`) |
-| `owner`     | string       |    ✓     | Owner user name or UID (`@std.nonempty`)                                 |
-| `group`     | string       |    ✓     | Group name or GID (`@std.nonempty`)                                      |
-| `verify`    | string?      |          | Command to validate content before writing (`%s` = temp file path)       |
-| `desc`      | string?      |          | Human-readable description                                               |
-| `on_change` | list\[Step]  |          | Steps to trigger when this copy modifies the destination                 |
+| Field       | Type        | Required | Description                                                                  |
+| ----------- | ----------- | :------: | ---------------------------------------------------------------------------- |
+| `src`       | `Source`    |    ✓     | Source resolver — see [below](#source-resolvers)                             |
+| `dest`      | string      |    ✓     | Destination file path on target (must be absolute, validated by `@std.path`) |
+| `perm`      | string      |    ✓     | File permissions — `0644`, `u=rw,g=r,o=r`, or `rw-r--r--` (`@std.filemode`)  |
+| `owner`     | string      |    ✓     | Owner user name or UID (`@std.nonempty`)                                     |
+| `group`     | string      |    ✓     | Group name or GID (`@std.nonempty`)                                          |
+| `verify`    | string?     |          | Command to validate content before writing (`%s` = temp file path)           |
+| `desc`      | string?     |          | Human-readable description                                                   |
+| `on_change` | list\[Step] |          | Steps to trigger when this copy modifies the destination                     |
 
 ## Source resolvers
 

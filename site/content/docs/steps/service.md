@@ -7,24 +7,24 @@ Works with systemd, OpenRC, and launchctl.
 
 ## Fields
 
-| Field       | Type             | Required | Default                  | Description                              |
-| ----------- | ---------------- | :------: | ------------------------ | ---------------------------------------- |
-| `name`      | string           |    ✓     |                          | Service name (`@std.nonempty`)           |
-| `state`     | `ServiceState`   |          | `ServiceState.running`   | Desired state — see [below](#states)     |
-| `enabled`   | bool             |          | `true`                   | Whether the service should start at boot |
-| `desc`      | string?          |          |                          | Human-readable description               |
-| `on_change` | list\[Step]      |          |                          | Steps to trigger when this service changes |
+| Field       | Type           | Required | Default                | Description                                |
+| ----------- | -------------- | :------: | ---------------------- | ------------------------------------------ |
+| `name`      | string         |    ✓     |                        | Service name (`@std.nonempty`)             |
+| `state`     | `ServiceState` |          | `ServiceState.running` | Desired state — see [below](#states)       |
+| `enabled`   | bool           |          | `true`                 | Whether the service should start at boot   |
+| `desc`      | string?        |          |                        | Human-readable description                 |
+| `on_change` | list\[Step]    |          |                        | Steps to trigger when this service changes |
 
 ## States
 
 `posix.ServiceState` is an enum:
 
-| Value                          | Behavior                                                                                                           |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `ServiceState.running`         | Start the service if not active. Idempotent.                                                                       |
-| `ServiceState.stopped`         | Stop the service if active. Idempotent.                                                                            |
-| `ServiceState.restarted`       | Restart the service unconditionally. Always fires.                                                                 |
-| `ServiceState.reloaded`        | Reload the service unconditionally. Falls back to restart if the init system doesn't support reload. Always fires. |
+| Value                    | Behavior                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `ServiceState.running`   | Start the service if not active. Idempotent.                                                                       |
+| `ServiceState.stopped`   | Stop the service if active. Idempotent.                                                                            |
+| `ServiceState.restarted` | Restart the service unconditionally. Always fires.                                                                 |
+| `ServiceState.reloaded`  | Reload the service unconditionally. Falls back to restart if the init system doesn't support reload. Always fires. |
 
 ## How it works
 
