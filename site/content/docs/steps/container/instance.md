@@ -10,49 +10,52 @@ Manage container lifecycle: running, stopped, or absent. See the
 
 ## Fields
 
-| Field         | Type        | Required | Default            | Description                           |
-| ------------- | ----------- | :------: | ------------------ | ------------------------------------- |
-| `name`        | string      |    ✓     |                    | Container name                        |
-| `image`       | string      |  ✓[^1]   |                    | Container image (tag or digest)       |
-| `desc`        | string      |          |                    | Human-readable description            |
-| `state`       | string      |          | `"running"`        | Desired [state](#states)              |
-| `restart`     | string      |          | `"unless-stopped"` | [Restart policy](#restart-policies)   |
-| `ports`       | list        |          |                    | [Port mappings](#port-mappings)       |
-| `env`         | dict        |          |                    | Environment variables                 |
-| `mounts`      | list        |          |                    | Bind mounts (`"host:container[:ro]"`) |
-| `args`        | list        |          |                    | Arguments for container entrypoint    |
-| `labels`      | dict        |          |                    | Container labels                      |
-| `healthcheck` | healthcheck |          |                    | [Healthcheck config](#healthchecks)   |
+| Field         | Type                       | Required | Default                       | Description                           |
+| ------------- | -------------------------- | :------: | ----------------------------- | ------------------------------------- |
+| `name`        | string                     |    ✓     |                               | Container name                        |
+| `image`       | string                     |  ✓[^1]   | `""`                          | Container image (tag or digest)       |
+| `state`       | `container.State`          |          | `State.running`               | Desired [state](#states)              |
+| `restart`     | `container.Restart`        |          | `Restart.unless_stopped`      | [Restart policy](#restart-policies)   |
+| `ports`       | list\[string]?             |          |                               | [Port mappings](#port-mappings)       |
+| `env`         | map\[string, string]?      |          |                               | Environment variables                 |
+| `mounts`      | list\[string]?             |          |                               | Bind mounts (`"host:container[:ro]"`) |
+| `args`        | list\[string]?             |          |                               | Arguments for container entrypoint    |
+| `labels`      | map\[string, string]?      |          |                               | Container labels                      |
+| `healthcheck` | `container.Healthcheck?`   |          |                               | [Healthcheck config](#healthchecks)   |
+| `desc`        | string?                    |          |                               | Human-readable description            |
+| `on_change`   | list\[Step]                |          |                               | Steps to trigger when this changes    |
 
 [^1]: Required when state is `running` or `stopped`, optional when `absent`.
 
 ## States
 
-| State     | Behavior                                    |
-| --------- | ------------------------------------------- |
-| `running` | Create and start. Recreate on config drift. |
-| `stopped` | Create but don't start. Recreate on drift.  |
-| `absent`  | Stop and remove.                            |
+`container.State` is an enum:
+
+| Value            | Behavior                                    |
+| ---------------- | ------------------------------------------- |
+| `State.running`  | Create and start. Recreate on config drift. |
+| `State.stopped`  | Create but don't start. Recreate on drift.  |
+| `State.absent`   | Stop and remove.                            |
 
 ## Restart policies
 
-Controls what happens when the container process exits or the host reboots.
-Manually stopping a container always works regardless of restart policy —
-the policy only governs automatic restarts.
+`container.Restart` is an enum. Controls what happens when the container
+process exits or the host reboots. Manually stopping a container always works
+regardless of restart policy — the policy only governs automatic restarts.
 
-| Policy           | On container exit | On host reboot | On manual stop                       |
-| ---------------- | ----------------- | -------------- | ------------------------------------ |
-| `always`         | Restart           | Restart        | Stays stopped until next host reboot |
-| `unless-stopped` | Restart           | Restart        | Stays stopped permanently            |
-| `on-failure`     | Restart           | Do not restart | Stays stopped permanently            |
-| `no`             | Do not restart    | Do not restart | Stays stopped permanently            |
+| Policy                  | On container exit | On host reboot | On manual stop                       |
+| ----------------------- | ----------------- | -------------- | ------------------------------------ |
+| `Restart.always`        | Restart           | Restart        | Stays stopped until next host reboot |
+| `Restart.unless_stopped`| Restart           | Restart        | Stays stopped permanently            |
+| `Restart.on_failure`    | Restart           | Do not restart | Stays stopped permanently            |
+| `Restart.no`            | Do not restart    | Do not restart | Stays stopped permanently            |
 
-The difference between `always` and `unless-stopped`: both restart on
+The difference between `always` and `unless_stopped`: both restart on
 container exit and host reboot, but if you manually stop an `always`
-container, it comes back after the next reboot. An `unless-stopped`
+container, it comes back after the next reboot. An `unless_stopped`
 container stays down once you stop it.
 
-### Why `unless-stopped` is the default
+### Why `unless_stopped` is the default
 
 When someone manually stops a container, they have a reason — debugging,
 an incident, a migration. The runtime should respect that decision and
@@ -61,7 +64,7 @@ runs scampi, which sees the container is stopped while the declared state
 is `running`, and starts it — with a visible change in the output.
 
 This keeps the responsibility clear: the restart policy handles crash
-recovery (process exits unexpectedly → restart automatically). Scampi
+recovery (process exits unexpectedly → restart automatically). scampi
 handles convergence (declared state says running → make it so). Manual
 interventions are respected until scampi explicitly overrides them.
 
@@ -74,17 +77,17 @@ core principle, that's the wrong default.
 
 Ports are specified as strings in the format `"hostPort:containerPort"`:
 
-```python
+```scampi
 ports = ["8080:80", "9090:9090"]
 ```
 
 Extended formats:
 
-| Format                            | Example                 | Description           |
-| --------------------------------- | ----------------------- | --------------------- |
-| `hostPort:containerPort`          | `"8080:80"`             | Bind to all addresses |
+| Format                            | Example                  | Description           |
+| --------------------------------- | ------------------------ | --------------------- |
+| `hostPort:containerPort`          | `"8080:80"`              | Bind to all addresses |
 | `ip:hostPort:containerPort`       | `"127.0.0.1:8080:80"`   | Bind to specific IP   |
-| `hostPort:containerPort/proto`    | `"5000:5000/udp"`       | UDP instead of TCP    |
+| `hostPort:containerPort/proto`    | `"5000:5000/udp"`        | UDP instead of TCP    |
 | `ip:hostPort:containerPort/proto` | `"127.0.0.1:53:53/udp"` | IP + UDP              |
 
 TCP is the default protocol. All four fields are preserved across check,
@@ -98,36 +101,34 @@ drift detection, and recreate.
 > available — distroless and scratch-based images cannot use healthchecks
 > yet. Exec-form healthchecks (without a shell) are planned.
 
-Use `container.healthcheck.cmd()` to define a health probe:
+Use `container.Healthcheck` to define a health probe:
 
-```python
-container.instance(
-    name = "app",
-    image = "myapp:latest",
-    healthcheck = container.healthcheck.cmd(
-        cmd = "curl -f http://localhost:8080/health",
-        interval = "10s",
-        timeout = "5s",
-        retries = 5,
-    ),
-)
+```scampi
+container.instance {
+  name  = "app"
+  image = "myapp:latest"
+  healthcheck = container.Healthcheck {
+    cmd      = "curl -f http://localhost:8080/health"
+    interval = "10s"
+    timeout  = "5s"
+    retries  = 5
+  }
+}
 ```
 
-| Field          | Type   | Default | Description                         |
-| -------------- | ------ | ------- | ----------------------------------- |
-| `cmd`          | string | —       | Health check command (required)     |
-| `interval`     | string | `"30s"` | Time between checks                 |
-| `timeout`      | string | `"30s"` | Maximum time for one check          |
-| `retries`      | int    | `3`     | Failures before reporting unhealthy |
-| `start_period` | string | `"0s"`  | Grace period before checks start    |
+`container.Healthcheck` fields:
+
+| Field      | Type    | Required | Description                         |
+| ---------- | ------- | :------: | ----------------------------------- |
+| `cmd`      | string  |    ✓     | Health check command                |
+| `interval` | string? |          | Time between checks                 |
+| `timeout`  | string? |          | Maximum time for one check          |
+| `retries`  | int?    |          | Failures before reporting unhealthy |
 
 Duration fields accept Go duration strings: `"300ms"`, `"1.5s"`, `"2m30s"`,
 `"1h"`. Valid units are `ns`, `us`/`µs`, `ms`, `s`, `m`, `h`.
 
-Defaults are set explicitly by scampi, not inherited from the container
-runtime, so behavior is identical across runtimes.
-
-When a healthcheck is defined and `state = "running"`, scampi waits for
+When a healthcheck is defined and `state = State.running`, scampi waits for
 the container to report healthy after starting it. If the container
 becomes unhealthy, the apply fails with a diagnostic.
 
@@ -150,33 +151,33 @@ There are no in-place updates.
 
 ### Run a container
 
-```python
-container.instance(
-    name = "prometheus",
-    image = "prom/prometheus:v3.2.0",
-    ports = ["9090:9090"],
-)
+```scampi
+container.instance {
+  name  = "prometheus"
+  image = "prom/prometheus:v3.2.0"
+  ports = ["9090:9090"]
+}
 ```
 
 ### Pin an image version
 
-```python
-container.instance(
-    name = "grafana",
-    image = "grafana/grafana:11.5.2",
-    ports = ["3000:3000"],
-    restart = "unless-stopped",
-)
+```scampi
+container.instance {
+  name    = "grafana"
+  image   = "grafana/grafana:11.5.2"
+  ports   = ["3000:3000"]
+  restart = container.Restart.unless_stopped
+}
 ```
 
 ### Pass environment variables
 
-```python
-container.instance(
-    name = "app",
-    image = "myapp:latest",
-    env = {"DB_HOST": "db.local", "DB_PORT": "5432"},
-)
+```scampi
+container.instance {
+  name  = "app"
+  image = "myapp:latest"
+  env   = {"DB_HOST": "db.local", "DB_PORT": "5432"}
+}
 ```
 
 Only declared variables are checked for drift — extra variables set by the
@@ -184,37 +185,37 @@ base image are ignored.
 
 ### Bind mount host directories
 
-```python
-dir(path = "/opt/prometheus/data")
+```scampi
+posix.dir { path = "/opt/prometheus/data" }
 
-container.instance(
-    name = "prometheus",
-    image = "prom/prometheus:v3.2.0",
-    mounts = ["/opt/prometheus/data:/prometheus"],
-)
+container.instance {
+  name   = "prometheus"
+  image  = "prom/prometheus:v3.2.0"
+  mounts = ["/opt/prometheus/data:/prometheus"]
+}
 ```
 
-Host directories are **not** created by the container step — use `dir()`
+Host directories are **not** created by the container step — use `posix.dir`
 before it. The engine automatically orders the `dir` step before the
 container step via resource dependencies.
 
 Append `:ro` to make the mount read-only:
 
-```python
-mounts = ["/opt/config:/etc/app:ro"],
+```scampi
+mounts = ["/opt/config:/etc/app:ro"]
 ```
 
 ### Pass arguments to the entrypoint
 
-```python
-container.instance(
-    name = "prometheus",
-    image = "prom/prometheus:v3.2.0",
-    args = [
-        "--config.file=/etc/prometheus/prometheus.yml",
-        "--storage.tsdb.retention.time=30d",
-    ],
-)
+```scampi
+container.instance {
+  name  = "prometheus"
+  image = "prom/prometheus:v3.2.0"
+  args  = [
+    "--config.file=/etc/prometheus/prometheus.yml",
+    "--storage.tsdb.retention.time=30d",
+  ]
+}
 ```
 
 Arguments are passed to the container's entrypoint. If `args` is not
@@ -223,12 +224,12 @@ for drift.
 
 ### Add labels
 
-```python
-container.instance(
-    name = "app",
-    image = "myapp:latest",
-    labels = {"app": "myapp", "env": "production"},
-)
+```scampi
+container.instance {
+  name   = "app"
+  image  = "myapp:latest"
+  labels = {"app": "myapp", "env": "production"}
+}
 ```
 
 Only declared labels are checked for drift — labels added by the base
@@ -236,9 +237,9 @@ image are ignored.
 
 ### Remove a container
 
-```python
-container.instance(
-    name = "old-service",
-    state = "absent",
-)
+```scampi
+container.instance {
+  name  = "old-service"
+  state = container.State.absent
+}
 ```
