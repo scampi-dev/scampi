@@ -37,9 +37,12 @@ You can also define your own steps in user modules. See the
 [Step Reference]({{< relref "../steps" >}}) for everything the standard library
 provides.
 
-Steps within a deploy block execute in order. Each step is planned, checked
-against current state, and executed only if reality differs from your
-declaration.
+Steps declare what they **provide** (e.g. a directory path) and what they
+**require** (e.g. a parent directory). The engine builds a dependency graph
+from these declarations and reorders steps for correctness — independent
+steps can run in parallel, dependent steps are sequenced automatically.
+You write them in whatever order makes sense to read; the engine figures out
+the execution order.
 
 ## Check and execute
 
