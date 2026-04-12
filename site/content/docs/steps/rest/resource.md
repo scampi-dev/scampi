@@ -7,51 +7,52 @@ Declarative REST resource management. Composes
 convergence-aware step that queries for a resource and reacts based on
 whether it was found or missing.
 
-```python
-rest.resource(
-    desc = "app.example.com proxy host",
-    query = rest.request(
-        method = "GET",
-        path = "/nginx/proxy-hosts",
-        check = rest.jq(expr='.[] | select(.domain_names[0] == "app.example.com")'),
-    ),
-    missing = rest.request(
-        method = "POST",
-        path = "/nginx/proxy-hosts",
-    ),
-    found = rest.request(
-        method = "PUT",
-        path = "/nginx/proxy-hosts/{id}",
-    ),
-    bindings = {
-        "id": rest.jq(expr=".id"),
-    },
-    state = {
-        "domain_names": ["app.example.com"],
-        "forward_host": "10.10.2.80",
-        "forward_port": 2001,
-        "certificate_id": 9,
-        "ssl_forced": True,
-    },
-)
+```scampi
+rest.resource {
+  desc  = "app.example.com proxy host"
+  query = rest.request {
+    method = "GET"
+    path   = "/nginx/proxy-hosts"
+    check  = rest.jq { expr = ".[] | select(.domain_names[0] == \"app.example.com\")" }
+  }
+  missing = rest.request {
+    method = "POST"
+    path   = "/nginx/proxy-hosts"
+  }
+  found = rest.request {
+    method = "PUT"
+    path   = "/nginx/proxy-hosts/{id}"
+  }
+  bindings = {
+    "id": rest.jq { expr = ".id" },
+  }
+  state = {
+    "domain_names":  ["app.example.com"],
+    "forward_host":  "10.10.2.80",
+    "forward_port":  2001,
+    "certificate_id": 9,
+    "ssl_forced":    true,
+  }
+}
 ```
 
 ## Fields
 
-| Field      | Required | Description                                          |
-| ---------- | :------: | ---------------------------------------------------- |
-| `query`    |    ✓     | `rest.request()` to check if the resource exists     |
-| `missing`  |          | `rest.request()` to execute when resource is missing |
-| `found`    |          | `rest.request()` to execute when resource is found   |
-| `state`    |          | Desired resource state (dict)                        |
-| `bindings` |          | Dict mapping names to `rest.jq()` expressions        |
-| `desc`     |          | Human-readable description                           |
+| Field       | Type                       | Required | Description                                          |
+| ----------- | -------------------------- | :------: | ---------------------------------------------------- |
+| `query`     | `rest.request?`            |          | Request to check if the resource exists              |
+| `missing`   | `rest.request?`            |          | Request to execute when resource is missing          |
+| `found`     | `rest.request?`            |          | Request to execute when resource is found            |
+| `state`     | map\[string, any]?         |          | Desired resource state (dict)                        |
+| `bindings`  | map\[string, rest.Check]?  |          | Name-to-jq mappings for path interpolation           |
+| `desc`      | string?                    |          | Human-readable description                           |
+| `on_change` | list\[Step]                |          | Steps to trigger when the resource changes           |
 
 At least one of `missing` or `found` is required.
 
 ## Query
 
-The `query` must be a `rest.request()` with a `rest.jq()` check. The jq
+The `query` must be a `rest.request` with a `rest.jq` check. The jq
 expression filters the API response to find the target resource:
 
 - If the expression matches nothing, the resource is **missing** and the
@@ -59,7 +60,7 @@ expression filters the API response to find the target resource:
 - If the expression matches an object, the resource is **found**. That
   object becomes available for drift detection and binding resolution.
 
-The query check must use `rest.jq()`, not `rest.status()`. The step needs the
+The query check must use `rest.jq`, not `rest.status`. The step needs the
 matched object, not just a status code.
 
 ## State and drift detection
@@ -79,35 +80,35 @@ When `found` is set without `state`, the `found` request fires
 unconditionally whenever the query matches — useful for delete-if-exists
 patterns:
 
-```python
-rest.resource(
-    query = rest.request(
-        method = "GET",
-        path = "/nginx/proxy-hosts",
-        check = rest.jq(expr='.[] | select(.domain_names[0] == "stale.example.com")'),
-    ),
-    found = rest.request(method = "DELETE", path = "/nginx/proxy-hosts/{id}"),
-    bindings = {"id": rest.jq(expr=".id")},
-)
+```scampi
+rest.resource {
+  query = rest.request {
+    method = "GET"
+    path   = "/nginx/proxy-hosts"
+    check  = rest.jq { expr = ".[] | select(.domain_names[0] == \"stale.example.com\")" }
+  }
+  found    = rest.request { method = "DELETE", path = "/nginx/proxy-hosts/{id}" }
+  bindings = {"id": rest.jq { expr = ".id" }}
+}
 ```
 
 ## Bindings
 
 Bindings extract values from the query result for use in the `found`
-request path. Each binding maps a name to a `rest.jq()` expression that
+request path. Each binding maps a name to a `rest.jq` expression that
 runs against the matched query result object.
 
-```python
+```scampi
 bindings = {
-    "id": rest.jq(expr=".id"),
-    "version": rest.jq(expr=".meta.version"),
+  "id":      rest.jq { expr = ".id" },
+  "version": rest.jq { expr = ".meta.version" },
 }
 ```
 
 Resolved binding values replace `{name}` placeholders in the `found` path:
 
-```python
-found = rest.request(method="PUT", path="/hosts/{id}?v={version}")
+```scampi
+found = rest.request { method = "PUT", path = "/hosts/{id}?v={version}" }
 ```
 
 Bindings only apply to the `found` request path and require `found` to be
