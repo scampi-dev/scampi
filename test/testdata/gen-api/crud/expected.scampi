@@ -6,61 +6,60 @@
 // It is provided as-is with no warranty. Scampi's license does not
 // apply to generated output. If the source specification carries its
 // own license terms, those terms govern this file.
-//
-// Usage: load("spec.api.scampi", ...)
+
+module spec
+
+import "std/rest"
 
 // Items
 // -----------------------------------------------------------------------------
 
 // GET /items — List items
-def list_items(check = None):
-    return rest.request(
-        method = "GET",
-        path = "/items",
-        check = check,
-    )
+func list_items(check: rest.Check? = none) std.Step {
+  return rest.request {
+    method = "GET"
+    path   = "/items"
+    check  = check
+  }
+}
 
 // POST /items — Create an item
-def create_item(name = None, count = None):
-    body = {}
-    if name != None:
-        body["name"] = name
-    if count != None:
-        body["count"] = count
-    if body:
-        return rest.request(
-            method = "POST",
-            path = "/items",
-            body = rest.body.json(body),
-        )
-    return rest.request(
-        method = "POST",
-        path = "/items",
-    )
+func create_item(name: string? = none, count: string? = none) std.Step {
+  let body = {}
+  if name != none {
+    body["name"] = name
+  }
+  if count != none {
+    body["count"] = count
+  }
+  return rest.request {
+    method = "POST"
+    path   = "/items"
+    body   = rest.body_json { data = body }
+  }
+}
 
 
 // {Id}
 // -----------------------------------------------------------------------------
 
 // PUT /items/{id} — Update an item
-def update_item(id, name = None):
-    body = {}
-    if name != None:
-        body["name"] = name
-    if body:
-        return rest.request(
-            method = "PUT",
-            path = "/items/" + id,
-            body = rest.body.json(body),
-        )
-    return rest.request(
-        method = "PUT",
-        path = "/items/" + id,
-    )
+func update_item(id: string, name: string? = none) std.Step {
+  let body = {}
+  if name != none {
+    body["name"] = name
+  }
+  return rest.request {
+    method = "PUT"
+    path   = "/items/" + id
+    body   = rest.body_json { data = body }
+  }
+}
 
 // DELETE /items/{id} — Delete an item
-def delete_item(id):
-    return rest.request(
-        method = "DELETE",
-        path = "/items/" + id,
-    )
+func delete_item(id: string) std.Step {
+  return rest.request {
+    method = "DELETE"
+    path   = "/items/" + id
+  }
+}

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package gen implements code generators for scampi Starlark modules.
+// Package gen implements code generators for scampi modules.
 package gen
 
 import (
@@ -217,9 +217,12 @@ func (g *apiGenerator) header() {
 	g.line("// It is provided as-is with no warranty. Scampi's license does not")
 	g.line("// apply to generated output. If the source specification carries its")
 	g.line("// own license terms, those terms govern this file.")
-	starFile := strings.TrimSuffix(filepath.Base(g.specPath), filepath.Ext(g.specPath)) + ".api.scampi"
-	g.line("//")
-	g.line(`// Usage: load("%s", ...)`, starFile)
+	modName := strings.TrimSuffix(filepath.Base(g.specPath), filepath.Ext(g.specPath))
+	modName = sanitizePath(modName)
+	g.line("")
+	g.line("module %s", modName)
+	g.line("")
+	g.line(`import "std/rest"`)
 }
 
 func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operation) {
@@ -236,60 +239,52 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 	}
 	g.line("// %s %s — %s", method, path, summary)
 
-	g.writeFuncSignature(funcName, params.all())
+	g.writeFuncSignature(funcName, params.allTyped())
 
 	fullPath := g.pathPrefix + path
 	pathExpr := interpolatePathParams(fullPath, params.pathParams)
 
 	if params.hasBody() {
-		// Build body only from params that were actually passed.
-		// All body params default to None so the function can be called
-		// without body args — useful as a rest.resource template.
-		g.line("    body = {}")
+		g.line("  let body = {}")
 		for _, f := range params.allBody() {
-			g.line("    if %s != None:", f.paramName)
-			g.line("        body[%q] = %s", f.apiName, f.paramName)
+			g.line("  if %s != none {", f.paramName)
+			g.line("    body[%q] = %s", f.apiName, f.paramName)
+			g.line("  }")
 		}
-		g.line("    if body:")
-		g.line("        return rest.request(")
-		g.line("            method = %q,", method)
-		g.line("            path = %s,", pathExpr)
-		g.line("            body = rest.body.json(body),")
+		g.line("  return rest.request {")
+		g.line("    method = %q", method)
+		g.line("    path   = %s", pathExpr)
+		g.line("    body   = rest.body_json { data = body }")
 		if method == "GET" {
-			g.line("            check = check,")
+			g.line("    check  = check")
 		}
-		g.line("        )")
-		g.line("    return rest.request(")
-		g.line("        method = %q,", method)
-		g.line("        path = %s,", pathExpr)
-		if method == "GET" {
-			g.line("        check = check,")
-		}
-		g.line("    )")
+		g.line("  }")
 	} else {
-		g.line("    return rest.request(")
-		g.line("        method = %q,", method)
-		g.line("        path = %s,", pathExpr)
+		g.line("  return rest.request {")
+		g.line("    method = %q", method)
+		g.line("    path   = %s", pathExpr)
 		if method == "GET" {
-			g.line("        check = check,")
+			g.line("    check  = check")
 		}
-		g.line("    )")
+		g.line("  }")
 	}
+	g.line("}")
 }
 
 func (g *apiGenerator) writeFuncSignature(name string, params []string) {
 	if len(params) <= 2 {
-		g.line("def %s(%s):", name, strings.Join(params, ", "))
+		g.line("func %s(%s) std.Step {", name, strings.Join(params, ", "))
 		return
 	}
-	g.line("def %s(", name)
+	g.line("func %s(", name)
 	for i, p := range params {
 		suffix := ","
 		if i == len(params)-1 {
-			suffix = "):"
+			suffix = ""
 		}
-		g.line("        %s%s", p, suffix)
+		g.line("  %s%s", p, suffix)
 	}
+	g.line(") std.Step {")
 }
 
 func (g *apiGenerator) line(format string, args ...any) {
@@ -301,7 +296,7 @@ func (g *apiGenerator) line(format string, args ...any) {
 
 type field struct {
 	apiName   string // name in the API schema (dict key)
-	paramName string // name in the Starlark function signature
+	paramName string // name in the generated function signature
 }
 
 type opParams struct {
@@ -322,19 +317,39 @@ func (p *opParams) allBody() []field {
 	return out
 }
 
+// all returns the Starlark-style untyped param list (legacy, unused).
 func (p *opParams) all() []string {
 	var out []string
 	out = append(out, p.pathParams...)
-	// Body params all default to None so the function works as a
-	// rest.resource template (method+path only, no body).
 	for _, f := range p.required {
-		out = append(out, f.paramName+" = None")
+		out = append(out, f.paramName+" = none")
 	}
 	for _, f := range p.optional {
-		out = append(out, f.paramName+" = None")
+		out = append(out, f.paramName+" = none")
 	}
 	if p.isGET {
-		out = append(out, "check = None")
+		out = append(out, "check = none")
+	}
+	return out
+}
+
+// allTyped returns the scampi-lang typed param list. Path params are
+// required strings; body params are optional strings defaulting to
+// none (so the function works as a rest.resource template). GET
+// functions get a trailing `check: rest.Check?` parameter.
+func (p *opParams) allTyped() []string {
+	var out []string
+	for _, name := range p.pathParams {
+		out = append(out, name+": string")
+	}
+	for _, f := range p.required {
+		out = append(out, f.paramName+": string? = none")
+	}
+	for _, f := range p.optional {
+		out = append(out, f.paramName+": string? = none")
+	}
+	if p.isGET {
+		out = append(out, "check: rest.Check? = none")
 	}
 	return out
 }
@@ -479,7 +494,7 @@ func sanitizePath(path string) string {
 }
 
 // interpolatePathParams converts a path like "/v1/sites/{siteId}/networks"
-// into a Starlark expression: "/v1/sites/" + siteId + "/networks".
+// into a scampi expression: "/v1/sites/" + siteId + "/networks".
 // If there are no path params, returns the quoted literal.
 func interpolatePathParams(path string, params []string) string {
 	if len(params) == 0 {
@@ -493,7 +508,7 @@ func interpolatePathParams(path string, params []string) string {
 		result = strings.Replace(result, placeholder, "\x00"+p+"\x00", 1)
 	}
 
-	// Split on the sentinel and build Starlark concatenation.
+	// Split on the sentinel and build scampi string concatenation.
 	parts := strings.Split(result, "\x00")
 	var segments []string
 	for i, part := range parts {

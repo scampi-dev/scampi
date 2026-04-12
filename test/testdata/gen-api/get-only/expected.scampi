@@ -6,16 +6,19 @@
 // It is provided as-is with no warranty. Scampi's license does not
 // apply to generated output. If the source specification carries its
 // own license terms, those terms govern this file.
-//
-// Usage: load("spec.api.scampi", ...)
+
+module spec
+
+import "std/rest"
 
 // Things
 // -----------------------------------------------------------------------------
 
 // GET /things — List things
-def get_things(check = None):
-    return rest.request(
-        method = "GET",
-        path = "/things",
-        check = check,
-    )
+func get_things(check: rest.Check? = none) std.Step {
+  return rest.request {
+    method = "GET"
+    path   = "/things"
+    check  = check
+  }
+}

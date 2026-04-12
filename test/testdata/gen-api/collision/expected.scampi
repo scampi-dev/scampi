@@ -6,29 +6,30 @@
 // It is provided as-is with no warranty. Scampi's license does not
 // apply to generated output. If the source specification carries its
 // own license terms, those terms govern this file.
-//
-// Usage: load("spec.api.scampi", ...)
+
+module spec
+
+import "std/rest"
 
 // {Username}
 // -----------------------------------------------------------------------------
 
 // PUT /users/{username} — Update user
-def update_user(
-        username,
-        email = None,
-        body_username = None):
-    body = {}
-    if email != None:
-        body["email"] = email
-    if body_username != None:
-        body["username"] = body_username
-    if body:
-        return rest.request(
-            method = "PUT",
-            path = "/users/" + username,
-            body = rest.body.json(body),
-        )
-    return rest.request(
-        method = "PUT",
-        path = "/users/" + username,
-    )
+func update_user(
+  username: string,
+  email: string? = none,
+  body_username: string? = none
+) std.Step {
+  let body = {}
+  if email != none {
+    body["email"] = email
+  }
+  if body_username != none {
+    body["username"] = body_username
+  }
+  return rest.request {
+    method = "PUT"
+    path   = "/users/" + username
+    body   = rest.body_json { data = body }
+  }
+}
