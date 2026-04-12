@@ -43,18 +43,37 @@ func NewTestRegistry() *TestRegistry {
 
 // AddMemTarget records a new in-memory POSIX mock with its
 // expectations. Called by MemTargetType.Create during link.
-func (r *TestRegistry) AddMemTarget(e MemTargetEntry) {
+//
+// Returns the canonical entry for the given name — either a fresh
+// one (newly registered) or the existing entry if one is already
+// registered with that name. Multi-deploy tests rely on this: each
+// engine.New call wraps a separate ResolvedConfig and triggers its
+// own MemTargetType.Create, but we want all of them to share the
+// same MemTarget so the verifier sees the combined post-apply state.
+func (r *TestRegistry) AddMemTarget(e MemTargetEntry) MemTargetEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	for _, existing := range r.memTargets {
+		if existing.Name == e.Name {
+			return existing
+		}
+	}
 	r.memTargets = append(r.memTargets, e)
+	return e
 }
 
 // AddMemREST records a new in-memory REST mock with its
-// expectations. Called by MemRESTTargetType.Create during link.
-func (r *TestRegistry) AddMemREST(e MemRESTEntry) {
+// expectations. Same dedup-by-name semantics as AddMemTarget.
+func (r *TestRegistry) AddMemREST(e MemRESTEntry) MemRESTEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	for _, existing := range r.memRESTs {
+		if existing.Name == e.Name {
+			return existing
+		}
+	}
 	r.memRESTs = append(r.memRESTs, e)
+	return e
 }
 
 // MemTargets returns a snapshot of every in-memory POSIX mock

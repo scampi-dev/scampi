@@ -75,14 +75,26 @@ func runLangTestFile(
 		}
 	}
 
-	// REST mock verification is intentionally a Phase-5 follow-up
-	// since the request matcher language is more involved than the
-	// state-slot matchers covered by VerifyMemTarget. For now,
-	// REST mocks count as passing as long as the deploy applied
-	// cleanly — same semantic the legacy testkit had until you
-	// added explicit assertions.
-	for range tests.MemRESTs() {
-		passed++
+	// REST mock verification: walk each registered REST mock and
+	// run its expect_requests matchers against the recorded calls.
+	// Each mock counts as one logical test.
+	for _, entry := range tests.MemRESTs() {
+		mismatches := testkit.VerifyMemREST(entry.ExpectRequests, entry.Mock)
+		if len(mismatches) == 0 {
+			passed++
+			continue
+		}
+		failed++
+		for _, m := range mismatches {
+			em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(
+				testPath,
+				&testkit.TestFail{
+					Description: entry.Name + ": " + m.Key,
+					Expected:    m.Matcher,
+					Actual:      m.Reason,
+				},
+			))
+		}
 	}
 
 	return passed, failed, nil

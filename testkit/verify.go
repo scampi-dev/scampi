@@ -3,6 +3,7 @@
 package testkit
 
 import (
+	"fmt"
 	"sort"
 
 	"scampi.dev/scampi/lang/eval"
@@ -117,6 +118,115 @@ func appendMismatches(dst, src []Mismatch) []Mismatch {
 		return dst
 	}
 	return append(dst, src...)
+}
+
+// VerifyMemREST walks an `expect_requests = [test.request(...), ...]`
+// list and verifies each entry against the recorded calls on a
+// target.MemREST. Returns every mismatch found.
+//
+// Each request matcher is matched against the mock's recorded calls
+// by method+path. Cardinality is checked first (count exact, or
+// count_at_least floor — defaults to "at least one match"). For
+// every matching recorded call, the optional body matcher is
+// applied; any mismatch becomes a Mismatch keyed by "METHOD path".
+func VerifyMemREST(expect *eval.ListVal, mock *target.MemREST) []Mismatch {
+	if expect == nil || mock == nil {
+		return nil
+	}
+	calls := mock.Calls()
+	var out []Mismatch
+
+	for _, item := range expect.Items {
+		req, ok := item.(*eval.StructVal)
+		if !ok || req.TypeName != "request" {
+			continue
+		}
+		method := stringField(req, "method")
+		path := stringField(req, "path")
+		key := method + " " + path
+
+		matching := callsMatching(calls, method, path)
+
+		// Cardinality check.
+		count, hasCount := intField(req, "count")
+		atLeast, hasAtLeast := intField(req, "count_at_least")
+		switch {
+		case hasCount:
+			if len(matching) != count {
+				out = append(out, Mismatch{
+					Slot:    SlotRequestBody,
+					Key:     key,
+					Matcher: "request",
+					Reason: fmt.Sprintf(
+						"expected exactly %d call(s), got %d",
+						count, len(matching),
+					),
+				})
+				continue
+			}
+		case hasAtLeast:
+			if len(matching) < atLeast {
+				out = append(out, Mismatch{
+					Slot:    SlotRequestBody,
+					Key:     key,
+					Matcher: "request",
+					Reason: fmt.Sprintf(
+						"expected at least %d call(s), got %d",
+						atLeast, len(matching),
+					),
+				})
+				continue
+			}
+		default:
+			if len(matching) == 0 {
+				out = append(out, Mismatch{
+					Slot:    SlotRequestBody,
+					Key:     key,
+					Matcher: "request",
+					Reason:  "expected at least one matching call, got none",
+				})
+				continue
+			}
+		}
+
+		// Body matcher (optional). Applied to every recorded call
+		// that matched method+path. A single body mismatch fails
+		// the request matcher — we don't try to track which call
+		// failed because the user typically only cares that some
+		// call had the wrong body.
+		body, ok := req.Fields["body"].(*eval.StructVal)
+		if !ok {
+			continue
+		}
+		for _, call := range matching {
+			if m := Match(body, SlotRequestBody, key, call.Body); m != nil {
+				out = append(out, *m)
+				break
+			}
+		}
+	}
+	return out
+}
+
+func callsMatching(calls []target.MemRESTCall, method, path string) []target.MemRESTCall {
+	var out []target.MemRESTCall
+	for _, c := range calls {
+		if c.Method == method && c.Path == path {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+func intField(sv *eval.StructVal, name string) (int, bool) {
+	if sv.Fields == nil {
+		return 0, false
+	}
+	v, ok := sv.Fields[name].(*eval.IntVal)
+	if !ok {
+		return 0, false
+	}
+	return int(v.V), true
 }
 
 // Slot observers

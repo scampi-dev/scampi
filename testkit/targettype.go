@@ -62,7 +62,11 @@ func (t MemTargetType) Create(
 		if expect, ok := cfg.Expect.(*eval.StructVal); ok {
 			entry.Expect = expect
 		}
-		t.Registry.AddMemTarget(entry)
+		// Dedupe by name — multi-deploy tests trigger Create once
+		// per ResolvedConfig but want to share a single backing
+		// MemTarget so the verifier sees the combined state.
+		canonical := t.Registry.AddMemTarget(entry)
+		return canonical.Mock, nil
 	}
 	return mock, nil
 }
@@ -121,7 +125,8 @@ func (t MemRESTTargetType) Create(
 		if list, ok := cfg.ExpectRequests.(*eval.ListVal); ok {
 			entry.ExpectRequests = list
 		}
-		t.Registry.AddMemREST(entry)
+		canonical := t.Registry.AddMemREST(entry)
+		return canonical.Mock, nil
 	}
 	return mock, nil
 }

@@ -304,7 +304,9 @@ func matchPkgStatus(matcher *eval.StructVal, slot Slot, key string, observed any
 // -----------------------------------------------------------------------------
 
 func slotAcceptsString(slot Slot) bool {
-	return slot == SlotFileContent || slot == SlotRequestBody
+	return slot == SlotFileContent ||
+		slot == SlotRequestBody ||
+		slot == SlotSymlinkTarget
 }
 
 func stringFromObserved(observed any) (string, bool) {
