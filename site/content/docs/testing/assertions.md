@@ -1,118 +1,62 @@
 ---
-title: Assertions
+title: Matchers
 weight: 2
 ---
 
-`test.assert.that(t)` returns an assertion builder for a test target.
-Chain a resource selector with a check method:
+Matchers declare expected end-state on a test target. They live inside the
+`expect` field of `test.target_in_memory(...)` and in the `body` field of
+`test.request(...)`. All matchers return the opaque `matchers.Matcher` type.
 
-```starlark
-a = test.assert.that(t)
+```scampi
+import "std/test/matchers"
 
-a.file("/etc/app.conf").exists()
-a.service("nginx").is_running()
-a.request("POST", "/items").was_called()
+expect = test.ExpectedState {
+  files    = {"/etc/app.conf": matchers.has_substring("listen 8080")}
+  services = {"nginx": matchers.has_svc_status(posix.ServiceState.running)}
+  dirs     = {"/var/www/mysite": matchers.is_present()}
+  packages = {"nginx": matchers.has_pkg_status(posix.PkgState.present)}
+}
 ```
 
-## File
+## Content matchers
 
-| Method              | Checks                       |
-| ------------------- | ---------------------------- |
-| `.file(path)`       | Select a file for assertions |
-| `.has_content(str)` | Exact content match          |
-| `.contains(str)`    | Substring match              |
-| `.exists()`         | File must exist              |
-| `.absent()`         | File must not exist          |
-| `.has_mode("0644")` | Permission check             |
+Match against string content (file bodies, request bodies, header values).
 
-## Directory
+| Matcher                             | Checks                                     |
+| ----------------------------------- | ------------------------------------------ |
+| `matchers.has_exact_content(str)`   | Byte-for-byte content match                |
+| `matchers.has_substring(str)`       | Content contains substring                 |
+| `matchers.matches_regex(pattern)`   | Content matches Go regular expression      |
+| `matchers.is_empty()`               | Content exists but is the empty string     |
 
-| Method              | Checks                   |
-| ------------------- | ------------------------ |
-| `.dir(path)`        | Select a directory       |
-| `.exists()`         | Directory must exist     |
-| `.absent()`         | Directory must not exist |
-| `.has_mode("0755")` | Permission check         |
+## Existence matchers
 
-## Service
+Work in any keyed slot — files, packages, services, dirs, symlinks.
 
-| Method           | Checks                         |
-| ---------------- | ------------------------------ |
-| `.service(name)` | Select a service               |
-| `.is_running()`  | Service is active              |
-| `.is_stopped()`  | Service is inactive            |
-| `.is_enabled()`  | Service starts at boot         |
-| `.is_disabled()` | Service does not start at boot |
+| Matcher                | Checks                            |
+| ---------------------- | --------------------------------- |
+| `matchers.is_present()`| Slot must exist (any content)     |
+| `matchers.is_absent()` | Slot must NOT exist after deploy  |
 
-## Package
+## Status matchers
 
-| Method            | Checks                   |
-| ----------------- | ------------------------ |
-| `.package(name)`  | Select a package         |
-| `.is_installed()` | Package is present       |
-| `.is_absent()`    | Package is not installed |
+Parameterized by existing posix enums so the test vocabulary matches the
+production vocabulary one-for-one.
 
-## Symlink
+| Matcher                               | Checks                                            |
+| ------------------------------------- | ------------------------------------------------- |
+| `matchers.has_svc_status(status)`     | Service matches a `posix.ServiceState` value      |
+| `matchers.has_pkg_status(status)`     | Package matches a `posix.PkgState` value          |
 
-| Method               | Checks                 |
-| -------------------- | ---------------------- |
-| `.symlink(path)`     | Select a symlink       |
-| `.points_to(target)` | Symlink target matches |
-| `.absent()`          | Symlink must not exist |
+### Examples
 
-## Container
+```scampi
+// Service should be running
+matchers.has_svc_status(posix.ServiceState.running)
 
-| Method              | Checks                         |
-| ------------------- | ------------------------------ |
-| `.container(name)`  | Select a container             |
-| `.is_running()`     | Container is running           |
-| `.has_image(image)` | Container uses the given image |
+// Package should be installed
+matchers.has_pkg_status(posix.PkgState.present)
 
-## Command
-
-| Method                    | Checks                             |
-| ------------------------- | ---------------------------------- |
-| `.command_ran(substring)` | A command containing substring ran |
-
-## Request
-
-Request assertions work with `test.target.rest_mock()` targets. They verify
-which HTTP requests were made during execution.
-
-| Method                        | Checks                                           |
-| ----------------------------- | ------------------------------------------------ |
-| `.request(method, path)`      | Select requests matching method and path         |
-| `.was_called()`               | At least one matching request was made           |
-| `.was_called_times(n)`        | Exactly n matching requests were made            |
-| `.was_not_called()`           | No matching requests were made                   |
-| `.body_contains(str)`         | Last matching request body contains substring    |
-| `.header_equals(name, value)` | Last matching request has the given header value |
-
-### Example
-
-```starlark
-t = test.target.rest_mock(
-    name = "api",
-    routes = {
-        "POST /items": test.response(status=201, body='{"id":1}'),
-    },
-)
-
-deploy(
-    name = "test",
-    targets = ["api"],
-    steps = [
-        rest.request(
-            method = "POST",
-            path = "/items",
-            body = rest.body.json({"name": "foo"}),
-            check = rest.status(code=201),
-        ),
-    ],
-)
-
-a = test.assert.that(t)
-a.request("POST", "/items").was_called()
-a.request("POST", "/items").body_contains('"name"')
-a.request("GET", "/items").was_not_called()
+// Package should be removed
+matchers.has_pkg_status(posix.PkgState.absent)
 ```
