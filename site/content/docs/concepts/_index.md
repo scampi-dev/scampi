@@ -3,25 +3,32 @@ title: Concepts
 weight: 2
 ---
 
-Scampi has a small set of core concepts. Understanding them makes everything else
-click.
+scampi has a small set of core concepts. Understanding them makes everything
+else click.
+
+For the **language** itself — syntax, types, decls, the trailing-block pattern
+— see [the Language guide]({{< relref "../language" >}}). This page covers the
+**execution model**: what happens after scampi reads your config.
 
 ## The mental model
 
 ```
-Starlark config → Steps → Actions → Ops → Target
+scampi config → Steps → Actions → Ops → Target
 ```
 
-You write **steps** in Starlark. The engine plans **actions** from those steps,
+You write **steps** in scampi. The engine plans **actions** from those steps,
 breaks them into **ops**, and executes those ops against a **target**.
 
 ## Steps
 
-A **step** is a declarative work item in your Starlark config. It says *what*
-you want, not *how* to get there:
+A **step** is a declarative work item. It says *what* you want, not *how* to
+get there:
 
-```python
-pkg(packages=["nginx"], state="present", source=system())
+```scampi
+posix.pkg {
+  packages = ["nginx"]
+  source   = posix.pkg_system {}
+}
 ```
 
 Each step has a **kind** (`pkg`, `copy`, `service`, etc.) that determines which
@@ -55,50 +62,70 @@ matches your config is a no-op.
 
 ## Sources
 
-A **source** tells a step where its content comes from. Scampi separates
+A **source** tells a step where its content comes from. scampi separates
 *where content comes from* (source resolvers) from *what to do with it* (steps).
-The two compose independently:
+The two compose independently.
 
-| Resolver   | Description                       |
-| ---------- | --------------------------------- |
-| `local()`  | File on the local machine         |
-| `inline()` | String literal embedded in config |
-| `remote()` | URL fetched via HTTP/HTTPS        |
+The POSIX module ships three source resolvers:
 
-Every step that accepts a `src` field works with every source resolver. You don't
-need a different step to download a file vs. copy a local one — the step declares
-*what* the desired state is, and the source resolver handles *where* the content
-comes from:
+| Resolver               | Description                       |
+| ---------------------- | --------------------------------- |
+| `posix.source_local`   | File on the local machine         |
+| `posix.source_inline`  | String literal embedded in config |
+| `posix.source_remote`  | URL fetched via HTTP/HTTPS        |
 
-```python
-copy(src=remote(url="https://example.com/config"), ...)
-template(src=local("./nginx.conf.tmpl"), ...)
-unarchive(src=remote(url="https://github.com/.../v1.0.tar.gz"), ...)
-copy(src=inline("nameserver 1.1.1.1\n"), ...)
+Every step that accepts a `src` field works with every source resolver. You
+don't need a different step to download a file vs. copy a local one — the step
+declares *what* the desired state is, and the source resolver handles *where*
+the content comes from:
+
+```scampi
+posix.copy {
+  src  = posix.source_remote { url = "https://example.com/config" }
+  dest = "/etc/app/config"
+  perm = "0644", owner = "root", group = "root"
+}
+
+posix.template {
+  src  = posix.source_local { path = "./nginx.conf.tmpl" }
+  dest = "/etc/nginx/nginx.conf"
+  perm = "0644", owner = "root", group = "root"
+}
+
+posix.unarchive {
+  src  = posix.source_remote { url = "https://github.com/.../v1.0.tar.gz" }
+  dest = "/opt/app"
+}
+
+posix.copy {
+  src  = posix.source_inline { content = "nameserver 1.1.1.1\n" }
+  dest = "/etc/resolv.conf"
+  perm = "0644", owner = "root", group = "root"
+}
 ```
 
 This is a deliberate design choice. Steps and sources scale independently —
-adding a new source type (like `git()` or `s3()`) automatically works with every
-existing step, and adding a new step that reads content automatically works with
-every existing source. No combinatorial explosion, no special cases.
+adding a new source type automatically works with every existing step, and
+adding a new step that reads content automatically works with every existing
+source. No combinatorial explosion, no special cases.
 
-There is no `fetch` step because none is needed. `copy(src=remote(...))` already
-downloads a file to a path — and gets caching, checksums, idempotency, ownership,
-and permission management for free. A `fetch` step would just be `copy` with
-fewer knobs.
+There is no `fetch` step because none is needed. `posix.copy` with
+`posix.source_remote` already downloads a file to a path — and gets caching,
+checksums, idempotency, ownership, and permission management for free. A
+`fetch` step would just be `copy` with fewer knobs.
 
 ## Source machine and targets
 
-Scampi distinguishes between two sides:
+scampi distinguishes between two sides:
 
 - **Source side**: where scampi runs and where your configs, templates, secrets,
   and cached downloads live.
 - **Target side**: where ops execute — the system being converged.
 
-With `target.ssh(...)`, these are different machines. With `target.local()`
-(the default), they're the same machine — but the engine still treats them as
-separate concerns internally: source access reads configs and caches data,
-target access performs convergence mutations.
+With `ssh.target { … }`, these are different machines. With `local.target { … }`,
+they're the same machine — but the engine still treats them as separate
+concerns internally: source access reads configs and caches data, target
+access performs convergence mutations.
 
 Targets expose **capabilities** that describe what they can do: filesystem
 operations, package management, service control, etc.
@@ -106,8 +133,8 @@ operations, package management, service control, etc.
 Steps declare what capabilities they need. If a target doesn't have the right
 capabilities, scampi fails fast with a clear error before executing anything.
 
-```python
-target.ssh(name="web", host="app.example.com", user="deploy")
+```scampi
+let web = ssh.target { name = "web", host = "app.example.com", user = "deploy" }
 ```
 
 See [Configuration]({{< relref "../configuration" >}}) for target setup details.
@@ -123,7 +150,7 @@ for a deploy block. You can inspect plans with three commands:
 
 ## Convergence
 
-Scampi is a convergence engine. Each run compares desired state (your config)
+scampi is a convergence engine. Each run compares desired state (your config)
 against actual state (what's on the target) and makes the minimum changes needed
 to close the gap. If there's no gap, nothing happens.
 

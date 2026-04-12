@@ -3,7 +3,7 @@ title: Philosophy
 weight: 7
 ---
 
-Scampi is an opinionated tool. This page explains what those opinions are
+scampi is an opinionated tool. This page explains what those opinions are
 and why they exist.
 
 ## Convergence, not scripting
@@ -13,7 +13,7 @@ order, and hope the starting state is what you expected. If someone
 manually tweaked a config file or a previous run half-failed, you're in
 uncharted territory.
 
-Scampi is a convergence engine. You declare the desired end state. On
+scampi is a convergence engine. You declare the desired end state. On
 every run, scampi compares reality to your declaration and makes the
 minimum changes needed to close the gap. If there's no gap, nothing
 happens.
@@ -28,7 +28,7 @@ This means:
 - **Drift is visible.** `scampi check` shows you exactly what has drifted
   from your declared state without changing anything.
 
-## Starlark, not YAML
+## A real language, not YAML
 
 YAML is not a programming language. It's a data serialization format
 pressed into service as a configuration language, and it shows — type
@@ -51,24 +51,24 @@ manage. Convergence doesn't need external state because the target *is*
 the state.
 
 Every tool in this space made reasonable trade-offs for their time and
-context. Scampi just starts from a different premise: if the
+context. scampi just starts from a different premise: if the
 configuration language is powerful enough, you don't need the workarounds.
 
-Scampi uses [Starlark](https://github.com/google/starlark-go), a language
-designed by Google specifically for configuration. It looks like Python,
-but it's:
+scampi has its own configuration language. It's:
 
-- **Deterministic.** No I/O, no system calls, no randomness. The same
-  input always produces the same output.
-- **Hermetic.** Configs can't reach out to the network or filesystem
-  during evaluation.
-- **Familiar.** If you know Python, you already know Starlark. Variables,
-  functions, list comprehensions, string formatting — it's all there.
-- **Actually a language.** You can abstract, compose, and reuse
-  configuration the way you would in code, because it *is* code.
+- **Statically typed.** Types, enums, attributes, optionals — all checked
+  at link time. Errors surface as you type, not when you run.
+- **Declarative-first.** Decl calls (`posix.copy { src = …, dest = … }`)
+  are struct literals, not function calls dressed up as configuration.
+  The syntax matches the intent.
+- **Composable.** Modules, imports, user-defined `func`s and `decl`s,
+  comprehensions, conditionals, loops. You can abstract, compose, and
+  reuse the way you would in code, because it *is* code.
+- **Familiar.** If you've read Python, HCL, or Bicep, you'll be reading
+  scampi configs in five minutes.
 
-You never need a templating engine to generate your config. Your config is
-the program.
+You never need a templating engine to generate your config. Your config
+is the program.
 
 When you *do* need templates — for config files deployed to targets —
 scampi uses Go's `text/template`. It's battle-tested, expressive, and
@@ -84,7 +84,7 @@ breadth. The downside is that they're variably documented, occasionally
 abandoned, and sometimes subtly incompatible with each other or with new
 versions of the core tool.
 
-Scampi takes the opposite approach: everything you need for system
+scampi takes the opposite approach: everything you need for system
 convergence is built in. Packages, files, templates, services, containers,
 firewall rules, users, groups, mounts, REST APIs — they all ship with the
 binary.
@@ -105,7 +105,7 @@ Things where a dedicated step would be over-engineered because the
 command is the right abstraction. That's not the answer for "scampi
 doesn't support X yet."
 
-The answer for that is: contribute it. Scampi is open source, and new
+The answer for that is: contribute it. scampi is open source, and new
 steps are welcome — but they land in *this* codebase, not in an external
 registry. There's no plugin system, no downloading modules at runtime, no
 hoping that `scampi-community/fancy-step` is still maintained in two
@@ -120,7 +120,7 @@ everything lives in one place.
 
 ## Fail fast, fail clearly
 
-Scampi validates everything it can before touching the target system. Type
+scampi validates everything it can before touching the target system. Type
 errors, missing fields, capability mismatches, unresolvable references —
 these are all caught during planning, not halfway through execution.
 
@@ -146,18 +146,24 @@ its own learning curve. Terraform has `terraform plan` and that's about
 it. Most people's test suite for their infrastructure is "apply it and
 see if anything breaks."
 
-Scampi treats testing as a first-class concern, not an afterthought bolted
+scampi treats testing as a first-class concern, not an afterthought bolted
 on by a third party. Test files are regular scampi configs that run against
 mock targets:
 
-```starlark {filename="webserver_test.scampi"}
-t = test.target.in_memory(name = "mock", packages = ["nginx"])
+```scampi {filename="webserver_test.scampi"}
+module main
 
-deploy(name = "test", targets = ["mock"], steps = [
-    static_site(domain = "example.com"),
-])
+import "std"
+import "std/test"
+import "std/posix"
 
-a = test.assert.that(t)
+let mock = test.in_memory { name = "mock", packages = ["nginx"] }
+
+std.deploy(name = "test", targets = [mock]) {
+  static_site { domain = "example.com" }
+}
+
+let a = test.assert_that(mock)
 a.file("/etc/nginx/sites-enabled/example.com.conf").exists()
 a.service("nginx").is_running()
 ```
@@ -165,8 +171,8 @@ a.service("nginx").is_running()
 No containers to spin up, no cloud accounts to provision, no YAML
 scaffolding. `scampi test` runs in milliseconds because mock targets are
 in-memory — there's no I/O, no network, no waiting. REST API modules
-get the same treatment with `test.target.rest_mock()`, which records
-every HTTP request for assertion verification.
+get the same treatment with a REST mock target, which records every HTTP
+request for assertion verification.
 
 This isn't a nice-to-have. If you can't test your infrastructure code
 without deploying it, you don't iterate — you gamble. Fast, local,
@@ -179,15 +185,15 @@ The gap between writing infrastructure code and getting feedback on it
 should be as small as possible. Long feedback loops breed sloppy configs
 and manual workarounds.
 
-Scampi ships `scampls`, a Language Server Protocol server that runs the
+scampi ships `scampls`, a Language Server Protocol server that runs the
 real evaluation pipeline in your editor. Not a lint pass, not a syntax
-check — the actual Starlark evaluator with the full step registry. You
+check — the actual scampi evaluator with the full step registry. You
 get unknown-field errors, missing-required-field errors, type mismatches,
 and invalid enum values as you type, with precise source spans and
 actionable hints.
 
 `scampi gen api` bridges external systems: point it at an OpenAPI spec
-and it generates typed Starlark wrappers for every endpoint. The
+and it generates typed scampi wrappers for every endpoint. The
 generated functions compose directly with `rest.resource` for idempotent
 CRUD — no manual HTTP plumbing, no copy-pasting URLs.
 
@@ -199,15 +205,15 @@ it's the whole point.
 
 ## Source and target are separate worlds
 
-Scampi draws a hard line between two sides:
+scampi draws a hard line between two sides:
 
 - **Source side**: where scampi runs, where your configs live, where
   templates are rendered, where secrets are resolved, where downloads are
   cached.
 - **Target side**: where mutations happen — the system being converged.
 
-With `target.local()`, both sides are the same machine. With
-`target.ssh(...)`, they're different machines. Either way, the engine
+With `local.target { … }`, both sides are the same machine. With
+`ssh.target { … }`, they're different machines. Either way, the engine
 treats them as separate concerns.
 
 This separation means:
@@ -252,7 +258,7 @@ it's needed.
 
 ## Opinions over options
 
-Scampi doesn't try to be all things to all people. Some choices are baked
+scampi doesn't try to be all things to all people. Some choices are baked
 in:
 
 - **Parallel where possible, sequential where necessary.** Steps declare
@@ -260,9 +266,9 @@ in:
   automatically; steps with dependencies are ordered by the engine. Within
   a single step, ops form a DAG and run concurrently where their
   dependencies allow. You get parallelism without giving up determinism.
-- **Targets are an abstraction.** `target.local()` converges the machine
-  you're sitting at. `target.ssh(...)` converges a remote host.
-  `target.rest(...)` converges a REST API. The engine doesn't care — it
+- **Targets are an abstraction.** `local.target { … }` converges the
+  machine you're sitting at. `ssh.target { … }` converges a remote host.
+  `rest.target { … }` converges a REST API. The engine doesn't care — it
   sees capabilities, not transports. A target doesn't have to be a
   machine. Local is a first-class citizen, not a consolation prize for
   when you don't have an inventory file. Managing your own workstation
@@ -276,7 +282,7 @@ in:
   do it again for the next step. Operations are small and cheap because
   the transport is already there. This is also why scampi can afford to
   do proper check-before-execute on every op without it feeling slow.
-- **One config language.** Starlark everywhere. Not "YAML for simple
+- **One config language.** scampi everywhere. Not "YAML for simple
   cases, a real language for complex ones" — that split always creates
   two ecosystems that don't compose.
 - **Single binary.** No runtime dependencies, no interpreters to install,

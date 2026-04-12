@@ -83,25 +83,33 @@ place, services running, firewall rules set, containers launched. Today you
 do it with a mix of shell scripts, YAML playbooks, and crossing your
 fingers.
 
-**Scampi replaces all of that with one config file.**
+**scampi replaces all of that with one config file.**
 
-```python
-target.ssh(name="web", host="app.example.com", user="deploy")
+```scampi
+module main
 
-deploy(
-    name = "webserver",
-    targets = ["web"],
-    steps = [
-        pkg(packages=["nginx", "certbot"], state="present"),
-        copy(
-            src = local("./nginx.conf"),
-            dest = "/etc/nginx/nginx.conf",
-            perm = "0644", owner = "root", group = "root",
-        ),
-        service(name="nginx", state="started", enabled=True),
-        firewall(ports=["80/tcp", "443/tcp"], state="open"),
-    ],
-)
+import "std"
+import "std/ssh"
+import "std/posix"
+
+let web = ssh.target { name = "web", host = "app.example.com", user = "deploy" }
+
+std.deploy(name = "webserver", targets = [web]) {
+  posix.pkg {
+    packages = ["nginx", "certbot"]
+    source   = posix.pkg_system {}
+  }
+
+  posix.copy {
+    src   = posix.source_local { path = "./nginx.conf" }
+    dest  = "/etc/nginx/nginx.conf"
+    perm  = "0644", owner = "root", group = "root"
+  }
+
+  posix.service { name = "nginx", state = posix.ServiceState.running, enabled = true }
+  posix.firewall { port = "80/tcp" }
+  posix.firewall { port = "443/tcp" }
+}
 ```
 
 That's it. That's a production webserver config. Run `scampi apply` and
@@ -110,12 +118,13 @@ because it's already correct.
 
 ### What makes it different
 
-**It's a real language, not YAML.** Scampi configs are
-[Starlark](https://github.com/google/starlark-go) — a deterministic,
-Python-like language designed by Google for configuration. You get
-variables, functions, loops, and conditionals without the "is this a
-string or a boolean" surprises of YAML. No templating nightmares. No
-looping over included files just to repeat a task.
+**It's a real language, not YAML.** scampi has its own configuration
+language — statically typed, with declarative struct-literal syntax for
+steps and a real type system for everything else. You get variables,
+functions, loops, conditionals, modules, and link-time validation
+without the "is this a string or a boolean" surprises of YAML. No
+templating nightmares. No looping over included files just to repeat a
+task.
 
 **Batteries included.** Packages, files, templates, services, containers,
 firewall rules, symlinks, archives, mounts, REST APIs — it's all built in.
@@ -155,7 +164,7 @@ done. REST API modules get mock targets too, with full request recording.
 
 **Editor support that actually works.** `scampls` is an LSP server that
 runs the real evaluation pipeline — not a syntax checker, the actual
-Starlark evaluator with the full step registry. Unknown fields, missing
+scampi evaluator with the full step registry. Unknown fields, missing
 required params, type errors, invalid enums — all caught as you type, with
 precise source spans and "did you mean?" hints. Your editor becomes the
 first line of defense, not `apply`.
@@ -180,26 +189,30 @@ flowchart LR
 Here's the full cycle on a simple config that creates directories, copies a
 file, and sets up a symlink.
 
-```python {filename="demo.scampi"}
-target.local(name="my-machine")
+```scampi {filename="demo.scampi"}
+module main
 
-deploy(
-    name = "demo",
-    targets = ["my-machine"],
-    steps = [
-        dir(path="/tmp/scampi-demo", perm="0755"),
-        dir(path="/tmp/scampi-demo/releases/v1", perm="0755"),
-        copy(
-            src = inline("welcome to scampi\n"),
-            dest = "/tmp/scampi-demo/releases/v1/README",
-            perm = "0644", owner = "root", group = "root",
-        ),
-        symlink(
-            target = "/tmp/scampi-demo/releases/v1",
-            link = "/tmp/scampi-demo/current",
-        ),
-    ],
-)
+import "std"
+import "std/local"
+import "std/posix"
+
+let machine = local.target { name = "my-machine" }
+
+std.deploy(name = "demo", targets = [machine]) {
+  posix.dir { path = "/tmp/scampi-demo", perm = "0755" }
+  posix.dir { path = "/tmp/scampi-demo/releases/v1", perm = "0755" }
+
+  posix.copy {
+    src   = posix.source_inline { content = "welcome to scampi\n" }
+    dest  = "/tmp/scampi-demo/releases/v1/README"
+    perm  = "0644", owner = "root", group = "root"
+  }
+
+  posix.symlink {
+    target = "/tmp/scampi-demo/releases/v1"
+    link   = "/tmp/scampi-demo/current"
+  }
+}
 ```
 
 <div class="term-label">1. Plan — see the execution structure</div>
@@ -311,7 +324,7 @@ reference — here's the short version:
 ## Want the deep cut?
 
 Read the [Philosophy]({{< relref "docs/philosophy" >}}) for the design
-principles — why convergence over imperative, why Starlark over YAML,
+principles — why convergence over imperative, why a real language over YAML,
 why testability and developer ergonomics aren't nice-to-haves.
 
 Check out [Testing]({{< relref "docs/testing" >}}) to see how mock

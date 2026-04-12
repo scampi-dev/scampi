@@ -6,8 +6,27 @@ weight: 6
 Steps are the building blocks of scampi configs. Each step declares a piece of
 desired state — scampi figures out what needs to change and makes it so.
 
+Steps are written using struct-literal syntax, with field assignments inside
+braces. Most live in the `posix` module:
+
+```scampi
+posix.copy {
+  src   = posix.source_local { path = "./nginx.conf" }
+  dest  = "/etc/nginx/nginx.conf"
+  perm  = "0644"
+  owner = "root"
+  group = "root"
+}
+```
+
 Every step supports an optional `desc` field for a human-readable description.
 This shows up in CLI output and is useful when you have many similar steps.
+
+Every step also supports an `on_change` field — a list of other steps to
+trigger when this step modifies system state. This is how you wire reload
+patterns: `let reload_nginx = posix.service { name = "nginx", state = posix.ServiceState.reloaded }`,
+then reference `reload_nginx` in `on_change` on the step that updates its
+config.
 
 ## Optional fields and drift
 

@@ -16,22 +16,29 @@ See the [Install page]({{< relref "/get" >}}) for all options (one-liner, `go in
 
 ### Create a config file
 
-```python {filename="deploy.scampi"}
-target.local(name="my-machine")
+```scampi {filename="deploy.scampi"}
+module main
 
-deploy(
-    name = "hello",
-    targets = ["my-machine"],
-    steps = [
-        dir(path="/tmp/scampi-demo", perm="0755"),
-        dir(path="/tmp/scampi-demo/v1", perm="0755"),
-        symlink(
-            target = "/tmp/scampi-demo/v1",
-            link = "/tmp/scampi-demo/current",
-        ),
-    ],
-)
+import "std"
+import "std/local"
+import "std/posix"
+
+let machine = local.target { name = "my-machine" }
+
+std.deploy(name = "hello", targets = [machine]) {
+  posix.dir { path = "/tmp/scampi-demo", perm = "0755" }
+  posix.dir { path = "/tmp/scampi-demo/v1", perm = "0755" }
+
+  posix.symlink {
+    target = "/tmp/scampi-demo/v1"
+    link   = "/tmp/scampi-demo/current"
+  }
+}
 ```
+
+A scampi config starts with `module main` and the imports it needs. `std` is
+the core, `std/local` gives you the local target, `std/posix` gives you the
+POSIX steps.
 
 ### Check what would change
 
@@ -57,29 +64,53 @@ matches your declared state, so there's nothing to do.
 
 ## Add a remote target
 
-To manage a remote machine over SSH, add a target:
+To manage a remote machine over SSH, swap the target module:
 
-```python {filename="remote.scampi"}
-target.ssh(name="web", host="192.168.1.10", user="deploy")
+```scampi {filename="remote.scampi"}
+module main
 
-deploy(
-    name = "hello",
-    targets = ["web"],
-    steps = [
-        dir(path="/tmp/scampi-demo", perm="0755"),
-        copy(
-            src = local("./message.txt"),
-            dest = "/tmp/scampi-demo/message.txt",
-            perm = "0644", owner = "root", group = "root",
-        ),
-    ],
-)
+import "std"
+import "std/ssh"
+import "std/posix"
+
+let web = ssh.target {
+  name = "web"
+  host = "192.168.1.10"
+  user = "deploy"
+}
+
+std.deploy(name = "hello", targets = [web]) {
+  posix.dir { path = "/tmp/scampi-demo", perm = "0755" }
+
+  posix.copy {
+    src   = posix.source_local { path = "./message.txt" }
+    dest  = "/tmp/scampi-demo/message.txt"
+    perm  = "0644"
+    owner = "root"
+    group = "root"
+  }
+}
 ```
 
 Scampi connects via SSH — no agents or daemons needed on the remote host.
 
+## Reading the syntax
+
+The two main call patterns above:
+
+- **`local.target { … }`** and **`posix.dir { … }`** — these are *decl calls*
+  (struct literal syntax). Field assignments inside braces, separators are
+  flexible. Used for steps, targets, and source resolvers.
+- **`std.deploy(name = …, targets = [machine]) { … }`** — this is a *function
+  call with a trailing block*. The function returns a `block[Deploy]`, and the
+  `{ … }` after the parens is the deploy body.
+
+If those patterns look unfamiliar, the [Language guide]({{< relref "language" >}})
+walks through them in depth.
+
 ## Next steps
 
+- Read [the Language guide]({{< relref "language" >}}) for a full tour of scampi's syntax
 - Read [Concepts]({{< relref "concepts" >}}) to understand the execution model
-- See [Configuration]({{< relref "configuration" >}}) for targets, deploy blocks, and variables
+- See [Configuration]({{< relref "configuration" >}}) for project layout, variables, and deploy block patterns
 - Browse the [Step Reference]({{< relref "steps" >}}) for all built-in step types

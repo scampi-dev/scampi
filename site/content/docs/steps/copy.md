@@ -6,28 +6,30 @@ Copy files or inline content to the target with owner and permission management.
 
 ## Fields
 
-| Field    | Type   | Required | Description                                                           |
-| -------- | ------ | :------: | --------------------------------------------------------------------- |
-| `src`    | source |    ✓     | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
-| `dest`   | string |    ✓     | Destination file path (on target)                                     |
-| `group`  | string |    ✓     | Group name or GID                                                     |
-| `owner`  | string |    ✓     | Owner user name or UID                                                |
-| `perm`   | string |    ✓     | File permissions (`0644`, `u=rw,g=r,o=r`, or `rw-r--r--`)             |
-| `desc`   | string |          | Human-readable description                                            |
-| `verify` | string |          | Command to validate content before writing (`%s` = temp file path)    |
+| Field       | Type         | Required | Description                                                              |
+| ----------- | ------------ | :------: | ------------------------------------------------------------------------ |
+| `src`       | `Source`     |    ✓     | Source resolver — see [below](#source-resolvers)                         |
+| `dest`      | string       |    ✓     | Destination file path on target (must be absolute, validated by `@std.path`) |
+| `perm`      | string       |    ✓     | File permissions — `0644`, `u=rw,g=r,o=r`, or `rw-r--r--` (`@std.filemode`) |
+| `owner`     | string       |    ✓     | Owner user name or UID (`@std.nonempty`)                                 |
+| `group`     | string       |    ✓     | Group name or GID (`@std.nonempty`)                                      |
+| `verify`    | string?      |          | Command to validate content before writing (`%s` = temp file path)       |
+| `desc`      | string?      |          | Human-readable description                                               |
+| `on_change` | list\[Step]  |          | Steps to trigger when this copy modifies the destination                 |
 
 ## Source resolvers
 
-The `src` field accepts a source resolver:
+The `src` field accepts a `posix.Source` from one of three resolvers:
 
-- **`local("./path")`** — reads a file from the local machine relative to the
-  Starlark file
-- **`inline("content")`** — uses the given string as file content
-- **`remote(url="...")`** — downloads a file via HTTP/HTTPS (with optional
-  `checksum` for verification)
+- **`posix.source_local { path = "./path" }`** — reads a file from the local
+  machine relative to the scampi file
+- **`posix.source_inline { content = "..." }`** — uses the given string as file
+  content
+- **`posix.source_remote { url = "https://...", checksum = "sha256:..." }`** —
+  downloads via HTTP/HTTPS, with optional checksum verification
 
-See [Source resolvers]({{< relref "../configuration#source-resolvers" >}}) for
-full details.
+See [Concepts → Sources]({{< relref "../concepts#sources" >}}) for the design
+rationale.
 
 ## How it works
 
@@ -56,104 +58,128 @@ skip it entirely.
 
 ### Basic file copy
 
-```python {filename="deploy.scampi"}
-copy(
-    src = local("./nginx.conf"),
-    dest = "/etc/nginx/nginx.conf",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  src   = posix.source_local { path = "./nginx.conf" }
+  dest  = "/etc/nginx/nginx.conf"
+  perm  = "0644"
+  owner = "root"
+  group = "root"
+}
 ```
 
 ### Inline content
 
-```python {filename="deploy.scampi"}
-copy(
-    src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
-    dest = "/etc/sudoers.d/hal9000",
-    perm = "0440",
-    owner = "root",
-    group = "root",
-    desc = "passwordless sudo for automation user",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  desc  = "passwordless sudo for automation user"
+  src   = posix.source_inline { content = "hal9000 ALL=(ALL) NOPASSWD:ALL\n" }
+  dest  = "/etc/sudoers.d/hal9000"
+  perm  = "0440"
+  owner = "root"
+  group = "root"
+}
 ```
 
-### Application config (POSIX notation)
+### Application config (POSIX permission notation)
 
-```python {filename="deploy.scampi"}
-copy(
-    desc = "deploy app config",
-    src = local("./config.yaml"),
-    dest = "/opt/myapp/config.yaml",
-    perm = "u=rw,g=r,o=",
-    owner = "myapp",
-    group = "myapp",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  desc  = "deploy app config"
+  src   = posix.source_local { path = "./config.yaml" }
+  dest  = "/opt/myapp/config.yaml"
+  perm  = "u=rw,g=r,o="
+  owner = "myapp"
+  group = "myapp"
+}
 ```
 
 ### Validated sudoers file
 
-```python {filename="deploy.scampi"}
-copy(
-    src = inline("hal9000 ALL=(ALL) NOPASSWD:ALL\n"),
-    dest = "/etc/sudoers.d/hal9000",
-    perm = "0440",
-    owner = "root",
-    group = "root",
-    verify = "visudo -cf %s",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  src    = posix.source_inline { content = "hal9000 ALL=(ALL) NOPASSWD:ALL\n" }
+  dest   = "/etc/sudoers.d/hal9000"
+  perm   = "0440"
+  owner  = "root"
+  group  = "root"
+  verify = "visudo -cf %s"
+}
 ```
 
 ### Validated nginx config
 
-```python {filename="deploy.scampi"}
-copy(
-    src = local("./nginx.conf"),
-    dest = "/etc/nginx/nginx.conf",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-    verify = "nginx -t -c %s",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  src    = posix.source_local { path = "./nginx.conf" }
+  dest   = "/etc/nginx/nginx.conf"
+  perm   = "0644"
+  owner  = "root"
+  group  = "root"
+  verify = "nginx -t -c %s"
+}
 ```
+
+### Reload on change
+
+A common pattern: bind a reload step to a name, then reference it from
+`on_change` on the step that writes the config:
+
+```scampi {filename="deploy.scampi"}
+let reload_nginx = posix.service {
+  name  = "nginx"
+  state = posix.ServiceState.reloaded
+}
+
+posix.copy {
+  src       = posix.source_local { path = "./nginx.conf" }
+  dest      = "/etc/nginx/nginx.conf"
+  perm      = "0644"
+  owner     = "root"
+  group     = "root"
+  on_change = [reload_nginx]
+}
+```
+
+The reload only fires when the copy actually modifies the destination. On
+subsequent runs (when the file is already correct) the reload is skipped.
 
 ### Remote file
 
-```python {filename="deploy.scampi"}
-copy(
-    desc = "download IP lookup config",
-    src = remote(url="https://example.com/config.yaml"),
-    dest = "/etc/app/config.yaml",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  desc  = "download IP lookup config"
+  src   = posix.source_remote { url = "https://example.com/config.yaml" }
+  dest  = "/etc/app/config.yaml"
+  perm  = "0644"
+  owner = "root"
+  group = "root"
+}
 ```
 
 ### Remote file with checksum
 
-```python {filename="deploy.scampi"}
-copy(
-    src = remote(
-        url = "https://example.com/ca-bundle.crt",
-        checksum = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    ),
-    dest = "/etc/ssl/certs/ca-bundle.crt",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  src = posix.source_remote {
+    url      = "https://example.com/ca-bundle.crt"
+    checksum = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+  dest  = "/etc/ssl/certs/ca-bundle.crt"
+  perm  = "0644"
+  owner = "root"
+  group = "root"
+}
 ```
 
-### Restrictive permissions (ls-style)
+### Restrictive permissions (ls-style notation)
 
-```python {filename="deploy.scampi"}
-copy(
-    src = local("./ssl/server.key"),
-    dest = "/etc/ssl/private/server.key",
-    perm = "rw-------",
-    owner = "root",
-    group = "root",
-)
+```scampi {filename="deploy.scampi"}
+posix.copy {
+  src   = posix.source_local { path = "./ssl/server.key" }
+  dest  = "/etc/ssl/private/server.key"
+  perm  = "rw-------"
+  owner = "root"
+  group = "root"
+}
 ```

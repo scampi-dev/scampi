@@ -4,25 +4,27 @@ title: ssh
 
 Run steps on a remote host via SSH.
 
-```python
-target.ssh(
-    name = "web",
-    host = "app.example.com",
-    user = "deploy",
-)
+```scampi
+import "std/ssh"
+
+let web = ssh.target {
+  name = "web"
+  host = "app.example.com"
+  user = "deploy"
+}
 ```
 
 ## Fields
 
-| Field      | Required | Default | Description                    |
-| ---------- | :------: | ------- | ------------------------------ |
-| `name`     |    ✓     |         | Identifier for deploy blocks   |
-| `host`     |    ✓     |         | Hostname or IP address         |
-| `user`     |    ✓     |         | SSH user                       |
-| `port`     |          | `22`    | SSH port                       |
-| `key`      |          |         | Path to private key file       |
-| `insecure` |          | `False` | Skip host key verification     |
-| `timeout`  |          | `"5s"`  | Connection timeout (Go format) |
+| Field      | Type    | Required | Default | Description                    |
+| ---------- | ------- | :------: | ------- | ------------------------------ |
+| `name`     | string  |    ✓     |         | Identifier for deploy blocks   |
+| `host`     | string  |    ✓     |         | Hostname or IP address         |
+| `user`     | string  |    ✓     |         | SSH user                       |
+| `port`     | int     |          | `22`    | SSH port                       |
+| `key`      | string? |          |         | Path to private key file       |
+| `insecure` | bool?   |          |         | Skip host key verification     |
+| `timeout`  | string  |          | `"5s"`  | Connection timeout (Go format) |
 
 ## Authentication
 
@@ -37,8 +39,8 @@ error with guidance on how to configure authentication.
 ## Host key verification
 
 By default, scampi verifies host keys against `~/.ssh/known_hosts`. Set
-`insecure=True` to skip verification — useful for ephemeral test environments,
-but not recommended for production.
+`insecure = true` to skip verification — useful for ephemeral test
+environments, but not recommended for production.
 
 ## How it works
 

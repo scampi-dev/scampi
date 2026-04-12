@@ -4,15 +4,17 @@ title: local
 
 Run steps on the machine where scampi is invoked.
 
-```python
-target.local(name="my-machine")
+```scampi
+import "std/local"
+
+let machine = local.target { name = "my-machine" }
 ```
 
 ## Fields
 
-| Field  | Required | Description                            |
-| ------ | :------: | -------------------------------------- |
-| `name` |    ✓     | Identifier referenced by deploy blocks |
+| Field  | Type   | Required | Description                            |
+| ------ | ------ | :------: | -------------------------------------- |
+| `name` | string |    ✓     | Identifier referenced by deploy blocks |
 
 ## How it works
 

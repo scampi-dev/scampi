@@ -7,37 +7,37 @@ permission management.
 
 ## Fields
 
-| Field    | Type   | Required | Description                                                           |
-| -------- | ------ | :------: | --------------------------------------------------------------------- |
-| `src`    | source |    ✓     | [Source resolver]({{< relref "../configuration#source-resolvers" >}}) |
-| `dest`   | string |    ✓     | Output file path (on target)                                          |
-| `group`  | string |    ✓     | Group name or GID                                                     |
-| `owner`  | string |    ✓     | Owner user name or UID                                                |
-| `perm`   | string |    ✓     | File permissions                                                      |
-| `data`   | dict   |          | Data sources for template rendering                                   |
-| `desc`   | string |          | Human-readable description                                            |
-| `verify` | string |          | Command to validate content before writing (`%s` = temp file path)    |
+| Field       | Type        | Required | Description                                                              |
+| ----------- | ----------- | :------: | ------------------------------------------------------------------------ |
+| `src`       | `Source`    |    ✓     | Source resolver — see [below](#source-resolvers)                         |
+| `dest`      | string      |    ✓     | Output file path on target (must be absolute, validated by `@std.path`)  |
+| `perm`      | string      |    ✓     | File permissions (`@std.filemode`)                                       |
+| `owner`     | string      |    ✓     | Owner user name or UID (`@std.nonempty`)                                 |
+| `group`     | string      |    ✓     | Group name or GID (`@std.nonempty`)                                      |
+| `data`      | any?        |          | Data sources for template rendering — see [below](#data-fields)          |
+| `verify`    | string?     |          | Command to validate content before writing (`%s` = temp file path)       |
+| `desc`      | string?     |          | Human-readable description                                               |
+| `on_change` | list\[Step] |          | Steps to trigger when this template modifies the destination             |
 
 ### Source resolvers
 
-The `src` field accepts a source resolver:
+The `src` field accepts a `posix.Source` from one of three resolvers:
 
-- **`local("./path")`** — reads a template file from the local machine
-- **`inline("content")`** — uses the given string as template content
-- **`remote(url="...")`** — downloads a template via HTTP/HTTPS (with optional
-  `checksum` for verification)
-
-See [Source resolvers]({{< relref "../configuration#source-resolvers" >}}) for
-full details.
+- **`posix.source_local { path = "./path" }`** — reads a template file from the
+  local machine
+- **`posix.source_inline { content = "..." }`** — uses the given string as
+  template content
+- **`posix.source_remote { url = "https://...", checksum = "..." }`** —
+  downloads via HTTP/HTTPS, with optional checksum verification
 
 ### Data fields
 
-The `data` dict supports:
+The `data` value supports two top-level keys:
 
-| Key      | Type                 | Description                                          |
-| -------- | -------------------- | ---------------------------------------------------- |
-| `values` | dict (string→any)    | Arbitrary key-value pairs accessible in the template |
-| `env`    | dict (string→string) | Map template variable names to environment variables |
+| Key      | Type                   | Description                                          |
+| -------- | ---------------------- | ---------------------------------------------------- |
+| `values` | map[string, any]       | Arbitrary key-value pairs accessible in the template |
+| `env`    | map[string, string]    | Map template variable names to environment variables |
 
 ## How it works
 
@@ -63,20 +63,20 @@ skip it entirely.
 
 ### From a file
 
-```python
-template(
-    src = local("./templates/nginx.conf.tmpl"),
-    dest = "/etc/nginx/nginx.conf",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-    data = {
-        "values": {
-            "server_name": "app.example.com",
-            "upstream_port": 8080,
-        },
+```scampi
+posix.template {
+  src   = posix.source_local { path = "./templates/nginx.conf.tmpl" }
+  dest  = "/etc/nginx/nginx.conf"
+  perm  = "0644"
+  owner = "root"
+  group = "root"
+  data  = {
+    "values": {
+      "server_name":   "app.example.com",
+      "upstream_port": 8080,
     },
-)
+  }
+}
 ```
 
 With the template file:
@@ -94,42 +94,41 @@ server {
 
 ### Inline template
 
-Starlark supports triple-quoted strings for multi-line content:
+scampi supports multi-line strings for inline content:
 
-```python
-template(
-    src = inline("""\
-[Service]
-Environment=DB_HOST={{ .values.db_host }}
-Environment=DB_PORT={{ .values.db_port }}
-Environment=DB_NAME={{ .values.db_name }}
-"""),
-    dest = "/etc/systemd/system/app.service.d/env.conf",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-    data = {"values": {
-        "db_host": "db.internal",
-        "db_port": 5432,
-        "db_name": "myapp",
-    }},
-)
+```scampi
+posix.template {
+  src = posix.source_inline {
+    content = "[Service]\nEnvironment=DB_HOST={{ .values.db_host }}\nEnvironment=DB_PORT={{ .values.db_port }}\nEnvironment=DB_NAME={{ .values.db_name }}\n"
+  }
+  dest  = "/etc/systemd/system/app.service.d/env.conf"
+  perm  = "0644"
+  owner = "root"
+  group = "root"
+  data  = {
+    "values": {
+      "db_host": "db.internal",
+      "db_port": 5432,
+      "db_name": "myapp",
+    },
+  }
+}
 ```
 
 ### With environment variables
 
-```python
-template(
-    src = local("./app.env.tmpl"),
-    dest = "/opt/app/.env",
-    perm = "0600",
-    owner = "app",
-    group = "app",
-    data = {
-        "env": {"db_password": "DB_PASSWORD"},
-        "values": {"app_name": "myapp"},
-    },
-)
+```scampi
+posix.template {
+  src   = posix.source_local { path = "./app.env.tmpl" }
+  dest  = "/opt/app/.env"
+  perm  = "0600"
+  owner = "app"
+  group = "app"
+  data  = {
+    "env":    {"db_password": "DB_PASSWORD"},
+    "values": {"app_name": "myapp"},
+  }
+}
 ```
 
 In the template, environment variables are accessible under `.env`:
@@ -141,37 +140,38 @@ DB_PASSWORD={{ .env.db_password }}
 
 ### Remote template
 
-```python
-template(
-    src = remote(url="https://example.com/templates/nginx.conf.tmpl"),
-    dest = "/etc/nginx/nginx.conf",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-    data = {
-        "values": {
-            "server_name": "app.example.com",
-            "upstream_port": 8080,
-        },
+```scampi
+posix.template {
+  src   = posix.source_remote { url = "https://example.com/templates/nginx.conf.tmpl" }
+  dest  = "/etc/nginx/nginx.conf"
+  perm  = "0644"
+  owner = "root"
+  group = "root"
+  data  = {
+    "values": {
+      "server_name":   "app.example.com",
+      "upstream_port": 8080,
     },
-)
+  }
+}
 ```
 
-### With verify
+### With verify and reload
 
-```python
-template(
-    src = local("./templates/nginx.conf.tmpl"),
-    dest = "/etc/nginx/nginx.conf",
-    perm = "0644",
-    owner = "root",
-    group = "root",
-    data = {
-        "values": {
-            "server_name": "app.example.com",
-            "upstream_port": 8080,
-        },
-    },
-    verify = "nginx -t -c %s",
-)
+```scampi
+let reload_nginx = posix.service {
+  name  = "nginx"
+  state = posix.ServiceState.reloaded
+}
+
+posix.template {
+  src       = posix.source_local { path = "./templates/nginx.conf.tmpl" }
+  dest      = "/etc/nginx/nginx.conf"
+  perm      = "0644"
+  owner     = "root"
+  group     = "root"
+  data      = { "values": { "server_name": "app.example.com" } }
+  verify    = "nginx -t -c %s"
+  on_change = [reload_nginx]
+}
 ```

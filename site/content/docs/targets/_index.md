@@ -7,18 +7,28 @@ A target defines where steps execute. Each target type provides a different
 transport — local shell, SSH, or HTTP — but they all plug into the same deploy
 block mechanism.
 
-```python
-target.ssh(name="web", host="app.example.com", user="deploy")
+```scampi
+import "std"
+import "std/ssh"
 
-deploy(
-    name = "webserver",
-    targets = ["web"],
-    steps = [ ... ],
-)
+let web = ssh.target { name = "web", host = "app.example.com", user = "deploy" }
+
+std.deploy(name = "webserver", targets = [web]) {
+  // ... steps
+}
 ```
 
-Deploy blocks reference targets by name. A single config can declare multiple
-targets of different types and bind them to different deploy blocks.
+Targets are declared with `let` bindings and passed into `std.deploy(...)` by
+reference. A single config can declare multiple targets of different types and
+bind them to different deploy blocks.
+
+Each target type lives in its own module under `std/`:
+
+| Module          | Target           | Use for                                    |
+| --------------- | ---------------- | ------------------------------------------ |
+| `std/local`     | `local.target`   | Steps that run on the machine scampi is on |
+| `std/ssh`       | `ssh.target`     | Steps that run on a remote host over SSH   |
+| `std/rest`      | `rest.target`    | HTTP requests against a REST API           |
 
 ## Available targets
 

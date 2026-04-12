@@ -40,21 +40,24 @@ layout: hextra-home
 
 <div class="home-code">
 
-```python
-target.local(name="my-machine")
+```scampi
+module main
 
-deploy(
-    name = "hello",
-    targets = ["my-machine"],
-    steps = [
-        dir(path="/tmp/scampi-demo", perm="0755"),
-        dir(path="/tmp/scampi-demo/v1", perm="0755"),
-        symlink(
-            target = "/tmp/scampi-demo/v1",
-            link = "/tmp/scampi-demo/current",
-        ),
-    ],
-)
+import "std"
+import "std/local"
+import "std/posix"
+
+let machine = local.target { name = "my-machine" }
+
+std.deploy(name = "hello", targets = [machine]) {
+  posix.dir { path = "/tmp/scampi-demo", perm = "0755" }
+  posix.dir { path = "/tmp/scampi-demo/v1", perm = "0755" }
+
+  posix.symlink {
+    target = "/tmp/scampi-demo/v1"
+    link   = "/tmp/scampi-demo/current"
+  }
+}
 ```
 
 </div>
@@ -63,7 +66,7 @@ deploy(
   {{< hextra/feature-card
     title="Declarative"
     style="pointer-events: none"
-    subtitle="Describe the desired state of your systems in Starlark. Scampi figures out what needs to change."
+    subtitle="Describe the desired state of your systems. scampi figures out what needs to change."
   >}}
   {{< hextra/feature-card
     title="Idempotent"
@@ -76,9 +79,9 @@ deploy(
     subtitle="No daemons, no agents, no control plane. Just SSH and the binary."
   >}}
   {{< hextra/feature-card
-    title="Starlark"
+    title="Statically Typed"
     style="pointer-events: none"
-    subtitle="Python-like configuration language. Deterministic, hermetic, no surprises."
+    subtitle="A real configuration language with types, attributes, and link-time validation. Errors caught as you type."
   >}}
   {{< hextra/feature-card
     title="Batteries Included"
