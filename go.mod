@@ -20,7 +20,7 @@ require (
 	github.com/urfave/cli/v3 v3.7.0
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
-	go.starlark.net v0.0.0-20260210143700-b62fd896b91b
+	go.lsp.dev/uri v0.3.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.49.0
 	golang.org/x/sync v0.20.0
@@ -238,7 +238,6 @@ require (
 	go.augendre.info/arangolint v0.4.0 // indirect
 	go.augendre.info/fatcontext v0.9.0 // indirect
 	go.lsp.dev/pkg v0.0.0-20210717090340-384b27a52fb2 // indirect
-	go.lsp.dev/uri v0.3.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260209203927-2842357ff358 // indirect
