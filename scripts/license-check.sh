@@ -28,12 +28,12 @@ check_file() {
 # Go files: SPDX on line 1
 while IFS= read -r f; do
   check_file "$f" 1
-done < <(find . -name '*.go' -not -path './vendor/*')
+done < <(find . -name '*.go' -not -path './vendor/*' -not -path './site/_chroma/*')
 
 # Shell scripts: SPDX on line 2 (after shebang)
 while IFS= read -r f; do
   check_file "$f" 2
-done < <(find . -name '*.sh' -not -path './vendor/*' -not -path './build/*' -not -path './.dev/*' -not -name 'license-check.sh')
+done < <(find . -name '*.sh' -not -path './vendor/*' -not -path './site/_chroma/*' -not -path './build/*' -not -path './.dev/*' -not -name 'license-check.sh')
 
 # Scampi-lang files: SPDX on line 1
 while IFS= read -r f; do
@@ -58,8 +58,8 @@ if [[ ${#stray[@]} -gt 0 ]]; then
   ok=false
 fi
 if [[ "$ok" == true ]]; then
-  n_go=$(find . -name '*.go' -not -path './vendor/*' | wc -l)
-  n_sh=$(find . -name '*.sh' -not -path './vendor/*' -not -path './build/*' -not -path './site/static/*' -not -path './.dev/*' | wc -l)
+  n_go=$(find . -name '*.go' -not -path './vendor/*' -not -path './site/_chroma/*' | wc -l)
+  n_sh=$(find . -name '*.sh' -not -path './vendor/*' -not -path './site/_chroma/*' -not -path './build/*' -not -path './site/static/*' -not -path './.dev/*' | wc -l)
   n_scampi=$(find . -name '*.scampi' -not -path './.sandbox/*' -not -path '*/testdata/*' | wc -l)
   echo "✓ All $((n_go + n_sh + n_scampi)) files have correct SPDX headers"
 fi

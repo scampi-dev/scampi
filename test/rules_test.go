@@ -317,6 +317,9 @@ func TestImportCapabilities(t *testing.T) {
 		if err != nil {
 			return err
 		}
+		if d.IsDir() && d.Name() == "_chroma" {
+			return filepath.SkipDir
+		}
 		if d.IsDir() || !strings.HasSuffix(p, ".go") {
 			return nil
 		}
@@ -417,6 +420,9 @@ func TestFuncSignatureStyle(t *testing.T) {
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		if d.IsDir() && d.Name() == "_chroma" {
+			return filepath.SkipDir
 		}
 		if d.IsDir() || !strings.HasSuffix(p, ".go") {
 			return nil
@@ -738,6 +744,9 @@ func TestBareErrorBan(t *testing.T) {
 		if err != nil {
 			return err
 		}
+		if d.IsDir() && d.Name() == "_chroma" {
+			return filepath.SkipDir
+		}
 		if d.IsDir() || !strings.HasSuffix(p, ".go") {
 			return nil
 		}
@@ -882,6 +891,9 @@ func TestLangPackageIsolation(t *testing.T) {
 	err := filepath.WalkDir(filepath.Join(root, "lang"), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		if d.IsDir() && d.Name() == "_chroma" {
+			return filepath.SkipDir
 		}
 		if d.IsDir() || !strings.HasSuffix(p, ".go") {
 			return nil

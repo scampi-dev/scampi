@@ -66,7 +66,7 @@ lint severity='warning':
 _gopls-hints severity:
   #!/usr/bin/env bash
   [[ "{{severity}}" != "hint" ]] && exit 0
-  files=$(find . -name '*.go' -not -name '*_test.go' -not -path './vendor/*' -not -path './.git/*')
+  files=$(find . -name '*.go' -not -name '*_test.go' -not -path './vendor/*' -not -path './.git/*' -not -path './site/_chroma/*')
   hints=$(echo "$files" | xargs gopls check -severity=hint 2>&1 | grep -v '^$')
   if [[ -n "$hints" ]]; then
     echo ""
@@ -132,7 +132,7 @@ _patch-license-headers:
     fi
   }
   while IFS= read -r f; do patch "$f" "$go_header"; done \
-    < <(find . -name '*_string.go' -not -path './vendor/*')
+    < <(find . -name '*_string.go' -not -path './vendor/*' -not -path './site/_chroma/*')
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
     patch "$f" "$scampi_header"

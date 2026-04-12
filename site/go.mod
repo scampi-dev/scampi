@@ -196,3 +196,7 @@ require (
 	rsc.io/qr v0.2.0 // indirect
 	software.sslmate.com/src/go-pkcs12 v0.2.0 // indirect
 )
+
+// Vendored chroma fork that adds the scampi lexer (site/_chroma/lexers/embedded/scampi.xml).
+// Drop this replace once the lexer is upstreamed to alecthomas/chroma.
+replace github.com/alecthomas/chroma/v2 => ./_chroma
