@@ -26,7 +26,7 @@ require (
 
 ## How it works
 
-- The module path (`my/helpers`) is what you use in `load()` calls
+- The module path (`my/helpers`) is what you use in `import` statements
 - The filesystem path (`./modules/helpers`) is where the `.scampi` files live
 - Relative paths resolve from the directory containing `scampi.mod`
 - Absolute paths work too
@@ -35,21 +35,21 @@ require (
 
 ## Using local modules
 
-```starlark {filename="deploy.scampi"}
-load("my/helpers", "make_config")
+```scampi {filename="deploy.scampi"}
+module main
 
-target.local(name = "server")
+import "std"
+import "std/local"
+import "my/helpers"
 
-deploy(
-    name = "app",
-    targets = ["server"],
-    steps = [
-        make_config(port = 3000),
-    ],
-)
+let server = local.target { name = "server" }
+
+std.deploy(name = "app", targets = [server]) {
+  helpers.make_config { port = 3000 }
+}
 ```
 
-The `load()` path must match the module path in the require table exactly.
+The `import` path must match the module path in the require table exactly.
 
 ## Entry point resolution
 
@@ -75,7 +75,7 @@ my/helpers ./modules/helpers
 codeberg.org/yourname/helpers v1.0.0
 ```
 
-5. Update `load()` calls to use the new path
+5. Update `import` statements to use the new path
 6. Run `scampi mod download`
 
 ## Module path flexibility
@@ -90,4 +90,4 @@ require (
 )
 ```
 
-The only requirement: the path in `require` must match the path in `load()`.
+The only requirement: the path in `require` must match the path in `import`.

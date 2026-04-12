@@ -11,10 +11,10 @@ is as simple as tagging a release.
 ```text
 your-module/
     _index.scampi          # entry point (or <module-name>.scampi)
-    helpers.scampi         # internal helpers (loaded relatively)
+    helpers.scampi         # internal helpers
     sub/
         _index.scampi      # subpath entry point
-    scampi.mod           # optional: only needed if this module has dependencies
+    scampi.mod             # optional: only needed if this module has dependencies
     README.md
 ```
 
@@ -28,7 +28,7 @@ github.com/yourname/scampi-webserver
 ```
 
 Choose a path that's stable — consumers reference it in their `scampi.mod`
-and `load()` calls.
+and `import` statements.
 
 ### Monorepo modules
 
@@ -99,23 +99,8 @@ scampi mod add codeberg.org/yourname/module@v2.0.0-alpha.1
 ## Entry point conventions
 
 - Use `_index.scampi` for the main entry point
-- Export public functions at the top level
-- Keep internal helpers in separate files, loaded relatively:
-
-```starlark {filename="_index.scampi"}
-load("helpers.scampi", "_validate_config")
-
-def my_step(name, config):
-    _validate_config(config)
-    return copy(
-        desc = name,
-        dest = "/etc/myapp/" + name + ".conf",
-        src = inline(config),
-        perm = "0644",
-        owner = "root",
-        group = "root",
-    )
-```
+- Export public declarations and functions at the top level
+- Keep internal helpers in separate files, imported relatively
 
 ## Dependencies
 
@@ -130,7 +115,7 @@ require (
 ```
 
 Consumers don't need to declare your transitive dependencies — they only
-list what they directly `load()`.
+list what they directly `import`.
 
 ## Testing
 
@@ -141,4 +126,4 @@ CI pipelines can run them with `scampi test`:
 scampi test ./...
 ```
 
-See [Testing](../testing) for details on writing test files.
+See [Testing]({{< relref "../testing" >}}) for details on writing test files.
