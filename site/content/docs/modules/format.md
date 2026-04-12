@@ -84,7 +84,7 @@ and can be checked explicitly with `scampi mod verify`.
 
 ## Entry points
 
-When you `load("codeberg.org/user/module", ...)`, scampi looks for an entry
+When you `import "codeberg.org/user/module"`, scampi looks for an entry
 point in the module's root directory:
 
 1. `_index.scampi` — checked first
@@ -92,12 +92,12 @@ point in the module's root directory:
 
 If both exist, `_index.scampi` takes precedence.
 
-### Subpath loads
+### Subpath imports
 
-You can load from subdirectories within a module:
+You can import from subdirectories within a module:
 
-```starlark
-load("codeberg.org/user/module/internal/helpers", "helper_func")
+```scampi
+import "codeberg.org/user/module/internal/helpers"
 ```
 
 This resolves to `internal/helpers.scampi` or `internal/helpers/_index.scampi`

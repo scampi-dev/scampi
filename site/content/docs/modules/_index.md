@@ -3,9 +3,9 @@ title: Modules
 weight: 4
 ---
 
-Scampi modules are reusable Starlark packages distributed as git repositories.
-A module exports functions that produce steps — the same functions you use in
-deploy blocks.
+scampi modules are reusable packages distributed as git repositories. A module
+exports declarations and functions that produce steps — the same declarations
+you use in deploy blocks.
 
 ## Quick start
 
@@ -18,26 +18,30 @@ scampi mod add codeberg.org/scampi-modules/npm
 
 Use it in your config:
 
-```starlark {filename="deploy.scampi"}
-load("codeberg.org/scampi-modules/npm", "proxy_host", "certificate")
+```scampi {filename="deploy.scampi"}
+module main
 
-target.local(name = "server")
+import "std"
+import "std/local"
+import "codeberg.org/scampi-modules/npm"
 
-deploy(
-    name = "reverse-proxy",
-    targets = ["server"],
-    steps = [
-        certificate("*.example.com"),
-        proxy_host("example.com", forward_host = "localhost", forward_port = 3000),
-    ],
-)
+let server = local.target { name = "server" }
+
+std.deploy(name = "reverse-proxy", targets = [server]) {
+  npm.certificate { domain = "*.example.com" }
+  npm.proxy_host {
+    domain       = "example.com"
+    forward_host = "localhost"
+    forward_port = 3000
+  }
+}
 ```
 
 ## How it works
 
 1. `scampi.mod` declares your module path and dependencies
 2. `scampi mod add` fetches modules from git repositories into a local cache
-3. `load()` resolves module paths against the require table and loads `.scampi` files
+3. `import` resolves module paths against the require table
 4. Steps from modules work identically to built-in steps
 
 ## Sections
