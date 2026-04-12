@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"strings"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/engine"
@@ -98,26 +97,4 @@ func runLangTestFile(
 	}
 
 	return passed, failed, nil
-}
-
-// detectLangSyntax reports whether the given source is a scampi-lang
-// file. The check is "first non-empty, non-comment line starts with
-// `module `" — scampi-lang requires a module declaration as the
-// first significant token; legacy Starlark test files don't have one.
-func detectLangSyntax(data []byte) bool {
-	lines := strings.SplitSeq(string(data), "\n")
-	for line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			continue
-		}
-		if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-		if strings.HasPrefix(trimmed, "/*") {
-			continue
-		}
-		return strings.HasPrefix(trimmed, "module ")
-	}
-	return false
 }

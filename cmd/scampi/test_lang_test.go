@@ -6,14 +6,12 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/render"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/testkit"
 )
 
 // nopDisplayer satisfies render.Displayer with no-op writes. Used
@@ -156,42 +154,5 @@ std.deploy(name = "fail", targets = [mock]) {
 	}
 	if len(displ.diagnostics) == 0 {
 		t.Errorf("expected at least one TestFail diagnostic")
-	}
-}
-
-func TestDetectLangSyntax(t *testing.T) {
-	cases := []struct {
-		name string
-		src  string
-		want bool
-	}{
-		{"plain module", "module main\nlet x = 1\n", true},
-		{"comment then module", "// header\nmodule main\n", true},
-		{"block comment then module", "/* header */\nmodule main\n", true},
-		{"blank lines then module", "\n\nmodule main\n", true},
-		{"starlark assignment", "x = 1\nprint(x)\n", false},
-		{"starlark function call", "deploy(name=\"x\")\n", false},
-		{"empty file", "", false},
-		{"only comments", "// nothing else\n# also nothing\n", false},
-	}
-	for _, tt := range cases {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := detectLangSyntax([]byte(tt.src)); got != tt.want {
-				t.Errorf("detectLangSyntax(%q) = %v, want %v", tt.src, got, tt.want)
-			}
-		})
-	}
-}
-
-// TestkitImportsTopLevel ensures the testkit package's diagnostic
-// types are reachable from the cmd binary so the dispatch path can
-// emit them. Pure compile-time check; this would fail in lint not
-// at test time, but having an explicit assertion is cheap.
-func TestTestkitTypesReachable(t *testing.T) {
-	var _ = testkit.TestFail{}
-	var _ = testkit.TestSummary{}
-	var _ = testkit.TestError{}
-	if !strings.Contains(testkit.TestFail{Description: "x"}.Description, "x") {
-		t.Fatal("TestFail not addressable")
 	}
 }

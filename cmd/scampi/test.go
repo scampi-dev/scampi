@@ -11,11 +11,8 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/star"
-	"scampi.dev/scampi/star/testkit"
+	"scampi.dev/scampi/testkit"
 )
 
 func testCmd() *cli.Command {
@@ -23,7 +20,7 @@ func testCmd() *cli.Command {
 
 	return &cli.Command{
 		Name:         "test",
-		Usage:        "Run Starlark test files",
+		Usage:        "Run scampi test files",
 		ArgsUsage:    "[path]",
 		OnUsageError: onUsageError,
 		Before:       requireMaxArgs(1),
@@ -63,7 +60,7 @@ func testCmd() *cli.Command {
 			totalPassed, totalFailed := 0, 0
 
 			for _, f := range files {
-				passed, failed, err := dispatchTestFile(ctx, em, f, store, src)
+				passed, failed, err := runLangTestFile(ctx, em, f, src)
 				if err != nil {
 					emitTestDiag(em, &testkit.TestError{
 						Detail: err.Error(),
@@ -88,83 +85,6 @@ func testCmd() *cli.Command {
 			return nil
 		},
 	}
-}
-
-// dispatchTestFile chooses between the legacy Starlark runner and
-// the scampi-lang runner based on the file's first significant line:
-// scampi-lang files start with `module ...`, legacy Starlark files
-// don't. This is the migration switch — once every fixture has been
-// translated to scampi-lang (Phase 5) and star/ deletes (Phase 6),
-// this dispatcher and the legacy path go away with it.
-func dispatchTestFile(
-	ctx context.Context,
-	em diagnostic.Emitter,
-	testPath string,
-	store *diagnostic.SourceStore,
-	src source.Source,
-) (passed, failed int, err error) {
-	data, readErr := src.ReadFile(ctx, testPath)
-	if readErr == nil && detectLangSyntax(data) {
-		return runLangTestFile(ctx, em, testPath, src)
-	}
-	return runTestFile(ctx, em, testPath, store, src)
-}
-
-func runTestFile(
-	ctx context.Context,
-	em diagnostic.Emitter,
-	testPath string,
-	store *diagnostic.SourceStore,
-	src source.Source,
-) (passed, failed int, err error) {
-	collector := testkit.NewCollector()
-
-	cfg, err := star.Eval(
-		ctx,
-		testPath,
-		store,
-		src,
-		star.WithTestBuiltins(collector),
-	)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	resolved, err := engine.ResolveMultiple(cfg, spec.ResolveOptions{})
-	if err != nil {
-		return 0, 0, err
-	}
-
-	for _, rc := range resolved {
-		e, engineErr := engine.New(ctx, src, rc, em)
-		if engineErr != nil {
-			return 0, 0, engineErr
-		}
-		if applyErr := e.Apply(ctx); applyErr != nil {
-			e.Close()
-			return 0, 0, applyErr
-		}
-		e.Close()
-	}
-
-	for _, assertion := range collector.Assertions() {
-		if checkErr := assertion.Check(); checkErr != nil {
-			failed++
-			em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(
-				testPath,
-				&testkit.TestFail{
-					Description: assertion.Description,
-					Expected:    "pass",
-					Actual:      checkErr.Error(),
-					Source:      assertion.Source,
-				},
-			))
-		} else {
-			passed++
-		}
-	}
-
-	return passed, failed, nil
 }
 
 // findTestFiles resolves the test path argument into a list of *_test.scampi files.
