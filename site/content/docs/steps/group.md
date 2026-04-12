@@ -6,23 +6,23 @@ Ensure a group exists or is absent on the target.
 
 ## Fields
 
-| Field       | Type           | Required | Default              | Description                                |
-| ----------- | -------------- | :------: | -------------------- | ------------------------------------------ |
-| `name`      | string         |    ✓     |                      | Group name to manage (`@std.nonempty`)     |
-| `state`     | `GroupState`   |          | `GroupState.present` | Desired state                              |
-| `gid`      | int?           |          |                      | Group ID (auto-assigned if omitted)        |
-| `system`    | bool?          |          |                      | Create as system group                     |
-| `desc`      | string?        |          |                      | Human-readable description                 |
-| `on_change` | list\[Step]    |          |                      | Steps to trigger when this group changes   |
+| Field       | Type         | Required | Default              | Description                              |
+| ----------- | ------------ | :------: | -------------------- | ---------------------------------------- |
+| `name`      | string       |    ✓     |                      | Group name to manage (`@std.nonempty`)   |
+| `state`     | `GroupState` |          | `GroupState.present` | Desired state                            |
+| `gid`       | int?         |          |                      | Group ID (auto-assigned if omitted)      |
+| `system`    | bool?        |          |                      | Create as system group                   |
+| `desc`      | string?      |          |                      | Human-readable description               |
+| `on_change` | list\[Step]  |          |                      | Steps to trigger when this group changes |
 
 ## States
 
 `posix.GroupState` is an enum:
 
-| Value                  | Behavior                                                        |
-| ---------------------- | --------------------------------------------------------------- |
-| `GroupState.present`   | Create the group if it doesn't exist. No-op if already present. |
-| `GroupState.absent`    | Delete the group if it exists. No-op if already absent.         |
+| Value                | Behavior                                                        |
+| -------------------- | --------------------------------------------------------------- |
+| `GroupState.present` | Create the group if it doesn't exist. No-op if already present. |
+| `GroupState.absent`  | Delete the group if it exists. No-op if already absent.         |
 
 ## How it works
 

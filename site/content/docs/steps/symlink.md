@@ -6,12 +6,12 @@ Create and manage symbolic links on the target.
 
 ## Fields
 
-| Field       | Type        | Required | Description                                           |
-| ----------- | ----------- | :------: | ----------------------------------------------------- |
-| `target`    | string      |    ✓     | Path the symlink points to (`@std.path(absolute=true)`) |
+| Field       | Type        | Required | Description                                               |
+| ----------- | ----------- | :------: | --------------------------------------------------------- |
+| `target`    | string      |    ✓     | Path the symlink points to (`@std.path(absolute=true)`)   |
 | `link`      | string      |    ✓     | Path where the symlink lives (`@std.path(absolute=true)`) |
-| `desc`      | string?     |          | Human-readable description                            |
-| `on_change` | list\[Step] |          | Steps to trigger when the link is created or updated  |
+| `desc`      | string?     |          | Human-readable description                                |
+| `on_change` | list\[Step] |          | Steps to trigger when the link is created or updated      |
 
 Think of it like `ln -s TARGET LINK` — `target` is what you're pointing at,
 `link` is where the symlink lives.

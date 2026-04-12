@@ -10,20 +10,20 @@ Manage container lifecycle: running, stopped, or absent. See the
 
 ## Fields
 
-| Field         | Type                       | Required | Default                       | Description                           |
-| ------------- | -------------------------- | :------: | ----------------------------- | ------------------------------------- |
-| `name`        | string                     |    ✓     |                               | Container name                        |
-| `image`       | string                     |  ✓[^1]   | `""`                          | Container image (tag or digest)       |
-| `state`       | `container.State`          |          | `State.running`               | Desired [state](#states)              |
-| `restart`     | `container.Restart`        |          | `Restart.unless_stopped`      | [Restart policy](#restart-policies)   |
-| `ports`       | list\[string]?             |          |                               | [Port mappings](#port-mappings)       |
-| `env`         | map\[string, string]?      |          |                               | Environment variables                 |
-| `mounts`      | list\[string]?             |          |                               | Bind mounts (`"host:container[:ro]"`) |
-| `args`        | list\[string]?             |          |                               | Arguments for container entrypoint    |
-| `labels`      | map\[string, string]?      |          |                               | Container labels                      |
-| `healthcheck` | `container.Healthcheck?`   |          |                               | [Healthcheck config](#healthchecks)   |
-| `desc`        | string?                    |          |                               | Human-readable description            |
-| `on_change`   | list\[Step]                |          |                               | Steps to trigger when this changes    |
+| Field         | Type                     | Required | Default                  | Description                           |
+| ------------- | ------------------------ | :------: | ------------------------ | ------------------------------------- |
+| `name`        | string                   |    ✓     |                          | Container name                        |
+| `image`       | string                   |  ✓[^1]   | `""`                     | Container image (tag or digest)       |
+| `state`       | `container.State`        |          | `State.running`          | Desired [state](#states)              |
+| `restart`     | `container.Restart`      |          | `Restart.unless_stopped` | [Restart policy](#restart-policies)   |
+| `ports`       | list\[string]?           |          |                          | [Port mappings](#port-mappings)       |
+| `env`         | map\[string, string]?    |          |                          | Environment variables                 |
+| `mounts`      | list\[string]?           |          |                          | Bind mounts (`"host:container[:ro]"`) |
+| `args`        | list\[string]?           |          |                          | Arguments for container entrypoint    |
+| `labels`      | map\[string, string]?    |          |                          | Container labels                      |
+| `healthcheck` | `container.Healthcheck?` |          |                          | [Healthcheck config](#healthchecks)   |
+| `desc`        | string?                  |          |                          | Human-readable description            |
+| `on_change`   | list\[Step]              |          |                          | Steps to trigger when this changes    |
 
 [^1]: Required when state is `running` or `stopped`, optional when `absent`.
 
@@ -31,11 +31,11 @@ Manage container lifecycle: running, stopped, or absent. See the
 
 `container.State` is an enum:
 
-| Value            | Behavior                                    |
-| ---------------- | ------------------------------------------- |
-| `State.running`  | Create and start. Recreate on config drift. |
-| `State.stopped`  | Create but don't start. Recreate on drift.  |
-| `State.absent`   | Stop and remove.                            |
+| Value           | Behavior                                    |
+| --------------- | ------------------------------------------- |
+| `State.running` | Create and start. Recreate on config drift. |
+| `State.stopped` | Create but don't start. Recreate on drift.  |
+| `State.absent`  | Stop and remove.                            |
 
 ## Restart policies
 
@@ -43,12 +43,12 @@ Manage container lifecycle: running, stopped, or absent. See the
 process exits or the host reboots. Manually stopping a container always works
 regardless of restart policy — the policy only governs automatic restarts.
 
-| Policy                  | On container exit | On host reboot | On manual stop                       |
-| ----------------------- | ----------------- | -------------- | ------------------------------------ |
-| `Restart.always`        | Restart           | Restart        | Stays stopped until next host reboot |
-| `Restart.unless_stopped`| Restart           | Restart        | Stays stopped permanently            |
-| `Restart.on_failure`    | Restart           | Do not restart | Stays stopped permanently            |
-| `Restart.no`            | Do not restart    | Do not restart | Stays stopped permanently            |
+| Policy                   | On container exit | On host reboot | On manual stop                       |
+| ------------------------ | ----------------- | -------------- | ------------------------------------ |
+| `Restart.always`         | Restart           | Restart        | Stays stopped until next host reboot |
+| `Restart.unless_stopped` | Restart           | Restart        | Stays stopped permanently            |
+| `Restart.on_failure`     | Restart           | Do not restart | Stays stopped permanently            |
+| `Restart.no`             | Do not restart    | Do not restart | Stays stopped permanently            |
 
 The difference between `always` and `unless_stopped`: both restart on
 container exit and host reboot, but if you manually stop an `always`
@@ -83,11 +83,11 @@ ports = ["8080:80", "9090:9090"]
 
 Extended formats:
 
-| Format                            | Example                  | Description           |
-| --------------------------------- | ------------------------ | --------------------- |
-| `hostPort:containerPort`          | `"8080:80"`              | Bind to all addresses |
+| Format                            | Example                 | Description           |
+| --------------------------------- | ----------------------- | --------------------- |
+| `hostPort:containerPort`          | `"8080:80"`             | Bind to all addresses |
 | `ip:hostPort:containerPort`       | `"127.0.0.1:8080:80"`   | Bind to specific IP   |
-| `hostPort:containerPort/proto`    | `"5000:5000/udp"`        | UDP instead of TCP    |
+| `hostPort:containerPort/proto`    | `"5000:5000/udp"`       | UDP instead of TCP    |
 | `ip:hostPort:containerPort/proto` | `"127.0.0.1:53:53/udp"` | IP + UDP              |
 
 TCP is the default protocol. All four fields are preserved across check,

@@ -17,15 +17,15 @@ rest.request {
 
 ## Fields
 
-| Field       | Type                      | Required | Description                                    |
-| ----------- | ------------------------- | :------: | ---------------------------------------------- |
-| `method`    | string                    |    ✓     | HTTP method (GET, POST, PUT, PATCH, DELETE)    |
-| `path`      | string                    |    ✓     | Request path (appended to target's `base_url`) |
-| `body`      | `rest.Body?`              |          | Request body — see [below](#body-types)        |
-| `headers`   | map\[string, string]?     |          | HTTP headers                                   |
-| `check`     | `rest.Check?`             |          | Check matcher for idempotency                  |
-| `desc`      | string?                   |          | Human-readable description                     |
-| `on_change` | list\[Step]               |          | Steps to trigger when this request fires       |
+| Field       | Type                  | Required | Description                                    |
+| ----------- | --------------------- | :------: | ---------------------------------------------- |
+| `method`    | string                |    ✓     | HTTP method (GET, POST, PUT, PATCH, DELETE)    |
+| `path`      | string                |    ✓     | Request path (appended to target's `base_url`) |
+| `body`      | `rest.Body?`          |          | Request body — see [below](#body-types)        |
+| `headers`   | map\[string, string]? |          | HTTP headers                                   |
+| `check`     | `rest.Check?`         |          | Check matcher for idempotency                  |
+| `desc`      | string?               |          | Human-readable description                     |
+| `on_change` | list\[Step]           |          | Steps to trigger when this request fires       |
 
 Explicit `headers` take precedence over any headers set automatically by the
 body type. For example, `headers = {"Content-Type": "application/json;charset=utf-8"}`

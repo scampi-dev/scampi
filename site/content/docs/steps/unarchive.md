@@ -7,16 +7,16 @@ ownership, and permissions.
 
 ## Fields
 
-| Field       | Type        | Required | Default | Description                                                  |
-| ----------- | ----------- | :------: | :-----: | ------------------------------------------------------------ |
-| `src`       | `Source`    |    ✓     |         | Source resolver — see [below](#source-resolvers)             |
-| `dest`      | string      |    ✓     |         | Target directory for extraction (`@std.path(absolute=true)`) |
-| `depth`     | int?        |          |    0    | Nested archive recursion (-1 = unlimited, 0 = top-level only) |
-| `owner`     | string?     |          |         | Owner applied recursively after extraction                   |
-| `group`     | string?     |          |         | Group applied recursively after extraction                   |
+| Field       | Type        | Required | Default | Description                                                        |
+| ----------- | ----------- | :------: | :-----: | ------------------------------------------------------------------ |
+| `src`       | `Source`    |    ✓     |         | Source resolver — see [below](#source-resolvers)                   |
+| `dest`      | string      |    ✓     |         | Target directory for extraction (`@std.path(absolute=true)`)       |
+| `depth`     | int?        |          |    0    | Nested archive recursion (-1 = unlimited, 0 = top-level only)      |
+| `owner`     | string?     |          |         | Owner applied recursively after extraction                         |
+| `group`     | string?     |          |         | Group applied recursively after extraction                         |
 | `perm`      | string?     |          |         | Permissions applied recursively after extraction (`@std.filemode`) |
-| `desc`      | string?     |          |         | Human-readable description                                   |
-| `on_change` | list\[Step] |          |         | Steps to trigger when extraction runs                        |
+| `desc`      | string?     |          |         | Human-readable description                                         |
+| `on_change` | list\[Step] |          |         | Steps to trigger when extraction runs                              |
 
 If `owner` is set, `group` must also be set (and vice versa).
 

@@ -36,10 +36,10 @@ std.deploy(name = "webserver", targets = [web]) {
 }
 ```
 
-| Field     | Type           | Required | Description                   |
-| --------- | -------------- | :------: | ----------------------------- |
-| `name`    | string         |    ✓     | Unique identifier             |
-| `targets` | list\[Target]  |    ✓     | Targets to execute against    |
+| Field     | Type          | Required | Description                |
+| --------- | ------------- | :------: | -------------------------- |
+| `name`    | string        |    ✓     | Unique identifier          |
+| `targets` | list\[Target] |    ✓     | Targets to execute against |
 
 Steps inside the trailing block execute in order. Each step becomes an action
 in the plan.
@@ -143,10 +143,10 @@ std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
 
 Currently supported backends:
 
-| Backend                    | Description                                                             |
-| -------------------------- | ----------------------------------------------------------------------- |
-| `SecretsBackend.file`      | Plain JSON key-value file (unencrypted)                                 |
-| `SecretsBackend.age`       | Encrypted JSON file using [age encryption](https://age-encryption.org/) |
+| Backend               | Description                                                             |
+| --------------------- | ----------------------------------------------------------------------- |
+| `SecretsBackend.file` | Plain JSON key-value file (unencrypted)                                 |
+| `SecretsBackend.age`  | Encrypted JSON file using [age encryption](https://age-encryption.org/) |
 
 The `std.secrets` call can only appear once per config.
 

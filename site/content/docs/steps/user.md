@@ -6,26 +6,26 @@ Ensure a user account exists or is absent on the target.
 
 ## Fields
 
-| Field       | Type           | Required | Default             | Description                                  |
-| ----------- | -------------- | :------: | ------------------- | -------------------------------------------- |
-| `name`      | string         |    ✓     |                     | Username to manage (`@std.nonempty`)         |
-| `state`     | `UserState`    |          | `UserState.present` | Desired state                                |
-| `shell`     | string?        |          |                     | Login shell                                  |
-| `home`      | string?        |          |                     | Home directory (useradd default if omitted)  |
-| `system`    | bool?          |          |                     | Create as system user                        |
-| `password`  | string?        |          |                     | Pre-hashed password                          |
-| `groups`    | list\[string]? |          |                     | Supplementary group names                    |
-| `desc`      | string?        |          |                     | Human-readable description                   |
-| `on_change` | list\[Step]    |          |                     | Steps to trigger when this user changes      |
+| Field       | Type           | Required | Default             | Description                                 |
+| ----------- | -------------- | :------: | ------------------- | ------------------------------------------- |
+| `name`      | string         |    ✓     |                     | Username to manage (`@std.nonempty`)        |
+| `state`     | `UserState`    |          | `UserState.present` | Desired state                               |
+| `shell`     | string?        |          |                     | Login shell                                 |
+| `home`      | string?        |          |                     | Home directory (useradd default if omitted) |
+| `system`    | bool?          |          |                     | Create as system user                       |
+| `password`  | string?        |          |                     | Pre-hashed password                         |
+| `groups`    | list\[string]? |          |                     | Supplementary group names                   |
+| `desc`      | string?        |          |                     | Human-readable description                  |
+| `on_change` | list\[Step]    |          |                     | Steps to trigger when this user changes     |
 
 ## States
 
 `posix.UserState` is an enum:
 
-| Value                | Behavior                                                                                                                                       |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `UserState.present`  | Create the user if missing. If the user exists but shell, home, or groups differ from the desired state, modify the user to match. Idempotent. |
-| `UserState.absent`   | Delete the user if it exists. No-op if already absent.                                                                                         |
+| Value               | Behavior                                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UserState.present` | Create the user if missing. If the user exists but shell, home, or groups differ from the desired state, modify the user to match. Idempotent. |
+| `UserState.absent`  | Delete the user if it exists. No-op if already absent.                                                                                         |
 
 ## How it works
 

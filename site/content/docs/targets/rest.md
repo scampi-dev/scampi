@@ -22,12 +22,12 @@ let npm_api = rest.target {
 
 ## Fields
 
-| Field      | Type          | Required | Default          | Description                             |
-| ---------- | ------------- | :------: | ---------------- | --------------------------------------- |
-| `name`     | string        |    ✓     |                  | Identifier for deploy blocks            |
-| `base_url` | string        |    ✓     |                  | Base URL prepended to all request paths |
-| `auth`     | `rest.Auth?`  |          | `rest.no_auth{}` | Authentication strategy (see below)     |
-| `tls`      | `rest.TLS?`   |          | `rest.tls_secure{}` | TLS configuration (see below)        |
+| Field      | Type         | Required | Default             | Description                             |
+| ---------- | ------------ | :------: | ------------------- | --------------------------------------- |
+| `name`     | string       |    ✓     |                     | Identifier for deploy blocks            |
+| `base_url` | string       |    ✓     |                     | Base URL prepended to all request paths |
+| `auth`     | `rest.Auth?` |          | `rest.no_auth{}`    | Authentication strategy (see below)     |
+| `tls`      | `rest.TLS?`  |          | `rest.tls_secure{}` | TLS configuration (see below)           |
 
 ## Authentication
 

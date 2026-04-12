@@ -17,41 +17,41 @@ posix.mount {
 
 ## Fields
 
-| Field       | Type           | Required | Default                | Description                                                  |
-| ----------- | -------------- | :------: | ---------------------- | ------------------------------------------------------------ |
-| `src`       | string         |    ✓     |                        | Mount source — device or remote (`@std.nonempty`)            |
-| `dest`      | string         |    ✓     |                        | Mount point path (`@std.path(absolute=true)`)                |
-| `fs_type`   | `MountType`    |    ✓     |                        | Filesystem type — see [below](#filesystem-types)             |
-| `opts`      | string?        |          | `"defaults"`           | Mount options                                                |
-| `state`     | `MountState?`  |          | `MountState.mounted`   | Desired state                                                |
-| `desc`      | string?        |          |                        | Human-readable description                                   |
-| `on_change` | list\[Step]    |          |                        | Steps to trigger when this mount changes                     |
+| Field       | Type          | Required | Default              | Description                                       |
+| ----------- | ------------- | :------: | -------------------- | ------------------------------------------------- |
+| `src`       | string        |    ✓     |                      | Mount source — device or remote (`@std.nonempty`) |
+| `dest`      | string        |    ✓     |                      | Mount point path (`@std.path(absolute=true)`)     |
+| `fs_type`   | `MountType`   |    ✓     |                      | Filesystem type — see [below](#filesystem-types)  |
+| `opts`      | string?       |          | `"defaults"`         | Mount options                                     |
+| `state`     | `MountState?` |          | `MountState.mounted` | Desired state                                     |
+| `desc`      | string?       |          |                      | Human-readable description                        |
+| `on_change` | list\[Step]   |          |                      | Steps to trigger when this mount changes          |
 
 ## Filesystem types
 
 `posix.MountType` is an enum:
 
-| Value      | Notes                                              |
-| ---------- | -------------------------------------------------- |
-| `nfs`      | Standard NFS                                       |
-| `nfs4`     | NFSv4                                              |
-| `cifs`     | SMB / CIFS                                         |
-| `ext4`     | Local ext4 device                                  |
-| `xfs`      | Local XFS device                                   |
-| `btrfs`    | Local Btrfs device                                 |
-| `tmpfs`    | In-memory                                          |
-| `glusterfs`| GlusterFS                                          |
-| `ceph`     | Ceph                                               |
+| Value       | Notes              |
+| ----------- | ------------------ |
+| `nfs`       | Standard NFS       |
+| `nfs4`      | NFSv4              |
+| `cifs`      | SMB / CIFS         |
+| `ext4`      | Local ext4 device  |
+| `xfs`       | Local XFS device   |
+| `btrfs`     | Local Btrfs device |
+| `tmpfs`     | In-memory          |
+| `glusterfs` | GlusterFS          |
+| `ceph`      | Ceph               |
 
 ## States
 
 `posix.MountState` is an enum:
 
-| State                    | Fstab    | Mounted |
-| ------------------------ | -------- | ------- |
-| `MountState.mounted`     | present  | yes     |
-| `MountState.unmounted`   | present  | no      |
-| `MountState.absent`      | removed  | no      |
+| State                  | Fstab   | Mounted |
+| ---------------------- | ------- | ------- |
+| `MountState.mounted`   | present | yes     |
+| `MountState.unmounted` | present | no      |
+| `MountState.absent`    | removed | no      |
 
 ## Network filesystem tools
 

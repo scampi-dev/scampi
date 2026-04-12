@@ -52,13 +52,13 @@ Declare what should be true after the deploy. Every entry is a
 `matchers.Matcher` — see [Matchers]({{< relref "assertions" >}}) for the
 full list.
 
-| Field      | Type                              | Description                      |
-| ---------- | --------------------------------- | -------------------------------- |
-| `files`    | map\[string, matchers.Matcher]?   | Expected file state              |
-| `packages` | map\[string, matchers.Matcher]?   | Expected package state           |
-| `services` | map\[string, matchers.Matcher]?   | Expected service state           |
-| `dirs`     | map\[string, matchers.Matcher]?   | Expected directory state         |
-| `symlinks` | map\[string, matchers.Matcher]?   | Expected symlink state           |
+| Field      | Type                            | Description              |
+| ---------- | ------------------------------- | ------------------------ |
+| `files`    | map\[string, matchers.Matcher]? | Expected file state      |
+| `packages` | map\[string, matchers.Matcher]? | Expected package state   |
+| `services` | map\[string, matchers.Matcher]? | Expected service state   |
+| `dirs`     | map\[string, matchers.Matcher]? | Expected directory state |
+| `symlinks` | map\[string, matchers.Matcher]? | Expected symlink state   |
 
 Only listed entries are verified — unlisted slots are unconstrained. Use
 `matchers.is_absent()` to explicitly assert something should NOT exist.
@@ -88,12 +88,12 @@ let api = test.target_rest_mock(
 )
 ```
 
-| Parameter         | Type                           | Description                                    |
-| ----------------- | ------------------------------ | ---------------------------------------------- |
-| `name`            | string                         | Target name (required)                         |
-| `base_url`        | string                         | Base URL for the mock                          |
-| `routes`          | map\[string, test.Response]    | Route responses (`"METHOD /path"` to response) |
-| `expect_requests` | list\[test.RequestMatcher]?    | Request matchers for verification              |
+| Parameter         | Type                        | Description                                    |
+| ----------------- | --------------------------- | ---------------------------------------------- |
+| `name`            | string                      | Target name (required)                         |
+| `base_url`        | string                      | Base URL for the mock                          |
+| `routes`          | map\[string, test.Response] | Route responses (`"METHOD /path"` to response) |
+| `expect_requests` | list\[test.RequestMatcher]? | Request matchers for verification              |
 
 Route keys are `"METHOD /path"` strings. Unmatched routes return 404.
 
@@ -105,11 +105,11 @@ Defines a mock HTTP response for a route:
 test.response(status = 200, body = "{\"ok\":true}", headers = {"X-Custom": "val"})
 ```
 
-| Parameter | Type                   | Required | Description                 |
-| --------- | ---------------------- | :------: | --------------------------- |
-| `status`  | int                    |    ✓     | HTTP status code            |
-| `body`    | string?                |          | Response body               |
-| `headers` | map\[string, string]?  |          | Response headers            |
+| Parameter | Type                  | Required | Description      |
+| --------- | --------------------- | :------: | ---------------- |
+| `status`  | int                   |    ✓     | HTTP status code |
+| `body`    | string?               |          | Response body    |
+| `headers` | map\[string, string]? |          | Response headers |
 
 ### test.request
 
@@ -119,10 +119,10 @@ Defines a request matcher for `expect_requests`:
 test.request(method = "POST", path = "/items", count = 1)
 ```
 
-| Parameter       | Type              | Description                         |
-| --------------- | ----------------- | ----------------------------------- |
-| `method`        | string            | HTTP method to match                |
-| `path`          | string            | Request path to match               |
-| `body`          | matchers.Matcher? | Body content matcher                |
-| `count`         | int?              | Expect exactly N matching requests  |
-| `count_at_least`| int?              | Expect at least N (default: 1)      |
+| Parameter        | Type              | Description                        |
+| ---------------- | ----------------- | ---------------------------------- |
+| `method`         | string            | HTTP method to match               |
+| `path`           | string            | Request path to match              |
+| `body`           | matchers.Matcher? | Body content matcher               |
+| `count`          | int?              | Expect exactly N matching requests |
+| `count_at_least` | int?              | Expect at least N (default: 1)     |

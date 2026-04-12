@@ -38,15 +38,15 @@ rest.resource {
 
 ## Fields
 
-| Field       | Type                       | Required | Description                                          |
-| ----------- | -------------------------- | :------: | ---------------------------------------------------- |
-| `query`     | `rest.request?`            |          | Request to check if the resource exists              |
-| `missing`   | `rest.request?`            |          | Request to execute when resource is missing          |
-| `found`     | `rest.request?`            |          | Request to execute when resource is found            |
-| `state`     | map\[string, any]?         |          | Desired resource state (dict)                        |
-| `bindings`  | map\[string, rest.Check]?  |          | Name-to-jq mappings for path interpolation           |
-| `desc`      | string?                    |          | Human-readable description                           |
-| `on_change` | list\[Step]                |          | Steps to trigger when the resource changes           |
+| Field       | Type                      | Required | Description                                 |
+| ----------- | ------------------------- | :------: | ------------------------------------------- |
+| `query`     | `rest.request?`           |          | Request to check if the resource exists     |
+| `missing`   | `rest.request?`           |          | Request to execute when resource is missing |
+| `found`     | `rest.request?`           |          | Request to execute when resource is found   |
+| `state`     | map\[string, any]?        |          | Desired resource state (dict)               |
+| `bindings`  | map\[string, rest.Check]? |          | Name-to-jq mappings for path interpolation  |
+| `desc`      | string?                   |          | Human-readable description                  |
+| `on_change` | list\[Step]               |          | Steps to trigger when the resource changes  |
 
 At least one of `missing` or `found` is required.
 

@@ -22,31 +22,31 @@ expect = test.ExpectedState {
 
 Match against string content (file bodies, request bodies, header values).
 
-| Matcher                             | Checks                                     |
-| ----------------------------------- | ------------------------------------------ |
-| `matchers.has_exact_content(str)`   | Byte-for-byte content match                |
-| `matchers.has_substring(str)`       | Content contains substring                 |
-| `matchers.matches_regex(pattern)`   | Content matches Go regular expression      |
-| `matchers.is_empty()`               | Content exists but is the empty string     |
+| Matcher                           | Checks                                 |
+| --------------------------------- | -------------------------------------- |
+| `matchers.has_exact_content(str)` | Byte-for-byte content match            |
+| `matchers.has_substring(str)`     | Content contains substring             |
+| `matchers.matches_regex(pattern)` | Content matches Go regular expression  |
+| `matchers.is_empty()`             | Content exists but is the empty string |
 
 ## Existence matchers
 
 Work in any keyed slot — files, packages, services, dirs, symlinks.
 
-| Matcher                | Checks                            |
-| ---------------------- | --------------------------------- |
-| `matchers.is_present()`| Slot must exist (any content)     |
-| `matchers.is_absent()` | Slot must NOT exist after deploy  |
+| Matcher                 | Checks                           |
+| ----------------------- | -------------------------------- |
+| `matchers.is_present()` | Slot must exist (any content)    |
+| `matchers.is_absent()`  | Slot must NOT exist after deploy |
 
 ## Status matchers
 
 Parameterized by existing posix enums so the test vocabulary matches the
 production vocabulary one-for-one.
 
-| Matcher                               | Checks                                            |
-| ------------------------------------- | ------------------------------------------------- |
-| `matchers.has_svc_status(status)`     | Service matches a `posix.ServiceState` value      |
-| `matchers.has_pkg_status(status)`     | Package matches a `posix.PkgState` value          |
+| Matcher                           | Checks                                       |
+| --------------------------------- | -------------------------------------------- |
+| `matchers.has_svc_status(status)` | Service matches a `posix.ServiceState` value |
+| `matchers.has_pkg_status(status)` | Package matches a `posix.PkgState` value     |
 
 ### Examples
 

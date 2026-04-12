@@ -6,22 +6,22 @@ Manage firewall rules via UFW or firewalld.
 
 ## Fields
 
-| Field       | Type             | Required | Default                  | Description                                            |
-| ----------- | ---------------- | :------: | ------------------------ | ------------------------------------------------------ |
-| `port`      | string           |    ✓     |                          | Port/protocol string — see [below](#port-format)       |
-| `action`    | `FirewallAction` |          | `FirewallAction.allow`   | Rule action                                            |
-| `desc`      | string?          |          |                          | Human-readable description                             |
-| `on_change` | list\[Step]      |          |                          | Steps to trigger when this rule changes                |
+| Field       | Type             | Required | Default                | Description                                      |
+| ----------- | ---------------- | :------: | ---------------------- | ------------------------------------------------ |
+| `port`      | string           |    ✓     |                        | Port/protocol string — see [below](#port-format) |
+| `action`    | `FirewallAction` |          | `FirewallAction.allow` | Rule action                                      |
+| `desc`      | string?          |          |                        | Human-readable description                       |
+| `on_change` | list\[Step]      |          |                        | Steps to trigger when this rule changes          |
 
 ## Actions
 
 `posix.FirewallAction` is an enum:
 
-| Value                       | UFW command         | firewalld command       |
-| --------------------------- | ------------------- | ----------------------- |
-| `FirewallAction.allow`      | `ufw allow 22/tcp`  | `--add-port=22/tcp`     |
-| `FirewallAction.deny`       | `ufw deny 22/tcp`   | rich rule with `drop`   |
-| `FirewallAction.reject`     | `ufw reject 22/tcp` | rich rule with `reject` |
+| Value                   | UFW command         | firewalld command       |
+| ----------------------- | ------------------- | ----------------------- |
+| `FirewallAction.allow`  | `ufw allow 22/tcp`  | `--add-port=22/tcp`     |
+| `FirewallAction.deny`   | `ufw deny 22/tcp`   | rich rule with `drop`   |
+| `FirewallAction.reject` | `ufw reject 22/tcp` | rich rule with `reject` |
 
 ## How it works
 
