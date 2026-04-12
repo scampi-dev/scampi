@@ -138,6 +138,7 @@ func (v *BlockResultVal) String() string {
 // so the eval can produce the appropriate value.
 type FuncVal struct {
 	Name     string
+	QualName string // module-qualified name (e.g. "test.target_in_memory")
 	Params   []string
 	Defaults []any  // parallel to Params: *ast.Expr or nil per param
 	RetType  string // return type name for stubs (e.g. "block[Deploy]")

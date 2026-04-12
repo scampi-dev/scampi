@@ -143,9 +143,10 @@ func (ev *Evaluator) registerStubInfo() {
 		}
 		for _, sf := range info.funcs[modName] {
 			modMap.Set(sf.Name, &FuncVal{
-				Name:    sf.Name,
-				Params:  sf.Params,
-				RetType: sf.RetType,
+				Name:     sf.Name,
+				QualName: modName + "." + sf.Name,
+				Params:   sf.Params,
+				RetType:  sf.RetType,
 			})
 		}
 		ev.env.set(modName, modMap)
@@ -223,7 +224,17 @@ func extractStubInfo(fsys fs.FS) stubInfo {
 			case *ast.FuncDecl:
 				retName := ""
 				if d.Ret != nil {
-					retName = typeExprString(d.Ret)
+					// block[T] needs the full string so callFunc
+					// can detect-and-unwrap into a BlockVal. For
+					// non-generic returns use the unqualified leaf
+					// name so the linker's RetType match (which
+					// uses leaf names like "Target") is consistent
+					// across `func` and `decl` returns.
+					if _, isGeneric := d.Ret.(*ast.GenericType); isGeneric {
+						retName = typeExprString(d.Ret)
+					} else {
+						retName = typeExprName(d.Ret)
+					}
 					info.declReturns[modName+"."+d.Name.Name] = typeExprName(d.Ret)
 				}
 				if d.Body == nil {
@@ -859,7 +870,12 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 			innerType := fv.RetType[6 : len(fv.RetType)-1]
 			return &BlockVal{FuncName: fv.Name, InnerType: innerType, Fields: fields}
 		}
-		return &StructVal{TypeName: fv.Name, RetType: fv.RetType, Fields: fields}
+		return &StructVal{
+			TypeName: fv.Name,
+			QualName: fv.QualName,
+			RetType:  fv.RetType,
+			Fields:   fields,
+		}
 	}
 
 	body, ok := fv.body.(*ast.Block)

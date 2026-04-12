@@ -366,9 +366,14 @@ func (c *Checker) typeCheckCallArgs(call *ast.CallExpr, ft *FuncType, ufcs bool)
 		availParams = 0
 	}
 
+	// A param is required at the call site only if it has neither a
+	// default value nor an optional type. `param: T?` is optional
+	// even without `= none`, mirroring the struct-field rule above
+	// in checkStructLit. Without this, every stub function with a
+	// `T?` parameter would (incorrectly) require it positionally.
 	minArgs := 0
 	for _, p := range ft.Params[recvOffset:] {
-		if !p.HasDef {
+		if !p.HasDef && !isOptional(p.Type) {
 			minArgs++
 		}
 	}
