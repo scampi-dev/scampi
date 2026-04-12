@@ -202,9 +202,15 @@ func convertSourceRef(sv *eval.StructVal, lc *linkConfig) spec.SourceRef {
 		if c, ok := sv.Fields["content"].(*eval.StringVal); ok {
 			ref.Content = c.V
 			// Write to cache so the engine can read the file.
+			// EnsureDir before write — the cache dir won't exist on a
+			// fresh tree (test temp dirs, CI checkouts, ...) and a
+			// silent WriteFile failure here surfaces downstream as a
+			// confusing "source file does not exist" engine error.
 			if lc != nil && lc.src != nil {
 				hash := fmt.Sprintf("%x", sha256.Sum256([]byte(c.V)))[:12]
-				cachePath := filepath.Join(filepath.Dir(lc.cfgPath), ".scampi-cache", "inline-"+hash)
+				cacheDir := filepath.Join(filepath.Dir(lc.cfgPath), ".scampi-cache")
+				cachePath := filepath.Join(cacheDir, "inline-"+hash)
+				_ = lc.src.EnsureDir(lc.ctx, cacheDir)
 				_ = lc.src.WriteFile(lc.ctx, cachePath, []byte(c.V))
 				ref.Path = cachePath
 			}
