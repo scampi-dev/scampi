@@ -27,8 +27,8 @@ import (
 
 // APIOptions configures code generation behavior.
 type APIOptions struct {
-	PathPrefix string // prepended to all generated route paths
-	NoTest     bool   // skip generating the companion *_test.scampi file
+	PathPrefix string    // prepended to all generated route paths
+	NoTest     bool      // skip generating the companion *_test.scampi file
 	TestWriter io.Writer // if set, write test output here instead of to disk
 }
 
