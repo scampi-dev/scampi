@@ -79,7 +79,8 @@ func TestVerifyMemREST_ExactCount(t *testing.T) {
 	)
 	// Expect exactly 2.
 	expect := expectRequests(requestMatcher(
-		"GET", "/x",
+		"GET",
+		"/x",
 		map[string]eval.Value{"count": &eval.IntVal{V: 2}},
 	))
 	if got := VerifyMemREST(expect, mock); len(got) != 0 {
@@ -88,7 +89,8 @@ func TestVerifyMemREST_ExactCount(t *testing.T) {
 
 	// Expect exactly 3 — should fail.
 	expect = expectRequests(requestMatcher(
-		"GET", "/x",
+		"GET",
+		"/x",
 		map[string]eval.Value{"count": &eval.IntVal{V: 3}},
 	))
 	got := VerifyMemREST(expect, mock)
@@ -107,7 +109,8 @@ func TestVerifyMemREST_CountAtLeast(t *testing.T) {
 	)
 	// At least 2 — should pass.
 	expect := expectRequests(requestMatcher(
-		"POST", "/y",
+		"POST",
+		"/y",
 		map[string]eval.Value{"count_at_least": &eval.IntVal{V: 2}},
 	))
 	if got := VerifyMemREST(expect, mock); len(got) != 0 {
@@ -116,7 +119,8 @@ func TestVerifyMemREST_CountAtLeast(t *testing.T) {
 
 	// At least 3 — should fail.
 	expect = expectRequests(requestMatcher(
-		"POST", "/y",
+		"POST",
+		"/y",
 		map[string]eval.Value{"count_at_least": &eval.IntVal{V: 3}},
 	))
 	got := VerifyMemREST(expect, mock)

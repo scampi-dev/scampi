@@ -68,14 +68,13 @@ func setValue(dst reflect.Value, src eval.Value, lc *linkConfig) error {
 	if sv, ok := src.(*eval.StructVal); ok {
 		return setStructVal(dst, sv, lc)
 	}
-	// Interface fields (any) accepting other eval composites
-	// (MapVal, ListVal) preserve them verbatim so downstream code
-	// (e.g. testkit target constructors) can read the original
-	// shape. For everything else, convert to Go natives so users
-	// of `any` see plain map[string]any / []any / scalar types.
+	// Interface fields: plain `any` fields get Go-native conversion
+	// (map[string]any, []any, scalars) so template data etc. work
+	// with Go's text/template engine. Narrower interfaces like
+	// eval.Value preserve the original eval type so downstream
+	// consumers (testkit target constructors) can read the shape.
 	if dst.Kind() == reflect.Interface {
-		switch src.(type) {
-		case *eval.MapVal, *eval.ListVal:
+		if dst.Type() != reflect.TypeFor[any]() {
 			dst.Set(reflect.ValueOf(src))
 			return nil
 		}

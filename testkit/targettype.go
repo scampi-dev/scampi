@@ -14,13 +14,14 @@ import (
 // MemTargetConfig is the linker-mapped config for a
 // `test.target_in_memory(...)` call. The Initial and Expect fields
 // hold the raw eval StructVals so the constructor can interpret them
-// against runtime mock state — they're declared as `any` so the
-// linker's reflection-based mapper stuffs them in untouched (see
-// linker/fields.go:setStructVal).
+// against runtime mock state — typed as eval.Value (narrower than
+// `any`) so the linker preserves the raw eval StructVals instead
+// of converting them to Go-native types. This lets Create() read
+// the nested matcher shapes directly.
 type MemTargetConfig struct {
 	Name    string
-	Initial any
-	Expect  any
+	Initial eval.Value
+	Expect  eval.Value
 }
 
 // MemTargetType is the spec.TargetType implementation for
@@ -72,12 +73,13 @@ func (t MemTargetType) Create(
 }
 
 // MemRESTTargetConfig is the linker-mapped config for a
-// `test.target_rest_mock(...)` call.
+// `test.target_rest_mock(...)` call. Routes and ExpectRequests use
+// eval.Value for the same reason as MemTargetConfig.
 type MemRESTTargetConfig struct {
 	Name           string
 	BaseURL        string
-	Routes         any // *eval.MapVal of "METHOD /path" → response StructVal
-	ExpectRequests any // *eval.ListVal of request matcher StructVals
+	Routes         eval.Value
+	ExpectRequests eval.Value
 }
 
 // MemRESTTargetType is the spec.TargetType implementation for
