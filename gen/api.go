@@ -352,22 +352,6 @@ func (p *opParams) allBody() []field {
 	return out
 }
 
-// all returns the Starlark-style untyped param list (legacy, unused).
-func (p *opParams) all() []string {
-	var out []string
-	out = append(out, p.pathParams...)
-	for _, f := range p.required {
-		out = append(out, f.paramName+" = none")
-	}
-	for _, f := range p.optional {
-		out = append(out, f.paramName+" = none")
-	}
-	if p.isGET {
-		out = append(out, "check = none")
-	}
-	return out
-}
-
 // allTyped returns the scampi-lang typed param list. Path params are
 // required strings; body params are optional strings defaulting to
 // none (so the function works as a rest.resource template). GET
@@ -677,20 +661,6 @@ func samplePath(op testOp) string {
 		p = strings.Replace(p, "{"+param+"}", "1", 1)
 	}
 	return p
-}
-
-// sampleArgs builds the call arguments for a test invocation. Path
-// params get "1", body params get their name as a sample value.
-// GET check params are omitted.
-func sampleArgs(op testOp) string {
-	var parts []string
-	for _, p := range op.pathParams {
-		parts = append(parts, p+" = \"1\"")
-	}
-	if op.hasSampleBody {
-		parts = append(parts, op.sampleBodyName+" = \"test\"")
-	}
-	return strings.Join(parts, ", ")
 }
 
 func defaultStatus(method string) int {

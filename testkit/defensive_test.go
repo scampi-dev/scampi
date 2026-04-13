@@ -102,11 +102,11 @@ func TestSeedMemTarget_WrongTypes(t *testing.T) {
 		TypeName: "InitialState",
 		RetType:  "InitialState",
 		Fields: map[string]eval.Value{
-			"files":    &eval.IntVal{V: 42},             // want MapVal
+			"files":    &eval.IntVal{V: 42},              // want MapVal
 			"packages": &eval.StringVal{V: "not-a-list"}, // want ListVal
 			"services": &eval.BoolVal{V: true},           // want MapVal
 			"dirs":     &eval.IntVal{V: 0},               // want ListVal
-			"symlinks": &eval.StringVal{V: "nope"},        // want MapVal
+			"symlinks": &eval.StringVal{V: "nope"},       // want MapVal
 		},
 	}
 	seedMemTarget(mock, initial)
