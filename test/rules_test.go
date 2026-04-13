@@ -69,6 +69,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,os/signal",
 		},
 		{
+			pattern:        "linker/usermod.go",
+			allowedImports: "os",
+		},
+		{
 			pattern:        "linker/fields.go",
 			allowedImports: "crypto/sha256,net/url",
 		},

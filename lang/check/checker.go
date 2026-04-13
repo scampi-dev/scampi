@@ -3,6 +3,8 @@
 package check
 
 import (
+	"strings"
+
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/token"
 )
@@ -242,7 +244,15 @@ func (c *Checker) popScope() {
 
 func (c *Checker) checkImport(imp *ast.ImportDecl) {
 	leaf := importLeaf(imp.Path)
-	_, ok := c.modules[leaf]
+	// Try full path first (user modules from scampi.mod). If the
+	// full path is registered, accept it. Fall back to leaf lookup
+	// ONLY for std modules (paths starting with "std" or single-
+	// segment names like "std"). This prevents bare `import "adguard"`
+	// from resolving — user modules must use their full require path.
+	_, ok := c.modules[imp.Path]
+	if !ok && isStdImportPath(imp.Path) {
+		_, ok = c.modules[leaf]
+	}
 	if !ok {
 		c.errAt(imp.SrcSpan, "unknown module: "+imp.Path)
 		return
@@ -255,6 +265,13 @@ func (c *Checker) checkImport(imp *ast.ImportDecl) {
 	}) {
 		c.errAt(imp.SrcSpan, "duplicate import: "+leaf)
 	}
+}
+
+// isStdImportPath reports whether the import path looks like a std
+// module path (e.g. "std", "std/posix", "std/test/matchers"). User
+// module paths from scampi.mod contain dots (e.g. "scampi.dev/...").
+func isStdImportPath(path string) bool {
+	return !strings.Contains(path, ".")
 }
 
 func importLeaf(path string) string {

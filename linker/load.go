@@ -52,11 +52,13 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 		return nil, wrapLangErrors(parseErrs, cfgPath, data)
 	}
 
-	// Type check.
+	// Type check. Bootstrap std modules first, then load any user
+	// modules declared in scampi.mod so `import "mymodule"` works.
 	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
 		return nil, wrapLangError(err, cfgPath, data)
 	}
+	userMods := LoadUserModules(cfgPath, modules)
 	c := check.New(modules)
 	c.Check(f)
 	if checkErrs := c.Errors(); len(checkErrs) > 0 {
@@ -67,7 +69,13 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 	// configured backend so the post-eval attribute static check pass
 	// can validate literal secret keys against it.
 	onEmit, secretsProvider := newSecretWirer(ctx, cfgPath, src)
-	result, evalErrs := eval.Eval(f, data, eval.WithStubs(std.FS), eval.WithOnEmit(onEmit))
+	result, evalErrs := eval.Eval(
+		f,
+		data,
+		eval.WithStubs(std.FS),
+		eval.WithOnEmit(onEmit),
+		eval.WithUserModules(userMods),
+	)
 	if len(evalErrs) > 0 {
 		return nil, wrapLangErrors(evalErrs, cfgPath, data)
 	}

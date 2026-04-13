@@ -58,6 +58,10 @@ type Evaluator struct {
 
 	// onEmit is called for each emitted value (optional).
 	onEmit EmitCallback
+
+	// userModules holds parsed user module ASTs from scampi.mod deps.
+	// Registered into the env at init time alongside std stubs.
+	userModules []UserModule
 }
 
 // Error is an eval-time error.
@@ -100,6 +104,24 @@ func WithStubs(fsys fs.FS) Option {
 	return func(e *Evaluator) { e.stubFS = fsys }
 }
 
+// UserModule is a parsed user module ready for evaluation. Name is
+// the module declaration name (e.g. "adguard"), File is the parsed
+// AST, and Source is the raw bytes for string extraction.
+type UserModule struct {
+	Name   string
+	File   *ast.File
+	Source []byte
+}
+
+// WithUserModules registers external user modules in the evaluator
+// so imported module decls/funcs can be resolved. Each module's
+// declarations are registered under its name as a MapVal, and
+// funcs/decls with bodies are registered as callable FuncVals so
+// struct-lit expansion (e.g. adguard.dns_rewrite { ... }) works.
+func WithUserModules(mods []UserModule) Option {
+	return func(e *Evaluator) { e.userModules = mods }
+}
+
 // Eval evaluates a type-checked AST file and returns the result.
 func Eval(f *ast.File, source []byte, opts ...Option) (*Result, []Error) {
 	ev := &Evaluator{
@@ -110,6 +132,7 @@ func Eval(f *ast.File, source []byte, opts ...Option) (*Result, []Error) {
 		o(ev)
 	}
 	ev.registerStubInfo()
+	ev.registerUserModules()
 	ev.evalFile(f)
 	ev.result.Bindings = ev.env.vars
 	return &ev.result, ev.errs
@@ -150,6 +173,81 @@ func (ev *Evaluator) registerStubInfo() {
 			})
 		}
 		ev.env.set(modName, modMap)
+	}
+}
+
+// registerUserModules loads parsed user module ASTs into the eval
+// env so that `module.func { ... }` invocations from imported modules
+// can be expanded. Each module's funcs/decls are registered as
+// FuncVals (with bodies for user-defined decls, without for stubs)
+// under the module's declaration name in a MapVal.
+func (ev *Evaluator) registerUserModules() {
+	for _, um := range ev.userModules {
+		modMap := &MapVal{}
+		for _, d := range um.File.Decls {
+			switch d := d.(type) {
+			case *ast.FuncDecl:
+				retName := ""
+				if d.Ret != nil {
+					if _, isGeneric := d.Ret.(*ast.GenericType); isGeneric {
+						retName = typeExprString(d.Ret)
+					} else {
+						retName = typeExprName(d.Ret)
+					}
+					ev.declReturns[um.Name+"."+d.Name.Name] = typeExprName(d.Ret)
+				}
+				var params []string
+				var defaults []any
+				for _, p := range d.Params {
+					params = append(params, p.Name.Name)
+					defaults = append(defaults, p.Default)
+				}
+				fv := &FuncVal{
+					Name:     d.Name.Name,
+					QualName: um.Name + "." + d.Name.Name,
+					Params:   params,
+					Defaults: defaults,
+					RetType:  retName,
+				}
+				if d.Body != nil {
+					fv.body = d.Body
+					fv.scope = ev.env
+				}
+				modMap.Set(d.Name.Name, fv)
+			case *ast.DeclDecl:
+				declName := d.Name.Parts[0].Name
+				retName := ""
+				if d.Ret != nil {
+					retName = typeExprName(d.Ret)
+					ev.declReturns[um.Name+"."+declName] = retName
+				}
+				var params []string
+				var defaults []any
+				for _, p := range d.Params {
+					params = append(params, p.Name.Name)
+					defaults = append(defaults, p.Default)
+				}
+				fv := &FuncVal{
+					Name:     declName,
+					QualName: um.Name + "." + declName,
+					Params:   params,
+					Defaults: defaults,
+					RetType:  retName,
+				}
+				if d.Body != nil {
+					fv.body = d.Body
+					fv.scope = ev.env
+				}
+				modMap.Set(declName, fv)
+			case *ast.EnumDecl:
+				variantMap := &MapVal{}
+				for _, v := range d.Variants {
+					variantMap.Set(v.Name, &StringVal{V: v.Name})
+				}
+				modMap.Set(d.Name.Name, variantMap)
+			}
+		}
+		ev.env.set(um.Name, modMap)
 	}
 }
 
@@ -929,8 +1027,21 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 	retType := ev.declReturns[qualName]
 
 	// User-defined decl with body: expand with self bound.
+	// Try the leaf name first (same-module decls), then the
+	// qualified name (imported module decls like adguard.dns_rewrite).
 	if fv, ok := ev.lookupStep(typeName); ok {
 		return ev.expandUserStep(fv, fields)
+	}
+	if qualName != typeName {
+		if fv, ok := ev.lookupStepQualified(qualName); ok && fv.body != nil {
+			// User module decls with bodies are evaluated via
+			// callFunc which handles return statements and builds
+			// proper StructVals with declReturns resolution. Stubs
+			// (no body) fall through to the normal struct-lit path.
+			result := ev.callFunc(fv, nil, fields, lit.Span())
+			ev.emitValue(result)
+			return &NoneVal{}
+		}
 	}
 
 	// Block fill on a let-bound block value (ident { stmts }).
@@ -963,6 +1074,35 @@ func (ev *Evaluator) lookupStep(name string) (*FuncVal, bool) {
 	return fv, true
 }
 
+// lookupStepQualified resolves "module.func" by walking into the
+// module's MapVal. Used for imported user-defined decls like
+// adguard.dns_rewrite.
+func (ev *Evaluator) lookupStepQualified(qualName string) (*FuncVal, bool) {
+	dot := strings.IndexByte(qualName, '.')
+	if dot < 0 {
+		return nil, false
+	}
+	modName := qualName[:dot]
+	funcName := qualName[dot+1:]
+	modVal, ok := ev.env.get(modName)
+	if !ok {
+		return nil, false
+	}
+	mv, ok := modVal.(*MapVal)
+	if !ok {
+		return nil, false
+	}
+	v, ok := mv.Get(funcName)
+	if !ok {
+		return nil, false
+	}
+	fv, ok := v.(*FuncVal)
+	if !ok {
+		return nil, false
+	}
+	return fv, true
+}
+
 // expandUserStep evaluates a user-defined step body with self bound to
 // the provided fields. All StepVals emitted by the body are
 // collected and returned. If inside a deploy, they're also appended to
@@ -983,10 +1123,21 @@ func (ev *Evaluator) expandUserStep(fv *FuncVal, fields map[string]Value) Value 
 	}
 	prevEnv := ev.env
 	ev.env = child
-	ev.evalBlock(stepDecl.Body)
+	// Walk the body. If we encounter a return statement, evaluate
+	// its value and emit it as a step — user module decls like
+	// `decl dns_rewrite(...) { return rest.resource { ... } }` use
+	// return to produce their step value. Non-return statements
+	// (let bindings, if/for, bare expression steps) are handled
+	// by evalStmt/emitValue as usual.
+	for _, s := range stepDecl.Body.Stmts {
+		if rs, ok := s.(*ast.ReturnStmt); ok && rs.Value != nil {
+			v := ev.evalExpr(rs.Value)
+			ev.emitValue(v)
+			break
+		}
+		ev.evalStmt(s)
+	}
 	ev.env = prevEnv
-	// The body's step invocations are collected by the block
-	// collector if we're inside a block fill.
 	return &NoneVal{}
 }
 
