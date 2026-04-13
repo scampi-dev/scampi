@@ -315,6 +315,11 @@ func evalToGo(v eval.Value) any {
 		return r
 	case *eval.MapVal:
 		return evalMapToGo(sv)
+	case *eval.RefVal:
+		// Preserve RefVals through Go-native conversion so
+		// resolveMapRefs can find and convert them to spec.Ref
+		// after StepID assignment.
+		return sv
 	}
 	return nil
 }
