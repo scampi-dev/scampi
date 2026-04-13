@@ -1,6 +1,6 @@
 ---
 title: Target Reference
-weight: 5
+weight: 6
 ---
 
 A target defines where steps execute. Each target type provides a different

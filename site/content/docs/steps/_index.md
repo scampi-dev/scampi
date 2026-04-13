@@ -1,6 +1,6 @@
 ---
 title: Step Reference
-weight: 6
+weight: 7
 ---
 
 Steps are the building blocks of scampi configs. Each step declares a piece of

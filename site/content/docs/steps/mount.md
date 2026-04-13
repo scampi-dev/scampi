@@ -6,7 +6,7 @@ Manage filesystem mounts and `/etc/fstab` entries.
 
 ```scampi
 posix.mount {
-  src     = "10.10.2.2:/volume2/data"
+  src     = "198.51.100.2:/volume2/data"
   dest    = "/mnt/data"
   fs_type = posix.MountType.nfs
   opts    = "defaults,noatime"
@@ -77,7 +77,7 @@ std.deploy(name = "mounts", targets = [server]) {
   }
 
   posix.mount {
-    src     = "10.10.2.2:/volume2/data"
+    src     = "198.51.100.2:/volume2/data"
     dest    = "/mnt/data"
     fs_type = posix.MountType.nfs
     opts    = "defaults,noatime"

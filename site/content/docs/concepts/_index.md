@@ -133,3 +133,10 @@ to close the gap. If there's no gap, nothing happens.
 This means you can run scampi repeatedly — after a reboot, after a manual
 change, after a deploy — and it always brings the system back to your declared
 state.
+
+## Where to next
+
+- [Language guide]({{< relref "../language" >}}) — syntax, types, decls, trailing blocks
+- [Configuration]({{< relref "../configuration" >}}) — deploy blocks, source resolvers, secrets
+- [Testing]({{< relref "../testing" >}}) — mock targets and the declarative expect model
+- [Step Reference]({{< relref "../steps" >}}) — every built-in step type

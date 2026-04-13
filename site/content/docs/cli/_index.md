@@ -1,6 +1,6 @@
 ---
 title: CLI
-weight: 7
+weight: 9
 ---
 
 Scampi's CLI is organized into subcommands, each covering a different phase of
@@ -75,10 +75,10 @@ previous level.
 
 ### Display options
 
-| Flag      | Description                                                 |
-| --------- | ----------------------------------------------------------- |
-| `--color` | Force color output on or off (`--color=false` for no color) |
-| `--ascii` | Use ASCII glyphs instead of Unicode symbols                 |
+| Flag      | Description                                                  |
+| --------- | ------------------------------------------------------------ |
+| `--color` | Colorize output: `auto`, `always`, `never` (default: `auto`) |
+| `--ascii` | Use ASCII glyphs instead of Unicode symbols                  |
 
 ## Philosophy
 

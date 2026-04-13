@@ -10,7 +10,7 @@ rest.request {
   desc   = "create proxy host"
   method = "POST"
   path   = "/nginx/proxy-hosts"
-  body   = rest.body_json { data = {"domain_names": ["example.com"], "forward_host": "10.10.2.5"} }
+  body   = rest.body_json { data = {"domain_names": ["example.com"], "forward_host": "198.51.100.5"} }
   check  = rest.jq { expr = ".[] | select(.domain_names[0] == \"example.com\")" }
 }
 ```

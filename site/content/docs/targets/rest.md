@@ -11,7 +11,7 @@ import "std/rest"
 
 let npm_api = rest.target {
   name     = "npm_api"
-  base_url = "http://10.10.2.30:81/api"
+  base_url = "http://198.51.100.30:81/api"
   auth     = rest.bearer {
     token_endpoint = "/tokens"
     identity       = std.secret("npm.admin.email")

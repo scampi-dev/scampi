@@ -167,4 +167,4 @@ stores them anywhere; they exist in memory only. The only way a secret
 materializes on the target is if your config explicitly puts it there (e.g. via
 a template that writes it into a file).
 
-For CLI flags and subcommands, see the [CLI reference](../cli).
+For CLI flags and subcommands, see the [CLI reference]({{< relref "../cli" >}}).

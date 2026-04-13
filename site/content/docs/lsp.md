@@ -1,6 +1,6 @@
 ---
 title: LSP
-weight: 8
+weight: 11
 ---
 
 `scampls` is the Language Server Protocol (LSP) server for scampi configuration

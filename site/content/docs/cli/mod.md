@@ -37,7 +37,7 @@ version is specified. For local modules, provide a name and filesystem path.
 scampi mod tidy
 ```
 
-Sync the require block with `load()` calls in `*.scampi` files. Adds missing
+Sync the require block with `import` statements in `*.scampi` files. Adds missing
 entries (with `v0.0.0` placeholder) and removes unreferenced entries.
 
 ## download

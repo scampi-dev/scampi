@@ -1,6 +1,6 @@
 ---
 title: Testing
-weight: 6
+weight: 8
 ---
 
 `scampi test` runs test files against mock targets. Test files are regular

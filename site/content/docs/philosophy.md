@@ -1,6 +1,6 @@
 ---
 title: Philosophy
-weight: 7
+weight: 10
 ---
 
 scampi is an opinionated tool. This page explains what those opinions are
@@ -96,7 +96,7 @@ This isn't because extensibility is bad. It's because:
   together because they were designed together.
 - **Versioning is simple.** One binary version, one set of capabilities.
   No dependency matrix, no "this module requires core >= 2.3 but < 3.0".
-- **Discovery is trivial.** `scampi step-index` lists everything. The
+- **Discovery is trivial.** `scampi index` lists everything. The
   docs cover everything. There's no hunting across repos and registries.
 
 The `run` step exists for genuinely niche needs — masking a systemd unit,
@@ -154,18 +154,22 @@ mock targets:
 module main
 
 import "std"
-import "std/test"
 import "std/posix"
+import "std/test"
+import "std/test/matchers"
 
-let mock = test.in_memory { name = "mock", packages = ["nginx"] }
+let mock = test.target_in_memory(
+  name    = "mock",
+  initial = test.InitialState { packages = ["nginx"] },
+  expect  = test.ExpectedState {
+    files    = {"/etc/nginx/sites-enabled/example.com.conf": matchers.has_substring("server_name example.com")}
+    services = {"nginx": matchers.has_svc_status(posix.ServiceState.running)}
+  },
+)
 
 std.deploy(name = "test", targets = [mock]) {
-  static_site { domain = "example.com" }
+  // ... steps that configure nginx for example.com
 }
-
-let a = test.assert_that(mock)
-a.file("/etc/nginx/sites-enabled/example.com.conf").exists()
-a.service("nginx").is_running()
 ```
 
 No containers to spin up, no cloud accounts to provision, no YAML

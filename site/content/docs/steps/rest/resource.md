@@ -28,7 +28,7 @@ rest.resource {
   }
   state = {
     "domain_names":  ["app.example.com"],
-    "forward_host":  "10.10.2.80",
+    "forward_host":  "198.51.100.80",
     "forward_port":  2001,
     "certificate_id": 9,
     "ssl_forced":    true,
