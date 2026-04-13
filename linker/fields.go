@@ -227,6 +227,11 @@ func convertSourceRef(sv *eval.StructVal, lc *linkConfig) spec.SourceRef {
 		ref.Kind = spec.SourceRemote
 		if u, ok := sv.Fields["url"].(*eval.StringVal); ok {
 			ref.URL = u.V
+			if lc != nil {
+				hash := fmt.Sprintf("%x", sha256.Sum256([]byte(u.V)))[:12]
+				cacheDir := filepath.Join(filepath.Dir(lc.cfgPath), ".scampi-cache")
+				ref.Path = filepath.Join(cacheDir, "remote-"+hash)
+			}
 		}
 	}
 	return ref
