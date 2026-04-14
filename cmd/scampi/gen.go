@@ -35,7 +35,7 @@ func genCmd() *cli.Command {
 // -----------------------------------------------------------------------------
 
 func genAPICmd() *cli.Command {
-	var specPath, output, prefix string
+	var specPath, output, prefix, moduleName string
 	var noTest bool
 
 	return &cli.Command{
@@ -59,6 +59,12 @@ func genAPICmd() *cli.Command {
 				Aliases:     []string{"p"},
 				Usage:       "path prefix prepended to all generated routes (e.g. /integration)",
 				Destination: &prefix,
+			},
+			&cli.StringFlag{
+				Name:        "module",
+				Aliases:     []string{"m"},
+				Usage:       "override the module declaration name (default: derived from spec filename)",
+				Destination: &moduleName,
 			},
 			&cli.BoolFlag{
 				Name:        "no-test",
@@ -92,6 +98,7 @@ func genAPICmd() *cli.Command {
 
 			genOpts := scampigen.APIOptions{
 				PathPrefix: prefix,
+				ModuleName: moduleName,
 				NoTest:     noTest,
 			}
 
