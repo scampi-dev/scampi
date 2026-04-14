@@ -7,10 +7,7 @@ run:
 
 linters:
   exclusions:
-    paths:
-      # Vendored chroma fork (third-party). The scampi lexer is added at
-      # site/_chroma/lexers/embedded/scampi.xml; the rest is upstream chroma.
-      - "^site/_chroma/.*"
+    paths: []
   default: standard
   enable:
     # POLICY first: consistency, API discipline, readability
