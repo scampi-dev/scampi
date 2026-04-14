@@ -49,7 +49,28 @@ func LoadUserModules(cfgPath string, modules map[string]*check.Scope) []eval.Use
 // merged UserModules for the evaluator.
 func LoadUserModulesFromMod(m *mod.Module, modules map[string]*check.Scope) []eval.UserModule {
 	var userMods []eval.UserModule
+
+	// Implicit self-registration: the module declared by scampi.mod
+	// is always available by its own path — no self-require needed.
+	// This mirrors Go where `import "github.com/foo/bar/sub"` works
+	// within the bar module without requiring yourself.
+	if m.Module != "" {
+		selfDir := filepath.Dir(m.Filename)
+		selfFiles := readModuleDir(selfDir)
+		if len(selfFiles) > 0 {
+			if um := loadMultiFileModule(selfFiles, modules); um != nil {
+				modules[um.Name] = um.scope
+				modules[m.Module] = um.scope
+				userMods = append(userMods, um.UserModule)
+			}
+		}
+	}
+
 	for _, dep := range m.Require {
+		// Skip self-references if someone still has one.
+		if dep.Path == m.Module {
+			continue
+		}
 		dir := depDir(m, &dep)
 
 		files := readModuleDir(dir)
