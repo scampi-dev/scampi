@@ -85,13 +85,69 @@ type @path {
   must_exist: bool = false
 }
 
+// Builtin functions
+// -----------------------------------------------------------------------------
+
+// read an environment variable from the host running scampi
+//
+// returns the value of the variable named `name`. if the variable
+// is not set, returns `default` (or errors if no default is given).
+//
+//   let port = std.env("PORT", default = "8080")
 func env(name: string, default: string?) string
+
+// read a secret from the configured secret backend
+//
+// the secret backend must be configured via `std.secrets { ... }`
+// before any `secret()` call. the `name` argument is validated
+// against the backend at link time when it's a literal.
+//
+//   std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
+//   let token = std.secret("cloudflare.token")
 func secret(@secretkey name: string) string
+
+// produce a list of integers from 0 to n-1
+//
+//   let items = std.range(5)   // [0, 1, 2, 3, 4]
+//   for i in std.range(10) { ... }
 func range(n: int) list[int]
+
+// reference a value from another step's output
+//
+// creates a cross-step dependency: the engine runs `step` first,
+// captures its API response, then evaluates `expr` (a jq expression)
+// against that response to produce the value injected into the
+// calling step's config.
+//
+//   let cert = npm.certificate { domain = "example.com", ... }
+//   npm.proxy_host {
+//     certificate_id = std.ref(cert, ".id")
+//   }
+//
+// the engine's DAG scheduler ensures `cert` completes before
+// `proxy_host` starts. if `expr` returns null or the step has no
+// output, the ref resolves to none.
 func ref(step: Step, expr: string) any
 
+// Deploy and secrets configuration
+// -----------------------------------------------------------------------------
+
+// declare a deploy block that targets one or more hosts
+//
+// the block body contains step invocations that the engine plans
+// and applies against each target. steps within a deploy run
+// sequentially; ops within a step run in parallel via the DAG
+// scheduler.
+//
+//   std.deploy(name = "web", targets = [vps]) {
+//     posix.copy { ... }
+//     posix.service { ... }
+//   }
 func deploy(name: string, targets: list[Target]) block[Deploy]
 
+// configure the secret backend for subsequent `secret()` calls
+//
+//   std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }
 decl secrets(
   backend: SecretsBackend,
   path:    string,
