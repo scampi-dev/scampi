@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -47,8 +48,65 @@ func (s *Server) loadUserModules() {
 	for _, um := range userMods {
 		// Scope already set in modules by LoadUserModulesFromMod.
 		// Register funcs/decls into catalog and goto-def index.
-		s.registerModuleEntries(um.File, um.Name, "", nil)
+		// Walk individual files from the dep directory so each
+		// decl gets registered with its real path + source bytes
+		// (the merged UserModule.File loses per-file paths).
+		s.registerUserModuleFiles(um.Name)
 		s.log.Printf("user module %s: loaded as %q", um.Name, um.Name)
+	}
+}
+
+// registerUserModuleFiles walks all .scampi files in the module's
+// dependency directory (local or cached remote) and registers each
+// decl with its real path + source bytes for goto-def.
+func (s *Server) registerUserModuleFiles(modName string) {
+	if s.module == nil {
+		return
+	}
+	for _, dep := range s.module.Require {
+		dir := depDir(s.module, &dep)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".scampi") ||
+				strings.HasSuffix(e.Name(), "_test.scampi") {
+				continue
+			}
+			path := filepath.Join(dir, e.Name())
+			data, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
+			f, _ := Parse(path, data)
+			if f == nil || f.Module == nil || f.Module.Name.Name != modName {
+				continue
+			}
+			s.registerModuleEntries(f, modName, path, data)
+		}
+	}
+	// Also check the self-module directory (for non-main modules).
+	selfDir := filepath.Dir(s.module.Filename)
+	entries, err := os.ReadDir(selfDir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".scampi") ||
+			strings.HasSuffix(e.Name(), "_test.scampi") {
+			continue
+		}
+		path := filepath.Join(selfDir, e.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		f, _ := Parse(path, data)
+		if f == nil || f.Module == nil || f.Module.Name.Name != modName {
+			continue
+		}
+		s.registerModuleEntries(f, modName, path, data)
 	}
 }
 
