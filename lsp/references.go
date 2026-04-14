@@ -65,9 +65,15 @@ func (s *Server) References(
 	default:
 		// Bare name — search current file for ident matches.
 		locs = append(locs, findIdents(f, filePath, data, word)...)
-		// If we're in a module file, also search for the qualified
-		// form (e.g. "pkg" → "posix.pkg") across all dirs.
-		if modName := fileModuleName(f); modName != "" {
+		// Multi-file module: also search sibling files for bare
+		// ident matches (same-package visibility).
+		modName := fileModuleName(f)
+		if modName != "" && modName != "main" {
+			locs = append(locs, s.refsInSiblings(filePath, modName, word)...)
+		}
+		// Also search for the qualified form (e.g. "pkg" →
+		// "posix.pkg") across all workspace dirs.
+		if modName != "" {
 			qualified := modName + "." + word
 			locs = append(locs, s.refsInAllDirs(qualified, filePath)...)
 		}
@@ -249,6 +255,43 @@ func refsInDir(dir, qualifiedName, excludePath string) []protocol.Location {
 		locs = append(locs, findDottedRefs(f, path, data, qualifiedName)...)
 		return nil
 	})
+	return locs
+}
+
+// refsInSiblings searches sibling .scampi files in the same module
+// directory for bare ident references. Used by find-references in
+// multi-file modules (e.g. finding uses of get_nginx_certificates
+// defined in api.scampi from within _index.scampi).
+func (s *Server) refsInSiblings(
+	filePath string,
+	modName string,
+	word string,
+) []protocol.Location {
+	dir := filepath.Dir(filePath)
+	base := filepath.Base(filePath)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var locs []protocol.Location
+	for _, e := range entries {
+		if e.IsDir() || e.Name() == base {
+			continue
+		}
+		if !strings.HasSuffix(e.Name(), ".scampi") {
+			continue
+		}
+		sibPath := filepath.Join(dir, e.Name())
+		sibData, err := os.ReadFile(sibPath)
+		if err != nil {
+			continue
+		}
+		sibFile, _ := Parse(sibPath, sibData)
+		if sibFile == nil || fileModuleName(sibFile) != modName {
+			continue
+		}
+		locs = append(locs, findIdents(sibFile, sibPath, sibData, word)...)
+	}
 	return locs
 }
 
