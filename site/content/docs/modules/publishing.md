@@ -81,20 +81,43 @@ If no meta tag is found, scampi falls back to cloning
 
 ## Versioning
 
-Tag releases with semver: `v1.0.0`, `v0.3.2`, `v2.0.0-alpha.1`.
+Tag releases and reference them in `scampi.mod`. Any valid git ref works:
+semver tags, branch names, or module-prefixed tags for monorepos.
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-`scampi mod add` resolves the latest **stable** tag (no pre-release suffix).
-Users can pin to a specific version including pre-releases by specifying
-it explicitly:
+### Monorepo versioning
+
+Multiple modules in a single repo use prefixed tags so each module versions
+independently:
 
 ```bash
-scampi mod add codeberg.org/yourname/module@v2.0.0-alpha.1
+git tag npm-v0.1.0        # npm module
+git tag authelia-v1.0.0   # authelia module
 ```
+
+Consumers pin to the specific tag in their `scampi.mod`:
+
+```scampi-mod
+require (
+    scampi.dev/modules/npm npm-v0.1.0
+)
+```
+
+### Development pins
+
+During development, pin to a branch instead of a tag:
+
+```scampi-mod
+require (
+    scampi.dev/modules/npm main
+)
+```
+
+This clones the latest commit on `main`. Use tags for production.
 
 ## Entry point conventions
 

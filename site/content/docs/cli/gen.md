@@ -26,11 +26,12 @@ scampi gen api [flags] <spec.yaml>
 Generate a `.api.scampi` module from an OpenAPI specification. Supports both
 OpenAPI 3.x and Swagger 2.0 specs.
 
-| Flag             | Description                                        |
-| ---------------- | -------------------------------------------------- |
-| `-o`, `--output` | Output file path (default: derives from spec name) |
-| `-p`, `--prefix` | Path prefix prepended to all generated routes      |
-| `--no-test`      | Skip generating the companion `*_test.scampi` file |
+| Flag             | Description                                               |
+| ---------------- | --------------------------------------------------------- |
+| `-o`, `--output` | Output file path (default: derives from spec name)        |
+| `-p`, `--prefix` | Path prefix prepended to all generated routes             |
+| `-m`, `--module` | Override the module declaration name (default: spec name) |
+| `--no-test`      | Skip generating the companion `*_test.scampi` file        |
 
 By default the output file is named after the spec: `npm-openapi.yaml` produces
 `npm-openapi.api.scampi`. Use `-o -` to write to stdout (suppresses test

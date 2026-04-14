@@ -27,7 +27,8 @@ must match the git repository URL (minus `https://` and `.git`).
 Each line in the `require` block is a dependency: `<module-path> <version>`.
 
 - Module paths look like repository URLs: `host/org/repo`
-- Versions are semver tags: `v1.0.0`, `v2.0.0-alpha.1`
+- Versions can be semver tags (`v1.0.0`), branch names (`main`),
+  or module-prefixed tags (`npm-v0.1.0`)
 - Local modules use a filesystem path instead of a version (see [Local Modules](../local))
 
 ### Indirect dependencies
@@ -91,6 +92,36 @@ point in the module's root directory:
 2. `<module-name>.scampi` — e.g. `npm.scampi` for a module named `npm`
 
 If both exist, `_index.scampi` takes precedence.
+
+### Multi-file modules
+
+A module directory can contain multiple `.scampi` files. All files with the
+same `module` declaration are loaded together as one package — like Go
+packages. Functions defined in any file are directly callable from any other
+file in the same module without import.
+
+```text
+npm/
+    _index.scampi         module npm  — convergence wrappers
+    api.scampi            module npm  — generated request functions
+    proxy_host_test.scampi            — test (excluded, _test suffix)
+    scampi.mod
+```
+
+This is how generated API layers compose with hand-authored convergence
+wrappers: `api.scampi` defines raw request functions like
+`get_nginx_proxy_hosts(...)`, and `_index.scampi` calls them directly
+inside `rest.resource` steps — no import needed between files in the same
+module.
+
+Test files (`*_test.scampi`) are excluded from the module scope.
+
+### Implicit self-availability
+
+A module declared by `scampi.mod` is automatically available by its own
+path — no self-require needed. If your `scampi.mod` says
+`module scampi.dev/modules/npm`, then test files inside the module can
+`import "scampi.dev/modules/npm"` without listing it in `require`.
 
 ### Subpath imports
 

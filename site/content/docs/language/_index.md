@@ -342,6 +342,44 @@ This makes method-chain-style code possible without the language having actual
 methods. It's also why `std.range` and `std.secret` look like methods on `std`
 — they're functions, and the dot is just UFCS reaching across the import.
 
+## Cross-step references with `std.ref`
+
+When one step needs a value from another step's API response, use `std.ref`.
+The engine runs the referenced step first, captures its output, and injects
+the requested value before the downstream step executes.
+
+```scampi
+import "scampi.dev/modules/npm"
+
+let cert = npm.certificate {
+  domain          = "grafana.example.com"
+  email           = "admin@example.com"
+  dns_credentials = "dns_cloudflare_api_token = " + std.secret("cf.token")
+}
+
+std.deploy(name = "proxy", targets = [npm_target]) {
+  cert
+
+  npm.proxy_host {
+    domain         = "grafana.example.com"
+    forward_host   = "192.168.1.50"
+    forward_port   = 3000
+    certificate_id = std.ref(cert, ".id")
+  }
+}
+```
+
+`std.ref(step, expr)` takes two arguments:
+
+| Argument | Description                                               |
+| -------- | --------------------------------------------------------- |
+| `step`   | A let-bound step whose output you want to read            |
+| `expr`   | A jq expression evaluated against the step's API response |
+
+The engine's DAG scheduler handles ordering automatically — any step that
+contains a `ref` is guaranteed to run after the step it references. No
+explicit ordering or `depends_on` needed.
+
 ## What's in `std` vs `posix` vs …
 
 The standard library is split into focused namespaces. You import only what
@@ -349,7 +387,7 @@ you need.
 
 | Import          | What's inside                                                                                                                |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `std`           | Core types (`Step`, `Target`), validation attributes, `deploy`, `secret`, `env`, `range`, secrets config                     |
+| `std`           | Core types (`Step`, `Target`), validation attributes, `deploy`, `secret`, `env`, `range`, `ref`, secrets config              |
 | `std/local`     | `local.target` — execute steps on the local machine                                                                          |
 | `std/ssh`       | `ssh.target` — execute steps on a remote host over SSH                                                                       |
 | `std/posix`     | All POSIX steps (copy, dir, template, pkg, service, user, group, mount, firewall, sysctl, run, …) and source/pkg composables |
