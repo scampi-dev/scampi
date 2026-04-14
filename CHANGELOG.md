@@ -1,5 +1,52 @@
 # Changelog
 
+## v0.1.0-alpha.7 — 2026-04-14
+
+### Breaking Changes
+- Migrate testkit test framework to scampi-lang (#153)
+- lang: switch comment syntax to // and /* */ (#154)
+- Rethink target module naming: posix mixes steps and targets (#168)
+
+### Features
+- scampi-lang: implement lexer (#133)
+- scampi-lang: implement parser and AST (#134)
+- scampi-lang: implement module resolver (#135)
+- scampi-lang: implement type system and type checker (#136)
+- scampi-lang: generate std library stubs from Go struct tags (#137)
+- scampi-lang: opaque type declarations (`type Foo`) (#142)
+- scampi-lang: compiler reads std stubs from embedded FS (#143)
+- scampi-lang: linker stage for stub resolution (#144)
+- scampi-lang: block invocation syntax for Deploy (#145)
+- scampi-lang: stub generator produces correct multi-module output (#146)
+- scampi-lang: eval resolves all module members from stubs (#147)
+- Migrate testkit test framework to scampi-lang (#153)
+- lang: param attributes (@name(args)) for declarative checker, linker, and LSP behavior (#159)
+- lsp: goto-def on a struct-literal field jumps to the parameter declaration (#161)
+- lang: UFCS — `x.f(args)` desugars to `f(x, args)` (#171)
+- linker: resolve user module imports from scampi.mod (#176)
+- std.ref() builtin for cross-step value references (#177)
+- linker: implement remote module resolution (#180)
+- lsp: reload modules when scampi.mod changes (#181)
+
+### Enhancements
+- LSP catalog metadata must derive from engine, not duplicate it (#131)
+- scampi-lang: eval produces generic values, no engine types (#151)
+- lang: switch comment syntax to // and /* */ (#154)
+- Rethink target module naming: posix mixes steps and targets (#168)
+
+### Bug Fixes
+- nvim: commentstring empty for scampi files (#157)
+- firewall step doesn't escalate, broken for non-root SSH targets (#169)
+- fileops.VerifiedWrite silently mishandles multi-%s verify commands (#170)
+- lang: funcs with declared return types are not required to return (#172)
+- lang: duplicate let in same scope is silently allowed (#173)
+
+### Other
+- scampi-lang: resolve open spec questions before implementation (#132)
+- scampi-lang: validate against .infra/ configs (#138)
+- Kill the stub generator, make stubs the source of truth (#163)
+- Delete implementation-detail tests that catch no real bugs (#164)
+
 ## v0.1.0-alpha.6 — 2026-04-02
 
 ### Breaking Changes
