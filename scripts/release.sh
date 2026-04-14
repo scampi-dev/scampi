@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Prepare a release: generate changelog, update CHANGELOG.md, and tag.
-# Usage: release.sh <api> <repo> [alpha|beta|rc] [--refresh] [--dry-run]
+# Usage: release.sh <api> <repo> [alpha|beta|rc] [--dry-run]
 #
 # Steps:
 #   1. Compute next version via next-version.sh
@@ -21,7 +21,6 @@ dir="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$dir/.." && pwd)"
 
 stage=""
-refresh_flag=""
 dry_run=false
 
 while [[ $# -gt 0 ]]; do
@@ -30,16 +29,12 @@ while [[ $# -gt 0 ]]; do
     stage="$1"
     shift
     ;;
-  --refresh)
-    refresh_flag="--refresh"
-    shift
-    ;;
   --dry-run)
     dry_run=true
     shift
     ;;
   *)
-    echo "usage: release.sh <api> <repo> [alpha|beta|rc] [--refresh] [--dry-run]" >&2
+    echo "usage: release.sh <api> <repo> [alpha|beta|rc] [--dry-run]" >&2
     exit 1
     ;;
   esac
@@ -53,14 +48,14 @@ fi
 
 # Compute version
 # shellcheck disable=SC2086
-version=$("$dir/next-version.sh" "$api" "$repo" $stage $refresh_flag)
+version=$("$dir/next-version.sh" "$api" "$repo" $stage --refresh)
 echo ""
 echo "next version: $version"
 echo ""
 
 # Generate release notes for HEAD (pre-tag, so use --head)
 # shellcheck disable=SC2086
-notes=$("$dir/release-notes.sh" "$api" "$repo" --head $refresh_flag)
+notes=$("$dir/release-notes.sh" "$api" "$repo" --head --refresh)
 
 # Strip the header and whitespace — if nothing remains, there are no notes.
 notes_body=$(echo "$notes" | sed '1d' | tr -d '[:space:]')
@@ -86,7 +81,7 @@ git commit --allow-empty -m "release: $version"
 git tag -a "$version" -m "$version"
 
 # Now regenerate the full changelog from all tags.
-"$dir/generate-changelog.sh" "$api" "$repo" $refresh_flag >"$changelog"
+"$dir/generate-changelog.sh" "$api" "$repo" --refresh >"$changelog"
 
 # Amend the release commit with the actual changelog.
 git add "$changelog"
