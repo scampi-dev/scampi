@@ -12,11 +12,14 @@ import (
 	"scampi.dev/scampi/errs"
 )
 
+// TraceFunc is an optional callback for transport lifecycle events.
+type TraceFunc func(msg string)
+
 // AuthConfig produces an http.RoundTripper that layers authentication onto a
 // base transport. Implementations are constructed in Starlark (rest.basic,
 // rest.bearer, rest.header) and stored in Config.Auth.
 type AuthConfig interface {
-	Transport(base http.RoundTripper) http.RoundTripper
+	Transport(base http.RoundTripper, trace TraceFunc) http.RoundTripper
 	Kind() string
 }
 
@@ -25,8 +28,8 @@ type AuthConfig interface {
 
 type NoAuthConfig struct{}
 
-func (NoAuthConfig) Kind() string                                       { return "none" }
-func (NoAuthConfig) Transport(base http.RoundTripper) http.RoundTripper { return base }
+func (NoAuthConfig) Kind() string                                                    { return "none" }
+func (NoAuthConfig) Transport(base http.RoundTripper, _ TraceFunc) http.RoundTripper { return base }
 
 // BasicAuth
 // -----------------------------------------------------------------------------
@@ -38,17 +41,23 @@ type BasicAuthConfig struct {
 
 func (BasicAuthConfig) Kind() string { return "basic" }
 
-func (c BasicAuthConfig) Transport(base http.RoundTripper) http.RoundTripper {
-	return &basicTransport{base: base, user: c.User, password: c.Password}
+func (c BasicAuthConfig) Transport(base http.RoundTripper, trace TraceFunc) http.RoundTripper {
+	return &basicTransport{base: base, user: c.User, password: c.Password, trace: trace}
 }
 
 type basicTransport struct {
 	base     http.RoundTripper
 	user     string
 	password string
+	trace    TraceFunc
+	logged   bool
 }
 
 func (t *basicTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if !t.logged && t.trace != nil {
+		t.trace("basic: authenticating as " + t.user)
+		t.logged = true
+	}
 	req = req.Clone(req.Context())
 	req.SetBasicAuth(t.user, t.password)
 	return t.base.RoundTrip(req)
@@ -64,17 +73,23 @@ type HeaderAuthConfig struct {
 
 func (HeaderAuthConfig) Kind() string { return "header" }
 
-func (c HeaderAuthConfig) Transport(base http.RoundTripper) http.RoundTripper {
-	return &headerTransport{base: base, name: c.Name, value: c.Value}
+func (c HeaderAuthConfig) Transport(base http.RoundTripper, trace TraceFunc) http.RoundTripper {
+	return &headerTransport{base: base, name: c.Name, value: c.Value, trace: trace}
 }
 
 type headerTransport struct {
-	base  http.RoundTripper
-	name  string
-	value string
+	base   http.RoundTripper
+	name   string
+	value  string
+	trace  TraceFunc
+	logged bool
 }
 
 func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if !t.logged && t.trace != nil {
+		t.trace("header: using " + t.name)
+		t.logged = true
+	}
 	req = req.Clone(req.Context())
 	req.Header.Set(t.name, t.value)
 	return t.base.RoundTrip(req)
@@ -91,12 +106,13 @@ type BearerAuthConfig struct {
 
 func (BearerAuthConfig) Kind() string { return "bearer" }
 
-func (c BearerAuthConfig) Transport(base http.RoundTripper) http.RoundTripper {
+func (c BearerAuthConfig) Transport(base http.RoundTripper, trace TraceFunc) http.RoundTripper {
 	return &bearerTransport{
 		base:          base,
 		tokenEndpoint: c.TokenEndpoint,
 		identity:      c.Identity,
 		secret:        c.Secret,
+		trace:         trace,
 	}
 }
 
@@ -105,6 +121,7 @@ type bearerTransport struct {
 	tokenEndpoint string // full URL (resolved by RESTTarget.Create)
 	identity      string
 	secret        string
+	trace         TraceFunc
 
 	mu    sync.Mutex
 	token string
@@ -112,6 +129,12 @@ type bearerTransport struct {
 
 // bare-error: sentinel for bearer auth token fetch failures
 var errTokenFetch = errs.New("bearer token fetch")
+
+func (t *bearerTransport) emit(msg string) {
+	if t.trace != nil {
+		t.trace(msg)
+	}
+}
 
 func (t *bearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Skip auth for the token endpoint itself to avoid recursion.
@@ -134,6 +157,7 @@ func (t *bearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// On 401, re-authenticate once and retry.
 	if resp.StatusCode == http.StatusUnauthorized {
 		_ = resp.Body.Close()
+		t.emit("bearer: 401 received, re-authenticating")
 		t.mu.Lock()
 		t.token = ""
 		t.mu.Unlock()
@@ -154,9 +178,11 @@ func (t *bearerTransport) ensureToken(origReq *http.Request) error {
 	defer t.mu.Unlock()
 
 	if t.token != "" {
+		t.emit("bearer: cached token valid")
 		return nil
 	}
 
+	t.emit("bearer: fetching token from " + t.tokenEndpoint)
 	body, err := json.Marshal(map[string]string{
 		"identity": t.identity,
 		"secret":   t.secret,
@@ -207,5 +233,6 @@ func (t *bearerTransport) ensureToken(origReq *http.Request) error {
 	}
 
 	t.token = tokenStr
+	t.emit("bearer: token acquired")
 	return nil
 }

@@ -99,12 +99,16 @@ func (op *resourceOp) Check(
 	if result == nil {
 		if op.missing == nil {
 			op.mode = resourceNoop
-			return spec.CheckSatisfied, nil, nil
+			return spec.CheckSatisfied, traceDrift(tgt), nil
 		}
 		op.mode = resourceMissing
-		return spec.CheckUnsatisfied, []spec.DriftDetail{
+		drift := []spec.DriftDetail{
 			{Field: "resource", Current: "missing", Desired: "present"},
-		}, nil
+		}
+		drift = append(drift, responseDrift(resp.Body)...)
+		drift = append(drift, metaDrift(method, path, resp)...)
+		drift = append(drift, traceDrift(tgt)...)
+		return spec.CheckUnsatisfied, drift, nil
 	}
 
 	// Resource found.
@@ -113,7 +117,7 @@ func (op *resourceOp) Check(
 
 	if op.found == nil {
 		op.mode = resourceNoop
-		return spec.CheckSatisfied, nil, nil
+		return spec.CheckSatisfied, traceDrift(tgt), nil
 	}
 
 	// No state → found fires unconditionally (e.g. delete-if-exists).
@@ -128,10 +132,13 @@ func (op *resourceOp) Check(
 	drift := diffState(op.state, result)
 	if len(drift) == 0 {
 		op.mode = resourceNoop
-		return spec.CheckSatisfied, nil, nil
+		return spec.CheckSatisfied, traceDrift(tgt), nil
 	}
 
 	op.mode = resourceFound
+	drift = append(drift, responseDrift(resp.Body)...)
+	drift = append(drift, metaDrift(method, path, resp)...)
+	drift = append(drift, traceDrift(tgt)...)
 	return spec.CheckUnsatisfied, drift, nil
 }
 

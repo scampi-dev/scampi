@@ -764,11 +764,21 @@ func (c *cli) renderOpChecked(e event.OpEvent) []renderEvent {
 
 	switch d.Result {
 	case spec.CheckSatisfied:
-		return []renderEvent{{
+		events := []renderEvent{{
 			stream: streamOut,
 			line: c.formatter.fmtfMsg(colOpCheckSatisfied,
 				"[%s]%s %s - up-to-date", st.id, glyphR(c.glyphs.ok), e.DisplayID),
 		}}
+		for _, dd := range d.Drift {
+			if c.opts.Verbosity < dd.Verbosity {
+				continue
+			}
+			events = append(events, renderEvent{
+				stream: streamOut,
+				line:   c.formatter.fmtfMsg(colOpDrift, "         %s: %s", dd.Field, dd.Current),
+			})
+		}
+		return events
 	case spec.CheckUnsatisfied:
 		events := []renderEvent{{
 			stream: streamOut,
@@ -777,15 +787,26 @@ func (c *cli) renderOpChecked(e event.OpEvent) []renderEvent {
 		}}
 		if c.opts.Verbosity >= signal.V && len(d.Drift) > 0 {
 			for _, dd := range d.Drift {
+				if c.opts.Verbosity < dd.Verbosity {
+					continue
+				}
 				current := dd.Current
 				if current == "" {
 					current = "(missing)"
 				}
-				events = append(events, renderEvent{
-					stream: streamOut,
-					line: c.formatter.fmtfMsg(colOpDrift,
-						"         %s: %s %s %s", dd.Field, current, c.glyphs.arrow, dd.Desired),
-				})
+				if dd.Desired == "" {
+					events = append(events, renderEvent{
+						stream: streamOut,
+						line: c.formatter.fmtfMsg(colOpDrift,
+							"         %s: %s", dd.Field, current),
+					})
+				} else {
+					events = append(events, renderEvent{
+						stream: streamOut,
+						line: c.formatter.fmtfMsg(colOpDrift,
+							"         %s: %s %s %s", dd.Field, current, c.glyphs.arrow, dd.Desired),
+					})
+				}
 			}
 		}
 		return events

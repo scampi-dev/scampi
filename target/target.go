@@ -243,6 +243,11 @@ type (
 	HTTPClient interface {
 		Do(ctx context.Context, req HTTPRequest) (*HTTPResponse, error)
 	}
+	// Traceable is an optional interface for targets that collect
+	// transport-level trace messages (e.g. auth lifecycle events).
+	Traceable interface {
+		DrainTraces() []string
+	}
 )
 
 func IsNotExist(err error) bool        { return errors.Is(err, ErrNotExist) }

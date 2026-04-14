@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"strings"
+	"sync"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/errs"
@@ -48,20 +49,39 @@ func (REST) Create(_ context.Context, _ source.Source, tgt spec.TargetInstance) 
 		cfg.Auth = bearer
 	}
 
+	rt := &RESTTarget{config: cfg}
+
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = cfg.TLS.TLSClientConfig()
 	var base http.RoundTripper = transport
-	base = cfg.Auth.Transport(base)
+	base = cfg.Auth.Transport(base, rt.appendTrace)
 
-	return &RESTTarget{
-		config: cfg,
-		client: &http.Client{Transport: base},
-	}, nil
+	rt.client = &http.Client{Transport: base}
+	return rt, nil
 }
 
 type RESTTarget struct {
 	config *Config
 	client *http.Client
+	mu     sync.Mutex
+	traces []string
+}
+
+func (t *RESTTarget) appendTrace(msg string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.traces = append(t.traces, msg)
+}
+
+// DrainTraces returns and clears all trace messages collected since the
+// last drain. Ops call this after Do() to surface auth lifecycle events
+// in drift output.
+func (t *RESTTarget) DrainTraces() []string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	out := t.traces
+	t.traces = nil
+	return out
 }
 
 func (t *RESTTarget) Capabilities() capability.Capability {

@@ -3,11 +3,16 @@
 package rest
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
+	"sort"
+	"strings"
 
 	"scampi.dev/scampi/capability"
+	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/sharedops"
@@ -64,10 +69,12 @@ func (op *requestOp) Check(
 	}
 
 	if satisfied {
-		return spec.CheckSatisfied, nil, nil
+		return spec.CheckSatisfied, traceDrift(tgt), nil
 	}
 
-	return spec.CheckUnsatisfied, checkDrift(op.check, resp.StatusCode), nil
+	drift := checkDrift(op.check, method, path, resp)
+	drift = append(drift, traceDrift(tgt)...)
+	return spec.CheckUnsatisfied, drift, nil
 }
 
 func (op *requestOp) Execute(
@@ -120,27 +127,126 @@ func (op *requestOp) Execute(
 	return spec.Result{Changed: true}, nil
 }
 
-func checkDrift(check CheckConfig, statusCode int) []spec.DriftDetail {
+func checkDrift(check CheckConfig, method, path string, resp *target.HTTPResponse) []spec.DriftDetail {
+	var drift []spec.DriftDetail
+
+	// V: primary check failure reason
 	switch c := check.(type) {
 	case StatusCheck:
-		return []spec.DriftDetail{{
+		drift = append(drift, spec.DriftDetail{
 			Field:   "status",
-			Current: fmt.Sprintf("%d", statusCode),
+			Current: fmt.Sprintf("%d", resp.StatusCode),
 			Desired: fmt.Sprintf("%d", c.Status),
-		}}
+		})
 	case *JQCheck:
-		return []spec.DriftDetail{{
+		drift = append(drift, spec.DriftDetail{
 			Field:   "jq",
 			Current: "no match",
 			Desired: c.Expr,
-		}}
+		})
+		drift = append(drift, spec.DriftDetail{
+			Field:   "status",
+			Current: fmt.Sprintf("%d", resp.StatusCode),
+		})
 	default:
-		return []spec.DriftDetail{{
+		drift = append(drift, spec.DriftDetail{
 			Field:   "check",
 			Current: "unsatisfied",
 			Desired: check.Kind(),
-		}}
+		})
 	}
+
+	// VV: response body
+	drift = append(drift, responseDrift(resp.Body)...)
+
+	// VVV: request/response metadata
+	drift = append(drift, metaDrift(method, path, resp)...)
+
+	return drift
+}
+
+func responseDrift(body []byte) []spec.DriftDetail {
+	if len(body) == 0 {
+		return nil
+	}
+
+	pretty := prettyJSON(body)
+	if len(pretty) > 2048 {
+		pretty = pretty[:2048] + "..."
+	}
+
+	return []spec.DriftDetail{{
+		Field:     "body",
+		Current:   pretty,
+		Verbosity: signal.VV,
+	}}
+}
+
+func metaDrift(method, path string, resp *target.HTTPResponse) []spec.DriftDetail {
+	drift := []spec.DriftDetail{{
+		Field:     "request",
+		Current:   fmt.Sprintf("%s %s", method, path),
+		Verbosity: signal.VVV,
+	}}
+
+	for _, h := range flattenHeaders(resp.Headers) {
+		drift = append(drift, spec.DriftDetail{
+			Field:     h.name,
+			Current:   h.value,
+			Verbosity: signal.VVV,
+		})
+	}
+
+	return drift
+}
+
+func traceDrift(tgt target.Target) []spec.DriftDetail {
+	tr, ok := tgt.(target.Traceable)
+	if !ok {
+		return nil
+	}
+	traces := tr.DrainTraces()
+	if len(traces) == 0 {
+		return nil
+	}
+	var drift []spec.DriftDetail
+	for _, msg := range traces {
+		drift = append(drift, spec.DriftDetail{
+			Field:     "trace",
+			Current:   msg,
+			Verbosity: signal.VVV,
+		})
+	}
+	return drift
+}
+
+func prettyJSON(data []byte) string {
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, data, "         ", "  "); err != nil {
+		return strings.TrimSpace(string(data))
+	}
+	return buf.String()
+}
+
+type headerPair struct {
+	name  string
+	value string
+}
+
+func flattenHeaders(h map[string][]string) []headerPair {
+	keys := make([]string, 0, len(h))
+	for k := range h {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var out []headerPair
+	for _, k := range keys {
+		for _, v := range h[k] {
+			out = append(out, headerPair{name: k, value: v})
+		}
+	}
+	return out
 }
 
 func (requestOp) RequiredCapabilities() capability.Capability {

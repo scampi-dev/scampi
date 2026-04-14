@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"scampi.dev/scampi/capability"
+	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/target"
 )
@@ -141,9 +142,10 @@ type (
 		RequiredCapabilities() capability.Capability
 	}
 	DriftDetail struct {
-		Field   string
-		Current string
-		Desired string
+		Field     string
+		Current   string
+		Desired   string
+		Verbosity signal.Verbosity // minimum verbosity to display (zero = always shown with drift)
 	}
 
 	// OpTimeout is an optional interface that ops can implement to declare
