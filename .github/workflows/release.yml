@@ -30,44 +30,37 @@ jobs:
           (cd release && sha256sum * | tee SHA256SUMS)
           ls -lh release/
 
-      - name: Fetch release notes from Codeberg
+      - name: Extract release notes from CHANGELOG.md
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
-          API="https://codeberg.org/api/v1/repos/scampi-dev/scampi/releases/tags/${TAG}"
 
-          echo "==> Waiting for Codeberg release ${TAG}..."
-          HTTP_CODE=000
-          for i in $(seq 1 30); do
-            HTTP_CODE=$(curl -fsSL -o /tmp/cb-release.json -w '%{http_code}' "$API" || echo "$?")
-            if [[ "$HTTP_CODE" == "200" ]]; then
-              echo "==> Found Codeberg release on attempt $i"
-              break
-            fi
-            echo "    attempt $i: HTTP $HTTP_CODE, retrying in 10s..."
-            sleep 10
-          done
+          # Extract the section for this tag from CHANGELOG.md.
+          # Matches from "## <tag>" until the next "## " heading or EOF.
+          {
+            echo "## What's Changed"
+            echo ""
+            awk -v tag="$TAG" '
+              $0 ~ "^## " tag " " { found=1; next }
+              found && /^## /     { exit }
+              found               { print }
+            ' CHANGELOG.md
+          } > /tmp/notes-raw.md
 
-          if [[ "$HTTP_CODE" == "200" ]]; then
-            # Rewrite (#N) issue refs to point at Codeberg, since GitHub's
-            # auto-linking would 404 (issues are disabled on the mirror).
-            jq -r '.body' /tmp/cb-release.json \
-              | sed -E 's|\(#([0-9]+)\)|([#\1](https://codeberg.org/scampi-dev/scampi/issues/\1))|g' \
-              > /tmp/notes.md
-            {
-              echo ""
-              echo "---"
-              echo ""
-              echo "Released from [Codeberg](https://codeberg.org/scampi-dev/scampi/releases/tag/${TAG}). The GitHub repository is a read-only mirror — issues and pull requests should be filed on Codeberg."
-            } >> /tmp/notes.md
-          else
-            echo "::warning::Codeberg release not found after retries, using fallback notes"
-            {
-              echo "Released from [Codeberg](https://codeberg.org/scampi-dev/scampi/releases/tag/${TAG})."
-              echo ""
-              echo "The GitHub repository is a read-only mirror — issues and pull requests should be filed on Codeberg."
-            } > /tmp/notes.md
-          fi
+          # Rewrite (#N) issue refs to point at Codeberg, since GitHub's
+          # auto-linking would 404 (issues are disabled on the mirror).
+          # Escape @ to prevent GitHub user mentions (e.g. @name in issue titles).
+          sed -E \
+            -e 's|\(#([0-9]+)\)|([#\1](https://codeberg.org/scampi-dev/scampi/issues/\1))|g' \
+            -e 's/@([a-zA-Z][a-zA-Z0-9_]*)/`@\1`/g' \
+            /tmp/notes-raw.md > /tmp/notes.md
+
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "Released from [Codeberg](https://codeberg.org/scampi-dev/scampi/releases/tag/${TAG}). The GitHub repository is a read-only mirror — issues and pull requests should be filed on Codeberg."
+          } >> /tmp/notes.md
 
       - name: Determine prerelease
         id: prerelease
