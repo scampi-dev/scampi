@@ -54,3 +54,14 @@ func (d *Documents) Get(uri protocol.DocumentURI) (*Document, bool) {
 	doc, ok := d.docs[uri]
 	return doc, ok
 }
+
+// All returns a snapshot of every open document.
+func (d *Documents) All() []Document {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	out := make([]Document, 0, len(d.docs))
+	for _, doc := range d.docs {
+		out = append(out, *doc)
+	}
+	return out
+}

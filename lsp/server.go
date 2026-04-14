@@ -160,6 +160,21 @@ func (s *Server) loadModule() {
 
 func (s *Server) Initialized(ctx context.Context, _ *protocol.InitializedParams) error {
 	s.log.Printf("initialized")
+
+	// Watch scampi.mod for changes so we can reload deps without restart.
+	_ = s.client.RegisterCapability(ctx, &protocol.RegistrationParams{
+		Registrations: []protocol.Registration{{
+			ID:     "watch-scampi-mod",
+			Method: "workspace/didChangeWatchedFiles",
+			RegisterOptions: protocol.DidChangeWatchedFilesRegistrationOptions{
+				Watchers: []protocol.FileSystemWatcher{{
+					GlobPattern: "**/scampi.mod",
+					Kind:        protocol.WatchKindCreate + protocol.WatchKindChange + protocol.WatchKindDelete,
+				}},
+			},
+		}},
+	})
+
 	go s.diagnoseWorkspace(ctx)
 	return nil
 }
@@ -272,8 +287,25 @@ func (s *Server) Declaration(context.Context, *protocol.DeclarationParams) ([]pr
 func (s *Server) DidChangeConfiguration(context.Context, *protocol.DidChangeConfigurationParams) error {
 	return nil
 }
-func (s *Server) DidChangeWatchedFiles(context.Context, *protocol.DidChangeWatchedFilesParams) error {
+func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.DidChangeWatchedFilesParams) error {
+	for _, change := range params.Changes {
+		path := uri.URI(change.URI).Filename()
+		if filepath.Base(path) == "scampi.mod" {
+			s.log.Printf("scampi.mod changed, reloading modules")
+			s.modules = bootstrapModules()
+			s.loadModule()
+			s.loadUserModules()
+			go s.rediagnoseOpenFiles(ctx)
+			return nil
+		}
+	}
 	return nil
+}
+
+func (s *Server) rediagnoseOpenFiles(ctx context.Context) {
+	for _, doc := range s.docs.All() {
+		_ = s.publishDiagnostics(ctx, doc.URI, doc.Content)
+	}
 }
 func (s *Server) DidChangeWorkspaceFolders(
 	context.Context,
