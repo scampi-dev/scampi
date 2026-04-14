@@ -54,11 +54,13 @@ func LoadUserModulesFromMod(m *mod.Module, modules map[string]*check.Scope) []ev
 	// is always available by its own path — no self-require needed.
 	// This mirrors Go where `import "github.com/foo/bar/sub"` works
 	// within the bar module without requiring yourself.
+	// Skip if the dir only has `module main` files — those are user
+	// configs, not importable modules.
 	if m.Module != "" {
 		selfDir := filepath.Dir(m.Filename)
 		selfFiles := readModuleDir(selfDir)
 		if len(selfFiles) > 0 {
-			if um := loadMultiFileModule(selfFiles, modules); um != nil {
+			if um := loadMultiFileModule(selfFiles, modules); um != nil && um.Name != "main" {
 				modules[um.Name] = um.scope
 				modules[m.Module] = um.scope
 				userMods = append(userMods, um.UserModule)
@@ -235,7 +237,9 @@ func depDir(m *mod.Module, dep *mod.Dependency) string {
 		}
 		return dir
 	}
-	return filepath.Join(mod.DefaultCacheDir(), dep.Path+"@"+dep.Version)
+	cacheDir := filepath.Join(mod.DefaultCacheDir(), dep.Path+"@"+dep.Version)
+	_ = ensureRemoteDep(dep.Path, dep.Version, cacheDir)
+	return cacheDir
 }
 
 func lastPathSegment(p string) string {

@@ -241,13 +241,9 @@ func parseDependency(m *Module, line string, lineNum int, indirect bool) (*Depen
 			Source: m.span(lineNum),
 		}
 	}
-	if !isLocal && !isSemver(version) {
-		return nil, ParseError{
-			Detail: "invalid version " + quote(version) + " for " + path,
-			Hint:   "version must be a semver tag starting with v, e.g. v1.0.0 (got " + version + ")",
-			Source: m.span(lineNum),
-		}
-	}
+	// Version can be a semver tag (v1.0.0), branch (main), or
+	// module-prefixed tag (npm-v0.1.0). No strict validation —
+	// git clone will reject truly invalid refs downstream.
 	return &Dependency{Path: path, Version: version, Line: lineNum, Indirect: indirect}, nil
 }
 

@@ -198,18 +198,14 @@ func TestParse_Error_InvalidModulePath(t *testing.T) {
 	}
 }
 
-func TestParse_Error_InvalidVersion(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm latest\n)\n")
-	_, err := mod.Parse(testFile, data)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+func TestParse_BranchVersion(t *testing.T) {
+	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm main\n)\n")
+	m, err := mod.Parse(testFile, data)
+	if err != nil {
+		t.Fatalf("expected branch version to be accepted, got: %v", err)
 	}
-	var pe mod.ParseError
-	if !errors.As(err, &pe) {
-		t.Fatalf("expected ParseError, got %T", err)
-	}
-	if pe.Source.StartLine != 4 {
-		t.Errorf("expected error on line 4, got %d", pe.Source.StartLine)
+	if len(m.Require) != 1 || m.Require[0].Version != "main" {
+		t.Errorf("got %+v", m.Require)
 	}
 }
 
@@ -245,7 +241,8 @@ func TestParse_Error_SourceSpanFilename(t *testing.T) {
 }
 
 func TestParse_Error_ErrorMessageIncludesLine(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm latest\n)\n")
+	// Use a genuinely invalid entry (missing version entirely).
+	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm\n)\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
 		t.Fatal("expected error, got nil")
