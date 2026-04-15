@@ -117,6 +117,9 @@ func (s *Server) completeTopLevel(
 	// checker captured in its flat fallback map.
 	items = append(items, s.userDeclItems(docURI, prefix)...)
 
+	// Keywords — offered at statement level.
+	items = append(items, keywordItems(prefix)...)
+
 	return items
 }
 
@@ -754,4 +757,46 @@ func resolveSecretsPath(filePath, secretsPath string) string {
 
 func isDotPrefix(word string) bool {
 	return strings.Contains(word, ".")
+}
+
+// Keywords
+// -----------------------------------------------------------------------------
+
+var keywords = []struct {
+	label  string
+	insert string
+	detail string
+}{
+	{"let", "let ", "Declare a constant binding"},
+	{"func", "func ", "Declare a function"},
+	{"decl", "decl ", "Declare a step or target type"},
+	{"type", "type ", "Declare a type"},
+	{"enum", "enum ", "Declare an enumeration"},
+	{"import", "import ", "Import a module"},
+	{"module", "module ", "Declare the module name"},
+	{"if", "if ", "Conditional expression"},
+	{"else", "else ", "Else branch"},
+	{"for", "for ", "For loop"},
+	{"in", "in ", "Iterator binding"},
+	{"return", "return ", "Return from function"},
+	{"true", "true", "Boolean true"},
+	{"false", "false", "Boolean false"},
+	{"none", "none", "Absent value"},
+	{"self", "self", "Current module reference"},
+}
+
+func keywordItems(prefix string) []protocol.CompletionItem {
+	var items []protocol.CompletionItem
+	for _, kw := range keywords {
+		if prefix != "" && !strings.HasPrefix(kw.label, prefix) {
+			continue
+		}
+		items = append(items, protocol.CompletionItem{
+			Label:      kw.label,
+			Kind:       protocol.CompletionItemKindKeyword,
+			Detail:     kw.detail,
+			InsertText: kw.insert,
+		})
+	}
+	return items
 }

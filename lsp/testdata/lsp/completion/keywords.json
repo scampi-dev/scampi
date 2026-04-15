@@ -1,0 +1,7 @@
+{
+  "request": "completion",
+  "expect": {
+    "labels_include": ["let"],
+    "labels_exclude": ["func", "type", "import"]
+  }
+}

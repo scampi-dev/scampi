@@ -39,11 +39,22 @@ func (s *Server) Definition(
 
 	cur := AnalyzeCursor(doc.Content, params.Position.Line, params.Position.Character)
 	word := cur.WordUnderCursor
+
+	data := []byte(doc.Content)
+	offset := byteOffsetAtPosition(doc.Content, params.Position.Line, params.Position.Character)
+
+	// Import path: cursor inside `import "std/posix"` → jump to module file.
+	for _, imp := range f.Imports {
+		if offset >= int(imp.SrcSpan.Start) && offset <= int(imp.SrcSpan.End) {
+			if loc, ok := s.stubDefs.LookupModule(imp.Path); ok {
+				return []protocol.Location{loc}, nil
+			}
+		}
+	}
+
 	if word == "" {
 		return nil, nil
 	}
-
-	data := []byte(doc.Content)
 
 	// Struct-literal field reference: cursor sits on a field name
 	// inside a `Type { field = ... }` invocation. Resolve the type
@@ -204,4 +215,14 @@ type locKey struct {
 
 func locationKey(loc protocol.Location) locKey {
 	return locKey{loc.URI, loc.Range.Start.Line, loc.Range.Start.Character}
+}
+
+func byteOffsetAtPosition(content string, line, char uint32) int {
+	offset := 0
+	for l := uint32(0); l < line && offset < len(content); offset++ {
+		if content[offset] == '\n' {
+			l++
+		}
+	}
+	return offset + int(char)
 }

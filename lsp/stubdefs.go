@@ -82,6 +82,40 @@ func (sd *StubDefs) LookupDoc(name string) (string, bool) {
 	return extractDocComment(sl.src, sl.span), true
 }
 
+// LookupModule returns a goto-definition location for a module import
+// path like "std/posix". Resolves to the module declaration in the stub file.
+func (sd *StubDefs) LookupModule(importPath string) (protocol.Location, bool) {
+	// Strip leading "std/" — imports are relative to the std root.
+	rel := strings.TrimPrefix(importPath, "std/")
+	if rel == "std" {
+		rel = ""
+	}
+
+	// Try <rel>/<basename>.scampi, then <rel>.scampi at root.
+	var candidates []string
+	if rel == "" {
+		candidates = []string{"std.scampi"}
+	} else {
+		base := filepath.Base(rel)
+		candidates = []string{
+			filepath.Join(rel, base+".scampi"),
+			rel + ".scampi",
+		}
+	}
+
+	for _, cand := range candidates {
+		outPath := filepath.Join(sd.dir, cand)
+		if _, err := os.Stat(outPath); err != nil {
+			continue
+		}
+		return protocol.Location{
+			URI:   uri.File(outPath),
+			Range: protocol.Range{},
+		}, true
+	}
+	return protocol.Location{}, false
+}
+
 // LookupParam returns a goto-definition location for a parameter of
 // a stub func/decl/type. qname is the qualified name (e.g.
 // "posix.copy"), paramName is the field/param identifier
