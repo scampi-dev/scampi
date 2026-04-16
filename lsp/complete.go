@@ -51,6 +51,8 @@ func (s *Server) Completion(
 		if items == nil && cur.ActiveKwarg != "" {
 			items = s.completeEnumValues(params.TextDocument.URI, cur)
 		}
+	case cur.InString:
+		// Inside a string literal but not in a call — no completions.
 	case cur.InCall && cur.ActiveKwarg != "":
 		items = s.completeKwargValue(params.TextDocument.URI, cur)
 	case cur.InList:
