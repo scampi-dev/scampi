@@ -5,6 +5,7 @@ package linker
 import (
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
 )
 
@@ -17,7 +18,7 @@ type langDiagData struct {
 // diagnostic.Diagnostic so the engine can render it properly.
 type langDiagnostic struct {
 	diagnostic.FatalError
-	code string
+	code errs.Code
 	msg  string
 	hint string
 	src  *spec.SourceSpan
@@ -27,7 +28,7 @@ func (d *langDiagnostic) Error() string { return d.msg }
 
 func (d *langDiagnostic) EventTemplate() event.Template {
 	t := event.Template{
-		ID:     d.code,
+		ID:     string(d.code),
 		Text:   "{{.Msg}}",
 		Source: d.src,
 		Data:   langDiagData{Msg: d.msg, Hint: d.hint},
@@ -80,9 +81,9 @@ func wrapLangError(err error, cfgPath string, source []byte) error {
 		hint = h.GetHint()
 	}
 
-	code := "lang.Error"
+	code := errs.Code("lang.Error")
 	type coded interface {
-		GetCode() string
+		GetCode() errs.Code
 	}
 	if ce, ok := err.(coded); ok && ce.GetCode() != "" {
 		code = ce.GetCode()

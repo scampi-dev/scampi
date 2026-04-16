@@ -919,6 +919,10 @@ func TestLangPackageIsolation(t *testing.T) {
 			if importPath == modulePrefix+"std" {
 				continue
 			}
+			// Allow errs/ — leaf package with shared error primitives.
+			if importPath == modulePrefix+"errs" {
+				continue
+			}
 			// Anything else in the scampi module is forbidden.
 			if strings.HasPrefix(importPath, modulePrefix) {
 				rel := strings.TrimPrefix(p, root+"/")

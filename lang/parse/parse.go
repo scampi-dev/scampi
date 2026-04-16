@@ -8,6 +8,7 @@ package parse
 import (
 	"strings"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/token"
@@ -52,6 +53,7 @@ func (p *Parser) Parse() *ast.File {
 	} else {
 		p.errAt(
 			token.Span{Start: p.cur.Pos, End: p.cur.End},
+			CodeMissingModuleDecl,
 			"every file must start with a module declaration (e.g. module main)",
 		)
 	}
@@ -106,6 +108,7 @@ func (p *Parser) expect(k token.Kind, ctx string) token.Token {
 	}
 	p.errs = append(p.errs, Error{
 		Span: token.Span{Start: p.cur.Pos, End: p.cur.End},
+		Code: expectCode(k),
 		Msg:  "expected " + k.String() + " in " + ctx,
 		Got:  p.cur.Kind,
 		Want: []token.Kind{k},
@@ -113,9 +116,9 @@ func (p *Parser) expect(k token.Kind, ctx string) token.Token {
 	return p.cur
 }
 
-// errAt records a parser error at span.
-func (p *Parser) errAt(span token.Span, msg string) {
-	p.errs = append(p.errs, Error{Span: span, Msg: msg})
+// errAt records a parser error at span with a stable diagnostic code.
+func (p *Parser) errAt(span token.Span, code errs.Code, msg string) {
+	p.errs = append(p.errs, Error{Span: span, Code: code, Msg: msg})
 }
 
 // synchronize skips tokens until we land on a likely statement

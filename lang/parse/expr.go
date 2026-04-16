@@ -358,6 +358,7 @@ func (p *Parser) parsePrimary() ast.Expr {
 	}
 	p.errAt(
 		token.Span{Start: tok.Pos, End: tok.End},
+		CodeExpectedExpr,
 		"expected expression, got "+tok.Kind.String(),
 	)
 	p.advance()
@@ -383,6 +384,7 @@ func (p *Parser) parseInterpString() ast.Expr {
 		if p.cur.Kind != token.LInterp {
 			p.errAt(
 				token.Span{Start: p.cur.Pos, End: p.cur.End},
+				CodeUnterminatedInterp,
 				"expected ${ in interpolated string",
 			)
 			break
@@ -423,6 +425,7 @@ func (p *Parser) parseInterpString() ast.Expr {
 		default:
 			p.errAt(
 				token.Span{Start: p.cur.Pos, End: p.cur.End},
+				CodeUnterminatedInterp,
 				"unterminated interpolated string",
 			)
 		}

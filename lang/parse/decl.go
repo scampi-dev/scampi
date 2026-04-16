@@ -96,6 +96,7 @@ func (p *Parser) parseDecl() ast.Decl {
 	// Should not reach here given isDeclStart check.
 	p.errAt(
 		token.Span{Start: p.cur.Pos, End: p.cur.End},
+		CodeUnexpectedToken,
 		"unexpected token: "+p.cur.Kind.String(),
 	)
 	p.advance()

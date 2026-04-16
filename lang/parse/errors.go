@@ -5,6 +5,7 @@ package parse
 import (
 	"strings"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/token"
 )
 
@@ -13,6 +14,7 @@ import (
 // so the AST remains usable for LSP recovery.
 type Error struct {
 	Span token.Span
+	Code errs.Code // stable diagnostic code (e.g. "parse.MissingModuleDecl")
 	Msg  string
 	Hint string       // optional fix suggestion
 	Got  token.Kind   // actually seen (Illegal for "missing something")
@@ -44,3 +46,4 @@ func (e Error) Error() string {
 }
 
 func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
+func (e Error) GetCode() errs.Code           { return e.Code }

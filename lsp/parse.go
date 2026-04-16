@@ -5,6 +5,7 @@ package lsp
 import (
 	"go.lsp.dev/protocol"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/parse"
@@ -21,14 +22,14 @@ func Parse(filename string, content []byte) (*ast.File, []protocol.Diagnostic) {
 
 	var diags []protocol.Diagnostic
 	for _, e := range l.Errors() {
-		diags = append(diags, spanDiag(content, e.Span, "lex."+e.Kind.String(), e.Msg))
+		diags = append(diags, spanDiag(content, e.Span, e.Kind.Code(), e.Msg))
 	}
 	for _, e := range p.Errors() {
 		msg := e.Msg
 		if e.Hint != "" {
 			msg += "\nhint: " + e.Hint
 		}
-		diags = append(diags, spanDiag(content, e.Span, "parse", msg))
+		diags = append(diags, spanDiag(content, e.Span, e.Code, msg))
 	}
 
 	if len(diags) > 0 {
@@ -38,7 +39,7 @@ func Parse(filename string, content []byte) (*ast.File, []protocol.Diagnostic) {
 }
 
 // spanDiag converts a token.Span + message into an LSP diagnostic.
-func spanDiag(src []byte, s token.Span, code, msg string) protocol.Diagnostic {
+func spanDiag(src []byte, s token.Span, code errs.Code, msg string) protocol.Diagnostic {
 	start, end := token.ResolveSpan(src, s)
 	return protocol.Diagnostic{
 		Range: protocol.Range{
@@ -53,7 +54,7 @@ func spanDiag(src []byte, s token.Span, code, msg string) protocol.Diagnostic {
 		},
 		Severity: protocol.DiagnosticSeverityError,
 		Source:   diagSourceParser,
-		Code:     code,
+		Code:     string(code),
 		Message:  msg,
 	}
 }

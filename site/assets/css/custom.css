@@ -91,6 +91,30 @@ nav a[href*="docs"] * {
   color: hsl(0 0% 60%);
 }
 
+/* Error reference — tinted code blocks */
+.code-error,
+.code-fix {
+  margin-top: 1.5rem;
+}
+
+.code-error .highlight pre {
+  border-left: 3px solid hsl(0 60% 50%);
+  background: hsl(0 40% 50% / 0.06);
+}
+.dark .code-error .highlight pre {
+  border-left: 3px solid hsl(0 50% 55%);
+  background: hsl(0 40% 40% / 0.12);
+}
+
+.code-fix .highlight pre {
+  border-left: 3px solid hsl(140 50% 40%);
+  background: hsl(140 40% 45% / 0.06);
+}
+.dark .code-fix .highlight pre {
+  border-left: 3px solid hsl(140 40% 50%);
+  background: hsl(140 40% 35% / 0.12);
+}
+
 /* External link indicator for content area */
 article a[href^="http"]::after,
 .hextra-content a[href^="http"]::after {

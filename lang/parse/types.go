@@ -28,7 +28,7 @@ func (p *Parser) parseTypeExpr() ast.TypeExpr {
 		// Generic: Name[Arg, Arg, ...]
 		// Generics are only valid on single-ident names (e.g. list[T]).
 		if len(name.Parts) != 1 {
-			p.errAt(name.SrcSpan, "generic arguments only valid on simple type names")
+			p.errAt(name.SrcSpan, CodeGenericOnDotted, "generic arguments only valid on simple type names")
 		}
 		p.advance() // '['
 		var args []ast.TypeExpr

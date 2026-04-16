@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"strings"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/lex"
@@ -67,6 +68,7 @@ type Evaluator struct {
 // Error is an eval-time error.
 type Error struct {
 	Span token.Span
+	Code errs.Code
 	Msg  string
 	Hint string
 }
@@ -74,6 +76,7 @@ type Error struct {
 func (e Error) Error() string                { return e.Msg }
 func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
 func (e Error) GetHint() string              { return e.Hint }
+func (e Error) GetCode() errs.Code           { return e.Code }
 
 // Option configures the evaluator.
 type Option func(*Evaluator)
@@ -386,12 +389,12 @@ func typeExprName(t ast.TypeExpr) string {
 	return ""
 }
 
-func (ev *Evaluator) errAt(span token.Span, msg string) {
-	ev.errs = append(ev.errs, Error{Span: span, Msg: msg})
+func (ev *Evaluator) errAt(span token.Span, code errs.Code, msg string) {
+	ev.errs = append(ev.errs, Error{Span: span, Code: code, Msg: msg})
 }
 
-func (ev *Evaluator) errWithHint(span token.Span, msg, hint string) {
-	ev.errs = append(ev.errs, Error{Span: span, Msg: msg, Hint: hint})
+func (ev *Evaluator) errWithHint(span token.Span, code errs.Code, msg, hint string) {
+	ev.errs = append(ev.errs, Error{Span: span, Code: code, Msg: msg, Hint: hint})
 }
 
 // evalFile evaluates a complete file.
@@ -530,7 +533,7 @@ func (ev *Evaluator) evalFor(f *ast.ForStmt) {
 	iter := ev.evalExpr(f.Iter)
 	list, ok := iter.(*ListVal)
 	if !ok {
-		ev.errAt(f.SrcSpan, "for-in requires a list")
+		ev.errAt(f.SrcSpan, check.CodeForInRequiresList, "for-in requires a list")
 		return
 	}
 	for _, item := range list.Items {
@@ -612,7 +615,7 @@ func (ev *Evaluator) evalExpr(e ast.Expr) Value {
 	case *ast.Ident:
 		v, ok := ev.env.get(e.Name)
 		if !ok {
-			ev.errAt(e.SrcSpan, "undefined: "+e.Name)
+			ev.errAt(e.SrcSpan, check.CodeUndefined, "undefined: "+e.Name)
 			return &NoneVal{}
 		}
 		return v
@@ -654,7 +657,7 @@ func (ev *Evaluator) evalExpr(e ast.Expr) Value {
 	case *ast.DottedName:
 		return ev.evalDottedName(e)
 	}
-	ev.errAt(e.Span(), "cannot evaluate expression")
+	ev.errAt(e.Span(), check.CodeCannotEvaluate, "cannot evaluate expression")
 	return &NoneVal{}
 }
 
@@ -690,7 +693,7 @@ func (ev *Evaluator) evalSelector(sel *ast.SelectorExpr) Value {
 			return v
 		}
 	}
-	ev.errAt(sel.SrcSpan, "cannot access ."+name)
+	ev.errAt(sel.SrcSpan, check.CodeCannotAccess, "cannot access ."+name)
 	return &NoneVal{}
 }
 
@@ -700,7 +703,7 @@ func (ev *Evaluator) evalDottedName(dn *ast.DottedName) Value {
 	}
 	v, ok := ev.env.get(dn.Parts[0].Name)
 	if !ok {
-		ev.errAt(dn.Parts[0].SrcSpan, "undefined: "+dn.Parts[0].Name)
+		ev.errAt(dn.Parts[0].SrcSpan, check.CodeUndefined, "undefined: "+dn.Parts[0].Name)
 		return &NoneVal{}
 	}
 	for _, part := range dn.Parts[1:] {
@@ -713,7 +716,7 @@ func (ev *Evaluator) evalDottedName(dn *ast.DottedName) Value {
 			v = got
 			continue
 		}
-		ev.errAt(part.SrcSpan, "cannot access ."+part.Name)
+		ev.errAt(part.SrcSpan, check.CodeCannotAccess, "cannot access ."+part.Name)
 		return &NoneVal{}
 	}
 	return v
@@ -734,7 +737,7 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 		recv := ev.evalExpr(sel.X)
 		fn, errMsg := ev.lookupUFCSFunc(call.UFCSModule, sel.Sel.Name)
 		if errMsg != "" {
-			ev.errAt(call.SrcSpan, errMsg)
+			ev.errAt(call.SrcSpan, check.CodeCallError, errMsg)
 			return &NoneVal{}
 		}
 		fv = fn
@@ -743,7 +746,7 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 		fn := ev.evalExpr(call.Fn)
 		v, ok := fn.(*FuncVal)
 		if !ok {
-			ev.errAt(call.SrcSpan, "cannot call non-function")
+			ev.errAt(call.SrcSpan, check.CodeCannotCall, "cannot call non-function")
 			return &NoneVal{}
 		}
 		fv = v
@@ -803,7 +806,7 @@ func (ev *Evaluator) evalBlockExpr(e *ast.BlockExpr) Value {
 	target := ev.evalExpr(e.Target)
 	bv, ok := target.(*BlockVal)
 	if !ok {
-		ev.errAt(e.SrcSpan, "cannot fill non-block value")
+		ev.errAt(e.SrcSpan, check.CodeCannotFillBlock, "cannot fill non-block value")
 		return &NoneVal{}
 	}
 	return ev.fillBlock(bv, e.Body)
@@ -852,8 +855,8 @@ func (ev *Evaluator) fillBlockFromStmts(bv *BlockVal, stmts []ast.Stmt) Value {
 }
 
 // AddError reports an error from an onEmit callback.
-func (ev *Evaluator) AddError(msg string) {
-	ev.errAt(token.Span{}, msg)
+func (ev *Evaluator) AddError(code errs.Code, msg string) {
+	ev.errAt(token.Span{}, code, msg)
 }
 
 func (ev *Evaluator) callRange(positional []Value, kwargs map[string]Value) Value {
@@ -940,7 +943,7 @@ func (ev *Evaluator) callEnv(positional []Value, kwargs map[string]Value, span t
 	if def != "" {
 		return &StringVal{V: def}
 	}
-	ev.errAt(span, "required environment variable \""+name+"\" is not set")
+	ev.errAt(span, check.CodeEnvVarNotSet, "required environment variable \""+name+"\" is not set")
 	return &StringVal{V: ""}
 }
 
@@ -957,7 +960,7 @@ func (ev *Evaluator) callSecret(positional []Value, kwargs map[string]Value, spa
 		}
 	}
 	if ev.secretLookup == nil {
-		ev.errWithHint(span,
+		ev.errWithHint(span, check.CodeSecretLookup,
 			"secret() called but no secret backend configured",
 			`add std.secrets { backend = std.SecretsBackend.age, path = "secrets.age.json" }`+
 				" before any secret() call")
@@ -965,7 +968,7 @@ func (ev *Evaluator) callSecret(positional []Value, kwargs map[string]Value, spa
 	}
 	v, err := ev.secretLookup(name)
 	if err != nil {
-		ev.errAt(span, "secret lookup failed: "+err.Error())
+		ev.errAt(span, check.CodeSecretLookup, "secret lookup failed: "+err.Error())
 		return &StringVal{V: ""}
 	}
 	return &StringVal{V: v}

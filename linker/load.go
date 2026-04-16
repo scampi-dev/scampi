@@ -197,7 +197,7 @@ func newSecretWirer(
 			return
 		}
 		if configured {
-			ev.AddError("secrets() called more than once")
+			ev.AddError(check.CodeSecretLookup, "secrets() called more than once")
 			return
 		}
 		configured = true
@@ -218,7 +218,7 @@ func newSecretWirer(
 		}
 		data, readErr := src.ReadFile(ctx, path)
 		if readErr != nil {
-			ev.AddError(fmt.Sprintf("reading secrets file %q: %s", path, readErr))
+			ev.AddError(check.CodeSecretLookup, fmt.Sprintf("reading secrets file %q: %s", path, readErr))
 			return
 		}
 		var b secret.Backend
@@ -237,12 +237,14 @@ func newSecretWirer(
 				readFile,
 			)
 			if idErr != nil {
-				ev.AddError(fmt.Sprintf("secrets backend \"age\": cannot resolve identity keys: %s", idErr))
+				ev.AddError(check.CodeSecretLookup,
+					fmt.Sprintf("secrets backend \"age\": cannot resolve identity keys: %s", idErr))
 				return
 			}
 			ab, abErr := secret.NewAgeBackend(data, identities)
 			if abErr != nil {
-				ev.AddError(fmt.Sprintf("secrets backend \"age\": cannot decrypt %q: %s", path, abErr))
+				ev.AddError(check.CodeSecretLookup,
+					fmt.Sprintf("secrets backend \"age\": cannot decrypt %q: %s", path, abErr))
 				return
 			}
 			b = ab

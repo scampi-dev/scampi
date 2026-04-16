@@ -60,7 +60,7 @@ func (p *Parser) parseStmt() ast.Stmt {
 			return nil
 		}
 		if !isAssignable(e) {
-			p.errAt(e.Span(), "left side of assignment is not assignable")
+			p.errAt(e.Span(), CodeNotAssignable, "left side of assignment is not assignable")
 		}
 		end := val.Span().End
 		if p.cur.Kind == token.Semi {

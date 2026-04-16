@@ -7,6 +7,10 @@ import (
 	"fmt"
 )
 
+// Code is a stable diagnostic error identifier (e.g. "parse.MissingModuleDecl").
+// Surfaced by the LSP and documented on scampi.dev/errors/.
+type Code string
+
 func BUG(format string, args ...any) error {
 	return fmt.Errorf("BUG: "+format, args...)
 }

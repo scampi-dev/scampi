@@ -8,6 +8,7 @@ import (
 
 	"go.lsp.dev/protocol"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/check"
 )
 
@@ -34,7 +35,13 @@ func (s *Server) actionsForDiagnostic(
 	content string,
 	diag protocol.Diagnostic,
 ) []protocol.CodeAction {
-	code, _ := diag.Code.(string)
+	var code errs.Code
+	switch v := diag.Code.(type) {
+	case string:
+		code = errs.Code(v)
+	case errs.Code:
+		code = v
+	}
 	msg := diag.Message
 
 	switch code {

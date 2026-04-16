@@ -5,6 +5,7 @@ package lex
 import (
 	"fmt"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/token"
 )
 
@@ -19,6 +20,7 @@ type Error struct {
 
 func (e Error) Error() string                { return fmt.Sprintf("%s: %s", e.Kind.String(), e.Msg) }
 func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
+func (e Error) GetCode() errs.Code           { return e.Kind.Code() }
 
 // ErrKind identifies a class of lexer error. The kind is stable across
 // releases and suitable for diagnostic IDs.

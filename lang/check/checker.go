@@ -5,6 +5,7 @@ package check
 import (
 	"strings"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/token"
 )
@@ -46,13 +47,13 @@ type Checker struct {
 
 // Error is a type-checker error.
 type Error struct {
-	Code string
+	Code errs.Code
 	Span token.Span
 	Msg  string
 }
 
 func (e Error) Error() string                { return e.Msg }
-func (e Error) GetCode() string              { return e.Code }
+func (e Error) GetCode() errs.Code           { return e.Code }
 func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
 
 // New creates a checker with the given modules available for import
@@ -145,7 +146,7 @@ func (c *Checker) RegisterForwardDecls(f *ast.File) {
 	}
 }
 
-func (c *Checker) errAt(span token.Span, code, msg string) {
+func (c *Checker) errAt(span token.Span, code errs.Code, msg string) {
 	c.errs = append(c.errs, Error{Code: code, Span: span, Msg: msg})
 }
 
