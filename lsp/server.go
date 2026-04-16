@@ -4,6 +4,7 @@ package lsp
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -146,6 +147,7 @@ func (s *Server) Initialize(
 			},
 			DocumentFormattingProvider: &protocol.DocumentFormattingOptions{},
 			DocumentHighlightProvider:  &protocol.DocumentHighlightOptions{},
+			CodeLensProvider:           &protocol.CodeLensOptions{},
 			CodeActionProvider: &protocol.CodeActionOptions{
 				CodeActionKinds: []protocol.CodeActionKind{
 					protocol.QuickFix,
@@ -290,8 +292,53 @@ func (s *Server) SetTrace(context.Context, *protocol.SetTraceParams) error { ret
 func (s *Server) CodeAction(ctx context.Context, params *protocol.CodeActionParams) ([]protocol.CodeAction, error) {
 	return s.codeAction(ctx, params)
 }
-func (s *Server) CodeLens(context.Context, *protocol.CodeLensParams) ([]protocol.CodeLens, error) {
-	return nil, nil
+func (s *Server) CodeLens(_ context.Context, params *protocol.CodeLensParams) ([]protocol.CodeLens, error) {
+	doc, ok := s.docs.Get(params.TextDocument.URI)
+	if !ok {
+		return nil, nil
+	}
+
+	filePath := uriToPath(params.TextDocument.URI)
+	f, _ := Parse(filePath, []byte(doc.Content))
+	if f == nil {
+		return nil, nil
+	}
+
+	data := []byte(doc.Content)
+	var lenses []protocol.CodeLens
+
+	for _, d := range f.Decls {
+		name, span := declNameAndSpan(d)
+		if name == "" {
+			continue
+		}
+		refs := findIdents(f, filePath, data, name)
+		// Subtract 1 for the definition itself.
+		count := len(refs) - 1
+		if count < 0 {
+			count = 0
+		}
+		label := fmt.Sprintf("%d references", count)
+		if count == 1 {
+			label = "1 reference"
+		}
+		r := tokenSpanToRange(data, span)
+		lenses = append(lenses, protocol.CodeLens{
+			Range: r,
+			Command: &protocol.Command{
+				Title:   label,
+				Command: "editor.action.showReferences",
+				Arguments: []any{
+					params.TextDocument.URI,
+					r.Start,
+					refs,
+				},
+			},
+		})
+	}
+
+	s.log.Printf("codeLens: %s → %d lenses", filePath, len(lenses))
+	return lenses, nil
 }
 func (s *Server) CodeLensResolve(context.Context, *protocol.CodeLens) (*protocol.CodeLens, error) {
 	return nil, nil

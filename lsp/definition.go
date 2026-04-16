@@ -249,6 +249,25 @@ func spanToLocation(path string, src []byte, s token.Span) protocol.Location {
 	}
 }
 
+// declNameAndSpan extracts the name and name span from a declaration node.
+func declNameAndSpan(d ast.Decl) (string, token.Span) {
+	switch d := d.(type) {
+	case *ast.FuncDecl:
+		return d.Name.Name, d.Name.SrcSpan
+	case *ast.DeclDecl:
+		if len(d.Name.Parts) > 0 {
+			return d.Name.Parts[0].Name, d.Name.SrcSpan
+		}
+	case *ast.LetDecl:
+		return d.Name.Name, d.Name.SrcSpan
+	case *ast.TypeDecl:
+		return d.Name.Name, d.Name.SrcSpan
+	case *ast.EnumDecl:
+		return d.Name.Name, d.Name.SrcSpan
+	}
+	return "", token.Span{}
+}
+
 // dedup returns a slice with duplicates removed, using keyFn to determine
 // identity. Order is preserved; first occurrence wins.
 func dedup[S ~[]E, E any, K comparable](s S, keyFn func(E) K) S {
