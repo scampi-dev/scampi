@@ -19,8 +19,8 @@ ldflags  := "-s -w -X main.version=" + version
 [doc("Build scampi and scampls binaries")]
 build:
   mkdir -p {{bin_dir}}
-  go build -ldflags '{{ldflags}}' -o {{bin_dir}}/scampi  ./cmd/scampi
-  go build -ldflags '{{ldflags}}' -o {{bin_dir}}/scampls ./cmd/scampls
+  CGO_ENABLED=0 go build -ldflags '{{ldflags}}' -o {{bin_dir}}/scampi  ./cmd/scampi
+  CGO_ENABLED=0 go build -ldflags '{{ldflags}}' -o {{bin_dir}}/scampls ./cmd/scampls
 
 [doc("Cross-compile for all supported platforms (outdir=DIR)")]
 cross outdir=bin_dir:
@@ -149,6 +149,10 @@ outdated:
 [doc("Upgrade all direct dependencies to latest")]
 upgrade:
   @./scripts/go-upgrade.sh
+
+[doc("Analyze binary sizes")]
+bin-size:
+  ./scripts/bin-size.sh
 
 [doc("Clean project")]
 clean:
