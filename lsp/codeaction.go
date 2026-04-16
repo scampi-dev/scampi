@@ -24,6 +24,8 @@ func (s *Server) codeAction(
 	for _, diag := range params.Context.Diagnostics {
 		actions = append(actions, s.actionsForDiagnostic(params.TextDocument.URI, doc.Content, diag)...)
 	}
+	s.log.Printf("codeAction: %s diags=%d → %d actions",
+		params.TextDocument.URI, len(params.Context.Diagnostics), len(actions))
 	return actions, nil
 }
 

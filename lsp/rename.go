@@ -25,6 +25,7 @@ func (s *Server) prepareRename(
 		params.Position.Line,
 		params.Position.Character,
 	))
+	s.log.Printf("prepareRename: %s %q", params.TextDocument.URI, word)
 	if word == "" {
 		return nil, nil
 	}

@@ -66,7 +66,16 @@ func Serve(ctx context.Context, in io.Reader, out io.Writer, opts ...Option) err
 
 	s.log.Printf("server starting, %d stdlib entries loaded", len(s.catalog.Names()))
 
-	ctx, conn, client := protocol.NewServer(ctx, s, stream, logger)
+	conn := jsonrpc2.NewConn(stream)
+	client := protocol.ClientDispatcher(conn, logger.Named("client"))
+	ctx = protocol.WithClient(ctx, client)
+	conn.Go(ctx,
+		protocol.Handlers(
+			s.inlayHintHandler(
+				protocol.ServerHandler(s, jsonrpc2.MethodNotFoundHandler),
+			),
+		),
+	)
 	s.client = client
 	s.conn = conn
 
@@ -368,12 +377,15 @@ func (s *Server) Formatting(
 
 	formatted, err := format.Format([]byte(doc.Content))
 	if err != nil {
+		s.log.Printf("formatting: %s error: %v", params.TextDocument.URI, err)
 		return nil, nil
 	}
 
 	if string(formatted) == doc.Content {
+		s.log.Printf("formatting: %s (no changes)", params.TextDocument.URI)
 		return nil, nil
 	}
+	s.log.Printf("formatting: %s (changed)", params.TextDocument.URI)
 
 	lines := strings.Count(doc.Content, "\n")
 	return []protocol.TextEdit{{

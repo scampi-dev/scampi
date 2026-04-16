@@ -84,7 +84,9 @@ func (s *Server) References(
 		}
 	}
 
-	return dedup(locs, locationKey), nil
+	result := dedup(locs, locationKey)
+	s.log.Printf("references: %s %q → %d locations", filePath, word, len(result))
+	return result, nil
 }
 
 // findAttrRefs returns the location of every Attribute reference in
