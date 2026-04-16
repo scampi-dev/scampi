@@ -191,7 +191,7 @@ func (c *Checker) resolveAttrType(name *ast.DottedName, useSpan token.Span) *Att
 		bare := name.Parts[0].Name
 		sym := c.scope.Lookup("@" + bare)
 		if sym == nil || sym.Kind != SymAttrType {
-			c.errAt(useSpan, "unknown attribute: @"+bare)
+			c.errAt(useSpan, CodeUnknownAttribute, "unknown attribute: @"+bare)
 			return nil
 		}
 		at, _ := sym.Type.(*AttrType)
@@ -201,23 +201,23 @@ func (c *Checker) resolveAttrType(name *ast.DottedName, useSpan token.Span) *Att
 		attrName := name.Parts[1].Name
 		modSym := c.scope.Lookup(modName)
 		if modSym == nil || modSym.Kind != SymImport {
-			c.errAt(useSpan, "unknown module: "+modName)
+			c.errAt(useSpan, CodeUnknownModule, "unknown module: "+modName)
 			return nil
 		}
 		mod, ok := c.modules[modName]
 		if !ok {
-			c.errAt(useSpan, "unknown module: "+modName)
+			c.errAt(useSpan, CodeUnknownModule, "unknown module: "+modName)
 			return nil
 		}
 		sym := mod.Lookup("@" + attrName)
 		if sym == nil || sym.Kind != SymAttrType {
-			c.errAt(useSpan, "unknown attribute: @"+modName+"."+attrName)
+			c.errAt(useSpan, CodeUnknownAttribute, "unknown attribute: @"+modName+"."+attrName)
 			return nil
 		}
 		at, _ := sym.Type.(*AttrType)
 		return at
 	}
-	c.errAt(useSpan, "attribute names may have at most one dot")
+	c.errAt(useSpan, CodeAttrTooManyDots, "attribute names may have at most one dot")
 	return nil
 }
 
@@ -239,7 +239,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 	// Marker: no args allowed.
 	if len(at.Fields) == 0 {
 		if len(a.Positionals) > 0 || len(a.Named) > 0 {
-			c.errAt(a.SrcSpan, "marker attribute @"+at.Name+" takes no arguments")
+			c.errAt(a.SrcSpan, CodeMarkerAttrArgs, "marker attribute @"+at.Name+" takes no arguments")
 		}
 		return
 	}
@@ -271,7 +271,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 					// Not the list itself — try as a single element.
 					if !IsAssignableTo(t, listT.Elem) {
 						c.errAt(
-							a.Positionals[0].Span(),
+							a.Positionals[0].Span(), "lang.AttrBindError",
 							"cannot bind "+t.String()+" to attribute @"+at.Name+
 								" field "+field.Name+" of type "+field.Type.String(),
 						)
@@ -286,7 +286,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 				}
 				if !IsAssignableTo(t, listT.Elem) {
 					c.errAt(
-						p.Span(),
+						p.Span(), CodeAttrError,
 						"cannot bind "+t.String()+" to attribute @"+at.Name+
 							" field "+field.Name+" element type "+listT.Elem.String(),
 					)
@@ -302,7 +302,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 		t := c.typeOf(a.Positionals[0])
 		if t != nil && !IsAssignableTo(t, field.Type) {
 			c.errAt(
-				a.Positionals[0].Span(),
+				a.Positionals[0].Span(), CodeAttrError,
 				"cannot bind "+t.String()+" to attribute @"+at.Name+
 					" field "+field.Name+" of type "+field.Type.String(),
 			)
@@ -313,7 +313,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 		// Multiple positionals on a multi-field type (or a
 		// single-field non-list type) — disallowed.
 		c.errAt(
-			a.SrcSpan,
+			a.SrcSpan, CodeAttrError,
 			"attribute @"+at.Name+" accepts at most one positional argument; "+
 				"use keyword arguments for the rest",
 		)
@@ -325,15 +325,12 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 	for _, na := range a.Named {
 		field, ok := byName[na.Name.Name]
 		if !ok {
-			c.errAt(
-				na.SrcSpan,
-				"attribute @"+at.Name+" has no field "+na.Name.Name,
-			)
+			c.errAt(na.SrcSpan, CodeAttrError, "attribute @"+at.Name+" has no field "+na.Name.Name)
 			continue
 		}
 		if bound[na.Name.Name] {
 			c.errAt(
-				na.SrcSpan,
+				na.SrcSpan, CodeAttrError,
 				"attribute @"+at.Name+" field "+na.Name.Name+
 					" already bound by positional argument",
 			)
@@ -342,7 +339,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 		t := c.typeOf(na.Value)
 		if t != nil && !IsAssignableTo(t, field.Type) {
 			c.errAt(
-				na.Value.Span(),
+				na.Value.Span(), "lang.AttrBindError",
 				"cannot bind "+t.String()+" to attribute @"+at.Name+
 					" field "+field.Name+" of type "+field.Type.String(),
 			)
@@ -353,10 +350,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 	// Required fields (no default) must be bound.
 	for _, f := range at.Fields {
 		if !bound[f.Name] && !f.HasDef {
-			c.errAt(
-				a.SrcSpan,
-				"attribute @"+at.Name+" missing required field "+f.Name,
-			)
+			c.errAt(a.SrcSpan, CodeAttrError, "attribute @"+at.Name+" missing required field "+f.Name)
 		}
 	}
 }

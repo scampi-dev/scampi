@@ -57,7 +57,7 @@ func (c *Checker) typeOf(e ast.Expr) Type {
 	case *ast.DottedName:
 		return c.resolveDottedName(e)
 	}
-	c.errAt(e.Span(), "cannot determine type of expression")
+	c.errAt(e.Span(), CodeIndeterminateType, "cannot determine type of expression")
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (c *Checker) typeOf(e ast.Expr) Type {
 func (c *Checker) resolveIdent(id *ast.Ident) Type {
 	sym := c.scope.Lookup(id.Name)
 	if sym == nil {
-		c.errAt(id.SrcSpan, "undefined: "+id.Name)
+		c.errAt(id.SrcSpan, CodeUndefined, "undefined: "+id.Name)
 		return nil
 	}
 	return sym.Type
@@ -79,7 +79,7 @@ func (c *Checker) resolveDottedName(dn *ast.DottedName) Type {
 	}
 	sym := c.scope.Lookup(dn.Parts[0].Name)
 	if sym == nil {
-		c.errAt(dn.Parts[0].SrcSpan, "undefined: "+dn.Parts[0].Name)
+		c.errAt(dn.Parts[0].SrcSpan, CodeUndefined, "undefined: "+dn.Parts[0].Name)
 		return nil
 	}
 	if len(dn.Parts) == 1 {
@@ -87,7 +87,7 @@ func (c *Checker) resolveDottedName(dn *ast.DottedName) Type {
 	}
 	// Multi-part: first part must be a module import.
 	if sym.Kind != SymImport {
-		c.errAt(dn.SrcSpan, dn.Parts[0].Name+" is not a module")
+		c.errAt(dn.SrcSpan, CodeNotAModule, dn.Parts[0].Name+" is not a module")
 		return nil
 	}
 	return c.resolveModuleMember(dn.Parts[0].Name, dn.Parts[1:], dn.SrcSpan)
@@ -120,7 +120,7 @@ func (c *Checker) resolveSelector(sel *ast.SelectorExpr) Type {
 				return f.Type
 			}
 		}
-		c.errAt(sel.Sel.SrcSpan, "no field "+name+" on "+st.Name)
+		c.errAt(sel.Sel.SrcSpan, CodeNoField, "no field "+name+" on "+st.Name)
 		return nil
 	}
 
@@ -129,25 +129,25 @@ func (c *Checker) resolveSelector(sel *ast.SelectorExpr) Type {
 		if et.HasVariant(name) {
 			return et
 		}
-		c.errAt(sel.Sel.SrcSpan, "no variant "+name+" on enum "+et.Name)
+		c.errAt(sel.Sel.SrcSpan, CodeNoVariant, "no variant "+name+" on enum "+et.Name)
 		return nil
 	}
 
-	c.errAt(sel.SrcSpan, "cannot access ."+name+" on "+xType.String())
+	c.errAt(sel.SrcSpan, CodeCannotAccess, "cannot access ."+name+" on "+xType.String())
 	return nil
 }
 
 func (c *Checker) resolveModuleMember(modName string, parts []*ast.Ident, span token.Span) Type {
 	mod, ok := c.modules[modName]
 	if !ok {
-		c.errAt(span, "unknown module: "+modName)
+		c.errAt(span, CodeUnknownModule, "unknown module: "+modName)
 		return nil
 	}
 	// Walk the dotted chain through the module scope.
 	// For now: look up the first remaining part directly.
 	sym := mod.Lookup(parts[0].Name)
 	if sym == nil {
-		c.errAt(parts[0].SrcSpan, modName+"."+parts[0].Name+": undefined")
+		c.errAt(parts[0].SrcSpan, CodeModuleMemberUndef, modName+"."+parts[0].Name+": undefined")
 		return nil
 	}
 	if len(parts) == 1 {
@@ -167,7 +167,7 @@ func (c *Checker) chainAccess(t Type, parts []*ast.Ident, span token.Span) Type 
 			if tt.HasVariant(part.Name) {
 				return tt
 			}
-			c.errAt(part.SrcSpan, "no variant "+part.Name+" on enum "+tt.Name)
+			c.errAt(part.SrcSpan, CodeNoVariant, "no variant "+part.Name+" on enum "+tt.Name)
 			return nil
 		case *StructType:
 			found := false
@@ -179,11 +179,11 @@ func (c *Checker) chainAccess(t Type, parts []*ast.Ident, span token.Span) Type 
 				}
 			}
 			if !found {
-				c.errAt(part.SrcSpan, "no field "+part.Name+" on "+tt.Name)
+				c.errAt(part.SrcSpan, CodeNoField, "no field "+part.Name+" on "+tt.Name)
 				return nil
 			}
 		default:
-			c.errAt(span, "cannot access ."+part.Name+" on "+t.String())
+			c.errAt(span, CodeCannotAccess, "cannot access ."+part.Name+" on "+t.String())
 			return nil
 		}
 	}
@@ -213,7 +213,7 @@ func (c *Checker) checkCall(call *ast.CallExpr) Type {
 	}
 	ft, ok := fnType.(*FuncType)
 	if !ok {
-		c.errAt(call.SrcSpan, "cannot call "+fnType.String())
+		c.errAt(call.SrcSpan, CodeCannotCall, "cannot call "+fnType.String())
 		return nil
 	}
 	c.typeCheckCallArgs(call, ft, false)
@@ -326,7 +326,7 @@ func (c *Checker) detectUFCS(call *ast.CallExpr) (*FuncType, string) {
 			names = append(names, c.module+"."+name)
 		}
 		c.errAt(
-			call.SrcSpan,
+			call.SrcSpan, CodeAmbiguousUFCS,
 			"ambiguous UFCS: "+name+" matches "+joinSorted(names)+
 				" — call one of them explicitly to disambiguate",
 		)
@@ -380,10 +380,10 @@ func (c *Checker) typeCheckCallArgs(call *ast.CallExpr, ft *FuncType, ufcs bool)
 		}
 	}
 	if len(call.Args) < minArgs {
-		c.errAt(call.SrcSpan, "too few arguments")
+		c.errAt(call.SrcSpan, CodeTooFewArgs, "too few arguments")
 	}
 	if len(call.Args) > availParams {
-		c.errAt(call.SrcSpan, "too many arguments")
+		c.errAt(call.SrcSpan, CodeTooManyArgs, "too many arguments")
 	}
 	for i, arg := range call.Args {
 		argT := c.typeOf(arg.Value)
@@ -402,7 +402,8 @@ func (c *Checker) typeCheckCallArgs(call *ast.CallExpr, ft *FuncType, ufcs bool)
 			paramT = ft.Params[recvOffset+i].Type
 		}
 		if paramT != nil && !IsAssignableTo(argT, paramT) {
-			c.errAt(arg.Value.Span(), "argument type mismatch: got "+argT.String()+", want "+paramT.String())
+			c.errAt(arg.Value.Span(), CodeArgTypeMismatch,
+				"argument type mismatch: got "+argT.String()+", want "+paramT.String())
 		}
 	}
 }
@@ -441,7 +442,7 @@ func (c *Checker) checkStructLit(lit *ast.StructLit) Type {
 	}
 	switch tt := t.(type) {
 	case *OpaqueType:
-		c.errAt(lit.SrcSpan, "cannot construct opaque type "+tt.Name)
+		c.errAt(lit.SrcSpan, CodeOpaqueConstruct, "cannot construct opaque type "+tt.Name)
 		return nil
 	case *StructType:
 		c.checkFieldInits(tt.Fields, lit.Fields, tt.Name, lit.SrcSpan)
@@ -454,7 +455,7 @@ func (c *Checker) checkStructLit(lit *ast.StructLit) Type {
 		}
 		return tt.Ret
 	}
-	c.errAt(lit.SrcSpan, t.String()+" is not a struct or decl type")
+	c.errAt(lit.SrcSpan, CodeNotStructOrDecl, t.String()+" is not a struct or decl type")
 	return nil
 }
 
@@ -472,28 +473,26 @@ func (c *Checker) checkFieldInits(
 	for _, f := range inits {
 		name := f.Name.Name
 		if seen[name] {
-			c.errAt(f.SrcSpan, "duplicate field: "+name)
+			c.errAt(f.SrcSpan, CodeDuplicateField, "duplicate field: "+name)
 			continue
 		}
 		seen[name] = true
 		d, ok := declared[name]
 		if !ok {
-			c.errAt(f.Name.SrcSpan, "unknown field "+name+" on "+typeName)
+			c.errAt(f.Name.SrcSpan, CodeUnknownField, "unknown field "+name+" on "+typeName)
 			continue
 		}
 		vt := c.typeOf(f.Value)
 		if vt != nil && d.Type != nil && !IsAssignableTo(vt, d.Type) {
-			c.errAt(
-				f.SrcSpan,
-				"field "+name+": got "+vt.String()+", want "+d.Type.String(),
-			)
+			c.errAt(f.SrcSpan, CodeFieldTypeMismatch,
+				"field "+name+": got "+vt.String()+", want "+d.Type.String())
 		}
 	}
 	// Check required fields are present. Optional types (T?) implicitly
 	// default to none, so they're never required.
 	for _, d := range decl {
 		if !d.HasDef && !isOptional(d.Type) && !seen[d.Name] {
-			c.errAt(span, "missing required field: "+d.Name)
+			c.errAt(span, CodeMissingField, "missing required field: "+d.Name)
 		}
 	}
 }
@@ -513,7 +512,7 @@ func (c *Checker) checkBlockExpr(e *ast.BlockExpr) Type {
 	}
 	bt, ok := tt.(*BlockType)
 	if !ok {
-		c.errAt(e.Target.Span(), tt.String()+" is not a block type")
+		c.errAt(e.Target.Span(), CodeNotBlockType, tt.String()+" is not a block type")
 		return nil
 	}
 	if e.Body != nil {
@@ -585,16 +584,16 @@ func (c *Checker) checkIndex(idx *ast.IndexExpr) Type {
 	switch t := xType.(type) {
 	case *List:
 		if idxType != nil && idxType != IntType {
-			c.errAt(idx.Index.Span(), "list index must be int, got "+idxType.String())
+			c.errAt(idx.Index.Span(), CodeListIndexNotInt, "list index must be int, got "+idxType.String())
 		}
 		return t.Elem
 	case *Map:
 		if idxType != nil && !IsAssignableTo(idxType, t.Key) {
-			c.errAt(idx.Index.Span(), "map key type mismatch")
+			c.errAt(idx.Index.Span(), CodeMapKeyMismatch, "map key type mismatch")
 		}
 		return t.Value
 	}
-	c.errAt(idx.SrcSpan, "cannot index "+xType.String())
+	c.errAt(idx.SrcSpan, CodeCannotIndex, "cannot index "+xType.String())
 	return nil
 }
 
@@ -619,7 +618,7 @@ func (c *Checker) checkBinary(bin *ast.BinaryExpr) Type {
 			}
 		}
 		if lt != nil && rt != nil {
-			c.errAt(bin.SrcSpan, "cannot add "+lt.String()+" and "+rt.String())
+			c.errAt(bin.SrcSpan, CodeCannotAdd, "cannot add "+lt.String()+" and "+rt.String())
 		}
 		return nil
 	case token.Minus, token.Star, token.Slash, token.Percent:
@@ -627,17 +626,17 @@ func (c *Checker) checkBinary(bin *ast.BinaryExpr) Type {
 			return IntType
 		}
 		if lt != nil && rt != nil {
-			c.errAt(bin.SrcSpan, "arithmetic requires int operands")
+			c.errAt(bin.SrcSpan, CodeArithNotInt, "arithmetic requires int operands")
 		}
 		return nil
 	case token.Eq, token.Neq, token.Lt, token.Gt, token.Leq, token.Geq:
 		return BoolType
 	case token.And, token.Or:
 		if lt != nil && lt != BoolType {
-			c.errAt(bin.Left.Span(), "&& and || require bool operands, got "+lt.String())
+			c.errAt(bin.Left.Span(), CodeBoolOpNotBool, "&& and || require bool operands, got "+lt.String())
 		}
 		if rt != nil && rt != BoolType {
-			c.errAt(bin.Right.Span(), "&& and || require bool operands, got "+rt.String())
+			c.errAt(bin.Right.Span(), CodeBoolOpNotBool, "&& and || require bool operands, got "+rt.String())
 		}
 		return BoolType
 	case token.In:
@@ -651,12 +650,12 @@ func (c *Checker) checkUnary(un *ast.UnaryExpr) Type {
 	switch un.Op {
 	case token.Not:
 		if xt != nil && xt != BoolType {
-			c.errAt(un.SrcSpan, "! requires bool operand, got "+xt.String())
+			c.errAt(un.SrcSpan, CodeNotOpNotBool, "! requires bool operand, got "+xt.String())
 		}
 		return BoolType
 	case token.Minus:
 		if xt != nil && xt != IntType {
-			c.errAt(un.SrcSpan, "unary minus requires int operand, got "+xt.String())
+			c.errAt(un.SrcSpan, CodeUnaryMinusNotInt, "unary minus requires int operand, got "+xt.String())
 		}
 		return IntType
 	}
@@ -669,7 +668,7 @@ func (c *Checker) checkUnary(un *ast.UnaryExpr) Type {
 func (c *Checker) checkIfExpr(ife *ast.IfExpr) Type {
 	ct := c.typeOf(ife.Cond)
 	if ct != nil && ct != BoolType {
-		c.errAt(ife.Cond.Span(), "if condition must be bool, got "+ct.String())
+		c.errAt(ife.Cond.Span(), CodeIfNotBool, "if condition must be bool, got "+ct.String())
 	}
 	tt := c.typeOf(ife.Then)
 	c.typeOf(ife.Else)
@@ -720,7 +719,7 @@ func (c *Checker) checkStringParts(lit *ast.StringLit) {
 
 func (c *Checker) selfType() Type {
 	if c.selfFields == nil {
-		c.errAt(token.Span{}, "self used outside of step body")
+		c.errAt(token.Span{}, CodeSelfOutsideStep, "self used outside of step body")
 		return nil
 	}
 	return &StructType{Name: "self", Fields: c.selfFields}

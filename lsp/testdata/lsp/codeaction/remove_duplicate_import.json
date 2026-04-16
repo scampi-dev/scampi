@@ -2,7 +2,7 @@
   "request": "codeaction",
   "expect": {
     "diagnostics": [
-      {"message": "duplicate import: posix", "line": 4}
+      {"code": "lang.DuplicateImport", "message": "duplicate import: posix", "line": 4}
     ],
     "titles_include": ["Remove duplicate import"]
   }

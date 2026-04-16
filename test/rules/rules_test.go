@@ -494,7 +494,8 @@ func isExcludedCall(name string) bool {
 	return strings.HasSuffix(name, ".UnpackArgs") ||
 		name == "UnpackArgs" ||
 		name == "unpackArgs" ||
-		name == "append"
+		name == "append" ||
+		strings.HasSuffix(name, ".errAt")
 }
 
 func checkCallArgs(

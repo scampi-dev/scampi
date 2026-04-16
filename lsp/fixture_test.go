@@ -85,6 +85,7 @@ type codeactionExpect struct {
 }
 
 type syntheticDiagnostic struct {
+	Code    string `json:"code,omitempty"`
 	Message string `json:"message"`
 	Line    uint32 `json:"line"`
 }
@@ -377,6 +378,7 @@ func runCodeActionFixture(
 					Start: protocol.Position{Line: sd.Line, Character: 0},
 					End:   protocol.Position{Line: sd.Line, Character: 0},
 				},
+				Code:    sd.Code,
 				Message: sd.Message,
 				Source:  "scampls",
 			})

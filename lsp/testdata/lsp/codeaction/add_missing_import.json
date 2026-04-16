@@ -2,7 +2,7 @@
   "request": "codeaction",
   "expect": {
     "diagnostics": [
-      {"message": "unknown type: ssh", "line": 4}
+      {"code": "lang.UnknownType", "message": "unknown type: ssh", "line": 4}
     ],
     "titles_include": ["Add import \"std/ssh\""]
   }

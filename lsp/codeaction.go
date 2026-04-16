@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"go.lsp.dev/protocol"
+
+	"scampi.dev/scampi/lang/check"
 )
 
 func (s *Server) codeAction(
@@ -30,20 +32,21 @@ func (s *Server) actionsForDiagnostic(
 	content string,
 	diag protocol.Diagnostic,
 ) []protocol.CodeAction {
+	code, _ := diag.Code.(string)
 	msg := diag.Message
 
-	switch {
-	case strings.HasPrefix(msg, "unknown module: "):
+	switch code {
+	case check.CodeUnknownModule:
 		return s.fixUnknownModule(docURI, content, diag)
-	case strings.HasPrefix(msg, "undefined: "):
+	case check.CodeUndefined:
 		name := strings.TrimPrefix(msg, "undefined: ")
 		return s.fixUndefinedAsImport(docURI, content, diag, name)
-	case strings.HasPrefix(msg, "unknown type: "):
+	case check.CodeUnknownType:
 		name := strings.TrimPrefix(msg, "unknown type: ")
 		return s.fixUndefinedAsImport(docURI, content, diag, name)
-	case strings.HasPrefix(msg, "duplicate import: "):
+	case check.CodeDuplicateImport:
 		return fixRemoveLine(docURI, content, diag, "Remove duplicate import")
-	case strings.HasPrefix(msg, "duplicate field: "):
+	case check.CodeDuplicateField:
 		return fixRemoveLine(docURI, content, diag, "Remove duplicate field")
 	}
 

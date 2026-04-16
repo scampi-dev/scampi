@@ -17,6 +17,7 @@ type langDiagData struct {
 // diagnostic.Diagnostic so the engine can render it properly.
 type langDiagnostic struct {
 	diagnostic.FatalError
+	code string
 	msg  string
 	hint string
 	src  *spec.SourceSpan
@@ -26,7 +27,7 @@ func (d *langDiagnostic) Error() string { return d.msg }
 
 func (d *langDiagnostic) EventTemplate() event.Template {
 	t := event.Template{
-		ID:     "lang.Error",
+		ID:     d.code,
 		Text:   "{{.Msg}}",
 		Source: d.src,
 		Data:   langDiagData{Msg: d.msg, Hint: d.hint},
@@ -79,7 +80,16 @@ func wrapLangError(err error, cfgPath string, source []byte) error {
 		hint = h.GetHint()
 	}
 
+	code := "lang.Error"
+	type coded interface {
+		GetCode() string
+	}
+	if ce, ok := err.(coded); ok && ce.GetCode() != "" {
+		code = ce.GetCode()
+	}
+
 	return &langDiagnostic{
+		code: code,
 		msg:  err.Error(),
 		hint: hint,
 		src:  span,

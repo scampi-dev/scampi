@@ -46,11 +46,13 @@ type Checker struct {
 
 // Error is a type-checker error.
 type Error struct {
+	Code string
 	Span token.Span
 	Msg  string
 }
 
 func (e Error) Error() string                { return e.Msg }
+func (e Error) GetCode() string              { return e.Code }
 func (e Error) GetSpan() (start, end uint32) { return e.Span.Start, e.Span.End }
 
 // New creates a checker with the given modules available for import
@@ -143,8 +145,8 @@ func (c *Checker) RegisterForwardDecls(f *ast.File) {
 	}
 }
 
-func (c *Checker) errAt(span token.Span, msg string) {
-	c.errs = append(c.errs, Error{Span: span, Msg: msg})
+func (c *Checker) errAt(span token.Span, code, msg string) {
+	c.errs = append(c.errs, Error{Code: code, Span: span, Msg: msg})
 }
 
 // enter is the pre-visit callback for ast.Walk.
@@ -179,7 +181,7 @@ func (c *Checker) enter(n ast.Node) bool {
 
 	case *ast.AssignStmt:
 		if !c.scope.AllowsMutation() {
-			c.errAt(n.SrcSpan, "mutation not allowed outside func bodies")
+			c.errAt(n.SrcSpan, CodeMutationOutside, "mutation not allowed outside func bodies")
 		}
 		c.typeOf(n.Target)
 		c.typeOf(n.Value)
@@ -193,10 +195,8 @@ func (c *Checker) enter(n ast.Node) bool {
 		if n.Value != nil {
 			vt := c.typeOf(n.Value)
 			if vt != nil && c.returnType != nil && !IsAssignableTo(vt, c.returnType) {
-				c.errAt(
-					n.SrcSpan,
-					"return type mismatch: got "+vt.String()+", want "+c.returnType.String(),
-				)
+				c.errAt(n.SrcSpan, CodeReturnTypeMismatch,
+					"return type mismatch: got "+vt.String()+", want "+c.returnType.String())
 			}
 		}
 		return false
@@ -233,7 +233,7 @@ func (c *Checker) enter(n ast.Node) bool {
 	case *ast.IfStmt:
 		ct := c.typeOf(n.Cond)
 		if ct != nil && ct != BoolType {
-			c.errAt(n.Cond.Span(), "if condition must be bool, got "+ct.String())
+			c.errAt(n.Cond.Span(), CodeIfNotBool, "if condition must be bool, got "+ct.String())
 		}
 		c.pushScope(ScopeBlock)
 		if n.Then != nil {
@@ -282,7 +282,7 @@ func (c *Checker) checkImport(imp *ast.ImportDecl) {
 		_, ok = c.modules[leaf]
 	}
 	if !ok {
-		c.errAt(imp.SrcSpan, "unknown module: "+imp.Path)
+		c.errAt(imp.SrcSpan, CodeUnknownModule, "unknown module: "+imp.Path)
 		return
 	}
 	if !c.scope.Define(&Symbol{
@@ -291,7 +291,7 @@ func (c *Checker) checkImport(imp *ast.ImportDecl) {
 		Kind: SymImport,
 		Span: imp.SrcSpan,
 	}) {
-		c.errAt(imp.SrcSpan, "duplicate import: "+leaf)
+		c.errAt(imp.SrcSpan, CodeDuplicateImport, "duplicate import: "+leaf)
 	}
 }
 
@@ -355,7 +355,7 @@ func (c *Checker) registerDecl(d ast.Decl) {
 		if !c.scope.Define(&Symbol{
 			Name: d.Name.Name, Kind: SymLet, Span: d.SrcSpan,
 		}) {
-			c.errAt(d.SrcSpan, "duplicate let binding: "+d.Name.Name)
+			c.errAt(d.SrcSpan, CodeDuplicateLet, "duplicate let binding: "+d.Name.Name)
 		}
 	}
 }
@@ -378,7 +378,7 @@ func (c *Checker) checkTypeDecl(d *ast.TypeDecl) {
 	for _, f := range d.Fields {
 		ft := c.resolveType(f.Type)
 		if ft == nil {
-			c.errAt(f.SrcSpan, "unknown type in field "+f.Name.Name)
+			c.errAt(f.SrcSpan, CodeUnknownFieldType, "unknown type in field "+f.Name.Name)
 			continue
 		}
 		c.checkFieldAttributes(f)
@@ -406,16 +406,14 @@ func (c *Checker) checkAttrTypeDecl(d *ast.AttrTypeDecl) {
 	for _, f := range d.Fields {
 		ft := c.resolveType(f.Type)
 		if ft == nil {
-			c.errAt(f.SrcSpan, "unknown type in attribute field "+f.Name.Name)
+			c.errAt(f.SrcSpan, CodeUnknownAttrField, "unknown type in attribute field "+f.Name.Name)
 			continue
 		}
 		// Attribute fields cannot themselves carry attributes —
 		// keeping the model finite. Diagnose if anyone tries it.
 		if len(f.Attributes) > 0 {
-			c.errAt(
-				f.Attributes[0].SrcSpan,
-				"attribute fields cannot themselves carry attributes",
-			)
+			c.errAt(f.Attributes[0].SrcSpan, CodeAttrFieldCarries,
+				"attribute fields cannot themselves carry attributes")
 		}
 		at.Fields = append(at.Fields, &FieldDef{
 			Name:   f.Name.Name,
@@ -435,7 +433,7 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 	// Stubs (no body) are allowed without a return type so builtin
 	// declarations and forward decls keep working.
 	if d.Body != nil && d.Ret == nil {
-		c.errAt(d.SrcSpan,
+		c.errAt(d.SrcSpan, CodeError,
 			"func "+d.Name.Name+" with a body requires a return type")
 	}
 	// A function with a declared return type and a body must
@@ -443,7 +441,7 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 	// silently produces None at runtime where the type system
 	// promised X — a soundness gap.
 	if d.Body != nil && d.Ret != nil && !blockHasReturn(d.Body) {
-		c.errAt(d.SrcSpan,
+		c.errAt(d.SrcSpan, CodeError,
 			"func "+d.Name.Name+
 				": declared return type but body has no return statement")
 	}
@@ -513,7 +511,7 @@ func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {
 	if d.Ret != nil {
 		ret = c.resolveType(d.Ret)
 	} else {
-		c.errAt(d.SrcSpan, "decl declaration requires a return type")
+		c.errAt(d.SrcSpan, CodeDeclMissingReturn, "decl declaration requires a return type")
 	}
 	for _, p := range d.Params {
 		c.checkFieldAttributes(p)
@@ -564,7 +562,8 @@ func (c *Checker) checkLetDecl(d *ast.LetDecl) {
 	inferred := c.typeOf(d.Value)
 	if declared != nil && inferred != nil {
 		if !IsAssignableTo(inferred, declared) {
-			c.errAt(d.SrcSpan, "let type mismatch: got "+inferred.String()+", want "+declared.String())
+			c.errAt(d.SrcSpan, CodeLetTypeMismatch,
+				"let type mismatch: got "+inferred.String()+", want "+declared.String())
 		}
 	}
 	resolved := inferred
@@ -620,14 +619,14 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 		if sym != nil && (sym.Kind == SymType || sym.Kind == SymEnum || sym.Kind == SymDecl) {
 			return sym.Type
 		}
-		c.errAt(t.SrcSpan, "unknown type: "+name)
+		c.errAt(t.SrcSpan, CodeUnknownType, "unknown type: "+name)
 		return nil
 	}
 	// Dotted name: resolve first part as module import, walk into it.
 	first := t.Name.Parts[0].Name
 	sym := c.scope.Lookup(first)
 	if sym == nil || sym.Kind != SymImport {
-		c.errAt(t.SrcSpan, "unknown type: "+first)
+		c.errAt(t.SrcSpan, CodeUnknownType, "unknown type: "+first)
 		return nil
 	}
 	return c.resolveModuleMember(first, t.Name.Parts[1:], t.SrcSpan)
@@ -651,7 +650,7 @@ func (c *Checker) resolveGenericType(t *ast.GenericType) Type {
 	switch t.Name.Name {
 	case "list":
 		if len(t.Args) != 1 {
-			c.errAt(t.SrcSpan, "list takes exactly 1 type argument")
+			c.errAt(t.SrcSpan, CodeGenericArgCount, "list takes exactly 1 type argument")
 			return nil
 		}
 		elem := c.resolveType(t.Args[0])
@@ -661,7 +660,7 @@ func (c *Checker) resolveGenericType(t *ast.GenericType) Type {
 		return &List{Elem: elem}
 	case "map":
 		if len(t.Args) != 2 {
-			c.errAt(t.SrcSpan, "map takes exactly 2 type arguments")
+			c.errAt(t.SrcSpan, CodeGenericArgCount, "map takes exactly 2 type arguments")
 			return nil
 		}
 		k := c.resolveType(t.Args[0])
@@ -672,7 +671,7 @@ func (c *Checker) resolveGenericType(t *ast.GenericType) Type {
 		return &Map{Key: k, Value: v}
 	case "block":
 		if len(t.Args) != 1 {
-			c.errAt(t.SrcSpan, "block takes exactly 1 type argument")
+			c.errAt(t.SrcSpan, CodeGenericArgCount, "block takes exactly 1 type argument")
 			return nil
 		}
 		inner := c.resolveType(t.Args[0])
@@ -681,6 +680,6 @@ func (c *Checker) resolveGenericType(t *ast.GenericType) Type {
 		}
 		return &BlockType{Inner: inner}
 	}
-	c.errAt(t.SrcSpan, "unknown generic type: "+t.Name.Name)
+	c.errAt(t.SrcSpan, CodeUnknownGenericType, "unknown generic type: "+t.Name.Name)
 	return nil
 }
