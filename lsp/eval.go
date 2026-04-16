@@ -203,7 +203,7 @@ func analysisErrorToLSPDiagnostics(err error, src []byte) []protocol.Diagnostic 
 	return []protocol.Diagnostic{{
 		Range:    protocol.Range{},
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   "scampls",
+		Source:   diagSourceLSP,
 		Message:  err.Error(),
 	}}
 }
@@ -250,7 +250,7 @@ func diagnosticToLSP(d diagnostic.Diagnostic, src []byte) protocol.Diagnostic {
 	return protocol.Diagnostic{
 		Range:    rng,
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   "scampls",
+		Source:   diagSourceLSP,
 		Code:     tmpl.ID,
 		Message:  msg,
 	}

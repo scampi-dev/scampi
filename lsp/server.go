@@ -39,6 +39,11 @@ type Server struct {
 // Version is set at build time via ldflags.
 var Version = "v0.0.0-dev"
 
+const (
+	diagSourceParser = "scampi"
+	diagSourceLSP    = "scampls"
+)
+
 // Option configures the LSP server.
 type Option func(*Server)
 
@@ -206,13 +211,61 @@ func (s *Server) diagnoseWorkspace(ctx context.Context) {
 	if s.rootDir == "" {
 		return
 	}
-	s.log.Printf("diagnosing workspace: %s", s.rootDir)
+
+	// Collect files first so we can report progress.
+	var files []string
 	_ = filepath.WalkDir(s.rootDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || filepath.Ext(path) != ".scampi" {
 			return nil
 		}
-		s.diagnoseFile(ctx, path)
+		files = append(files, path)
 		return nil
+	})
+
+	if len(files) == 0 {
+		return
+	}
+
+	s.log.Printf("diagnosing workspace: %s (%d files)", s.rootDir, len(files))
+
+	if s.client == nil {
+		for _, path := range files {
+			s.diagnoseFile(ctx, path)
+		}
+		return
+	}
+
+	token := protocol.NewProgressToken("workspace-scan")
+	_ = s.client.WorkDoneProgressCreate(ctx, &protocol.WorkDoneProgressCreateParams{
+		Token: *token,
+	})
+	_ = s.client.Progress(ctx, &protocol.ProgressParams{
+		Token: *token,
+		Value: protocol.WorkDoneProgressBegin{
+			Kind:    protocol.WorkDoneProgressKindBegin,
+			Title:   "Scanning workspace",
+			Message: fmt.Sprintf("0/%d files", len(files)),
+		},
+	})
+
+	for i, path := range files {
+		s.diagnoseFile(ctx, path)
+		_ = s.client.Progress(ctx, &protocol.ProgressParams{
+			Token: *token,
+			Value: protocol.WorkDoneProgressReport{
+				Kind:       protocol.WorkDoneProgressKindReport,
+				Message:    fmt.Sprintf("%d/%d files", i+1, len(files)),
+				Percentage: uint32(float64(i+1) / float64(len(files)) * 100),
+			},
+		})
+	}
+
+	_ = s.client.Progress(ctx, &protocol.ProgressParams{
+		Token: *token,
+		Value: protocol.WorkDoneProgressEnd{
+			Kind:    protocol.WorkDoneProgressKindEnd,
+			Message: fmt.Sprintf("Done — %d files", len(files)),
+		},
 	})
 }
 func (s *Server) Shutdown(context.Context) error {

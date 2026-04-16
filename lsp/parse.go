@@ -52,7 +52,7 @@ func spanDiag(src []byte, s token.Span, code, msg string) protocol.Diagnostic {
 			},
 		},
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   "scampi",
+		Source:   diagSourceParser,
 		Code:     code,
 		Message:  msg,
 	}

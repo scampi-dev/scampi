@@ -343,7 +343,7 @@ func captureStack() string {
 func errDiag(err error) []protocol.Diagnostic {
 	return []protocol.Diagnostic{{
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   "scampls",
+		Source:   diagSourceLSP,
 		Message:  err.Error(),
 	}}
 }

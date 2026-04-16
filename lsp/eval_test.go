@@ -154,3 +154,11 @@ func (c *recordingClient) PublishDiagnostics(_ context.Context, params *protocol
 	c.published[params.URI] = params.Diagnostics
 	return nil
 }
+
+func (c *recordingClient) WorkDoneProgressCreate(context.Context, *protocol.WorkDoneProgressCreateParams) error {
+	return nil
+}
+
+func (c *recordingClient) Progress(context.Context, *protocol.ProgressParams) error {
+	return nil
+}
