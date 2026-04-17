@@ -476,6 +476,38 @@ let s = posix.ServiceState.restarted // ← not a variant
 Check the enum definition for valid variants. The LSP offers completions
 after the dot.
 
+## lang.NotAllPathsReturn
+
+A function with a declared return type has at least one execution path that
+doesn't end with a `return` statement. The type system promises a value, but
+some paths would silently produce `None` at runtime.
+
+{{< err >}}
+module main
+type X { name: string }
+func b(flag: bool) X {
+  if flag {
+    return X { name = "hello" }
+  }
+  // ← flag == false falls through without returning
+}
+{{< /err >}}
+
+{{< fix >}}
+module main
+type X { name: string }
+func b(flag: bool) X {
+  if flag {
+    return X { name = "hello" }
+  } else {
+    return X { name = "default" }
+  }
+}
+{{< /fix >}}
+
+The checker requires every terminal position to be a `return expr`. For loops
+don't count as definitely returning — add an explicit return after the loop.
+
 ## lang.NotAModule
 
 A dotted access `x.member` was used where `x` resolves to a value, not a

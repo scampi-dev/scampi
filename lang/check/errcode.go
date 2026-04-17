@@ -54,6 +54,7 @@ const (
 	CodeMarkerAttrArgs     errs.Code = "lang.MarkerAttrArgs"
 	CodeAttrError          errs.Code = "lang.AttrError"
 	CodeAmbiguousUFCS      errs.Code = "lang.AmbiguousUFCS"
+	CodeNotAllPathsReturn  errs.Code = "lang.NotAllPathsReturn"
 	CodeError              errs.Code = "lang.Error"
 
 	// Eval-time codes — used by lang/eval for runtime errors that

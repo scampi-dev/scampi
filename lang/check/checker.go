@@ -449,14 +449,12 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 		c.errAt(d.SrcSpan, CodeError,
 			"func "+d.Name.Name+" with a body requires a return type")
 	}
-	// A function with a declared return type and a body must
-	// actually return something. Without this check, an empty body
-	// silently produces None at runtime where the type system
-	// promised X — a soundness gap.
-	if d.Body != nil && d.Ret != nil && !blockHasReturn(d.Body) {
-		c.errAt(d.SrcSpan, CodeError,
-			"func "+d.Name.Name+
-				": declared return type but body has no return statement")
+	// Every path through a function body must end with a return
+	// statement. Without this, some paths silently produce None at
+	// runtime where the type system promised X.
+	if d.Body != nil && d.Ret != nil && !definitelyReturns(d.Body) {
+		c.errAt(d.SrcSpan, CodeNotAllPathsReturn,
+			"func "+d.Name.Name+": not all paths return a value")
 	}
 	for _, p := range d.Params {
 		c.checkFieldAttributes(p)
@@ -493,30 +491,28 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 	}
 }
 
-// blockHasReturn reports whether b contains at least one
-// `return expr` statement (with a non-nil value), anywhere in
-// the body — including inside nested if/for/else blocks. Bare
-// `return` (Value == nil) does not count: a function declared to
-// return X must actually produce an X.
+// definitelyReturns reports whether every execution path through b
+// ends with a `return expr` statement. The analysis is conservative:
 //
-// This is intentionally simple — it does not verify that *every*
-// path returns. Tier 2 control-flow analysis is tracked separately.
-func blockHasReturn(b *ast.Block) bool {
-	if b == nil {
+//   - A block definitely returns if its last statement is `return expr`.
+//   - An if/else definitely returns if both branches definitely return.
+//   - Everything else (for loops, bare statements) does not count —
+//     require an explicit return after the loop.
+func definitelyReturns(b *ast.Block) bool {
+	if b == nil || len(b.Stmts) == 0 {
 		return false
 	}
-	found := false
-	ast.Walk(b, func(n ast.Node) bool {
-		if found {
+	last := b.Stmts[len(b.Stmts)-1]
+	switch s := last.(type) {
+	case *ast.ReturnStmt:
+		return s.Value != nil
+	case *ast.IfStmt:
+		if s.Else == nil {
 			return false
 		}
-		if r, ok := n.(*ast.ReturnStmt); ok && r.Value != nil {
-			found = true
-			return false
-		}
-		return true
-	}, nil)
-	return found
+		return definitelyReturns(s.Then) && definitelyReturns(s.Else)
+	}
+	return false
 }
 
 func (c *Checker) checkDeclDecl(d *ast.DeclDecl) {

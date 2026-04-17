@@ -892,3 +892,104 @@ type X {
 }
 `)
 }
+
+// Control-flow analysis — all paths must return
+// -----------------------------------------------------------------------------
+
+func TestNotAllPathsReturn_IfWithoutElse(t *testing.T) {
+	expectError(t, `
+module main
+type X { name: string }
+func b(flag: bool) X {
+  if flag {
+    return X { name = "hello" }
+  }
+}
+`, "not all paths return a value")
+}
+
+func TestAllPathsReturn_IfElse(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type X { name: string }
+func b(flag: bool) X {
+  if flag {
+    return X { name = "hello" }
+  } else {
+    return X { name = "world" }
+  }
+}
+`)
+}
+
+func TestAllPathsReturn_Simple(t *testing.T) {
+	expectNoErrors(t, `
+module main
+type X { name: string }
+func b() X {
+  return X { name = "hello" }
+}
+`)
+}
+
+func TestNotAllPathsReturn_EmptyBody(t *testing.T) {
+	expectError(t, `
+module main
+func f() int {
+}
+`, "not all paths return a value")
+}
+
+func TestNotAllPathsReturn_NestedIfMissingElse(t *testing.T) {
+	expectError(t, `
+module main
+func f(a: bool, b: bool) int {
+  if a {
+    if b {
+      return 1
+    } else {
+      return 2
+    }
+  }
+}
+`, "not all paths return a value")
+}
+
+func TestAllPathsReturn_NestedIfElse(t *testing.T) {
+	expectNoErrors(t, `
+module main
+func f(a: bool, b: bool) int {
+  if a {
+    if b {
+      return 1
+    } else {
+      return 2
+    }
+  } else {
+    return 3
+  }
+}
+`)
+}
+
+func TestNotAllPathsReturn_ForDoesNotCount(t *testing.T) {
+	expectError(t, `
+module main
+func f(xs: list[int]) int {
+  for x in xs {
+    return x
+  }
+}
+`, "not all paths return a value")
+}
+
+func TestAllPathsReturn_ReturnAfterFor(t *testing.T) {
+	expectNoErrors(t, `
+module main
+func f(xs: list[int]) int {
+  for x in xs {
+  }
+  return 0
+}
+`)
+}
