@@ -56,7 +56,7 @@ func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
 			if errs := c.Errors(); len(errs) > 0 {
 				continue
 			}
-			modules[file.Module.Name.Name] = c.FileScope()
+			modules[file.Module.Name.Name] = c.FileScope().PublicView()
 			delete(pending, path)
 			progressed = true
 		}

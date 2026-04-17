@@ -4,7 +4,7 @@ module ssh
 
 import "std"
 
-decl target(
+pub decl target(
   name:     string
   host:     string
   user:     string

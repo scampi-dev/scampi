@@ -69,38 +69,79 @@ func (p *Parser) parseImport() *ast.ImportDecl {
 // branch is checked explicitly and converted to a true nil
 // interface on parse failure.
 func (p *Parser) parseDecl() ast.Decl {
+	pub := false
+	if p.cur.Kind == token.Pub {
+		pub = true
+		p.advance()
+		if !isDeclKeyword(p.cur.Kind) {
+			p.errAt(
+				token.Span{Start: p.cur.Pos, End: p.cur.End},
+				CodeUnexpectedPub,
+				"pub must be followed by let, func, decl, type, or enum",
+			)
+			return nil
+		}
+	}
+
+	var d ast.Decl
 	switch p.cur.Kind {
 	case token.Type:
-		return p.parseTypeDecl()
+		d = p.parseTypeDecl()
 	case token.Enum:
-		if d := p.parseEnumDecl(); d != nil {
-			return d
+		if v := p.parseEnumDecl(); v != nil {
+			d = v
 		}
-		return nil
 	case token.Func:
-		if d := p.parseFuncDecl(); d != nil {
-			return d
+		if v := p.parseFuncDecl(); v != nil {
+			d = v
 		}
-		return nil
 	case token.Decl:
-		if d := p.parseDeclDecl(); d != nil {
-			return d
+		if v := p.parseDeclDecl(); v != nil {
+			d = v
 		}
-		return nil
 	case token.Let:
-		if d := p.parseLetDecl(); d != nil {
-			return d
+		if v := p.parseLetDecl(); v != nil {
+			d = v
 		}
+	default:
+		p.errAt(
+			token.Span{Start: p.cur.Pos, End: p.cur.End},
+			CodeUnexpectedToken,
+			"unexpected token: "+p.cur.Kind.String(),
+		)
+		p.advance()
 		return nil
 	}
-	// Should not reach here given isDeclStart check.
-	p.errAt(
-		token.Span{Start: p.cur.Pos, End: p.cur.End},
-		CodeUnexpectedToken,
-		"unexpected token: "+p.cur.Kind.String(),
-	)
-	p.advance()
-	return nil
+
+	if d != nil && pub {
+		setPublic(d)
+	}
+	return d
+}
+
+// isDeclKeyword reports whether a token kind is a declaration keyword
+// (excluding pub itself).
+func isDeclKeyword(k token.Kind) bool {
+	switch k {
+	case token.Type, token.Enum, token.Func, token.Decl, token.Let:
+		return true
+	}
+	return false
+}
+
+func setPublic(d ast.Decl) {
+	switch d := d.(type) {
+	case *ast.TypeDecl:
+		d.Public = true
+	case *ast.EnumDecl:
+		d.Public = true
+	case *ast.FuncDecl:
+		d.Public = true
+	case *ast.DeclDecl:
+		d.Public = true
+	case *ast.LetDecl:
+		d.Public = true
+	}
 }
 
 // parseTypeDecl:

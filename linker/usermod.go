@@ -88,8 +88,9 @@ func LoadUserModulesFromMod(m *mod.Module, modules map[string]*check.Scope) []ev
 		if um == nil {
 			continue
 		}
-		modules[um.Name] = um.scope
-		modules[dep.Path] = um.scope
+		pub := um.scope.PublicView()
+		modules[um.Name] = pub
+		modules[dep.Path] = pub
 		userMods = append(userMods, um.UserModule)
 	}
 	return userMods

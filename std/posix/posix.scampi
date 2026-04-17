@@ -7,36 +7,36 @@ import "std"
 // Opaque types
 // -----------------------------------------------------------------------------
 
-type Source
-type PkgSource
+pub type Source
+pub type PkgSource
 
 // Enums
 // -----------------------------------------------------------------------------
 
-enum PkgState { present, absent, latest }
-enum ServiceState { running, stopped, restarted, reloaded }
-enum UserState { present, absent }
-enum GroupState { present, absent }
-enum MountType { nfs, nfs4, cifs, ext4, xfs, btrfs, tmpfs, glusterfs, ceph }
-enum MountState { mounted, unmounted, absent }
-enum FirewallAction { allow, deny, reject }
-enum FirewallProto { tcp, udp }
+pub enum PkgState { present, absent, latest }
+pub enum ServiceState { running, stopped, restarted, reloaded }
+pub enum UserState { present, absent }
+pub enum GroupState { present, absent }
+pub enum MountType { nfs, nfs4, cifs, ext4, xfs, btrfs, tmpfs, glusterfs, ceph }
+pub enum MountState { mounted, unmounted, absent }
+pub enum FirewallAction { allow, deny, reject }
+pub enum FirewallProto { tcp, udp }
 
 // Source composables
 // -----------------------------------------------------------------------------
 
-decl source_local(path: string) Source
-decl source_inline(content: string) Source
-decl source_remote(url: string, checksum: string?) Source
+pub decl source_local(path: string) Source
+pub decl source_inline(content: string) Source
+pub decl source_remote(url: string, checksum: string?) Source
 
-decl pkg_system() PkgSource
-decl pkg_apt_repo(
+pub decl pkg_system() PkgSource
+pub decl pkg_apt_repo(
   url:        string
   key_url:    string
   components: list[string]?
   suite:      string?
 ) PkgSource
-decl pkg_dnf_repo(
+pub decl pkg_dnf_repo(
   url:     string
   key_url: string?
 ) PkgSource
@@ -44,7 +44,7 @@ decl pkg_dnf_repo(
 // File operations
 // -----------------------------------------------------------------------------
 
-decl copy(
+pub decl copy(
   src:       Source
   @std.path(absolute=true)
   dest:      string
@@ -60,7 +60,7 @@ decl copy(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl dir(
+pub decl dir(
   @std.path(absolute=true)
   path:      string
   @std.filemode
@@ -71,7 +71,7 @@ decl dir(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl symlink(
+pub decl symlink(
   @std.path(absolute=true)
   target:    string
   @std.path(absolute=true)
@@ -80,7 +80,7 @@ decl symlink(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl template(
+pub decl template(
   src:       Source
   @std.path(absolute=true)
   dest:      string
@@ -97,7 +97,7 @@ decl template(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl unarchive(
+pub decl unarchive(
   src:       Source
   @std.path(absolute=true)
   dest:      string
@@ -113,7 +113,7 @@ decl unarchive(
 // Package management
 // -----------------------------------------------------------------------------
 
-decl pkg(
+pub decl pkg(
   @std.nonempty
   packages:  list[string]
   source:    PkgSource
@@ -130,7 +130,7 @@ decl pkg(
 // Service management
 // -----------------------------------------------------------------------------
 
-decl service(
+pub decl service(
   @std.nonempty
   name:      string
   state:     ServiceState = ServiceState.running
@@ -142,7 +142,7 @@ decl service(
 // User and group management
 // -----------------------------------------------------------------------------
 
-decl user(
+pub decl user(
   @std.nonempty
   name:      string
   state:     UserState = UserState.present
@@ -155,7 +155,7 @@ decl user(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl group(
+pub decl group(
   @std.nonempty
   name:      string
   state:     GroupState = GroupState.present
@@ -168,7 +168,7 @@ decl group(
 // System configuration
 // -----------------------------------------------------------------------------
 
-decl sysctl(
+pub decl sysctl(
   @std.nonempty
   key:       string
   @std.nonempty
@@ -178,7 +178,7 @@ decl sysctl(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl mount(
+pub decl mount(
   @std.nonempty
   src:       string
   @std.path(absolute=true)
@@ -190,7 +190,7 @@ decl mount(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl firewall(
+pub decl firewall(
   @std.min(value=1)
   @std.max(value=65535)
   port:      int
@@ -206,7 +206,7 @@ decl firewall(
 // Command execution
 // -----------------------------------------------------------------------------
 
-decl run(
+pub decl run(
   @std.nonempty
   apply:     string
   check:     string?

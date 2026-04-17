@@ -44,6 +44,7 @@ const (
 	False
 	None
 	Self
+	Pub
 
 	// Operators
 	Plus     // +
@@ -128,6 +129,7 @@ var Keywords = map[string]Kind{
 	"false":  False,
 	"none":   None,
 	"self":   Self,
+	"pub":    Pub,
 }
 
 // Lookup returns the keyword kind for s, or Ident if s is not a keyword.

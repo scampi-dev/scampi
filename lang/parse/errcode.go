@@ -21,6 +21,7 @@ const (
 	CodeNotAssignable      errs.Code = "parse.NotAssignable"
 	CodeGenericOnDotted    errs.Code = "parse.GenericOnDotted"
 	CodeUnterminatedInterp errs.Code = "parse.UnterminatedInterp"
+	CodeUnexpectedPub      errs.Code = "parse.UnexpectedPub"
 )
 
 // Expected-token parse errors — grouped by expected token, not by

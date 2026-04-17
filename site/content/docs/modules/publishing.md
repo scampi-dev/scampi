@@ -122,8 +122,16 @@ This clones the latest commit on `main`. Use tags for production.
 ## Entry point conventions
 
 - Use `_index.scampi` for the main entry point
-- Export public declarations and functions at the top level
-- Keep internal helpers in separate files, imported relatively
+- Mark exported declarations with `pub` — everything else is module-private
+- Keep internal helpers in separate files without `pub`
+
+```scampi
+module npm
+
+pub decl proxy_host(...) std.Step { ... }  // visible to importers
+pub decl certificate(...) std.Step { ... } // visible to importers
+func internal_helper() string { ... }      // module-private
+```
 
 ## Dependencies
 

@@ -209,6 +209,9 @@ func (ev *Evaluator) registerUserModules() {
 		for _, d := range um.File.Decls {
 			switch d := d.(type) {
 			case *ast.FuncDecl:
+				if !d.Public {
+					continue
+				}
 				retName := ""
 				if d.Ret != nil {
 					if _, isGeneric := d.Ret.(*ast.GenericType); isGeneric {
@@ -237,6 +240,9 @@ func (ev *Evaluator) registerUserModules() {
 				}
 				modMap.Set(d.Name.Name, fv)
 			case *ast.DeclDecl:
+				if !d.Public {
+					continue
+				}
 				declName := d.Name.Parts[0].Name
 				retName := ""
 				if d.Ret != nil {
@@ -262,6 +268,9 @@ func (ev *Evaluator) registerUserModules() {
 				}
 				modMap.Set(declName, fv)
 			case *ast.EnumDecl:
+				if !d.Public {
+					continue
+				}
 				variantMap := &MapVal{}
 				for _, v := range d.Variants {
 					variantMap.Set(v.Name, &StringVal{V: v.Name})

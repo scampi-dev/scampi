@@ -24,12 +24,12 @@ import "std/test/matchers"
 
 // Response is a canned HTTP response replayed by rest_mock when a
 // matching request comes in.
-type Response
+pub type Response
 
 // RequestMatcher is a request shape declaration consumed by
 // rest_mock's verification phase. Each one matches zero or more
 // recorded requests by method/path/body/headers/cardinality.
-type RequestMatcher
+pub type RequestMatcher
 
 // Initial / expected state shapes
 // -----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ type RequestMatcher
 // same source composables real configs use — files take a
 // posix.Source, services take posix.ServiceState, etc. There's no
 // test-only language for "how to provide content".
-type InitialState {
+pub type InitialState {
   files:    map[string, posix.Source]?
   packages: list[string]?
   services: map[string, posix.ServiceState]?
@@ -51,7 +51,7 @@ type InitialState {
 // at the end of apply. Files NOT listed in `expect.files` are
 // unconstrained; absences are stated explicitly via
 // `matchers.is_absent()`.
-type ExpectedState {
+pub type ExpectedState {
   files:    map[string, matchers.Matcher]?
   packages: map[string, matchers.Matcher]?
   services: map[string, matchers.Matcher]?
@@ -74,7 +74,7 @@ type ExpectedState {
 // `initial` is optional — omit it for tests that start from blank
 // state. `expect` is optional — omit it for smoke tests that only
 // verify the deploy applies cleanly.
-func target_in_memory(
+pub func target_in_memory(
   name:    string
   initial: InitialState?
   expect:  ExpectedState?
@@ -87,7 +87,7 @@ func target_in_memory(
 // Route keys are "METHOD /path" strings, e.g. "POST /v1/sites".
 // `expect_requests` is a list of test.request(...) values; order
 // doesn't matter, cardinality defaults to "at least once".
-func target_rest_mock(
+pub func target_rest_mock(
   name:            string
   base_url:        string
   routes:          map[string, Response]
@@ -100,7 +100,7 @@ func target_rest_mock(
 // Build a canned HTTP response for use in `routes`. `body` is sent
 // verbatim; `headers` are merged with sensible defaults
 // (Content-Type defaults to "application/json" if not set).
-func response(
+pub func response(
   status:  int
   body:    string?
   headers: map[string, string]?
@@ -113,7 +113,7 @@ func response(
 //   - count = N         exactly N matching requests
 //   - count_at_least = N at least N matching requests (default 1)
 // Set neither for the default (at least one match).
-func request(
+pub func request(
   method:         string
   path:           string
   body:           matchers.Matcher?

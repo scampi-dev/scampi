@@ -3,22 +3,22 @@
 module builtin
 
 // A sequence of characters.
-type string
+pub type string
 
 // A signed integer.
-type int
+pub type int
 
 // A truth value: true or false.
-type bool
+pub type bool
 
 // Any type. Accepts all values.
-type any
+pub type any
 
 // An ordered, homogeneous collection.
-type list
+pub type list
 
 // A collection of key-value pairs.
-type map
+pub type map
 
 // A nested scope that produces steps or declarations.
-type block
+pub type block

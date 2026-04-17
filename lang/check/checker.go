@@ -316,6 +316,10 @@ func importLeaf(path string) string {
 // -----------------------------------------------------------------------------
 
 func (c *Checker) registerDecl(d ast.Decl) {
+	// In module main, everything is implicitly public — there are
+	// no importers to hide from.
+	isMain := c.modName == "main"
+
 	switch d := d.(type) {
 	case *ast.TypeDecl:
 		var t Type
@@ -325,13 +329,14 @@ func (c *Checker) registerDecl(d ast.Decl) {
 			t = &StructType{Name: d.Name.Name}
 		}
 		c.scope.Define(&Symbol{
-			Name: d.Name.Name, Type: t, Kind: SymType, Span: d.SrcSpan,
+			Name: d.Name.Name, Type: t, Kind: SymType,
+			IsPublic: d.Public || isMain, Span: d.SrcSpan,
 		})
 	case *ast.AttrTypeDecl:
 		c.scope.Define(&Symbol{
 			Name: "@" + d.Name.Name,
 			Type: &AttrType{Name: d.Name.Name, Doc: d.Doc},
-			Kind: SymAttrType,
+			Kind: SymAttrType, IsPublic: true,
 			Span: d.SrcSpan,
 		})
 	case *ast.EnumDecl:
@@ -342,19 +347,22 @@ func (c *Checker) registerDecl(d ast.Decl) {
 		c.scope.Define(&Symbol{
 			Name: d.Name.Name,
 			Type: &EnumType{Name: d.Name.Name, Variants: variants},
-			Kind: SymEnum, Span: d.SrcSpan,
+			Kind: SymEnum, IsPublic: d.Public || isMain, Span: d.SrcSpan,
 		})
 	case *ast.FuncDecl:
 		c.scope.Define(&Symbol{
-			Name: d.Name.Name, Kind: SymFunc, Span: d.SrcSpan,
+			Name: d.Name.Name, Kind: SymFunc,
+			IsPublic: d.Public || isMain, Span: d.SrcSpan,
 		})
 	case *ast.DeclDecl:
 		c.scope.Define(&Symbol{
-			Name: d.Name.Parts[0].Name, Kind: SymDecl, Span: d.SrcSpan,
+			Name: d.Name.Parts[0].Name, Kind: SymDecl,
+			IsPublic: d.Public || isMain, Span: d.SrcSpan,
 		})
 	case *ast.LetDecl:
 		if !c.scope.Define(&Symbol{
-			Name: d.Name.Name, Kind: SymLet, Span: d.SrcSpan,
+			Name: d.Name.Name, Kind: SymLet,
+			IsPublic: d.Public || isMain, Span: d.SrcSpan,
 		}) {
 			c.errAt(d.SrcSpan, CodeDuplicateLet, "duplicate let binding: "+d.Name.Name)
 		}

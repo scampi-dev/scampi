@@ -7,15 +7,15 @@ import "std"
 // Composable types
 // -----------------------------------------------------------------------------
 
-type Auth
-type TLS
-type Body
-type Check
+pub type Auth
+pub type TLS
+pub type Body
+pub type Check
 
 // Target
 // -----------------------------------------------------------------------------
 
-decl target(
+pub decl target(
   name:     string
   base_url: string
   auth:     Auth?
@@ -25,38 +25,38 @@ decl target(
 // Auth composables
 // -----------------------------------------------------------------------------
 
-decl no_auth() Auth
-decl basic(user: string, password: string) Auth
-decl bearer(
+pub decl no_auth() Auth
+pub decl basic(user: string, password: string) Auth
+pub decl bearer(
   token_endpoint: string
   identity:       string
   secret:         string
 ) Auth
-decl header(name: string, value: string) Auth
+pub decl header(name: string, value: string) Auth
 
 // TLS composables
 // -----------------------------------------------------------------------------
 
-decl tls_secure() TLS
-decl tls_insecure() TLS
-decl tls_ca_cert(path: string) TLS
+pub decl tls_secure() TLS
+pub decl tls_insecure() TLS
+pub decl tls_ca_cert(path: string) TLS
 
 // Body composables
 // -----------------------------------------------------------------------------
 
-decl body_json(data: any) Body
-decl body_string(content: string) Body
+pub decl body_json(data: any) Body
+pub decl body_string(content: string) Body
 
 // Check composables
 // -----------------------------------------------------------------------------
 
-decl status(code: int) Check
-decl jq(expr: string) Check
+pub decl status(code: int) Check
+pub decl jq(expr: string) Check
 
 // Steps
 // -----------------------------------------------------------------------------
 
-decl request(
+pub decl request(
   method:    string
   path:      string
   headers:   map[string, string]?
@@ -66,7 +66,7 @@ decl request(
   on_change: list[std.Step] = []
 ) std.Step
 
-decl resource(
+pub decl resource(
   query:     std.Step?
   missing:   std.Step?
   found:     std.Step?

@@ -18,7 +18,7 @@ import "std/posix"
 // See docs/test-framework.md for the design rationale.
 
 // Opaque matcher type. The runner knows how to evaluate it.
-type Matcher
+pub type Matcher
 
 // String-content matchers
 // -----------------------------------------------------------------------------
@@ -27,18 +27,18 @@ type Matcher
 // file contents, request body, header value.
 
 // Observed content must equal `content` byte-for-byte.
-func has_exact_content(content: string) Matcher
+pub func has_exact_content(content: string) Matcher
 
 // Observed content must contain `substring` as a substring.
-func has_substring(substring: string) Matcher
+pub func has_substring(substring: string) Matcher
 
 // Observed content must match `pattern` as a Go regular expression.
-func matches_regex(pattern: string) Matcher
+pub func matches_regex(pattern: string) Matcher
 
 // Observed content must be the empty string. Distinct from
 // `is_absent()` — `is_empty()` requires the slot to exist with
 // zero-length content.
-func is_empty() Matcher
+pub func is_empty() Matcher
 
 // Existence matchers
 // -----------------------------------------------------------------------------
@@ -46,10 +46,10 @@ func is_empty() Matcher
 // Work in any keyed slot — files, packages, services, dirs, symlinks.
 
 // Slot must be present (any content / any state).
-func is_present() Matcher
+pub func is_present() Matcher
 
 // Slot must NOT be present at the end of the deploy.
-func is_absent() Matcher
+pub func is_absent() Matcher
 
 // Status matchers
 // -----------------------------------------------------------------------------
@@ -59,8 +59,8 @@ func is_absent() Matcher
 
 // Service status check. Use the existing posix.ServiceState values:
 // running, stopped, restarted, ...
-func has_svc_status(status: posix.ServiceState) Matcher
+pub func has_svc_status(status: posix.ServiceState) Matcher
 
 // Package status check. Use the existing posix.PkgState values:
 // present, absent, latest.
-func has_pkg_status(status: posix.PkgState) Matcher
+pub func has_pkg_status(status: posix.PkgState) Matcher

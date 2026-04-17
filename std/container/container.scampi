@@ -7,7 +7,7 @@ import "std"
 // Types
 // -----------------------------------------------------------------------------
 
-type Healthcheck {
+pub type Healthcheck {
   cmd:      string
   interval: string?
   timeout:  string?
@@ -17,13 +17,13 @@ type Healthcheck {
 // Enums
 // -----------------------------------------------------------------------------
 
-enum State { running, stopped, absent }
-enum Restart { always, on_failure, unless_stopped, no }
+pub enum State { running, stopped, absent }
+pub enum Restart { always, on_failure, unless_stopped, no }
 
 // Steps
 // -----------------------------------------------------------------------------
 
-decl instance(
+pub decl instance(
   name:        string
   image:       string = ""
   state:       State = State.running

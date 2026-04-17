@@ -65,6 +65,7 @@ func (*ImportDecl) declNode()          {}
 type TypeDecl struct {
 	Name    *Ident
 	Fields  []*Field // nil for opaque types
+	Public  bool
 	SrcSpan token.Span
 }
 
@@ -102,6 +103,7 @@ func (*AttrTypeDecl) declNode()          {}
 type EnumDecl struct {
 	Name     *Ident
 	Variants []*Ident
+	Public   bool
 	SrcSpan  token.Span
 }
 
@@ -115,6 +117,7 @@ type FuncDecl struct {
 	Params  []*Field
 	Ret     TypeExpr // nil for void (not allowed in v0)
 	Body    *Block
+	Public  bool
 	SrcSpan token.Span
 }
 
@@ -129,6 +132,7 @@ type DeclDecl struct {
 	Params  []*Field
 	Ret     TypeExpr // nil means defaults to Step
 	Body    *Block   // nil for stubs (builtins with no implementation)
+	Public  bool
 	SrcSpan token.Span
 }
 
@@ -141,6 +145,7 @@ type LetDecl struct {
 	Name    *Ident
 	Type    TypeExpr // optional type annotation
 	Value   Expr
+	Public  bool
 	SrcSpan token.Span
 }
 

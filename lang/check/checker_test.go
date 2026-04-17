@@ -993,3 +993,255 @@ func f(xs: list[int]) int {
 }
 `)
 }
+
+// Pub visibility
+// -----------------------------------------------------------------------------
+
+func TestPubLetParsesClean(t *testing.T) {
+	expectNoErrors(t, `
+module main
+pub let x = 42
+`)
+}
+
+func TestPubFuncParsesClean(t *testing.T) {
+	expectNoErrors(t, `
+module main
+pub func f() int {
+  return 1
+}
+`)
+}
+
+func TestPubTypeParsesClean(t *testing.T) {
+	expectNoErrors(t, `
+module main
+pub type Config {
+  name: string
+}
+`)
+}
+
+func TestPubEnumParsesClean(t *testing.T) {
+	expectNoErrors(t, `
+module main
+pub enum State { on, off }
+`)
+}
+
+func TestPubOnNonDecl(t *testing.T) {
+	l := lex.New("test.scampi", []byte("module main\npub 42\n"))
+	p := parse.New(l)
+	_ = p.Parse()
+	errs := p.Errors()
+	if len(errs) == 0 {
+		t.Fatal("expected parse error for pub on non-declaration")
+	}
+	found := false
+	for _, e := range errs {
+		if contains(e.Msg, "pub must be followed by") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected 'pub must be followed by' error, got: %v", errs)
+	}
+}
+
+func TestPubSetsPublicOnAST(t *testing.T) {
+	l := lex.New("test.scampi", []byte(`
+module main
+pub let x = 1
+let y = 2
+pub func f() int { return 1 }
+func g() int { return 2 }
+pub type T { name: string }
+type U { name: string }
+pub enum E { a, b }
+enum F { c, d }
+`))
+	p := parse.New(l)
+	f := p.Parse()
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+
+	checks := []struct {
+		name   string
+		public bool
+	}{
+		{"x", true}, {"y", false},
+		{"f", true}, {"g", false},
+		{"T", true}, {"U", false},
+		{"E", true}, {"F", false},
+	}
+
+	declIdx := 0
+	for _, d := range f.Decls {
+		var name string
+		var public bool
+		switch d := d.(type) {
+		case *ast.LetDecl:
+			name, public = d.Name.Name, d.Public
+		case *ast.FuncDecl:
+			name, public = d.Name.Name, d.Public
+		case *ast.TypeDecl:
+			name, public = d.Name.Name, d.Public
+		case *ast.EnumDecl:
+			name, public = d.Name.Name, d.Public
+		default:
+			continue
+		}
+		if declIdx >= len(checks) {
+			break
+		}
+		exp := checks[declIdx]
+		if name != exp.name {
+			t.Errorf("[%d] expected name %q, got %q", declIdx, exp.name, name)
+		}
+		if public != exp.public {
+			t.Errorf("[%d] %s: expected Public=%v, got %v", declIdx, name, exp.public, public)
+		}
+		declIdx++
+	}
+}
+
+func TestPublicView_FiltersPrivateSymbols(t *testing.T) {
+	s := NewScope(nil, ScopeFile)
+	s.Define(&Symbol{Name: "exported", Kind: SymFunc, IsPublic: true})
+	s.Define(&Symbol{Name: "private", Kind: SymFunc, IsPublic: false})
+	s.Define(&Symbol{Name: "also_pub", Kind: SymLet, IsPublic: true})
+
+	pub := s.PublicView()
+
+	if pub.Lookup("exported") == nil {
+		t.Error("exported symbol should be visible in PublicView")
+	}
+	if pub.Lookup("also_pub") == nil {
+		t.Error("also_pub symbol should be visible in PublicView")
+	}
+	if pub.Lookup("private") != nil {
+		t.Error("private symbol should NOT be visible in PublicView")
+	}
+	if len(pub.Symbols()) != 2 {
+		t.Errorf("expected 2 public symbols, got %d", len(pub.Symbols()))
+	}
+}
+
+func TestPubVisibility_PrivateFuncNotAccessible(t *testing.T) {
+	// Build a module "helpers" with one pub func and one private func.
+	modSrc := `
+module helpers
+pub func visible() int { return 1 }
+func hidden() int { return 2 }
+`
+	ml := lex.New("helpers.scampi", []byte(modSrc))
+	mp := parse.New(ml)
+	mf := mp.Parse()
+	if errs := mp.Errors(); len(errs) > 0 {
+		t.Fatalf("module parse errors: %v", errs)
+	}
+
+	modules, err := BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+
+	// Check the module to get its scope.
+	mc := New(modules)
+	mc.Check(mf)
+	if errs := mc.Errors(); len(errs) > 0 {
+		t.Fatalf("module check errors: %v", errs)
+	}
+
+	// Export only public symbols — simulates what linker/usermod does.
+	modules["helpers"] = mc.FileScope().PublicView()
+
+	// Now check a consumer file that imports "helpers".
+	consumerSrc := `
+module main
+import "helpers"
+let a = helpers.visible()
+`
+	cc := New(modules)
+	cf := parseFile(t, consumerSrc)
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("expected no errors accessing pub func, got: %v", errs)
+	}
+
+	// Accessing the private func should fail.
+	consumerSrc2 := `
+module main
+import "helpers"
+let b = helpers.hidden()
+`
+	cc2 := New(modules)
+	cf2 := parseFile(t, consumerSrc2)
+	cc2.Check(cf2)
+	errs2 := cc2.Errors()
+	if len(errs2) == 0 {
+		t.Fatal("expected error accessing private func, got none")
+	}
+}
+
+func TestPubVisibility_PubFuncReturningPrivateType(t *testing.T) {
+	modSrc := `
+module helpers
+type Internal { name: string }
+pub func make() Internal { return Internal { name = "ok" } }
+`
+	modules, err := BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+
+	mc := New(modules)
+	mf := parseFile(t, modSrc)
+	mc.Check(mf)
+	if errs := mc.Errors(); len(errs) > 0 {
+		t.Fatalf("module check errors: %v", errs)
+	}
+	modules["helpers"] = mc.FileScope().PublicView()
+
+	// Calling the pub func that returns a private type should work.
+	consumerSrc := `
+module main
+import "helpers"
+let x = helpers.make()
+`
+	cc := New(modules)
+	cf := parseFile(t, consumerSrc)
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("expected no errors calling pub func returning private type, got: %v", errs)
+	}
+
+	// But constructing the private type directly should fail.
+	consumerSrc2 := `
+module main
+import "helpers"
+let x = helpers.Internal { name = "nope" }
+`
+	cc2 := New(modules)
+	cf2 := parseFile(t, consumerSrc2)
+	cc2.Check(cf2)
+	if errs := cc2.Errors(); len(errs) == 0 {
+		t.Fatal("expected error constructing private type directly, got none")
+	}
+}
+
+func parseFile(t *testing.T, src string) *ast.File {
+	t.Helper()
+	l := lex.New("test.scampi", []byte(src))
+	p := parse.New(l)
+	f := p.Parse()
+	if errs := l.Errors(); len(errs) > 0 {
+		t.Fatalf("lex errors: %v", errs)
+	}
+	if errs := p.Errors(); len(errs) > 0 {
+		t.Fatalf("parse errors: %v", errs)
+	}
+	return f
+}

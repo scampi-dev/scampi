@@ -194,8 +194,15 @@ func (p *printer) decl(d ast.Decl) {
 	}
 }
 
+func (p *printer) pubPrefix(public bool) {
+	if public {
+		p.write("pub ")
+	}
+}
+
 func (p *printer) letDecl(d *ast.LetDecl) {
 	p.writeIndent()
+	p.pubPrefix(d.Public)
 	p.write("let " + d.Name.Name + " = ")
 	p.expr(d.Value)
 	p.newline()
@@ -203,6 +210,7 @@ func (p *printer) letDecl(d *ast.LetDecl) {
 
 func (p *printer) funcDecl(d *ast.FuncDecl) {
 	p.writeIndent()
+	p.pubPrefix(d.Public)
 	p.write("func " + d.Name.Name + "(")
 	p.fieldList(d.Params, d.SrcSpan)
 	p.write(")")
@@ -219,6 +227,7 @@ func (p *printer) funcDecl(d *ast.FuncDecl) {
 
 func (p *printer) declDecl(d *ast.DeclDecl) {
 	p.writeIndent()
+	p.pubPrefix(d.Public)
 	p.write("decl ")
 	p.dottedName(d.Name)
 	p.write("(")
@@ -237,6 +246,7 @@ func (p *printer) declDecl(d *ast.DeclDecl) {
 
 func (p *printer) typeDecl(d *ast.TypeDecl) {
 	p.writeIndent()
+	p.pubPrefix(d.Public)
 	if d.Fields == nil {
 		p.write("type " + d.Name.Name)
 		p.newline()
@@ -256,6 +266,7 @@ func (p *printer) typeDecl(d *ast.TypeDecl) {
 
 func (p *printer) enumDecl(d *ast.EnumDecl) {
 	p.writeIndent()
+	p.pubPrefix(d.Public)
 	p.write("enum " + d.Name.Name + " { ")
 	for i, v := range d.Variants {
 		if i > 0 {

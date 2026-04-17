@@ -4,4 +4,4 @@ module local
 
 import "std"
 
-decl target(name: string) std.Target
+pub decl target(name: string) std.Target

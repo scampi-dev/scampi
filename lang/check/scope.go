@@ -24,10 +24,11 @@ const (
 
 // Symbol is a named binding in a scope.
 type Symbol struct {
-	Name string
-	Type Type
-	Kind SymbolKind
-	Span token.Span // definition site
+	Name     string
+	Type     Type
+	Kind     SymbolKind
+	IsPublic bool
+	Span     token.Span // definition site
 }
 
 // SymbolKind identifies what a name refers to.
@@ -80,6 +81,18 @@ func (s *Scope) Lookup(name string) *Symbol {
 // enumerate UFCS-eligible functions.
 func (s *Scope) Symbols() map[string]*Symbol {
 	return s.symbols
+}
+
+// PublicView returns a new scope containing only the public symbols
+// from this scope. Used when exposing a module's API to importers.
+func (s *Scope) PublicView() *Scope {
+	pub := NewScope(nil, s.kind)
+	for name, sym := range s.symbols {
+		if sym.IsPublic {
+			pub.symbols[name] = sym
+		}
+	}
+	return pub
 }
 
 // AllImports collects all SymImport symbols from this scope and

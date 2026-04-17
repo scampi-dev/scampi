@@ -283,6 +283,26 @@ scampi has a small set of top-level declaration kinds:
 | `enum`      | Define a closed set of named values                                  |
 | `attribute` | Define an attribute usable on parameters                             |
 
+### Visibility: `pub`
+
+In a non-main module, declarations are private by default. Use `pub` to export
+them to importers:
+
+```scampi
+module targets
+
+pub let vps = ssh.target { name = "vps", host = "10.0.0.1" }
+let internal = "not visible to importers"
+
+pub func helper() string { return "exported" }
+func private_helper() string { return "module-only" }
+```
+
+`pub` works on `let`, `func`, `decl`, `type`, and `enum`. In `module main`
+files, visibility is ignored — everything is local.
+
+### User-defined `decl`
+
 You can write your own `func` and `decl` — they're first-class. A user-defined
 `decl` is a great way to compose a reusable step pattern:
 
