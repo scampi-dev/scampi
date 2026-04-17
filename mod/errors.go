@@ -34,7 +34,7 @@ func (e ParseError) Error() string {
 
 func (e ParseError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "mod.ParseError",
+		ID:     CodeParseError,
 		Text:   "{{.Detail}}",
 		Hint:   "{{.Hint}}",
 		Data:   e,
@@ -58,7 +58,7 @@ func (e *ModuleNotFoundError) Error() string {
 
 func (e *ModuleNotFoundError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "mod.NotFound",
+		ID:     CodeNotFound,
 		Text:   "module not found: {{.LoadPath}}",
 		Hint:   "add the module to scampi.mod and run: scampi mod tidy",
 		Data:   e,
@@ -90,7 +90,7 @@ func (e *ModuleNotCachedError) Error() string {
 
 func (e *ModuleNotCachedError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "mod.NotCached",
+		ID:     CodeNotCached,
 		Text:   "module not cached: {{.ModPath}}@{{.Version}}",
 		Hint:   "run: scampi mod download",
 		Data:   e,
@@ -122,7 +122,7 @@ func (e *ModuleNoEntryPointError) Error() string {
 
 func (e *ModuleNoEntryPointError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "mod.NoEntryPoint",
+		ID:     CodeNoEntryPoint,
 		Text:   "module {{.ModPath}} has no entry point",
 		Hint:   `tried: {{join ", " .Tried}}`,
 		Data:   e,
@@ -148,7 +148,7 @@ type ModInfo struct {
 
 func (e *ModInfo) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.Info",
+		ID:   CodeInfo,
 		Text: "{{.Detail}}",
 		Data: e,
 	}
@@ -168,7 +168,7 @@ func (e *WriteError) Error() string { return e.Detail }
 
 func (e *WriteError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.WriteError",
+		ID:   CodeWriteError,
 		Text: "{{.Detail}}",
 		Hint: "{{.Hint}}",
 		Data: e,
@@ -189,7 +189,7 @@ func (e *InitError) Error() string { return e.Detail }
 
 func (e *InitError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.InitError",
+		ID:   CodeInitError,
 		Text: "{{.Detail}}",
 		Hint: "{{.Hint}}",
 		Data: e,
@@ -210,7 +210,7 @@ func (e *TidyError) Error() string { return e.Detail }
 
 func (e *TidyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.TidyError",
+		ID:   CodeTidyError,
 		Text: "{{.Detail}}",
 		Hint: "{{.Hint}}",
 		Data: e,
@@ -231,7 +231,7 @@ func (e *SumError) Error() string { return e.Detail }
 
 func (e *SumError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.SumError",
+		ID:   CodeSumError,
 		Text: "{{.Detail}}",
 		Hint: "{{.Hint}}",
 		Data: e,
@@ -256,7 +256,7 @@ func (e *FetchError) Error() string {
 
 func (e *FetchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.FetchError",
+		ID:   CodeFetchError,
 		Text: "fetch {{.ModPath}}@{{.Version}}: {{.Detail}}",
 		Hint: "{{.Hint}}",
 		Data: e,
@@ -279,7 +279,7 @@ func (e *NotAModuleError) Error() string {
 
 func (e *NotAModuleError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.NotAModule",
+		ID:   CodeNotAModule,
 		Text: "{{.ModPath}}@{{.Version}} is not a scampi module",
 		Hint: "a module must contain _index.scampi or <name>.scampi at its root",
 		Data: e,
@@ -300,7 +300,7 @@ func (e *AddError) Error() string { return e.Detail }
 
 func (e *AddError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.AddError",
+		ID:   CodeAddError,
 		Text: "{{.Detail}}",
 		Hint: "{{.Hint}}",
 		Data: e,
@@ -322,7 +322,7 @@ func (e *NoStableVersionError) Error() string {
 
 func (e *NoStableVersionError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.NoStableVersion",
+		ID:   CodeNoStableVersion,
 		Text: "no stable version found for {{.ModPath}}",
 		Hint: "specify a version explicitly: scampi mod add {{.ModPath}}@v1.0.0-alpha.1",
 		Data: e,
@@ -344,7 +344,7 @@ func (e *CycleError) Error() string {
 
 func (e *CycleError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.CycleError",
+		ID:   CodeCycleError,
 		Text: "dependency cycle detected",
 		Hint: `{{join " → " .Chain}}`,
 		Data: e,
@@ -369,7 +369,7 @@ func (e *SumMismatchError) Error() string {
 
 func (e *SumMismatchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "mod.SumMismatch",
+		ID:   CodeSumMismatch,
 		Text: "checksum mismatch for {{.ModPath}}@{{.Version}}",
 		Hint: "the cached module may have been tampered with — run: scampi mod clean && scampi mod download",
 		Data: e,

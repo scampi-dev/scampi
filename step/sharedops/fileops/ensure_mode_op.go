@@ -17,7 +17,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const ensureModeID = "builtin.ensure-mode"
+const ensureModeID = "step.ensure-mode"
 
 type EnsureModeOp struct {
 	sharedops.BaseOp
@@ -208,7 +208,7 @@ func (e modeReadError) Unwrap() error {
 
 func (e modeReadError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.ModeRead",
+		ID:     CodeModeRead,
 		Text:   `cannot read mode of "{{.Path}}"`,
 		Hint:   "check file permissions and ensure the path is accessible",
 		Data:   e,

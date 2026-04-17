@@ -251,7 +251,7 @@ func diagnosticToLSP(d diagnostic.Diagnostic, src []byte) protocol.Diagnostic {
 		Range:    rng,
 		Severity: protocol.DiagnosticSeverityError,
 		Source:   diagSourceLSP,
-		Code:     tmpl.ID,
+		Code:     string(tmpl.ID),
 		Message:  msg,
 	}
 }

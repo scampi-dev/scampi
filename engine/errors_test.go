@@ -8,11 +8,12 @@ import (
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/signal"
 )
 
 type stubDiagnostic struct {
-	id       string
+	id       errs.Code
 	text     string
 	severity signal.Severity
 	impact   diagnostic.Impact

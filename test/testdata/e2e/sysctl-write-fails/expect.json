@@ -4,6 +4,6 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["builtin.sysctl.WriteFailed"],
+  "diagnostics": ["step.sysctl.WriteFailed"],
   "memOnly": true
 }

@@ -23,7 +23,7 @@ func (e EnvKeyNotInValuesError) Error() string {
 
 func (e EnvKeyNotInValuesError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.template.EnvKeyNotInValues",
+		ID:     CodeEnvKeyNotInValues,
 		Text:   `env var "{{.EnvVar}}" maps to key "{{.Key}}" which is not defined in values`,
 		Hint:   "add the key to data.values or remove the env mapping",
 		Help:   "all env mappings must reference keys that exist in data.values",
@@ -45,7 +45,7 @@ func (e TemplateSourceMissingError) Error() string {
 
 func (e TemplateSourceMissingError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.template.SourceMissing",
+		ID:     CodeSourceMissing,
 		Text:   `template source "{{.Path}}" does not exist`,
 		Hint:   "ensure the template file exists and is readable",
 		Help:   "the template action cannot proceed without a readable source file",
@@ -70,7 +70,7 @@ func (e TemplateParseError) Unwrap() error {
 
 func (e TemplateParseError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.template.Parse",
+		ID:     CodeParse,
 		Text:   "template parse error: {{.Err}}",
 		Hint:   "check for unclosed braces, missing closing delimiters, or malformed variable names",
 		Help:   "templates use Go text/template syntax: https://pkg.go.dev/text/template",
@@ -95,7 +95,7 @@ func (e TemplateExecError) Unwrap() error {
 
 func (e TemplateExecError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.template.Exec",
+		ID:     CodeExec,
 		Text:   "template execution error: {{.Err}}",
 		Hint:   "check that all referenced variables exist in data",
 		Help:   "template execution failed, usually due to missing or mistyped variable names",
@@ -117,7 +117,7 @@ func (e DestDirMissingError) Error() string {
 
 func (e DestDirMissingError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.template.DestDirMissing",
+		ID:     CodeDestDirMissing,
 		Text:   `destination directory "{{.Path}}" does not exist`,
 		Hint:   "create the destination directory before running this action",
 		Help:   "the template action does not create directories automatically",

@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const ensureGroupID = "builtin.ensure-group"
+const ensureGroupID = "step.ensure-group"
 
 type ensureGroupOp struct {
 	sharedops.BaseOp

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/errs"
 )
 
 type ExpectedDiagnostics struct {
@@ -174,7 +175,7 @@ func AssertDiagnostics(
 
 		tmpl := got.template
 
-		if tmpl.ID != exp.ID {
+		if tmpl.ID != errs.Code(exp.ID) {
 			t.Fatalf("[%d] expected id %q, got %q", i, exp.ID, tmpl.ID)
 		}
 

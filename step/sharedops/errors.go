@@ -29,7 +29,7 @@ func (e UnknownUserError) Unwrap() error {
 
 func (e UnknownUserError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.UnknownUser",
+		ID:     CodeUnknownUser,
 		Text:   `unknown user "{{.User}}"`,
 		Hint:   `create user "{{.User}}" with useradd or adduser before setting file owner`,
 		Data:   e,
@@ -58,7 +58,7 @@ func (e UnknownGroupError) Unwrap() error {
 
 func (e UnknownGroupError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.UnknownGroup",
+		ID:     CodeUnknownGroup,
 		Text:   `unknown group "{{.Group}}"`,
 		Hint:   `create group "{{.Group}}" with groupadd or addgroup before setting file owner`,
 		Data:   e,
@@ -87,7 +87,7 @@ func (e PermissionDeniedError) Unwrap() error {
 
 func (e PermissionDeniedError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.PermissionDenied",
+		ID:     CodePermissionDenied,
 		Text:   `permission denied for operation "{{.Operation}}"`,
 		Hint:   "run as root, or configure passwordless sudo/doas for the target user",
 		Data:   e,
@@ -103,7 +103,7 @@ type EscalationFailedError struct {
 
 func (e EscalationFailedError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "target.EscalationFailed",
+		ID:   CodeEscalationFailed,
 		Text: `{{.Tool}} {{.Op}} {{.Path}}: exit {{.ExitCode}}`,
 		Hint: "the target user may lack passwordless sudo/doas",
 		Help: "{{.Stderr}}",
@@ -119,7 +119,7 @@ type EscalationMissingError struct {
 
 func (e EscalationMissingError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "target.EscalationMissing",
+		ID:   CodeEscalationMissing,
 		Text: `{{.Op}} {{.Path}}: no escalation tool found`,
 		Hint: "install sudo or doas on the target, or run as root",
 		Data: e.NoEscalationError,
@@ -134,7 +134,7 @@ type StagingFailedError struct {
 
 func (e StagingFailedError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "target.StagingFailed",
+		ID:   CodeStagingFailed,
 		Text: `failed to stage temp file for "{{.Path}}"`,
 		Hint: "ensure /tmp is writable on the target",
 		Data: e.StagingError,

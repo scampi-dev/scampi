@@ -4,11 +4,6 @@ package linker
 
 import "scampi.dev/scampi/errs"
 
-// Diagnostic codes for linker-specific errors.
-const (
-	CodeUnresolved errs.Code = "link.Unresolved"
-)
-
 // UnresolvedError is returned when a stub declaration has no matching
 // entry in the engine registry.
 type UnresolvedError struct {

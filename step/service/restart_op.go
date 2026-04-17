@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const restartID = "builtin.restart-service"
+const restartID = "step.restart-service"
 
 type restartOp struct {
 	sharedops.BaseOp

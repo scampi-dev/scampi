@@ -21,7 +21,7 @@ func (e BackendNotFoundError) Error() string {
 
 func (e BackendNotFoundError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.firewall.BackendNotFound",
+		ID:   CodeBackendNotFound,
 		Text: "no supported firewall backend found",
 		Hint: "install ufw or firewalld on the target",
 		Data: e,
@@ -41,7 +41,7 @@ func (e RuleCheckError) Error() string {
 
 func (e RuleCheckError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.firewall.RuleCheckFailed",
+		ID:   CodeRuleCheckFailed,
 		Text: `failed to check firewall rule for port {{.Port}}`,
 		Hint: `stderr: {{.Stderr}}`,
 		Data: e,
@@ -62,7 +62,7 @@ func (e RuleApplyError) Error() string {
 
 func (e RuleApplyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.firewall.RuleApplyFailed",
+		ID:   CodeRuleApplyFailed,
 		Text: `failed to {{.Action}} port {{.Port}}`,
 		Hint: `stderr: {{.Stderr}}`,
 		Data: e,
@@ -83,7 +83,7 @@ func (e PortOutOfRangeError) Error() string {
 
 func (e PortOutOfRangeError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.firewall.PortOutOfRange",
+		ID:     CodePortOutOfRange,
 		Text:   `{{.Field}} {{.Value}} is out of range`,
 		Hint:   "port numbers must be between 1 and 65535",
 		Data:   e,
@@ -105,7 +105,7 @@ func (e InvalidRangeError) Error() string {
 
 func (e InvalidRangeError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.firewall.InvalidRange",
+		ID:     CodeInvalidRange,
 		Text:   `end_port {{.EndPort}} must be greater than port {{.Port}}`,
 		Hint:   "end_port defines the upper bound of a port range",
 		Data:   e,

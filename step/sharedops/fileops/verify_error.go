@@ -28,7 +28,7 @@ func (e *VerifyError) Error() string {
 
 func (e *VerifyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.VerifyFailed",
+		ID:     CodeVerifyFailed,
 		Text:   `verify command failed (exit {{.ExitCode}}): {{.Cmd}}`,
 		Hint:   `the content did not pass validation — {{.Dest}} was not modified`,
 		Help:   "{{.Stderr}}",
@@ -63,7 +63,7 @@ func (e *VerifyPlaceholderError) Error() string {
 
 func (e *VerifyPlaceholderError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.VerifyPlaceholderError",
+		ID:   CodeVerifyPlaceholderErr,
 		Text: `verify command must contain exactly one %s placeholder, got {{.Count}}: {{.Cmd}}`,
 		Hint: "rewrite the verify command so the temp file path appears exactly once as %s",
 		Data: e,
@@ -87,7 +87,7 @@ func (e VerifyIOError) Unwrap() error { return e.Err }
 
 func (e VerifyIOError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.VerifyIOError",
+		ID:   CodeVerifyIOError,
 		Text: "verify failed: {{.Op}}",
 		Hint: "{{.Advice}}",
 		Help: "{{.Err}}",

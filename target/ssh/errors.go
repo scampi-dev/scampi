@@ -26,7 +26,7 @@ func (e NoKnownHostsError) Unwrap() error { return e.Err }
 
 func (e NoKnownHostsError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.NoKnownHosts",
+		ID:   CodeNoKnownHosts,
 		Text: `known_hosts file "{{.Path}}" not found`,
 		Hint: "create the file or use insecure: true to skip host key verification",
 		Help: "without a known_hosts file, host key verification cannot proceed",
@@ -46,7 +46,7 @@ func (e NoSuchHostError) Error() string {
 
 func (e NoSuchHostError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "ssh.NoSuchHost",
+		ID:     CodeNoSuchHost,
 		Text:   "no such host {{.Host}}",
 		Hint:   "make sure the host is reachable",
 		Source: &e.Source,
@@ -69,7 +69,7 @@ func (e ConnectionError) Unwrap() error { return e.Err }
 
 func (e ConnectionError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.Connection",
+		ID:   CodeConnection,
 		Text: "failed to connect to {{.Host}}:{{.Port}}",
 		Hint: "make sure the host is reachable and SSH is running on the given port",
 		Help: "underlying error was: {{.Err}}",
@@ -90,7 +90,7 @@ func (e UnknownKeyError) Unwrap() error { return e.Err }
 
 func (e UnknownKeyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.UnknownKey",
+		ID:   CodeUnknownKey,
 		Text: "unknown host SSH-key",
 		Hint: "connect manually once with ssh to add the host key, or use insecure: true to skip verification",
 	}
@@ -147,7 +147,7 @@ func (e KeyMismatchError) Unwrap() error { return e.Err }
 
 func (e KeyMismatchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.KeyMismatch",
+		ID:   CodeKeyMismatch,
 		Text: "host SSH-key mismatch",
 		Hint: "if the host was reinstalled, remove the old entry from known_hosts and reconnect",
 		Help: `known host keys:
@@ -172,7 +172,7 @@ func (e KeyRevokedError) Unwrap() error { return e.Err }
 
 func (e KeyRevokedError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.KeyRevoked",
+		ID:   CodeKeyRevoked,
 		Text: "host SSH-key revoked",
 		Hint: "this host key was explicitly revoked in known_hosts — do not connect unless you trust the host",
 		Help: `revoked host key:
@@ -193,7 +193,7 @@ func (e KeyReadError) Error() string {
 
 func (e KeyReadError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.KeyRead",
+		ID:   CodeKeyRead,
 		Text: `failed to read SSH-key file "{{.Path}}"`,
 		Hint: "check that the file exists and is readable",
 		Data: e,
@@ -213,7 +213,7 @@ func (e KeyParseError) Error() string {
 
 func (e KeyParseError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.KeyParse",
+		ID:   CodeKeyParse,
 		Text: "failed to parse SSH-key file {{.Path}}",
 		Hint: "the provided key-file must contain a valid *private* SSH-key",
 		Help: `{{if .IsPublicKey}}found valid *public* SSH-key, while a *private* SSH-key is required{{end}}`,
@@ -231,7 +231,7 @@ func (NoAuthMethodError) Error() string {
 
 func (e NoAuthMethodError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.NoAuthMethod",
+		ID:   CodeNoAuthMethod,
 		Text: "no SSH authentication method available",
 		Hint: "no key specified and SSH agent unavailable",
 		Help: "specify a key and/or start SSH agent",
@@ -252,7 +252,7 @@ func (e AuthError) Unwrap() error { return e.Err }
 
 func (e AuthError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.Auth",
+		ID:   CodeAuth,
 		Text: "authentication failed: {{.Err}}",
 		Hint: "check that the SSH key is authorized on the remote host",
 		Data: e,
@@ -274,7 +274,7 @@ func (e InvalidTimeoutError) Unwrap() error { return e.Err }
 
 func (e InvalidTimeoutError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "ssh.InvalidTimeout",
+		ID:     CodeInvalidTimeout,
 		Text:   `invalid timeout "{{.Value}}"`,
 		Hint:   `use a human-readable duration like "2s", "1m30s", or "500ms"`,
 		Source: &e.Source,
@@ -295,7 +295,7 @@ func (e SFTPSessionError) Unwrap() error { return e.Err }
 
 func (e SFTPSessionError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "ssh.SFTPSession",
+		ID:   CodeSFTPSession,
 		Text: "failed to start SFTP session: {{.Err}}",
 		Hint: "check that the SFTP subsystem is enabled on the remote host",
 		Data: e,

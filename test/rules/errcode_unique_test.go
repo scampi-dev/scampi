@@ -5,54 +5,48 @@ package rules
 import (
 	"go/constant"
 	"go/types"
+	"strings"
 	"testing"
 
 	"golang.org/x/tools/go/packages"
 )
 
-// codePackages lists every package that declares errs.Code constants.
-// Add new packages here when introducing a new error code namespace.
-var codePackages = []string{
-	"scampi.dev/scampi/lang/lex",
-	"scampi.dev/scampi/lang/parse",
-	"scampi.dev/scampi/lang/check",
-	"scampi.dev/scampi/linker",
-}
-
 // TestDiagnosticCodeUniqueness uses the Go type checker to collect
-// every exported constant of type errs.Code across the codebase and
-// verifies that no two share the same string value.
+// every exported constant of type errs.Code across all packages in the
+// module and verifies that no two share the same string value.
 func TestDiagnosticCodeUniqueness(t *testing.T) {
 	cfg := &packages.Config{
 		Mode: packages.NeedTypes | packages.NeedName,
 		Dir:  "../..",
 	}
-	toLoad := append([]string{"scampi.dev/scampi/errs"}, codePackages...)
-	pkgs, err := packages.Load(cfg, toLoad...)
+	pkgs, err := packages.Load(cfg, "scampi.dev/scampi/...")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Find the errs.Code type.
+	// Find the errs.Code type from whichever package exports it.
 	var codeType types.Type
 	for _, pkg := range pkgs {
 		if pkg.PkgPath == "scampi.dev/scampi/errs" {
 			obj := pkg.Types.Scope().Lookup("Code")
-			if obj == nil {
-				t.Fatal("errs.Code not found")
+			if obj != nil {
+				codeType = obj.Type()
 			}
-			codeType = obj.Type()
 			break
 		}
 	}
 	if codeType == nil {
-		t.Fatal("errs package not loaded")
+		t.Fatal("errs.Code type not found — is scampi.dev/scampi/errs in the module?")
 	}
 
 	seen := map[string]string{} // value → qualified name
+	scanned := 0
 
 	for _, pkg := range pkgs {
-		if pkg.PkgPath == "scampi.dev/scampi/errs" {
+		if !strings.HasPrefix(pkg.PkgPath, "scampi.dev/scampi/") {
+			continue
+		}
+		if pkg.Types == nil {
 			continue
 		}
 		scope := pkg.Types.Scope()
@@ -65,6 +59,7 @@ func TestDiagnosticCodeUniqueness(t *testing.T) {
 			if !types.Identical(c.Type(), codeType) {
 				continue
 			}
+			scanned++
 			val := constant.StringVal(c.Val())
 			qualName := pkg.Name + "." + name
 			if prev, dup := seen[val]; dup {
@@ -75,7 +70,7 @@ func TestDiagnosticCodeUniqueness(t *testing.T) {
 	}
 
 	if len(seen) == 0 {
-		t.Fatal("found no errs.Code constants — check codePackages list")
+		t.Fatal("found no errs.Code constants — type resolution may have failed")
 	}
-	t.Logf("checked %d unique diagnostic codes across %d packages", len(seen), len(codePackages))
+	t.Logf("checked %d unique diagnostic codes across %d packages", len(seen), scanned)
 }

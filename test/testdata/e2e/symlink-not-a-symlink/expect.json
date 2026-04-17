@@ -6,5 +6,5 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["builtin.symlink.NotASymlink"]
+  "diagnostics": ["step.symlink.NotASymlink"]
 }

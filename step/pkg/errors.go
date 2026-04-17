@@ -26,7 +26,7 @@ func (e PkgInstallError) Error() string {
 
 func (e PkgInstallError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.pkg.InstallFailed",
+		ID:     CodeInstallFailed,
 		Text:   `failed to install pkgs [{{.Pkgs}}]: {{.Stderr}}`,
 		Hint:   "check that the package names are correct and the package manager cache is up to date",
 		Help:   "the package manager command exited with a non-zero status",
@@ -50,7 +50,7 @@ func (e PkgRemoveError) Error() string {
 
 func (e PkgRemoveError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.pkg.RemoveFailed",
+		ID:     CodeRemoveFailed,
 		Text:   `failed to remove pkgs [{{.Pkgs}}]: {{.Stderr}}`,
 		Hint:   "check that the packages are installed and can be removed",
 		Help:   "the package manager command exited with a non-zero status",
@@ -72,7 +72,7 @@ func (e PkgCacheError) Error() string {
 
 func (e PkgCacheError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.pkg.CacheUpdateFailed",
+		ID:     CodeCacheUpdateFailed,
 		Text:   `failed to update package cache: {{.Stderr}}`,
 		Hint:   "check network connectivity and package manager configuration",
 		Help:   "the cache refresh command exited with a non-zero status",
@@ -94,7 +94,7 @@ func (e RepoKeyInstallError) Error() string {
 
 func (e RepoKeyInstallError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.pkg.RepoKeyInstallFailed",
+		ID:   CodeRepoKeyInstallFailed,
 		Text: `failed to install signing key for "{{.Name}}": {{.Detail}}`,
 		Hint: "check that the key URL is correct and the target is reachable",
 		Data: e,
@@ -114,7 +114,7 @@ func (e RepoConfigError) Error() string {
 
 func (e RepoConfigError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.pkg.RepoConfigFailed",
+		ID:   CodeRepoConfigFailed,
 		Text: `failed to configure repo "{{.Name}}": {{.Detail}}`,
 		Hint: "check target write permissions for the package manager config directory",
 		Data: e,
@@ -133,7 +133,7 @@ func (e SuiteDetectionError) Error() string {
 
 func (e SuiteDetectionError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.pkg.SuiteDetectionFailed",
+		ID:   CodeSuiteDetectionFailed,
 		Text: `could not detect suite (codename) for repo "{{.Name}}"`,
 		Hint: `specify suite explicitly: apt_repo(url=..., key_url=..., suite="bookworm")`,
 		Help: "the target's /etc/os-release did not contain VERSION_CODENAME",
@@ -156,7 +156,7 @@ func (e SourceBackendMismatchError) Error() string {
 
 func (e SourceBackendMismatchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.pkg.SourceBackendMismatch",
+		ID:     CodeSourceBackendMismatch,
 		Text:   `{{.SourceKind}} source cannot be used on a {{.TargetKind}} target`,
 		Hint:   "use a source that matches the target's package manager",
 		Data:   e,

@@ -2,7 +2,7 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "builtin.dir.PartialOwnership",
+      "id": "step.dir.PartialOwnership",
       "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",

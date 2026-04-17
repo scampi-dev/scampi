@@ -16,7 +16,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const ensureOwnerID = "builtin.ensure-owner"
+const ensureOwnerID = "step.ensure-owner"
 
 type EnsureOwnerOp struct {
 	sharedops.BaseOp
@@ -256,7 +256,7 @@ func (e ownerReadError) Unwrap() error {
 
 func (e ownerReadError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.OwnerRead",
+		ID:     CodeOwnerRead,
 		Text:   `cannot read ownership of "{{.Path}}"`,
 		Hint:   "check file permissions and ensure the path is accessible",
 		Data:   e,

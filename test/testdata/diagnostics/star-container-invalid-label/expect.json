@@ -2,7 +2,7 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "builtin.container.InvalidLabel",
+      "id": "step.container.InvalidLabel",
       "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",

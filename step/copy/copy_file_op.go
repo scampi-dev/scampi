@@ -18,7 +18,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const copyFileID = "builtin.copy-file"
+const copyFileID = "step.copy-file"
 
 type copyFileOp struct {
 	sharedops.BaseOp
@@ -185,7 +185,7 @@ func (e CopySourceMissingError) Error() string {
 
 func (e CopySourceMissingError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.copy.SourceMissing",
+		ID:     CodeSourceMissing,
 		Text:   `source file "{{.Path}}" does not exist`,
 		Hint:   "ensure the source file exists and is readable",
 		Help:   "the copy action cannot proceed without a readable source file",
@@ -207,7 +207,7 @@ func (e CopyDestDirMissingError) Error() string {
 
 func (e CopyDestDirMissingError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.copy.DestDirMissing",
+		ID:     CodeDestDirMissing,
 		Text:   `destination directory "{{.Path}}" does not exist`,
 		Hint:   "create the destination directory before running this action",
 		Help:   "the copy action does not create directories automatically",

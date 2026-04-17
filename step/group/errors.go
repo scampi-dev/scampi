@@ -26,7 +26,7 @@ func (e GroupCreateError) Unwrap() error { return e.Err }
 
 func (e GroupCreateError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.group.CreateFailed",
+		ID:     CodeCreateFailed,
 		Text:   `failed to create group "{{.Name}}"`,
 		Hint:   "check that the group name is valid and no conflicting group exists",
 		Data:   e,
@@ -50,7 +50,7 @@ func (e GroupDeleteError) Unwrap() error { return e.Err }
 
 func (e GroupDeleteError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.group.DeleteFailed",
+		ID:     CodeDeleteFailed,
 		Text:   `failed to delete group "{{.Name}}"`,
 		Hint:   "check that no users have this as their primary group",
 		Data:   e,

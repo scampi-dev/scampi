@@ -21,7 +21,7 @@ func (e EmptyImageError) Error() string {
 
 func (e EmptyImageError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.container.EmptyImage",
+		ID:     CodeEmptyImage,
 		Text:   "container image is required",
 		Hint:   `add image = "registry/name:tag"`,
 		Data:   e,
@@ -42,7 +42,7 @@ func (e InvalidMountError) Error() string {
 
 func (e InvalidMountError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.container.InvalidMount",
+		ID:     CodeInvalidMount,
 		Text:   `invalid mount "{{.Got}}"`,
 		Hint:   "{{.Reason}}",
 		Data:   e,
@@ -63,7 +63,7 @@ func (e InvalidLabelError) Error() string {
 
 func (e InvalidLabelError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.container.InvalidLabel",
+		ID:     CodeInvalidLabel,
 		Text:   `invalid label key "{{.Key}}"`,
 		Hint:   "{{.Reason}}",
 		Data:   e,
@@ -83,7 +83,7 @@ func (e MountSourceMissingError) Error() string {
 
 func (e MountSourceMissingError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.container.MountSourceMissing",
+		ID:     CodeMountSourceMissing,
 		Text:   `mount source "{{.Path}}" does not exist`,
 		Hint:   `add dir(path = "{{.Path}}") before this step`,
 		Data:   e,
@@ -107,7 +107,7 @@ func (e HealthWaitTimeoutError) Error() string {
 
 func (e HealthWaitTimeoutError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.container.HealthWaitTimeout",
+		ID:     CodeHealthWaitTimeout,
 		Text:   `container "{{.Name}}" did not become healthy in time`,
 		Hint:   "check container logs for healthcheck failures",
 		Data:   e,
@@ -127,7 +127,7 @@ func (e ContainerUnhealthyError) Error() string {
 
 func (e ContainerUnhealthyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.container.Unhealthy",
+		ID:     CodeUnhealthy,
 		Text:   `container "{{.Name}}" reported unhealthy`,
 		Hint:   "check container logs for healthcheck failures",
 		Data:   e,
@@ -149,7 +149,7 @@ func (e ContainerCommandError) Error() string {
 
 func (e ContainerCommandError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.container.CommandFailed",
+		ID:     CodeCommandFailed,
 		Text:   `container {{.Op}} "{{.Name}}" failed`,
 		Help:   "{{.Stderr}}",
 		Data:   e,

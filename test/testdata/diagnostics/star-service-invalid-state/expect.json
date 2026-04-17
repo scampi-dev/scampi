@@ -2,7 +2,7 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "builtin.service.InvalidState",
+      "id": "step.service.InvalidState",
       "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",

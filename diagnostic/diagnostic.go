@@ -21,7 +21,7 @@ func OpDisplayID(op spec.Op) string {
 	if d, ok := op.(spec.OpDescriber); ok {
 		if desc := d.OpDescription(); desc != nil {
 			if id := desc.PlanTemplate().ID; id != "" {
-				return id
+				return string(id)
 			}
 		}
 	}

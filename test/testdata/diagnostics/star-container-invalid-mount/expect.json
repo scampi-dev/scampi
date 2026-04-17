@@ -2,7 +2,7 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "builtin.container.InvalidMount",
+      "id": "step.container.InvalidMount",
       "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",

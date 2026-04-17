@@ -23,7 +23,7 @@ func (e RequestError) Error() string {
 
 func (e RequestError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "rest.RequestError",
+		ID:   CodeRequestError,
 		Text: "{{.Method}} {{.Path}}: status {{.Status}}",
 		Hint: "the API returned an error response",
 		Data: e,
@@ -46,7 +46,7 @@ func (e HTTPError) Unwrap() error { return e.Err }
 
 func (e HTTPError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "rest.HTTPError",
+		ID:   CodeHTTPError,
 		Text: "{{.Phase}} {{.Method}} {{.Path}} failed",
 		Hint: "{{.Err}}",
 		Data: e,
@@ -71,7 +71,7 @@ func (e ResourceQueryError) Unwrap() error { return e.Err }
 
 func (e ResourceQueryError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "rest.ResourceQueryError",
+		ID:   CodeResourceQueryError,
 		Text: "resource query {{.Method}} {{.Path}} failed",
 		Hint: "{{.Err}}",
 		Data: e,

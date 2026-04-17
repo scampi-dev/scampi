@@ -298,7 +298,7 @@ func (e *attrDocError) Error() string {
 
 func (e *attrDocError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "linker.AttributeViolation",
+		ID:     CodeAttributeViolation,
 		Text:   "{{.Message}}",
 		Hint:   "{{.Hint}}",
 		Help:   "{{.Help}}",
@@ -340,7 +340,7 @@ func (e *attrDeprecationWarning) Error() string {
 
 func (e *attrDeprecationWarning) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "linker.AttributeDeprecated",
+		ID:     CodeAttributeDeprecated,
 		Text:   "{{.Param}} is deprecated{{if .Message}}: {{.Message}}{{end}}",
 		Source: e.Src,
 		Data: attrDeprecationData{
@@ -370,7 +370,7 @@ func (e *nonLiteralAttrArgError) Error() string {
 
 func (e *nonLiteralAttrArgError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "linker.NonLiteralAttributeArg",
+		ID:     CodeNonLiteralAttributeArg,
 		Text:   "{{.Param}} must be a literal value",
 		Hint:   "attributes require compile-time constant values",
 		Source: e.Src,

@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const removeGroupID = "builtin.remove-group"
+const removeGroupID = "step.remove-group"
 
 type removeGroupOp struct {
 	sharedops.BaseOp

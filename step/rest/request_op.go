@@ -19,7 +19,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const requestID = "builtin.rest.request"
+const requestID = "step.rest.request"
 
 type requestOp struct {
 	sharedops.BaseOp

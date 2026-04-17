@@ -28,7 +28,7 @@ func (d *langDiagnostic) Error() string { return d.msg }
 
 func (d *langDiagnostic) EventTemplate() event.Template {
 	t := event.Template{
-		ID:     string(d.code),
+		ID:     d.code,
 		Text:   "{{.Msg}}",
 		Source: d.src,
 		Data:   langDiagData{Msg: d.msg, Hint: d.hint},

@@ -2,7 +2,7 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "builtin.InvalidPermission",
+      "id": "step.InvalidPermission",
       "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",

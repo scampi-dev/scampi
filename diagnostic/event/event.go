@@ -10,6 +10,7 @@ package event
 import (
 	"time"
 
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/spec"
 )
@@ -183,7 +184,7 @@ const (
 )
 
 type Template struct {
-	ID   string
+	ID   errs.Code
 	Text string
 	Hint string
 	Help string
@@ -202,6 +203,6 @@ func (f Field) TemplateID() string   { return f.id }
 func (f Field) TemplateText() string { return f.text }
 func (f Field) TemplateData() any    { return f.data }
 
-func (t Template) TextField() Field { return Field{t.ID + ".Text", t.Text, t.Data} }
-func (t Template) HintField() Field { return Field{t.ID + ".Hint", t.Hint, t.Data} }
-func (t Template) HelpField() Field { return Field{t.ID + ".Help", t.Help, t.Data} }
+func (t Template) TextField() Field { return Field{string(t.ID) + ".Text", t.Text, t.Data} }
+func (t Template) HintField() Field { return Field{string(t.ID) + ".Hint", t.Hint, t.Data} }
+func (t Template) HelpField() Field { return Field{string(t.ID) + ".Help", t.Help, t.Data} }

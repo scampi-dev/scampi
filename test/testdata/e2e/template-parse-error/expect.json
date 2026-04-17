@@ -4,5 +4,5 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["builtin.template.Parse"]
+  "diagnostics": ["step.template.Parse"]
 }

@@ -42,7 +42,7 @@ func (e *LoadConfigError) Error() string {
 
 func (e *LoadConfigError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "engine.LoadConfigError",
+		ID:   CodeLoadConfigError,
 		Text: "{{.Message}}",
 		Hint: "check the config file path and any imported modules",
 		Data: loadConfigErrorData{
@@ -82,7 +82,7 @@ func (e CapabilityMismatchError) Error() string {
 
 func (e CapabilityMismatchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "engine.CapabilityMismatch",
+		ID:     CodeCapabilityMismatch,
 		Text:   `step "{{.StepKind}}" requires capabilities not provided by target`,
 		Hint:   "use a different target or remove incompatible steps",
 		Help:   "missing:  {{.MissingCaps}}\nrequired: {{.RequiredCaps}}\nprovided: {{.ProvidedCaps}}",
@@ -190,7 +190,7 @@ func (e UnknownIndexKindError) Error() string {
 
 func (e UnknownIndexKindError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "index.UnknownKind",
+		ID:   CodeUnknownIndexKind,
 		Text: `unknown step kind "{{.Kind}}"`,
 		Hint: "use 'scampi index' to list available step types",
 		Data: e,
@@ -211,7 +211,7 @@ func (e UnknownDeployBlockError) Error() string {
 
 func (e UnknownDeployBlockError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "config.UnknownDeployBlock",
+		ID:   CodeUnknownDeployBlock,
 		Text: `unknown deploy block "{{.Name}}"`,
 		Hint: "check that the deploy block name is spelled correctly",
 		Data: e,
@@ -226,7 +226,7 @@ func (NoDeployBlocksError) Error() string {
 
 func (NoDeployBlocksError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "config.NoDeployBlocks",
+		ID:   CodeNoDeployBlocks,
 		Text: "no deploy blocks defined",
 		Hint: "add at least one deploy block to the configuration",
 	}
@@ -243,7 +243,7 @@ func (e NoTargetsInDeployError) Error() string {
 
 func (e NoTargetsInDeployError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "config.NoTargetsInDeploy",
+		ID:   CodeNoTargetsInDeploy,
 		Text: `deploy block "{{.Deploy}}" has no targets`,
 		Hint: "add at least one target to the deploy block's targets list",
 		Data: e,
@@ -262,7 +262,7 @@ func (e UnknownTargetError) Error() string {
 
 func (e UnknownTargetError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "config.UnknownTarget",
+		ID:   CodeUnknownTarget,
 		Text: `unknown target "{{.Name}}" referenced in deploy block "{{.Deploy}}"`,
 		Hint: "check that the target is defined in the targets map",
 		Data: e,
@@ -281,7 +281,7 @@ func (e TargetNotInDeployError) Error() string {
 
 func (e TargetNotInDeployError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "config.TargetNotInDeploy",
+		ID:   CodeTargetNotInDeploy,
 		Text: `target "{{.Target}}" is not in deploy block "{{.Deploy}}"'s target list`,
 		Hint: "add the target to the deploy block's targets list or select a different target",
 		Data: e,
@@ -305,7 +305,7 @@ func (e UnknownHookError) Error() string {
 
 func (e UnknownHookError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "engine.UnknownHook",
+		ID:     CodeUnknownHook,
 		Text:   `on_change references unknown hook "{{.HookID}}"`,
 		Hint:   `add hooks = {"{{.HookID}}": service(name="...", state="restarted")} to the deploy block`,
 		Data:   e,
@@ -325,7 +325,7 @@ func (e HookCycleError) Error() string {
 
 func (e HookCycleError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "engine.HookCycle",
+		ID:     CodeHookCycle,
 		Text:   "hook cycle detected",
 		Hint:   `{{join " -> " .Chain}}`,
 		Data:   e,

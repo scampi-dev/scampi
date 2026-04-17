@@ -2,5 +2,5 @@
   "target": {},
   "changed": 0,
   "error": true,
-  "diagnostics": ["builtin.symlink.LinkDirMissing"]
+  "diagnostics": ["step.symlink.LinkDirMissing"]
 }

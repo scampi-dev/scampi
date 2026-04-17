@@ -23,7 +23,7 @@ func (e LinkDirMissingError) Error() string {
 
 func (e LinkDirMissingError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.symlink.LinkDirMissing",
+		ID:     CodeLinkDirMissing,
 		Text:   `link directory "{{.Path}}" does not exist`,
 		Hint:   `add dir(path="{{.Path}}") to your deploy steps before this symlink`,
 		Help:   "the symlink action does not create directories automatically",
@@ -53,7 +53,7 @@ func (e LinkReadError) Unwrap() error {
 
 func (e LinkReadError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.symlink.LinkRead",
+		ID:     CodeLinkRead,
 		Text:   `cannot read link "{{.Path}}"`,
 		Hint:   "check file permissions and ensure the path is accessible",
 		Data:   e,
@@ -73,7 +73,7 @@ func (e NotASymlinkError) Error() string {
 
 func (e NotASymlinkError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.symlink.NotASymlink",
+		ID:     CodeNotASymlink,
 		Text:   `path "{{.Path}}" exists but is not a symlink`,
 		Hint:   `remove or rename the existing file or directory at "{{.Path}}" first`,
 		Help:   "the symlink action will not overwrite existing files or directories for safety",

@@ -16,7 +16,7 @@ type TestPass struct {
 
 func (e TestPass) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "test.Pass",
+		ID:   CodeTestPass,
 		Text: "{{.Description}}",
 		Data: e,
 	}
@@ -33,7 +33,7 @@ type TestFail struct {
 
 func (e TestFail) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "test.Fail",
+		ID:     CodeTestFail,
 		Text:   "{{.Description}}",
 		Hint:   "expected: {{.Expected}}\nactual:   {{.Actual}}",
 		Data:   e,
@@ -52,7 +52,7 @@ type TestSummary struct {
 
 func (e TestSummary) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "test.Summary",
+		ID:   CodeTestSummary,
 		Text: "{{.File}}: {{.Passed}} passed, {{.Failed}} failed",
 		Data: e,
 	}
@@ -68,7 +68,7 @@ type TestError struct {
 
 func (e TestError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "test.Error",
+		ID:   CodeTestError,
 		Text: "{{.Detail}}",
 		Hint: "{{.Hint}}",
 		Data: e,

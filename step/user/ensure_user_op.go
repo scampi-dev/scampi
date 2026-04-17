@@ -14,7 +14,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const ensureUserID = "builtin.ensure-user"
+const ensureUserID = "step.ensure-user"
 
 type ensureUserOp struct {
 	sharedops.BaseOp

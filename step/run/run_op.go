@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const runID = "builtin.run"
+const runID = "step.run"
 
 type runOp struct {
 	sharedops.BaseOp

@@ -15,7 +15,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const ensureSymlinkID = "builtin.symlink"
+const ensureSymlinkID = "step.symlink"
 
 type (
 	Symlink       struct{}

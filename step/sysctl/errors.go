@@ -22,7 +22,7 @@ func (e ReadError) Error() string {
 
 func (e ReadError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.sysctl.ReadFailed",
+		ID:   CodeReadFailed,
 		Text: `sysctl read failed for key "{{.Key}}"`,
 		Hint: `check that "{{.Key}}" is a valid sysctl parameter: {{.Stderr}}`,
 		Data: e,
@@ -43,7 +43,7 @@ func (e WriteError) Error() string {
 
 func (e WriteError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.sysctl.WriteFailed",
+		ID:   CodeWriteFailed,
 		Text: `sysctl write failed for "{{.Key}}" = "{{.Value}}"`,
 		Hint: `stderr: {{.Stderr}}`,
 		Data: e,
@@ -65,7 +65,7 @@ func (e PersistError) Unwrap() error { return e.Err }
 
 func (e PersistError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.sysctl.PersistFailed",
+		ID:   CodePersistFailed,
 		Text: `failed to write drop-in file "{{.Path}}"`,
 		Hint: "ensure /etc/sysctl.d/ exists and is writable",
 		Data: e,
@@ -87,7 +87,7 @@ func (e CleanupError) Unwrap() error { return e.Err }
 
 func (e CleanupError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.sysctl.CleanupFailed",
+		ID:   CodeCleanupFailed,
 		Text: `failed to remove stale drop-in file "{{.Path}}"`,
 		Hint: "ensure /etc/sysctl.d/ is writable",
 		Data: e,

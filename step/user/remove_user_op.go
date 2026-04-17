@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const removeUserID = "builtin.remove-user"
+const removeUserID = "step.remove-user"
 
 type removeUserOp struct {
 	sharedops.BaseOp

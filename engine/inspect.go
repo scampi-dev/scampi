@@ -196,7 +196,7 @@ func (e noDiffableOpsError) Error() string {
 
 func (e noDiffableOpsError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "engine.inspect.NoDiffableOps",
+		ID:   CodeNoDiffableOps,
 		Text: `no diffable ops matching "{{.Filter}}"`,
 		Hint: "use scampi inspect <config> --diff to list available paths",
 		Data: e,
@@ -216,7 +216,7 @@ func (e multipleDiffableOpsError) Error() string {
 
 func (e multipleDiffableOpsError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "engine.inspect.MultipleDiffableOps",
+		ID:   CodeMultipleDiffableOps,
 		Text: `found {{.Count}} diffable ops — narrow your filter`,
 		Hint: "destinations:\n{{range .Paths}}  {{.}}\n{{end}}",
 		Data: e,

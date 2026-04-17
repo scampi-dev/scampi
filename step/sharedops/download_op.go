@@ -25,7 +25,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const downloadID = "builtin.download"
+const downloadID = "step.download"
 
 // DownloadOp fetches a remote URL to the source cache. It runs source-side
 // only — no target capabilities required.
@@ -315,7 +315,7 @@ func (e DownloadError) Error() string {
 
 func (e DownloadError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.download.Error",
+		ID:     CodeDownloadError,
 		Text:   `download "{{.URL}}": {{.Detail}}`,
 		Hint:   "check that the URL is reachable and correct",
 		Data:   e,
@@ -337,7 +337,7 @@ func (e ChecksumMismatchError) Error() string {
 
 func (e ChecksumMismatchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.download.ChecksumMismatch",
+		ID:     CodeChecksumMismatch,
 		Text:   `download "{{.URL}}": checksum mismatch`,
 		Hint:   "expected {{.Expected}}, got {{.Got}}",
 		Help:   "the downloaded content does not match the declared checksum — verify the URL serves the expected file",

@@ -23,7 +23,7 @@ func (e MountCommandError) Error() string {
 
 func (e MountCommandError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.mount.CommandFailed",
+		ID:   CodeCommandFailed,
 		Text: "{{.Op}} {{.Dest}} failed",
 		Hint: "{{.Stderr}}",
 		Data: e,
@@ -42,7 +42,7 @@ func (e MissingToolError) Error() string {
 
 func (e MissingToolError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "builtin.mount.MissingTool",
+		ID:   CodeMissingTool,
 		Text: `mount type "{{.FsType}}" requires tools not found on target`,
 		Hint: `{{if or (eq .FsType "nfs") (eq .FsType "nfs4")}}` +
 			`add a pkg step for nfs-common (Debian/Ubuntu) or nfs-utils (RHEL/Fedora)` +

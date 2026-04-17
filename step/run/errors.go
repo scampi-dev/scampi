@@ -24,7 +24,7 @@ func (e ApplyError) Error() string {
 
 func (e ApplyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.run.ApplyFailed",
+		ID:     CodeApplyFailed,
 		Text:   `apply command failed: {{.Cmd}}`,
 		Hint:   `stderr: {{.Stderr}}`,
 		Data:   e,
@@ -47,7 +47,7 @@ func (e PostApplyCheckError) Error() string {
 
 func (e PostApplyCheckError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.run.PostApplyCheckFailed",
+		ID:     CodePostApplyCheckFailed,
 		Text:   `post-apply check failed: {{.CheckCmd}}`,
 		Hint:   `apply ran ({{.ApplyCmd}}) but check still fails: {{.Stderr}}`,
 		Data:   e,
@@ -67,7 +67,7 @@ func (e CheckAlwaysConflictError) Error() string {
 
 func (e CheckAlwaysConflictError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.run.CheckAlwaysConflict",
+		ID:     CodeCheckAlwaysConflict,
 		Text:   `check and always are mutually exclusive`,
 		Hint:   `remove one: use check for idempotent commands, always for fire-and-forget`,
 		Data:   e,
@@ -87,7 +87,7 @@ func (e MissingCheckOrAlwaysError) Error() string {
 
 func (e MissingCheckOrAlwaysError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.run.MissingCheckOrAlways",
+		ID:     CodeMissingCheckOrAlways,
 		Text:   `run requires either check or always=True`,
 		Hint:   `add a check command for idempotency, or set always=True to run unconditionally`,
 		Data:   e,

@@ -26,7 +26,7 @@ func (e UserCreateError) Unwrap() error { return e.Err }
 
 func (e UserCreateError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.user.CreateFailed",
+		ID:     CodeCreateFailed,
 		Text:   `failed to create user "{{.Name}}"`,
 		Hint:   "check that the username is valid and no conflicting user exists",
 		Data:   e,
@@ -50,7 +50,7 @@ func (e UserModifyError) Unwrap() error { return e.Err }
 
 func (e UserModifyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.user.ModifyFailed",
+		ID:     CodeModifyFailed,
 		Text:   `failed to modify user "{{.Name}}"`,
 		Hint:   "check that the user exists and the target values are valid",
 		Data:   e,
@@ -74,7 +74,7 @@ func (e UserDeleteError) Unwrap() error { return e.Err }
 
 func (e UserDeleteError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.user.DeleteFailed",
+		ID:     CodeDeleteFailed,
 		Text:   `failed to delete user "{{.Name}}"`,
 		Hint:   "check that no running processes belong to this user",
 		Data:   e,

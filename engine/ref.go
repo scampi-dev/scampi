@@ -134,7 +134,7 @@ func (e RefError) Error() string {
 
 func (e RefError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "engine.RefError",
+		ID:     CodeRefError,
 		Text:   "ref({{.Expr}}) failed",
 		Hint:   "{{.Detail}}",
 		Data:   e,

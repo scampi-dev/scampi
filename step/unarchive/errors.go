@@ -24,7 +24,7 @@ func (e UnsupportedArchiveError) Error() string {
 
 func (e UnsupportedArchiveError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.unarchive.UnsupportedArchive",
+		ID:     CodeUnsupportedArchive,
 		Text:   `unsupported archive format: "{{.Path}}"`,
 		Hint:   "supported: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .txz, .tar.zst, .tzst, .tar, .zip",
 		Data:   e,
@@ -46,7 +46,7 @@ func (e ArchiveNotFoundError) Error() string {
 
 func (e ArchiveNotFoundError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.unarchive.ArchiveNotFound",
+		ID:     CodeArchiveNotFound,
 		Text:   `source archive "{{.Path}}" does not exist`,
 		Hint:   "ensure the archive file exists and is readable",
 		Data:   e,
@@ -69,7 +69,7 @@ func (e ExtractionError) Error() string {
 
 func (e ExtractionError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.unarchive.ExtractionFailed",
+		ID:     CodeExtractionFailed,
 		Text:   `extraction failed: {{.Cmd}}`,
 		Hint:   "{{.Advice}}",
 		Help:   "{{.Stderr}}",
@@ -98,14 +98,14 @@ func (e ArchiveReadError) Unwrap() error { return e.Err }
 func (e ArchiveReadError) EventTemplate() event.Template {
 	if e.Entry != "" {
 		return event.Template{
-			ID:   "builtin.unarchive.ArchiveReadEntry",
+			ID:   CodeArchiveReadEntry,
 			Text: `reading {{.Format}} entry "{{.Entry}}" failed`,
 			Hint: "the archive may be corrupt or truncated",
 			Data: e,
 		}
 	}
 	return event.Template{
-		ID:   "builtin.unarchive.ArchiveRead",
+		ID:   CodeArchiveRead,
 		Text: "reading {{.Format}} failed",
 		Hint: "the archive may be corrupt or truncated",
 		Data: e,
@@ -137,7 +137,7 @@ func (e PartialOwnershipError) Error() string {
 
 func (e PartialOwnershipError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.unarchive.PartialOwnership",
+		ID:     CodePartialOwnership,
 		Text:   `{{.Set}} is set but {{.Missing}} is empty`,
 		Hint:   `add {{.Missing}}="<value>" or remove {{.Set}}`,
 		Data:   e,

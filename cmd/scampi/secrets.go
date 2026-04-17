@@ -38,7 +38,7 @@ func (e *secretsInfo) Error() string { return e.Detail }
 
 func (e *secretsInfo) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "secrets.Info",
+		ID:   errs.Code("secrets.Info"),
 		Text: "{{.Detail}}",
 		Data: e,
 	}

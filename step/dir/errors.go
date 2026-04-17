@@ -22,7 +22,7 @@ func (e NotADirectoryError) Error() string {
 
 func (e NotADirectoryError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.dir.NotADirectory",
+		ID:     CodeNotADirectory,
 		Text:   `path "{{.Path}}" exists but is not a directory`,
 		Hint:   `remove or rename the file at "{{.Path}}", then rerun to create it as a directory`,
 		Data:   e,
@@ -43,7 +43,7 @@ func (e PartialOwnershipError) Error() string {
 
 func (e PartialOwnershipError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.dir.PartialOwnership",
+		ID:     CodePartialOwnership,
 		Text:   `{{.Set}} is set but {{.Missing}} is empty`,
 		Hint:   `add {{.Missing}}="<value>" or remove {{.Set}}`,
 		Data:   e,

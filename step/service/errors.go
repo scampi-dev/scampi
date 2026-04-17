@@ -25,7 +25,7 @@ func (e ServiceCommandError) Error() string {
 
 func (e ServiceCommandError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.service.CommandFailed",
+		ID:     CodeCommandFailed,
 		Text:   `failed to {{.Op}} service {{.Name}}: {{.Stderr}}`,
 		Hint:   "check that the service name is correct and the init system is available",
 		Help:   "the service command exited with a non-zero status",
@@ -48,7 +48,7 @@ func (e DaemonReloadError) Error() string {
 
 func (e DaemonReloadError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "builtin.service.DaemonReloadFailed",
+		ID:     CodeDaemonReloadFailed,
 		Text:   `daemon-reload failed before starting service {{.Name}}: {{.Stderr}}`,
 		Hint:   "check systemd configuration and permissions",
 		Data:   e,

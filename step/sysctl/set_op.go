@@ -14,7 +14,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const setSysctlID = "builtin.sysctl.set"
+const setSysctlID = "step.sysctl.set"
 
 type setSysctlOp struct {
 	sharedops.BaseOp

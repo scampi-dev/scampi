@@ -26,7 +26,7 @@ var (
 	errResourceParse = errs.New("resource parse")
 )
 
-const resourceID = "builtin.rest.resource"
+const resourceID = "step.rest.resource"
 
 type resourceMode uint8
 

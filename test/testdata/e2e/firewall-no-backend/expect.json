@@ -4,6 +4,6 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["builtin.firewall.BackendNotFound"],
+  "diagnostics": ["step.firewall.BackendNotFound"],
   "memOnly": true
 }

@@ -16,7 +16,7 @@ import (
 	"scampi.dev/scampi/target"
 )
 
-const ensureContainerID = "builtin.ensure-container"
+const ensureContainerID = "step.ensure-container"
 
 // healthPollCeil is the maximum interval between health status polls.
 // We poll at min(healthcheck.Interval, healthPollCeil) to catch state

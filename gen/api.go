@@ -94,7 +94,7 @@ type GenWarning struct {
 
 func (w *GenWarning) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "gen.Warning",
+		ID:   CodeWarning,
 		Text: "{{.Detail}}",
 		Data: w,
 	}
@@ -110,7 +110,7 @@ func (e *GenError) Error() string { return e.Detail }
 
 func (e *GenError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   "gen.Error",
+		ID:   CodeError,
 		Text: "{{.Detail}}",
 		Data: e,
 	}

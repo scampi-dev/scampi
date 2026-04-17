@@ -4,6 +4,6 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["builtin.run.PostApplyCheckFailed"],
+  "diagnostics": ["step.run.PostApplyCheckFailed"],
   "memOnly": true
 }

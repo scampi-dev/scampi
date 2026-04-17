@@ -4,5 +4,5 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["builtin.template.SourceMissing"]
+  "diagnostics": ["step.template.SourceMissing"]
 }

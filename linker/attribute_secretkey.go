@@ -95,7 +95,7 @@ func (e *secretKeyNotFoundError) Error() string {
 
 func (e *secretKeyNotFoundError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "linker.SecretKeyNotFound",
+		ID:     CodeSecretKeyNotFound,
 		Text:   `secret key {{printf "%q" .Key}} not found in backend`,
 		Hint:   "check std.secrets() path or add the key to your secrets backend",
 		Source: e.Src,
@@ -118,7 +118,7 @@ func (e *secretKeyLookupError) Error() string {
 
 func (e *secretKeyLookupError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     "linker.SecretKeyLookupFailed",
+		ID:     CodeSecretKeyLookupFailed,
 		Text:   `secret key {{printf "%q" .Key}} lookup failed: {{.Err}}`,
 		Source: e.Src,
 		Data: secretKeyLookupData{

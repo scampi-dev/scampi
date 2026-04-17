@@ -2,7 +2,7 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "builtin.run.CheckAlwaysConflict",
+      "id": "step.run.CheckAlwaysConflict",
       "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",
