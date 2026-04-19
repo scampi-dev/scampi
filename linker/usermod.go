@@ -68,6 +68,17 @@ func LoadUserModulesFromMod(m *mod.Module, modules map[string]*check.Scope) []ev
 		}
 	}
 
+	// Local subdirectory modules: scan all subdirs under the module
+	// root for .scampi files. Each subdir that produces a valid
+	// non-main module becomes importable by its full path
+	// (<module-path>/<subdir>). This is the Go package convention —
+	// no require entry needed for directories in your own module.
+	if m.Module != "" {
+		modRoot := filepath.Dir(m.Filename)
+		subMods := loadLocalSubmodules(modRoot, m.Module, modules)
+		userMods = append(userMods, subMods...)
+	}
+
 	for _, dep := range m.Require {
 		// Skip self-references if someone still has one.
 		if dep.Path == m.Module {
@@ -93,6 +104,48 @@ func LoadUserModulesFromMod(m *mod.Module, modules map[string]*check.Scope) []ev
 		modules[dep.Path] = pub
 		userMods = append(userMods, um.UserModule)
 	}
+	return userMods
+}
+
+// loadLocalSubmodules scans subdirectories under modRoot for .scampi
+// files, loads each as a module, and registers them under their full
+// import path (<modPath>/<relDir>).
+func loadLocalSubmodules(
+	modRoot string,
+	modPath string,
+	modules map[string]*check.Scope,
+) []eval.UserModule {
+	var userMods []eval.UserModule
+	_ = filepath.WalkDir(modRoot, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		if path == modRoot {
+			return nil
+		}
+		base := d.Name()
+		if strings.HasPrefix(base, ".") || base == "vendor" {
+			return filepath.SkipDir
+		}
+		files := readModuleDir(path)
+		if len(files) == 0 {
+			return nil
+		}
+		um := loadMultiFileModule(files, modules)
+		if um == nil || um.Name == "main" {
+			return nil
+		}
+		rel, _ := filepath.Rel(modRoot, path)
+		importPath := modPath + "/" + filepath.ToSlash(rel)
+		pub := um.scope.PublicView()
+		modules[um.Name] = pub
+		modules[importPath] = pub
+		userMods = append(userMods, um.UserModule)
+		return nil
+	})
 	return userMods
 }
 
