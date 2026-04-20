@@ -11,7 +11,7 @@ import (
 )
 
 // CheckConfig evaluates an HTTP response to determine if the desired state
-// is already satisfied. Implementations are constructed in Starlark
+// is already satisfied. Implementations are constructed in scampi
 // (rest.status, rest.jq) and stored in RequestConfig.Check.
 type CheckConfig interface {
 	// CheckMethod returns the HTTP method for the check request.
@@ -90,7 +90,7 @@ func (c *JQCheck) Evaluate(statusCode int, body []byte) (bool, error) {
 	return false, nil
 }
 
-// CompileJQ parses and compiles a jq expression. Called at Starlark eval time
+// CompileJQ parses and compiles a jq expression. Called at scampi eval time
 // so syntax errors surface early.
 func CompileJQ(expr string) (*gojq.Code, error) {
 	query, err := gojq.Parse(expr)

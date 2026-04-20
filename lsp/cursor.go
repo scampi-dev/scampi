@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-// CursorContext describes where the cursor is relative to known Starlark
+// CursorContext describes where the cursor is relative to known scampi
 // constructs. Used by completion, signature help, and hover.
 type CursorContext struct {
 	// InCall is true when the cursor is directly inside a function call's

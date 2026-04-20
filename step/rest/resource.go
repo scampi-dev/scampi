@@ -69,7 +69,7 @@ func (Resource) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &ResourceConfig{}, step.Config)
 	}
 
-	// bare-error: plan-time validation, surfaced via Starlark source span
+	// bare-error: plan-time validation, surfaced via scampi source span
 	invalid := func(format string, args ...any) error { return errs.Errorf(format, args...) }
 
 	if cfg.Query == nil {

@@ -12,10 +12,10 @@ Hi, I'm **scampi** — your friendly infrastructure crustacean. I do IaC converg
 
 ## What is scampi?
 
-A declarative system convergence engine. You describe desired system state in Starlark; **scampi** executes idempotent operations to converge reality to that state.
+A declarative system convergence engine. You describe desired system state in scampi; **scampi** executes idempotent operations to converge reality to that state.
 
 Think Ansible or Terraform, but with:
-- **Starlark** instead of YAML/HCL (actual programming, not templating hell)
+- **Own language** instead of YAML/HCL (actual programming, not templating hell)
 - **Built-in steps** instead of plugin sprawl (batteries included)
 - **Deterministic execution** with fail-fast semantics (no half-applied mystery states)
 

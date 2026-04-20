@@ -8,7 +8,7 @@ import (
 )
 
 // TLSConfig configures TLS for the REST target's HTTP transport.
-// Implementations are constructed in Starlark (rest.tls.secure,
+// Implementations are constructed in scampi (rest.tls.secure,
 // rest.tls.insecure, rest.tls.ca_cert) and stored in Config.TLS.
 type TLSConfig interface {
 	TLSClientConfig() *tls.Config

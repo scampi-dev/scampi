@@ -5,7 +5,7 @@ package rest
 import "encoding/json"
 
 // BodyConfig prepares a request body and its associated headers.
-// Implementations are constructed in Starlark (rest.body.json, rest.body.string)
+// Implementations are constructed in scampi (rest.body.json, rest.body.string)
 // and stored in RequestConfig.Body.
 type BodyConfig interface {
 	Bytes() ([]byte, error)

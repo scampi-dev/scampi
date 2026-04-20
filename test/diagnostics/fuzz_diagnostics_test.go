@@ -501,7 +501,7 @@ let host = local.target { name = "local" }
 frobnicate(name = "test")`,
 
 		// garbage
-		`this is not valid starlark at all @@@ !!!`,
+		`this is not valid scampi at all @@@ !!!`,
 
 		// empty
 		``,

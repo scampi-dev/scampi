@@ -4,13 +4,13 @@ package spec
 
 import "fmt"
 
-// StepID is a unique identifier assigned to each step during Starlark
+// StepID is a unique identifier assigned to each step during scampi
 // evaluation. Used internally for ref() targeting and output registry
 // keying — never exposed to the user.
 type StepID uint64
 
 // Ref is a runtime value reference from one step to another's settled
-// state. Created by the ref() Starlark builtin, it survives in
+// state. Created by the ref() scampi builtin, it survives in
 // map[string]any configs and is resolved by the engine at execution time.
 type Ref struct {
 	TargetID StepID     // step to reference

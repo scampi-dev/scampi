@@ -21,76 +21,6 @@ import (
 // Module integration tests
 // -----------------------------------------------------------------------------
 
-// diskFallbackSource wraps a MemSource and falls back to the real filesystem
-// for absolute paths that are not present in the virtual files map.  This is
-// needed because module .scampi files live on disk (inside t.TempDir) while the
-// user config and scampi.mod live only in memory.
-type diskFallbackSource struct {
-	mem *source.MemSource
-}
-
-func (d *diskFallbackSource) ReadFile(ctx context.Context, path string) ([]byte, error) {
-	data, err := d.mem.ReadFile(ctx, path)
-	if err == nil {
-		return data, nil
-	}
-	if filepath.IsAbs(path) {
-		return os.ReadFile(path)
-	}
-	return nil, err
-}
-
-func (d *diskFallbackSource) WriteFile(ctx context.Context, path string, data []byte) error {
-	return d.mem.WriteFile(ctx, path, data)
-}
-
-func (d *diskFallbackSource) EnsureDir(ctx context.Context, path string) error {
-	return d.mem.EnsureDir(ctx, path)
-}
-
-func (d *diskFallbackSource) Stat(ctx context.Context, path string) (source.FileMeta, error) {
-	meta, err := d.mem.Stat(ctx, path)
-	if err != nil {
-		return source.FileMeta{}, err
-	}
-	if meta.Exists {
-		return meta, nil
-	}
-	if filepath.IsAbs(path) {
-		info, statErr := os.Stat(path)
-		if statErr != nil {
-			if os.IsNotExist(statErr) {
-				return source.FileMeta{Exists: false}, nil
-			}
-			return source.FileMeta{}, statErr
-		}
-		return source.FileMeta{
-			Exists:   true,
-			IsDir:    info.IsDir(),
-			Size:     info.Size(),
-			Modified: info.ModTime(),
-		}, nil
-	}
-	return source.FileMeta{Exists: false}, nil
-}
-
-func (d *diskFallbackSource) LookupEnv(key string) (string, bool) {
-	return d.mem.LookupEnv(key)
-}
-
-// Ensure diskFallbackSource implements source.Source at compile time.
-var _ source.Source = (*diskFallbackSource)(nil)
-
-// modMemSrc returns a diskFallbackSource with a MemSource pre-loaded with a
-// scampi.mod and a config.scampi.  Module .scampi files on the real filesystem
-// are accessible through the disk fallback.
-func modMemSrc(modFile, configFile string) *diskFallbackSource {
-	mem := source.NewMemSource()
-	mem.Files["/scampi.mod"] = []byte(modFile)
-	mem.Files["/config.scampi"] = []byte(configFile)
-	return &diskFallbackSource{mem: mem}
-}
-
 // setupModCache creates a real temp directory tree that DefaultCacheDir() will
 // return when XDG_CACHE_HOME is pointed at the parent.  It returns the module
 // directory so callers can populate .scampi files into it.
@@ -107,21 +37,15 @@ func setupModCache(t *testing.T, modPath, version string) (cacheDir, modDir stri
 	return cacheDir, modDir
 }
 
-func loadCfgSrc(t *testing.T, src source.Source) (engine.AbortError, bool) {
+// writeFile creates a file in dir with the given name and content.
+// Returns the full path.
+func writeFile(t *testing.T, dir, name, content string) string {
 	t.Helper()
-	ctx := context.Background()
-	store := diagnostic.NewSourceStore()
-	rec := &harness.RecordingDisplayer{}
-	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-
-	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
-	if err == nil {
-		return engine.AbortError{}, false
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile %s: %v", name, err)
 	}
-	if ae, ok := err.(engine.AbortError); ok {
-		return ae, true
-	}
-	return engine.AbortError{Causes: []error{err}}, true
+	return path
 }
 
 // errContains returns true if the error string contains all of the given substrings.
@@ -138,48 +62,49 @@ func errContains(err error, substrings ...string) bool {
 	return true
 }
 
-// TestModuleLoad_Basic verifies that a config can load a function from a
-// module and use it, producing a valid deploy block.
+// TestModuleLoad_Basic verifies that a config can import a function from a
+// cached module and use it, producing a valid deploy block.
 func TestModuleLoad_Basic(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/helpers", "v1.0.0")
 
 	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
-def greeting():
-    return "hello from module"
+module helpers
+
+pub func greeting() string {
+  return "hello from module"
+}
 `), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	src := modMemSrc(
-		`module codeberg.org/test/myproject
+	projDir := t.TempDir()
+	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
 
 require (
     codeberg.org/scampi-modules/helpers v1.0.0
 )
-`,
-		`load("codeberg.org/scampi-modules/helpers", "greeting")
+`)
+	cfgFile := writeFile(t, projDir, "config.scampi", `module main
 
-msg = greeting()
+import "std"
+import "std/local"
+import "std/posix"
+import "codeberg.org/scampi-modules/helpers"
 
-target.local(name="localhost")
+let host = local.target { name = "localhost" }
+let msg = helpers.greeting()
 
-deploy(
-    name="test",
-    targets=["localhost"],
-    steps=[
-        dir(path="/tmp/scampi-mod-test"),
-    ],
-)
-`,
-	)
+std.deploy(name = "test", targets = [host]) {
+  posix.dir { path = "/tmp/scampi-mod-test" }
+}
+`)
 
 	ctx := context.Background()
 	store := diagnostic.NewSourceStore()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, cfgFile, store, source.LocalPosixSource{})
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -188,52 +113,64 @@ deploy(
 	}
 }
 
-// TestModuleLoad_Subpath verifies that a subpath load
+// TestModuleLoad_Subpath verifies that a subpath import
 // (e.g. codeberg.org/user/mod/sub/path) resolves correctly within the cache.
+// TODO(#xxx): loadLocalSubmodules only runs for the self-module, not for
+// cached external deps. Enable once external subpath scanning is wired up.
 func TestModuleLoad_Subpath(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
+	t.Skip("external module subpath imports not yet supported")
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/toolkit", "v2.3.1")
 
+	// Root module declaration.
+	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
+module toolkit
+`), 0o644); err != nil {
+		t.Fatalf("WriteFile root: %v", err)
+	}
+
+	// Subpath module in net/.
 	subDir := filepath.Join(modDir, "net")
 	if err := os.MkdirAll(subDir, 0o755); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(subDir, "helpers.scampi"), []byte(`
-def make_url(host):
-    return "https://" + host
+	if err := os.WriteFile(filepath.Join(subDir, "_index.scampi"), []byte(`
+module net
+
+pub func make_url(host: string) string {
+  return "https://" + host
+}
 `), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	src := modMemSrc(
-		`module codeberg.org/test/myproject
+	projDir := t.TempDir()
+	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
 
 require (
     codeberg.org/scampi-modules/toolkit v2.3.1
 )
-`,
-		`load("codeberg.org/scampi-modules/toolkit/net/helpers", "make_url")
+`)
+	cfgFile := writeFile(t, projDir, "config.scampi", `module main
 
-url = make_url("example.com")
+import "std"
+import "std/local"
+import "std/posix"
+import "codeberg.org/scampi-modules/toolkit/net"
 
-target.local(name="host")
+let tgt = local.target { name = "host" }
+let url = net.make_url(host = "example.com")
 
-deploy(
-    name="net-test",
-    targets=["host"],
-    steps=[
-        dir(path="/tmp/net-test"),
-    ],
-)
-`,
-	)
+std.deploy(name = "net-test", targets = [tgt]) {
+  posix.dir { path = "/tmp/net-test" }
+}
+`)
 
 	ctx := context.Background()
 	store := diagnostic.NewSourceStore()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, cfgFile, store, source.LocalPosixSource{})
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -242,57 +179,61 @@ deploy(
 	}
 }
 
-// TestModuleLoad_InternalRelativeLoad verifies that a module's _index.scampi can
-// load a sibling file relatively, and that the relative load resolves within
-// the module's cache directory rather than the user's config directory.
-func TestModuleLoad_InternalRelativeLoad(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
+// TestModuleLoad_InternalMultiFile verifies that a module with multiple .scampi
+// files sharing the same module declaration can use each other's symbols, and
+// that the config can import the module and use its exported functions.
+func TestModuleLoad_InternalMultiFile(t *testing.T) {
 	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/utils", "v0.1.0")
 
+	// helpers.scampi defines a helper used by _index.scampi.
 	if err := os.WriteFile(filepath.Join(modDir, "helpers.scampi"), []byte(`
-def add(a, b):
-    return a + b
+module utils
+
+pub func add(a: int, b: int) int {
+  return a + b
+}
 `), 0o644); err != nil {
 		t.Fatalf("WriteFile helpers.scampi: %v", err)
 	}
+	// _index.scampi uses add() from the same module and exports double().
 	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
-load("helpers.scampi", "add")
+module utils
 
-def double(x):
-    return add(x, x)
+pub func double(x: int) int {
+  return add(x, x)
+}
 `), 0o644); err != nil {
 		t.Fatalf("WriteFile _index.scampi: %v", err)
 	}
 
-	src := modMemSrc(
-		`module codeberg.org/test/myproject
+	projDir := t.TempDir()
+	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
 
 require (
     codeberg.org/scampi-modules/utils v0.1.0
 )
-`,
-		`load("codeberg.org/scampi-modules/utils", "double")
+`)
+	cfgFile := writeFile(t, projDir, "config.scampi", `module main
 
-result = double(21)
+import "std"
+import "std/local"
+import "std/posix"
+import "codeberg.org/scampi-modules/utils"
 
-target.local(name="host")
+let tgt = local.target { name = "host" }
+let result = utils.double(x = 21)
 
-deploy(
-    name="utils-test",
-    targets=["host"],
-    steps=[
-        dir(path="/tmp/utils-test"),
-    ],
-)
-`,
-	)
+std.deploy(name = "utils-test", targets = [tgt]) {
+  posix.dir { path = "/tmp/utils-test" }
+}
+`)
 
 	ctx := context.Background()
 	store := diagnostic.NewSourceStore()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, cfgFile, store, source.LocalPosixSource{})
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -301,108 +242,94 @@ deploy(
 	}
 }
 
-// TestModuleLoad_NotInRequireTable verifies that loading a module not listed in
-// scampi.mod produces an error mentioning "not found".
+// TestModuleLoad_NotInRequireTable verifies that importing a module not listed
+// in scampi.mod produces an "unknown module" error.
 func TestModuleLoad_NotInRequireTable(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	cacheParent := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cacheParent)
 
-	src := modMemSrc(
-		`module codeberg.org/test/myproject
+	projDir := t.TempDir()
+	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
 
 require (
     codeberg.org/scampi-modules/known v1.0.0
 )
-`,
-		`load("codeberg.org/scampi-modules/unknown", "something")
+`)
+	cfgFile := writeFile(t, projDir, "config.scampi", `module main
 
-target.local(name="host")
+import "std"
+import "std/local"
+import "std/posix"
+import "codeberg.org/scampi-modules/unknown"
 
-deploy(
-    name="test",
-    targets=["host"],
-    steps=[
-        dir(path="/tmp/test"),
-    ],
-)
-`,
-	)
+let tgt = local.target { name = "host" }
 
-	ae, failed := loadCfgSrc(t, src)
-	if !failed {
+std.deploy(name = "test", targets = [tgt]) {
+  posix.dir { path = "/tmp/test" }
+}
+`)
+
+	ctx := context.Background()
+	store := diagnostic.NewSourceStore()
+	rec := &harness.RecordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+
+	_, err := engine.LoadConfig(ctx, em, cfgFile, store, source.LocalPosixSource{})
+	if err == nil {
 		t.Fatal("expected LoadConfig to fail for unknown module")
 	}
-	if len(ae.Causes) == 0 {
-		t.Fatal("expected at least one cause")
+	ae, ok := err.(engine.AbortError)
+	if !ok || len(ae.Causes) == 0 {
+		t.Fatalf("expected AbortError with causes, got: %v", err)
 	}
-
-	found := false
-	for _, cause := range ae.Causes {
-		if _, ok := cause.(*mod.ModuleNotFoundError); ok {
-			found = true
-			break
-		}
-		if errContains(cause, "not found") {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected a ModuleNotFoundError in causes, got: %v", ae.Causes)
+	if !errContains(ae.Causes[0], "unknown module") {
+		t.Errorf("expected 'unknown module' error, got: %v", ae.Causes[0])
 	}
 }
 
-// TestModuleLoad_NotCached verifies that loading a module that's in the
-// require table but not in the cache produces an error about it not being cached.
+// TestModuleLoad_NotCached verifies that importing a module that's in the
+// require table but not in the cache produces an "unknown module" error.
 func TestModuleLoad_NotCached(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	cacheParent := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cacheParent)
 	// Deliberately do NOT create the module directory in the cache.
 
-	src := modMemSrc(
-		`module codeberg.org/test/myproject
+	projDir := t.TempDir()
+	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
 
 require (
     codeberg.org/scampi-modules/missing v3.0.0
 )
-`,
-		`load("codeberg.org/scampi-modules/missing", "something")
+`)
+	cfgFile := writeFile(t, projDir, "config.scampi", `module main
 
-target.local(name="host")
+import "std"
+import "std/local"
+import "std/posix"
+import "codeberg.org/scampi-modules/missing"
 
-deploy(
-    name="test",
-    targets=["host"],
-    steps=[
-        dir(path="/tmp/test"),
-    ],
-)
-`,
-	)
+let tgt = local.target { name = "host" }
 
-	ae, failed := loadCfgSrc(t, src)
-	if !failed {
+std.deploy(name = "test", targets = [tgt]) {
+  posix.dir { path = "/tmp/test" }
+}
+`)
+
+	ctx := context.Background()
+	store := diagnostic.NewSourceStore()
+	rec := &harness.RecordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+
+	_, err := engine.LoadConfig(ctx, em, cfgFile, store, source.LocalPosixSource{})
+	if err == nil {
 		t.Fatal("expected LoadConfig to fail for uncached module")
 	}
-	if len(ae.Causes) == 0 {
-		t.Fatal("expected at least one cause")
+	ae, ok := err.(engine.AbortError)
+	if !ok || len(ae.Causes) == 0 {
+		t.Fatalf("expected AbortError with causes, got: %v", err)
 	}
-
-	found := false
-	for _, cause := range ae.Causes {
-		if _, ok := cause.(*mod.ModuleNotCachedError); ok {
-			found = true
-			break
-		}
-		if errContains(cause, "not cached") {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Errorf("expected a ModuleNotCachedError in causes, got: %v", ae.Causes)
+	if !errContains(ae.Causes[0], "unknown module") {
+		t.Errorf("expected 'unknown module' error, got: %v", ae.Causes[0])
 	}
 }
 
@@ -432,8 +359,11 @@ func createModuleRepo(t *testing.T) string {
 	runGit(work, "init")
 	runGit(work, "checkout", "-b", "main")
 	if err := os.WriteFile(filepath.Join(work, "_index.scampi"), []byte(`
-def greet(name):
-    return "hello, " + name
+module greetings
+
+pub func greet(name: string) string {
+  return "hello, " + name
+}
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -486,7 +416,6 @@ func createEmptyRepo(t *testing.T) string {
 // The cache is pre-populated so the test doesn't require internet access;
 // the actual git-clone path is covered by TestFetch_* in mod/fetch_test.go.
 func TestModuleAdd_ThenLoad(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	const modPath = "codeberg.org/test/greetings"
 	const version = "v1.0.0"
 
@@ -505,8 +434,11 @@ func TestModuleAdd_ThenLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(cachedModDir, "_index.scampi"), []byte(`
-def greet(name):
-    return "hello, " + name
+module greetings
+
+pub func greet(name: string) string {
+  return "hello, " + name
+}
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -535,34 +467,27 @@ def greet(name):
 		t.Fatalf("scampi.sum not created after mod.Add: %v", err)
 	}
 
-	updatedMod, err := os.ReadFile(filepath.Join(projDir, "scampi.mod"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	cfgFile := writeFile(t, projDir, "config.scampi", `module main
 
-	configStar := `load("codeberg.org/test/greetings", "greet")
+import "std"
+import "std/local"
+import "std/posix"
+import "codeberg.org/test/greetings"
 
-msg = greet("world")
+let host = local.target { name = "localhost" }
+let msg = greetings.greet(name = "world")
 
-target.local(name="localhost")
-
-deploy(
-    name="add-load-test",
-    targets=["localhost"],
-    steps=[
-        dir(path="/tmp/add-load-test"),
-    ],
-)
-`
-
-	src := modMemSrc(string(updatedMod), configStar)
+std.deploy(name = "add-load-test", targets = [host]) {
+  posix.dir { path = "/tmp/add-load-test" }
+}
+`)
 
 	ctx := context.Background()
 	store := diagnostic.NewSourceStore()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(ctx, em, cfgFile, store, source.LocalPosixSource{})
 	if err != nil {
 		t.Fatalf("engine.LoadConfig: %v", err)
 	}
@@ -604,18 +529,19 @@ func TestModuleAdd_NotAModule(t *testing.T) {
 // TestModuleLoad_NoModFile verifies backward compatibility: a config with no
 // scampi.mod and only built-in steps still works correctly.
 func TestModuleLoad_NoModFile(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(`
-target.local(name="host")
+module main
 
-deploy(
-    name="compat-test",
-    targets=["host"],
-    steps=[
-        dir(path="/tmp/compat-test"),
-    ],
-)
+import "std"
+import "std/local"
+import "std/posix"
+
+let host = local.target { name = "host" }
+
+std.deploy(name = "compat-test", targets = [host]) {
+  posix.dir { path = "/tmp/compat-test" }
+}
 `)
 
 	ctx := context.Background()
@@ -635,7 +561,6 @@ deploy(
 // TestModuleLoad_Local verifies that local modules (version is a relative
 // path) resolve directly from the filesystem without going through the cache.
 func TestModuleLoad_Local(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	projDir := t.TempDir()
 
 	// Create a local module directory
@@ -644,8 +569,11 @@ func TestModuleLoad_Local(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(localMod, "_index.scampi"), []byte(`
-def greet(name):
-    return "hello, " + name
+module helpers
+
+pub func greet(name: string) string {
+  return "hello, " + name
+}
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -661,19 +589,19 @@ require (
 	}
 
 	cfgFile := filepath.Join(projDir, "config.scampi")
-	if err := os.WriteFile(cfgFile, []byte(`load("my/helpers", "greet")
+	if err := os.WriteFile(cfgFile, []byte(`module main
 
-msg = greet("world")
+import "std"
+import "std/local"
+import "std/posix"
+import "my/helpers"
 
-target.local(name="host")
+let tgt = local.target { name = "host" }
+let msg = helpers.greet(name = "world")
 
-deploy(
-    name="local-mod-test",
-    targets=["host"],
-    steps=[
-        dir(path="/tmp/local-mod-test"),
-    ],
-)
+std.deploy(name = "local-mod-test", targets = [tgt]) {
+  posix.dir { path = "/tmp/local-mod-test" }
+}
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -695,13 +623,15 @@ deploy(
 
 // TestModuleLoad_LocalAbsPath verifies that absolute-path local modules work.
 func TestModuleLoad_LocalAbsPath(t *testing.T) {
-	t.Skip("uses Starlark load() — needs rewrite for scampi import")
 	projDir := t.TempDir()
 	localMod := t.TempDir()
 
 	if err := os.WriteFile(filepath.Join(localMod, "_index.scampi"), []byte(`
-def helper():
-    return 42
+module util
+
+pub func helper() int {
+  return 42
+}
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -714,19 +644,19 @@ def helper():
 	}
 
 	cfgFile := filepath.Join(projDir, "config.scampi")
-	if err := os.WriteFile(cfgFile, []byte(`load("my/util", "helper")
+	if err := os.WriteFile(cfgFile, []byte(`module main
 
-val = helper()
+import "std"
+import "std/local"
+import "std/posix"
+import "my/util"
 
-target.local(name="host")
+let tgt = local.target { name = "host" }
+let val = util.helper()
 
-deploy(
-    name="abs-test",
-    targets=["host"],
-    steps=[
-        dir(path="/tmp/abs-test"),
-    ],
-)
+std.deploy(name = "abs-test", targets = [tgt]) {
+  posix.dir { path = "/tmp/abs-test" }
+}
 `), 0o644); err != nil {
 		t.Fatal(err)
 	}

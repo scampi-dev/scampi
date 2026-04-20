@@ -1249,7 +1249,7 @@ func TestRestResource_IntFloat_Comparison(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && r.URL.Path == "/hosts" {
 			w.Header().Set("Content-Type", "application/json")
-			// JSON numbers are float64, Starlark integers are int64.
+			// JSON numbers are float64, scampi integers are int64.
 			_, _ = w.Write([]byte(`[{"name": "test", "port": 80, "ssl": true}]`))
 			return
 		}

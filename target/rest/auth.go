@@ -16,7 +16,7 @@ import (
 type TraceFunc func(msg string)
 
 // AuthConfig produces an http.RoundTripper that layers authentication onto a
-// base transport. Implementations are constructed in Starlark (rest.basic,
+// base transport. Implementations are constructed in scampi (rest.basic,
 // rest.bearer, rest.header) and stored in Config.Auth.
 type AuthConfig interface {
 	Transport(base http.RoundTripper, trace TraceFunc) http.RoundTripper

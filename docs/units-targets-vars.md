@@ -207,33 +207,39 @@ Secret values never appear in diagnostic output — only key names.
 
 ## Multi-File Configs
 
-### `load()` for Splitting
+### `import` for Splitting
 
-Standard Starlark `load()` splits configs across files:
+Standard `import` splits configs across files:
 
 ```python
 # config.scampi
-load("./targets.scampi", "web_targets", "db_targets")
-load("./steps/web.scampi", "web_steps")
+module main
 
-deploy(name="web", targets=web_targets, steps=web_steps)
+import "myproject/targets"
+import "myproject/steps/web"
+
+deploy(name="web", targets=targets.web_targets, steps=web.web_steps)
 ```
 
 ```python
 # targets.scampi
-target.ssh(name="web1", host="10.0.0.1", user="deploy")
-target.ssh(name="web2", host="10.0.0.2", user="deploy")
+module myproject/targets
 
-web_targets = ["web1", "web2"]
-db_targets = ["db1"]
+import "std"
+
+pub web_targets = ["web1", "web2"]
+pub db_targets  = ["db1"]
+
+std.target.ssh(name="web1", host="10.0.0.1", user="deploy")
+std.target.ssh(name="web2", host="10.0.0.2", user="deploy")
 ```
 
-Loaded files share the same target/deploy collector — `target.*()` and
-`deploy()` calls in loaded files register globally.
+Imported modules expose names via `pub`. `target.*()` and `deploy()` calls
+in imported files register globally with the engine.
 
 ### Target Grouping
 
-Groups are plain Starlark lists. Composition is just list operations:
+Groups are plain lists. Composition is just list operations:
 
 ```python
 web = ["web1", "web2"]
@@ -241,7 +247,7 @@ db = ["db1"]
 all = web + db
 ```
 
-No special group abstraction needed — Starlark is a real language.
+No special group abstraction needed — scampi is a real language.
 
 ---
 
@@ -384,8 +390,8 @@ inspection is a liability, not an optimization.
 | Deploy blocks | `deploy(name, targets, steps)`          | Host-centric: "on X run Y"      |
 | Environment   | `env(key, default?)`                    | Explicit, no precedence         |
 | Secrets       | `secret(key)`                           | Pluggable backend, never logged |
-| Multi-file    | `load()`                                | Standard Starlark               |
-| Groups        | Plain lists                             | Just Starlark                   |
+| Multi-file    | `import`                                | Standard scampi                 |
+| Groups        | Plain lists                             | Just scampi                     |
 
 Complexity scales from one file to full layout. Explicit over implicit.
 Target is truth.

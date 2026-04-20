@@ -25,7 +25,7 @@ func inspectCmd() *cli.Command {
 		Usage:     "Show resolved state for all steps, or diff file content",
 		ArgsUsage: "<config> [path]",
 		Description: `Reads a declarative configuration file and shows the resolved state
-of all steps after Starlark evaluation.
+of all steps after scampi evaluation.
 
 Use --diff to compare file content against the current target state:
   scampi inspect config.scampi --diff              # list diffable paths

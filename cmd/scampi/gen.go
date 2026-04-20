@@ -20,7 +20,7 @@ import (
 func genCmd() *cli.Command {
 	return &cli.Command{
 		Name:                   "gen",
-		Usage:                  "Generate Starlark modules from external schemas",
+		Usage:                  "Generate scampi modules from external schemas",
 		UseShortOptionHandling: true,
 		Suggest:                true,
 		HideHelp:               false,

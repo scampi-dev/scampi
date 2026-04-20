@@ -311,7 +311,7 @@ func tmplFileErrorSpan(err error, srcPath string) (spec.SourceSpan, bool) {
 //
 //	template: <name>:<line>:<col>: ...
 //
-// We offset from the content string literal's start position in the Starlark
+// We offset from the content string literal's start position in the scampi
 // source to land on the right line/col.
 func tmplErrorSpan(err error, content string, contentSpan spec.SourceSpan) (spec.SourceSpan, bool) {
 	// Parse "template: template:<line>:<col>: ..."
@@ -336,7 +336,7 @@ func tmplErrorSpan(err error, content string, contentSpan spec.SourceSpan) (spec
 		}
 	}
 
-	// Starlark triple-quoted strings: the content span points at the opening
+	// scampi triple-quoted strings: the content span points at the opening
 	// triple-quote. The actual content starts on the next line. For single-
 	// quoted strings, content starts at col+1 on the same line.
 	// We detect triple-quote by checking if content starts with a newline.

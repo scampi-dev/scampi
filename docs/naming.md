@@ -4,7 +4,7 @@ This document defines the **authoritative naming conventions** used throughout t
 
 Its purpose is to:
 - Make the conceptual model explicit
-- Keep Starlark and Go terminology aligned without conflation
+- Keep scampi and Go terminology aligned without conflation
 - Prevent naming drift and "Impl-suffix creep"
 - Provide a stable vocabulary for future extensions
 
@@ -16,12 +16,12 @@ If a naming question arises, this document is the source of truth.
 
 `scampi` is a **declarative system convergence engine**.
 
-Users describe *what should exist* in Starlark. The engine translates this into *how to make it so* in Go.
+Users describe *what should exist* in scampi. The engine translates this into *how to make it so* in Go.
 
 The core flow:
 
 ```
-Starlark step (kind + fields)
+scampi step (kind + fields)
         |
         v
 Go StepType
@@ -40,9 +40,9 @@ Every name in the codebase exists to make this flow obvious.
 
 ---
 
-## Starlark-Side Terminology
+## Language-Side Terminology
 
-Starlark is the user-facing, declarative language. Go adapts to Starlark concepts — not the other way around.
+scampi is the user-facing, declarative language. Go adapts to scampi concepts — not the other way around.
 
 ### Step
 
@@ -72,7 +72,7 @@ Kinds are semantic categories, not implementations.
 
 ## Go-Side Core Concepts
 
-Go code mirrors the Starlark model, but separates **definition**, **instance**, and **execution**.
+Go code mirrors the scampi model, but separates **definition**, **instance**, and **execution**.
 
 ### StepType
 
@@ -108,11 +108,11 @@ type StepInstance struct {
 }
 ```
 
-- Created by evaluating user Starlark
+- Created by evaluating user scampi
 - Couples user data with its StepType
 - Exists only during planning
 - `Desc` is the human-readable description
-- `Source` and `Fields` carry Starlark source locations for diagnostics
+- `Source` and `Fields` carry scampi source locations for diagnostics
 
 ### TargetType
 
@@ -163,7 +163,7 @@ The registry is intentionally explicit and centralized.
 
 ### Config
 
-A **Config** is the fully evaluated Starlark configuration.
+A **Config** is the fully evaluated scampi configuration.
 
 ```go
 type Config struct {
@@ -433,7 +433,7 @@ Both are abstract interfaces. The local POSIX implementations are development de
 cmd/           # CLI entry point
 engine/        # Planning and execution engine
 spec/          # Core domain interfaces and types
-star/          # Starlark evaluator and builtins
+lang/          # scampi evaluator and builtins
 step/          # StepType implementations (one per kind)
 source/        # Source-side access: configs, env, and local cache
 target/        # Execution environments (write-side mutations)
@@ -460,8 +460,8 @@ The following patterns are intentionally avoided:
 
 - `Impl` suffixes (Java-style indirection)
 - Interface/implementation name pairs
-- Go names leaking into Starlark
-- Starlark builtins shaped around Go constraints
+- Go names leaking into scampi
+- scampi builtins shaped around Go constraints
 - Over-generalization "for future extensions"
 
 Extensibility is achieved by **clear boundaries**, not abstractions.
@@ -470,7 +470,7 @@ Extensibility is achieved by **clear boundaries**, not abstractions.
 
 ## Summary
 
-| Concept              | Starlark                    | Go                                    |
+| Concept              | scampi                      | Go                                    |
 | -------------------- | --------------------------- | ------------------------------------- |
 | Declarative work     | step builtin (copy, dir, …) | StepInstance                          |
 | Semantic category    | kind                        | StepType                              |

@@ -18,7 +18,7 @@ import (
 // registered mock against its declared `expect` field. Mismatches
 // turn into TestFail diagnostics; clean apply + clean verify counts
 // as one passing test per mock entry. Designed to mirror runTestFile
-// (the legacy Starlark path) so the per-file dispatch in test.go
+// (the legacy evaluation path) so the per-file dispatch in test.go
 // can call either one transparently.
 func runLangTestFile(
 	ctx context.Context,

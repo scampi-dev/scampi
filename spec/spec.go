@@ -75,7 +75,7 @@ type (
 		Desc string
 	}
 	StepInstance struct {
-		ID       StepID // unique identifier, assigned during Starlark eval
+		ID       StepID // unique identifier, assigned during scampi eval
 		Desc     string // optional human description
 		Type     StepType
 		Config   any

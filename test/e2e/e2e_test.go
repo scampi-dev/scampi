@@ -17,7 +17,7 @@ import (
 
 // E2EScenario defines a data-driven E2E test case.
 // Each scenario is a directory under testdata/e2e/ containing:
-//   - config.scampi    (required) - Starlark configuration
+//   - config.scampi    (required) - scampi configuration
 //   - source.json    (required) - source files to populate
 //   - target.json    (optional) - pre-existing target state
 //   - expect.json    (required) - expected outcomes

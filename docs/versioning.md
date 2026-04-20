@@ -17,7 +17,7 @@ v<major>.<minor>.<patch>[-<pre-release>]
 The public interface covers everything users interact with directly:
 
 - **Step definitions** — field names, types, defaults, and behavior
-- **Starlark API** — builtins, functions, and configuration model
+- **Language API** — builtins, functions, and configuration model
 - **CLI commands and flags** — subcommands, arguments, exit codes
 
 Not considered public interface (can change without a major bump):

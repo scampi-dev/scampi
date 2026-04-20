@@ -330,7 +330,7 @@ func diffState(desired map[string]any, current any) []spec.DriftDetail {
 }
 
 func valuesEqual(desired, current any) bool {
-	// Normalize int64 vs float64 (Starlark int → int64, JSON number → float64).
+	// Normalize int64 vs float64 (scampi int → int64, JSON number → float64).
 	if d, ok := asFloat64(desired); ok {
 		if c, ok := asFloat64(current); ok {
 			return d == c
