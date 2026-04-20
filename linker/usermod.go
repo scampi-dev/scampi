@@ -242,7 +242,7 @@ func loadSiblingDecls(
 	dir := filepath.Dir(cfgPath)
 	base := filepath.Base(cfgPath)
 	siblings := readModuleDir(dir)
-	if len(siblings) <= 1 {
+	if len(siblings) == 0 {
 		return nil
 	}
 
@@ -265,6 +265,48 @@ func loadSiblingDecls(
 		c.RegisterForwardDecls(f)
 	}
 	return scope
+}
+
+// loadSiblingUserModules builds eval.UserModule entries for sibling
+// files in the same directory that declare the same module name. This
+// gives the evaluator access to non-pub functions defined in sibling
+// files — the eval-layer counterpart of loadSiblingDecls (which only
+// feeds the type checker).
+func loadSiblingUserModules(
+	cfgPath string,
+	modName string,
+	modules map[string]*check.Scope,
+) []eval.UserModule {
+	dir := filepath.Dir(cfgPath)
+	base := filepath.Base(cfgPath)
+	siblings := readModuleDir(dir)
+
+	var result []eval.UserModule
+	for _, mf := range siblings {
+		if filepath.Base(mf.Path) == base {
+			continue
+		}
+		l := lex.New(mf.Path, mf.Data)
+		p := parse.New(l)
+		f := p.Parse()
+		if f == nil || f.Module == nil || f.Module.Name.Name != modName {
+			continue
+		}
+		if l.Errors() != nil || p.Errors() != nil {
+			continue
+		}
+		c := check.New(modules)
+		c.Check(f)
+		if c.Errors() != nil {
+			continue
+		}
+		result = append(result, eval.UserModule{
+			Name:   modName,
+			File:   f,
+			Source: mf.Data,
+		})
+	}
+	return result
 }
 
 // findModFile walks up from cfgPath looking for a scampi.mod file.

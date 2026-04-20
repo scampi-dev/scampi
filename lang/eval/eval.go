@@ -76,6 +76,11 @@ type Evaluator struct {
 	// Registered into the env at init time alongside std stubs.
 	userModules []UserModule
 
+	// siblingModules holds parsed ASTs from sibling files that share
+	// the same module declaration. Their functions are registered
+	// directly into the top-level env (bare names, no prefix).
+	siblingModules []UserModule
+
 	// modInternalMaps holds the full (pub + non-pub) symbol maps for
 	// user modules. Used by callFunc for intra-module visibility so
 	// non-pub helpers are callable within the same module. The env
@@ -150,6 +155,15 @@ func WithUserModules(mods []UserModule) Option {
 	return func(e *Evaluator) { e.userModules = mods }
 }
 
+// WithSiblingModules registers sibling module files (same `module`
+// declaration, different file) directly into the top-level env so
+// their functions are callable by bare name — the same-package model.
+// Unlike WithUserModules (which namespaces under the module name),
+// sibling functions are peers of the current file's own declarations.
+func WithSiblingModules(mods []UserModule) Option {
+	return func(e *Evaluator) { e.siblingModules = mods }
+}
+
 // Eval evaluates a type-checked AST file and returns the result.
 func Eval(f *ast.File, source []byte, opts ...Option) (*Result, []Error) {
 	ev := &Evaluator{
@@ -161,6 +175,7 @@ func Eval(f *ast.File, source []byte, opts ...Option) (*Result, []Error) {
 	}
 	ev.registerStubInfo()
 	ev.registerUserModules()
+	ev.registerSiblingModules()
 	ev.evalFile(f)
 	ev.result.Bindings = ev.env.vars
 	return &ev.result, ev.errs

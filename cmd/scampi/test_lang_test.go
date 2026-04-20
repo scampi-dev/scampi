@@ -108,6 +108,77 @@ std.deploy(name = "smoke", targets = [mock]) {
 	}
 }
 
+// Test that a _test.scampi file with the same module name as a sibling
+// .scampi file can call non-pub functions from that sibling. This is
+// the same-package test model (like Go). Regression test: the sibling
+// loading guard used <= 1 which bailed when the entry file was a test
+// file (excluded from readModuleDir).
+func TestRunLangTestFile_SiblingModuleAccess(t *testing.T) {
+	dir := t.TempDir()
+
+	// Sibling module file with a non-pub function.
+	apiSrc := `module mymod
+
+import "std"
+import "std/rest"
+
+func get_items(check: rest.Check? = none) std.Step {
+  return rest.request {
+    method = "GET"
+    path   = "/items"
+    check  = check
+  }
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, "api.scampi"), []byte(apiSrc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test file: same module, calls sibling's non-pub function.
+	testSrc := `module mymod
+
+import "std"
+import "std/rest"
+import "std/test"
+
+let mock = test.target_rest_mock(
+  name     = "api",
+  base_url = "http://localhost",
+  routes = {
+    "GET /items": test.response(status = 200),
+  },
+  expect_requests = [
+    test.request(method = "GET", path = "/items"),
+  ],
+)
+
+std.deploy(name = "smoke", targets = [mock]) {
+  get_items(check = rest.status { code = 200 })
+}
+`
+	testPath := filepath.Join(dir, "api_test.scampi")
+	if err := os.WriteFile(testPath, []byte(testSrc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	em, displ := newTestEmitter()
+	passed, failed, err := runLangTestFile(
+		context.Background(),
+		em,
+		testPath,
+		source.LocalPosixSource{},
+	)
+	if err != nil {
+		for _, d := range displ.diagnostics {
+			t.Logf("diag: %+v", d)
+		}
+		t.Fatalf("runLangTestFile: %v", err)
+	}
+	if passed != 1 || failed != 0 {
+		t.Errorf("want 1 passed / 0 failed, got %d/%d", passed, failed)
+	}
+}
+
 func TestRunLangTestFile_Failing(t *testing.T) {
 	src := `module main
 

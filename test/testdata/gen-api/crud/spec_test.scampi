@@ -1,7 +1,7 @@
 // Auto-generated smoke test
-// Verifies each endpoint sends the expected method and path.
+// Verifies each generated function sends the expected method and path.
 
-module main
+module spec
 
 import "std"
 import "std/rest"
@@ -34,24 +34,18 @@ let api = test.target_rest_mock(
 )
 
 std.deploy(name = "smoke", targets = [api]) {
-  rest.request {
-    method = "GET"
-    path   = "/items"
-    check  = rest.status { code = 200 }
-  }
-  rest.request {
-    method = "POST"
-    path   = "/items"
-    body   = rest.body_json { data = { "name": "test" } }
-  }
-  rest.request {
-    method = "PUT"
-    path   = "/items/1"
-    body   = rest.body_json { data = { "name": "test" } }
-  }
-  rest.request {
-    method = "DELETE"
-    path   = "/items/1"
-  }
+  list_items(
+    check = rest.status { code = 200 },
+  )
+  create_item(
+    name = "test",
+  )
+  update_item(
+    id = "1",
+    name = "test",
+  )
+  delete_item(
+    id = "1",
+  )
 }
 

@@ -69,12 +69,14 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 	if f.Module != nil {
 		modName = f.Module.Name.Name
 	}
+	var siblingMods []eval.UserModule
 	c := check.New(modules)
 	if modName != "main" {
 		siblings := loadSiblingDecls(cfgPath, modName, modules)
 		if siblings != nil {
 			c.WithScope(siblings)
 		}
+		siblingMods = loadSiblingUserModules(cfgPath, modName, modules)
 	}
 	c.Check(f)
 	if checkErrs := c.Errors(); len(checkErrs) > 0 {
@@ -92,6 +94,7 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 		data,
 		eval.WithStubs(std.FS),
 		eval.WithUserModules(userMods),
+		eval.WithSiblingModules(siblingMods),
 		eval.WithEnv(src.LookupEnv),
 		eval.WithBuiltinFunc("secrets.from_age", secretFromAge(configDir, src.LookupEnv, readFile)),
 		eval.WithBuiltinFunc("secrets.from_file", secretFromFile(configDir, readFile)),

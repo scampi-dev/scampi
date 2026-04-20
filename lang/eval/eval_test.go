@@ -585,6 +585,221 @@ let result = helpers.visible()
 
 // TestEvalUFCSDoesNotShadowModuleAccess — `posix.copy(...)` is a
 // module member call. The Tier 1 path runs before any UFCS attempt.
+// Intra-module pub visibility
+// -----------------------------------------------------------------------------
+
+// A pub func in a user module must be able to call non-pub helpers
+// defined in the same module (same `module` declaration, possibly in a
+// different file). Regression test for #209: registerUserModules was
+// filtering non-pub symbols from the module map, which also feeds the
+// intra-module sibling injection in callFunc.
+func TestEvalPubFuncCallsNonPubHelper(t *testing.T) {
+	// Simulate a two-file module: _index.scampi has a pub func that
+	// calls a non-pub helper from api.scampi. We merge them into one
+	// AST (same as loadMultiFileModule does) for simplicity.
+	modSrc := `
+module helpers
+func internal_add(a: int, b: int) int {
+  return a + b
+}
+pub func add(a: int, b: int) int {
+  return internal_add(a, b)
+}
+`
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	ml := lex.New("helpers.scampi", []byte(modSrc))
+	mp := parse.New(ml)
+	mf := mp.Parse()
+	if errs := ml.Errors(); len(errs) > 0 {
+		t.Fatalf("module lex: %v", errs)
+	}
+	if errs := mp.Errors(); len(errs) > 0 {
+		t.Fatalf("module parse: %v", errs)
+	}
+	mc := check.New(modules)
+	mc.Check(mf)
+	if errs := mc.Errors(); len(errs) > 0 {
+		t.Fatalf("module check: %v", errs)
+	}
+	modules["helpers"] = mc.FileScope().PublicView()
+
+	consumerSrc := `
+module main
+import "helpers"
+let result = helpers.add(17, 25)
+`
+	cl := lex.New("test.scampi", []byte(consumerSrc))
+	cp := parse.New(cl)
+	cf := cp.Parse()
+	if errs := cl.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer lex: %v", errs)
+	}
+	if errs := cp.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer parse: %v", errs)
+	}
+	cc := check.New(modules)
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer check: %v", errs)
+	}
+
+	r, errs := Eval(cf, []byte(consumerSrc),
+		WithStubs(std.FS),
+		WithUserModules([]UserModule{{
+			Name:   "helpers",
+			File:   mf,
+			Source: []byte(modSrc),
+		}}),
+	)
+	if len(errs) > 0 {
+		t.Fatalf("eval errors: %v", errs)
+	}
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	iv, ok := v.(*IntVal)
+	if !ok {
+		t.Fatalf("expected IntVal, got %T", v)
+	}
+	if iv.V != 42 {
+		t.Errorf("expected 42, got %d", iv.V)
+	}
+}
+
+// Sibling modules (same package, different file) inject functions
+// directly into the top-level env via WithSiblingModules. Functions
+// are callable by bare name without a module prefix.
+func TestEvalSiblingModuleBareName(t *testing.T) {
+	sibSrc := `
+module helpers
+func internal_mul(a: int, b: int) int {
+  return a * b
+}
+`
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	sl := lex.New("sibling.scampi", []byte(sibSrc))
+	sp := parse.New(sl)
+	sf := sp.Parse()
+	if errs := sp.Errors(); len(errs) > 0 {
+		t.Fatalf("sibling parse: %v", errs)
+	}
+	sc := check.New(modules)
+	sc.Check(sf)
+
+	// The consumer is in the same module — calls by bare name.
+	consumerSrc := `
+module helpers
+let result = internal_mul(6, 7)
+`
+	cl := lex.New("test.scampi", []byte(consumerSrc))
+	cp := parse.New(cl)
+	cf := cp.Parse()
+	// Provide sibling scope to the checker so it sees internal_mul.
+	cc := check.New(modules)
+	cc.WithScope(sc.FileScope())
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer check: %v", errs)
+	}
+
+	r, errs := Eval(cf, []byte(consumerSrc),
+		WithStubs(std.FS),
+		WithSiblingModules([]UserModule{{
+			Name:   "helpers",
+			File:   sf,
+			Source: []byte(sibSrc),
+		}}),
+	)
+	if len(errs) > 0 {
+		t.Fatalf("eval errors: %v", errs)
+	}
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	iv, ok := v.(*IntVal)
+	if !ok {
+		t.Fatalf("expected IntVal, got %T", v)
+	}
+	if iv.V != 42 {
+		t.Errorf("expected 42, got %d", iv.V)
+	}
+}
+
+// External callers must NOT be able to access non-pub functions.
+func TestEvalNonPubNotVisibleExternally(t *testing.T) {
+	modSrc := `
+module helpers
+func hidden() int { return 99 }
+pub func visible() int { return 1 }
+`
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	ml := lex.New("helpers.scampi", []byte(modSrc))
+	mp := parse.New(ml)
+	mf := mp.Parse()
+	if errs := mp.Errors(); len(errs) > 0 {
+		t.Fatalf("module parse: %v", errs)
+	}
+	mc := check.New(modules)
+	mc.Check(mf)
+	if errs := mc.Errors(); len(errs) > 0 {
+		t.Fatalf("module check: %v", errs)
+	}
+	modules["helpers"] = mc.FileScope().PublicView()
+
+	// The checker should reject this — but even if it doesn't, the
+	// evaluator's pub-only env map should not expose "hidden".
+	consumerSrc := `
+module main
+import "helpers"
+let result = helpers.visible()
+`
+	cl := lex.New("test.scampi", []byte(consumerSrc))
+	cp := parse.New(cl)
+	cf := cp.Parse()
+	cc := check.New(modules)
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer check: %v", errs)
+	}
+
+	r, errs := Eval(cf, []byte(consumerSrc),
+		WithStubs(std.FS),
+		WithUserModules([]UserModule{{
+			Name:   "helpers",
+			File:   mf,
+			Source: []byte(modSrc),
+		}}),
+	)
+	if len(errs) > 0 {
+		t.Fatalf("eval errors: %v", errs)
+	}
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	iv, ok := v.(*IntVal)
+	if !ok {
+		t.Fatalf("expected IntVal, got %T", v)
+	}
+	if iv.V != 1 {
+		t.Errorf("expected 1, got %d", iv.V)
+	}
+}
+
+// UFCS — runtime dispatch
+// -----------------------------------------------------------------------------
+
 func TestEvalUFCSDoesNotShadowModuleAccess(t *testing.T) {
 	r := evalSrc(t, `
 module main

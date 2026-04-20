@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -115,21 +116,16 @@ func genAPICmd() *cli.Command {
 			}
 			defer func() { _ = f.Close() }()
 
-			// Open test file alongside the module if tests are enabled.
+			// Buffer test output — only write to disk if generation succeeds.
+			var testBuf bytes.Buffer
+			var testPath string
 			if !noTest {
 				base := strings.TrimSuffix(outPath, ".api.scampi")
 				if base == outPath {
 					base = strings.TrimSuffix(outPath, filepath.Ext(outPath))
 				}
-				testPath := base + "_test.scampi"
-				tf, tfErr := os.Create(testPath)
-				if tfErr == nil {
-					genOpts.TestWriter = tf
-					defer func() {
-						_ = tf.Close()
-						_, _ = fmt.Fprintf(os.Stderr, "wrote %s\n", testPath)
-					}()
-				}
+				testPath = base + "_test.scampi"
+				genOpts.TestWriter = &testBuf
 			}
 
 			if err := scampigen.API(specPath, version, f, em, genOpts); err != nil {
@@ -138,6 +134,12 @@ func genAPICmd() *cli.Command {
 			}
 
 			_, _ = fmt.Fprintf(os.Stderr, "wrote %s\n", outPath)
+
+			if testPath != "" && testBuf.Len() > 0 {
+				if writeErr := os.WriteFile(testPath, testBuf.Bytes(), 0o644); writeErr == nil {
+					_, _ = fmt.Fprintf(os.Stderr, "wrote %s\n", testPath)
+				}
+			}
 			return nil
 		},
 	}

@@ -1,0 +1,11 @@
+{
+  "abort": false,
+  "diagnostics": [
+    {
+      "id": "gen.Warning",
+      "scope": "ScopeEngine",
+      "severity": "Warning",
+      "kind": "DiagnosticRaised"
+    }
+  ]
+}

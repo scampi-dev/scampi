@@ -1,0 +1,42 @@
+// Auto-generated smoke test
+// Verifies each generated function sends the expected method and path.
+
+module spec
+
+import "std"
+import "std/rest"
+import "std/test"
+import "std/test/matchers"
+
+let api = test.target_rest_mock(
+  name = "api",
+  base_url = "http://localhost",
+  routes = {
+    "GET /rules": test.response(status = 200),
+    "POST /rules": test.response(status = 201),
+    "GET /rules/1": test.response(status = 200),
+  },
+  expect_requests = [
+    test.request(method = "GET", path = "/rules"),
+    test.request(
+      method = "POST",
+      path   = "/rules",
+      body   = matchers.has_substring("\"name\""),
+    ),
+    test.request(method = "GET", path = "/rules/1"),
+  ],
+)
+
+std.deploy(name = "smoke", targets = [api]) {
+  list_rules(
+    check = rest.status { code = 200 },
+  )
+  create_rule(
+    name = "test",
+  )
+  get_rule_by_type(
+    typ = "1",
+    check = rest.status { code = 200 },
+  )
+}
+

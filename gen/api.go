@@ -56,7 +56,7 @@ func API(specPath string, scampiVersion string, w io.Writer, em diagnostic.Emitt
 		return emitAndAbort(em, errs.WrapErrf(errBadSpec, "spec has no paths"))
 	}
 
-	prefix := cleanPathPrefix(opts.PathPrefix)
+	prefix := cleanPathPrefix(opts.PathPrefix) + serverBasePath(doc)
 
 	var buf bytes.Buffer
 	g := &apiGenerator{
@@ -141,12 +141,77 @@ func loadSpec(specPath string) (*openapi3.T, error) {
 		return loadSwagger2(raw)
 	}
 
+	// Strip component-level $ref objects that kin-openapi can't
+	// resolve (e.g. securitySchemes: {"$ref": "./file.json"}).
+	// gen api doesn't use auth info so dropping these is safe.
+	raw = stripComponentRefs(raw)
+
 	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromFile(specPath)
+	doc, err := loader.LoadFromData(raw)
 	if err != nil {
 		return nil, errs.WrapErrf(err, "loading spec")
 	}
 	return doc, nil
+}
+
+// stripComponentRefs replaces component-level objects that are bare
+// $ref pointers (e.g. `"securitySchemes": {"$ref": "..."}`) with
+// empty objects. kin-openapi expects these to be proper maps, not
+// references, and gen api doesn't use auth/security info anyway.
+func stripComponentRefs(raw []byte) []byte {
+	var doc map[string]any
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return raw
+	}
+	components, ok := doc["components"].(map[string]any)
+	if !ok {
+		return raw
+	}
+	changed := false
+	for key, val := range components {
+		m, ok := val.(map[string]any)
+		if !ok {
+			continue
+		}
+		if _, hasRef := m["$ref"]; hasRef && len(m) == 1 {
+			components[key] = map[string]any{}
+			changed = true
+		}
+	}
+	if !changed {
+		return raw
+	}
+	out, err := json.Marshal(doc)
+	if err != nil {
+		return raw
+	}
+	return out
+}
+
+// serverBasePath extracts the path component from the first server URL
+// in the spec. OpenAPI specs bake the API base path into the server URL
+// (e.g. "http://host:81/api" → "/api"). Returns empty string if no
+// server URL or no path component.
+func serverBasePath(doc *openapi3.T) string {
+	if len(doc.Servers) == 0 {
+		return ""
+	}
+	u := doc.Servers[0].URL
+	// Handle relative URLs (e.g. "/integration").
+	if strings.HasPrefix(u, "/") {
+		return cleanPathPrefix(u)
+	}
+	// Parse absolute URLs and extract path.
+	idx := strings.Index(u, "://")
+	if idx < 0 {
+		return ""
+	}
+	rest := u[idx+3:]
+	slash := strings.Index(rest, "/")
+	if slash < 0 {
+		return ""
+	}
+	return cleanPathPrefix(rest[slash:])
 }
 
 func detectSwagger2(raw []byte) bool {
@@ -194,12 +259,13 @@ func loadSwagger2(raw []byte) (*openapi3.T, error) {
 // path param values, and whether a body param exists (for body
 // assertion in the test's expect_requests).
 type testOp struct {
-	funcName       string
-	method         string
-	fullPath       string
-	pathParams     []string
-	hasSampleBody  bool
-	sampleBodyName string
+	funcName        string
+	method          string
+	fullPath        string
+	pathParams      []string
+	hasSampleBody   bool
+	sampleBodyName  string // API name (for assertion substring)
+	sampleParamName string // scampi param name (for function call)
 }
 
 type apiGenerator struct {
@@ -209,6 +275,7 @@ type apiGenerator struct {
 	scampiVersion string
 	pathPrefix    string
 	moduleName    string   // explicit module name (empty = derive from spec)
+	resolvedName  string   // final module name after derivation
 	ops           []testOp // collected during generation for test emission
 }
 
@@ -254,13 +321,13 @@ func (g *apiGenerator) header() {
 	g.line("// It is provided as-is with no warranty. Scampi's license does not")
 	g.line("// apply to generated output. If the source specification carries its")
 	g.line("// own license terms, those terms govern this file.")
-	modName := g.moduleName
-	if modName == "" {
-		modName = strings.TrimSuffix(filepath.Base(g.specPath), filepath.Ext(g.specPath))
-		modName = sanitizePath(modName)
+	g.resolvedName = g.moduleName
+	if g.resolvedName == "" {
+		g.resolvedName = strings.TrimSuffix(filepath.Base(g.specPath), filepath.Ext(g.specPath))
+		g.resolvedName = sanitizePath(g.resolvedName)
 	}
 	g.line("")
-	g.line("module %s", modName)
+	g.line("module %s", g.resolvedName)
 	g.line("")
 	g.line(`import "std"`)
 	g.line(`import "std/rest"`)
@@ -271,6 +338,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 	if funcName == "" {
 		funcName = strings.ToLower(method) + "_" + sanitizePath(path)
 	}
+	funcName = escapeKeyword(funcName)
 
 	params := buildParams(op, method)
 
@@ -295,6 +363,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 	if body := params.allBody(); len(body) > 0 {
 		top.hasSampleBody = true
 		top.sampleBodyName = body[0].apiName
+		top.sampleParamName = body[0].paramName
 	}
 	g.ops = append(g.ops, top)
 
@@ -378,7 +447,7 @@ func (p *opParams) allBody() []field {
 func (p *opParams) allTyped() []string {
 	var out []string
 	for _, name := range p.pathParams {
-		out = append(out, name+": string")
+		out = append(out, escapeKeyword(name)+": string")
 	}
 	for _, f := range p.required {
 		out = append(out, f.paramName+": string? = none")
@@ -399,10 +468,11 @@ func buildParams(op *openapi3.Operation, method string) opParams {
 	toFields := func(names []string) []field {
 		fields := make([]field, len(names))
 		for i, name := range names {
-			pn := name
-			if slices.Contains(pathParams, name) {
-				pn = "body_" + name
+			pn := toSnakeCase(name)
+			if slices.Contains(pathParams, pn) {
+				pn = "body_" + pn
 			}
+			pn = escapeKeyword(pn)
 			fields[i] = field{apiName: name, paramName: pn}
 		}
 		return fields
@@ -558,10 +628,12 @@ func interpolatePathParams(path string, params []string) string {
 	}
 
 	// Build replacement expression by splitting on each {param}.
+	// The path template uses the API name ({type}), but the emitted
+	// scampi variable uses the escaped name (type_).
 	result := path
 	for _, p := range params {
 		placeholder := "{" + p + "}"
-		result = strings.Replace(result, placeholder, "\x00"+p+"\x00", 1)
+		result = strings.Replace(result, placeholder, "\x00"+escapeKeyword(p)+"\x00", 1)
 	}
 
 	// Split on the sentinel and build scampi string concatenation.
@@ -611,15 +683,15 @@ func cleanPathPrefix(raw string) string {
 // -----------------------------------------------------------------------------
 
 // writeTest emits a companion *_test.scampi file that exercises every
-// generated function against a rest_mock. The test file imports the
-// generated module, constructs a mock with canned routes, calls each
-// endpoint, and verifies the expected requests were made.
+// generated function against a rest_mock. The test file declares the
+// same module as the generated API (same-package visibility) and calls
+// each function by bare name.
 func (g *apiGenerator) writeTest(w io.Writer) {
 	t := &testWriter{w: w}
 	t.line("// Auto-generated smoke test")
-	t.line("// Verifies each endpoint sends the expected method and path.")
+	t.line("// Verifies each generated function sends the expected method and path.")
 	t.line("")
-	t.line("module main")
+	t.line("module %s", g.resolvedName)
 	t.line("")
 	t.line("import \"std\"")
 	t.line("import \"std/rest\"")
@@ -655,27 +727,20 @@ func (g *apiGenerator) writeTest(w io.Writer) {
 	t.line(")")
 	t.line("")
 
-	// Deploy block with inline rest.request steps — self-contained,
-	// no module import needed. Tests the request shapes directly
-	// rather than calling the generated wrapper functions.
+	// Deploy block calling generated functions by bare name.
 	t.line("std.deploy(name = \"smoke\", targets = [api]) {")
 	for _, op := range g.ops {
-		sample := samplePath(op)
-		if op.hasSampleBody {
-			t.line("  rest.request {")
-			t.line("    method = \"%s\"", op.method)
-			t.line("    path   = \"%s\"", sample)
-			t.line("    body   = rest.body_json { data = { \"%s\": \"test\" } }", op.sampleBodyName)
-			t.line("  }")
-		} else {
-			t.line("  rest.request {")
-			t.line("    method = \"%s\"", op.method)
-			t.line("    path   = \"%s\"", sample)
-			if op.method == "GET" {
-				t.line("    check  = rest.status { code = 200 }")
-			}
-			t.line("  }")
+		t.line("  %s(", op.funcName)
+		for _, p := range op.pathParams {
+			t.line("    %s = \"1\",", escapeKeyword(p))
 		}
+		if op.hasSampleBody {
+			t.line("    %s = \"test\",", op.sampleParamName)
+		}
+		if op.method == "GET" {
+			t.line("    check = rest.status { code = 200 },")
+		}
+		t.line("  )")
 	}
 	t.line("}")
 	t.line("")
@@ -709,6 +774,36 @@ func defaultStatus(method string) int {
 	default:
 		return 200
 	}
+}
+
+// keywordReplacements maps scampi keywords to readable alternatives.
+var keywordReplacements = map[string]string{
+	"module": "mod",
+	"import": "imp",
+	"let":    "val",
+	"func":   "fn",
+	"decl":   "declaration",
+	"type":   "typ",
+	"enum":   "enm",
+	"for":    "iter",
+	"in":     "within",
+	"if":     "cond",
+	"else":   "alt",
+	"return": "ret",
+	"true":   "yes",
+	"false":  "no",
+	"none":   "nil_val",
+	"self":   "this",
+	"pub":    "public",
+}
+
+// escapeKeyword replaces names that collide with scampi keywords
+// using a hand-picked table of readable alternatives.
+func escapeKeyword(name string) string {
+	if r, ok := keywordReplacements[name]; ok {
+		return r
+	}
+	return name
 }
 
 func toSnakeCase(s string) string {
