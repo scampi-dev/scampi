@@ -70,17 +70,22 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 		modName = f.Module.Name.Name
 	}
 	var siblingMods []eval.UserModule
+	var brokenSiblings []brokenSibling
 	c := check.New(modules)
 	if modName != "main" {
-		siblings := loadSiblingDecls(cfgPath, modName, modules)
+		siblings, broken := loadSiblingDecls(cfgPath, modName, modules)
+		brokenSiblings = append(brokenSiblings, broken...)
 		if siblings != nil {
 			c.WithScope(siblings)
 		}
-		siblingMods = loadSiblingUserModules(cfgPath, modName, modules)
+		var broken2 []brokenSibling
+		siblingMods, broken2 = loadSiblingUserModules(cfgPath, modName, modules)
+		brokenSiblings = append(brokenSiblings, broken2...)
 	}
 	c.Check(f)
 	if checkErrs := c.Errors(); len(checkErrs) > 0 {
-		return nil, wrapLangErrors(checkErrs, cfgPath, data)
+		wrapped := wrapLangErrors(checkErrs, cfgPath, data)
+		return nil, prependBrokenSiblings(wrapped, brokenSiblings)
 	}
 
 	// Evaluate with secret backend builtins registered so

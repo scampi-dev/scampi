@@ -3,6 +3,8 @@
 package linker
 
 import (
+	"errors"
+
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
@@ -95,6 +97,40 @@ func wrapLangError(err error, cfgPath string, source []byte) error {
 		hint: hint,
 		src:  span,
 	}
+}
+
+// prependBrokenSiblings adds broken-sibling diagnostics to the front
+// of an existing error so the user sees why symbols are missing.
+func prependBrokenSiblings(err error, broken []brokenSibling) error {
+	if len(broken) == 0 {
+		return err
+	}
+	// Deduplicate by path (both loaders may report the same file).
+	seen := map[string]bool{}
+	var diags diagnostic.Diagnostics
+	for _, b := range broken {
+		if seen[b.path] {
+			continue
+		}
+		seen[b.path] = true
+		diags = append(diags, &langDiagnostic{
+			code: CodeBrokenSibling,
+			msg:  "sibling file " + b.path + " has errors and was skipped",
+			hint: b.firstErr,
+			src:  &spec.SourceSpan{Filename: b.path},
+		})
+	}
+	// Append original error(s) after the broken-sibling diagnostics.
+	var origDiags diagnostic.Diagnostics
+	if errors.As(err, &origDiags) {
+		diags = append(diags, origDiags...)
+	} else {
+		var d diagnostic.Diagnostic
+		if errors.As(err, &d) {
+			diags = append(diags, d)
+		}
+	}
+	return diags
 }
 
 func offsetToLineCol(src []byte, offset int) (line, col int) {

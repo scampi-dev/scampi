@@ -12,4 +12,5 @@ const (
 	CodeNonLiteralAttributeArg errs.Code = "linker.NonLiteralAttributeArg"
 	CodeSecretKeyNotFound      errs.Code = "linker.SecretKeyNotFound"
 	CodeSecretKeyLookupFailed  errs.Code = "linker.SecretKeyLookupFailed"
+	CodeBrokenSibling          errs.Code = "linker.BrokenSibling"
 )

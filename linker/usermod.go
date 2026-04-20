@@ -234,18 +234,25 @@ func loadMultiFileModule(
 // that declare the same module name. Returns a pre-populated scope
 // with their forward declarations so the caller's Check sees them.
 // Returns nil if there are no siblings (single-file module).
+// brokenSibling records a sibling file that was skipped due to errors.
+type brokenSibling struct {
+	path     string
+	firstErr string
+}
+
 func loadSiblingDecls(
 	cfgPath string,
 	modName string,
 	modules map[string]*check.Scope,
-) *check.Scope {
+) (*check.Scope, []brokenSibling) {
 	dir := filepath.Dir(cfgPath)
 	base := filepath.Base(cfgPath)
 	siblings := readModuleDir(dir)
 	if len(siblings) == 0 {
-		return nil
+		return nil, nil
 	}
 
+	var broken []brokenSibling
 	scope := check.NewScope(nil, check.ScopeFile)
 	for _, mf := range siblings {
 		if filepath.Base(mf.Path) == base {
@@ -257,14 +264,19 @@ func loadSiblingDecls(
 		if f == nil || f.Module == nil || f.Module.Name.Name != modName {
 			continue
 		}
-		if l.Errors() != nil || p.Errors() != nil {
+		if errs := l.Errors(); len(errs) > 0 {
+			broken = append(broken, brokenSibling{path: mf.Path, firstErr: errs[0].Error()})
+			continue
+		}
+		if errs := p.Errors(); len(errs) > 0 {
+			broken = append(broken, brokenSibling{path: mf.Path, firstErr: errs[0].Error()})
 			continue
 		}
 		c := check.New(modules)
 		c.WithScope(scope)
 		c.RegisterForwardDecls(f)
 	}
-	return scope
+	return scope, broken
 }
 
 // loadSiblingUserModules builds eval.UserModule entries for sibling
@@ -276,12 +288,13 @@ func loadSiblingUserModules(
 	cfgPath string,
 	modName string,
 	modules map[string]*check.Scope,
-) []eval.UserModule {
+) ([]eval.UserModule, []brokenSibling) {
 	dir := filepath.Dir(cfgPath)
 	base := filepath.Base(cfgPath)
 	siblings := readModuleDir(dir)
 
 	var result []eval.UserModule
+	var broken []brokenSibling
 	for _, mf := range siblings {
 		if filepath.Base(mf.Path) == base {
 			continue
@@ -292,12 +305,18 @@ func loadSiblingUserModules(
 		if f == nil || f.Module == nil || f.Module.Name.Name != modName {
 			continue
 		}
-		if l.Errors() != nil || p.Errors() != nil {
+		if errs := l.Errors(); len(errs) > 0 {
+			broken = append(broken, brokenSibling{path: mf.Path, firstErr: errs[0].Error()})
+			continue
+		}
+		if errs := p.Errors(); len(errs) > 0 {
+			broken = append(broken, brokenSibling{path: mf.Path, firstErr: errs[0].Error()})
 			continue
 		}
 		c := check.New(modules)
 		c.Check(f)
-		if c.Errors() != nil {
+		if cErrs := c.Errors(); len(cErrs) > 0 {
+			broken = append(broken, brokenSibling{path: mf.Path, firstErr: cErrs[0].Msg})
 			continue
 		}
 		result = append(result, eval.UserModule{
@@ -306,7 +325,7 @@ func loadSiblingUserModules(
 			Source: mf.Data,
 		})
 	}
-	return result
+	return result, broken
 }
 
 // findModFile walks up from cfgPath looking for a scampi.mod file.

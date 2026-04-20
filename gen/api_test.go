@@ -23,3 +23,32 @@ func TestKeywordReplacementsAreNotKeywords(t *testing.T) {
 		}
 	}
 }
+
+func TestEscapeKeywordDigitPrefix(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"6e_channel_size", "_6e_channel_size"},
+		{"0rtt", "_0rtt"},
+		{"name", "name"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		if got := escapeKeyword(tt.in); got != tt.want {
+			t.Errorf("escapeKeyword(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestToSnakeCaseHyphens(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"static-route_distance", "static_route_distance"},
+		{"camelCase", "camel_case"},
+		{"already_snake", "already_snake"},
+		{"x-forwarded-for", "x_forwarded_for"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		if got := toSnakeCase(tt.in); got != tt.want {
+			t.Errorf("toSnakeCase(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}

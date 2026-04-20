@@ -798,10 +798,14 @@ var keywordReplacements = map[string]string{
 }
 
 // escapeKeyword replaces names that collide with scampi keywords
-// using a hand-picked table of readable alternatives.
+// using a hand-picked table of readable alternatives, and prefixes
+// identifiers that start with a digit (e.g. "6e_channel" → "_6e_channel").
 func escapeKeyword(name string) string {
 	if r, ok := keywordReplacements[name]; ok {
 		return r
+	}
+	if len(name) > 0 && name[0] >= '0' && name[0] <= '9' {
+		return "_" + name
 	}
 	return name
 }
@@ -817,6 +821,8 @@ func toSnakeCase(s string) string {
 				buf.WriteByte('_')
 			}
 			buf.WriteRune(r + ('a' - 'A'))
+		} else if r == '-' {
+			buf.WriteByte('_')
 		} else {
 			buf.WriteRune(r)
 		}

@@ -18,7 +18,7 @@ type ScopeKind uint8
 const (
 	ScopeFile  ScopeKind = iota // top-level file scope
 	ScopeFunc                   // inside a func body — mutation allowed
-	ScopeDecl                   // inside a step body — frozen
+	ScopeDecl                   // inside a step body
 	ScopeBlock                  // for/if/else block — inherits parent kind
 )
 
@@ -113,10 +113,10 @@ func (s *Scope) AllImports() []*Symbol {
 }
 
 // AllowsMutation reports whether this scope (or an enclosing one)
-// permits collection mutation. Only func-body scopes allow it.
+// permits collection mutation. Func and decl body scopes allow it.
 func (s *Scope) AllowsMutation() bool {
 	switch s.kind {
-	case ScopeFunc:
+	case ScopeFunc, ScopeDecl:
 		return true
 	case ScopeBlock:
 		if s.parent != nil {

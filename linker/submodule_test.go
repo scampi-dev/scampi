@@ -186,3 +186,44 @@ pub func greet() string { return "hi" }
 		t.Fatal("nested submodule not registered under full path")
 	}
 }
+
+func TestBrokenSiblingReportedInDiagnostic(t *testing.T) {
+	dir := t.TempDir()
+
+	// Good file references a function defined in the broken sibling.
+	writeFile(t, filepath.Join(dir, "good.scampi"), []byte(`
+module mylib
+import "std"
+import "std/rest"
+
+pub decl fetch() std.Step {
+  return helper()
+}
+`))
+
+	// Broken sibling — has a lex error (digit-prefixed identifier).
+	writeFile(t, filepath.Join(dir, "broken.scampi"), []byte(`
+module mylib
+import "std"
+import "std/rest"
+
+func helper() std.Step {
+  let 6bad = 1
+  return rest.request("GET", "/api")
+}
+`))
+
+	modules, _ := check.BootstrapModules(std.FS)
+	goodPath := filepath.Join(dir, "good.scampi")
+
+	_, broken := loadSiblingDecls(goodPath, "mylib", modules)
+	if len(broken) == 0 {
+		t.Fatal("expected broken sibling to be reported")
+	}
+	if broken[0].path != filepath.Join(dir, "broken.scampi") {
+		t.Errorf("broken path = %q, want broken.scampi", broken[0].path)
+	}
+	if broken[0].firstErr == "" {
+		t.Error("broken sibling should carry the first error message")
+	}
+}

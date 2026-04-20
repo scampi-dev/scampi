@@ -858,9 +858,32 @@ func TestScopeMutability(t *testing.T) {
 	if !block.AllowsMutation() {
 		t.Error("block inside func should allow mutation")
 	}
-	if step.AllowsMutation() {
-		t.Error("step scope should not allow mutation")
+	if !step.AllowsMutation() {
+		t.Error("decl scope should allow mutation")
 	}
+}
+
+func TestDeclBodyAllowsMutation(t *testing.T) {
+	expectNoErrors(t, `
+module main
+
+func helper() string { return "x" }
+
+decl build(name: string) string {
+  let m = {"key": "val"}
+  m["extra"] = name
+  return helper()
+}
+`)
+}
+
+func TestFileScopeBlocksMutation(t *testing.T) {
+	expectError(t, `
+module main
+
+let m = {"key": "val"}
+m["extra"] = "nope"
+`, "mutation not allowed")
 }
 
 // Duplicate field declarations

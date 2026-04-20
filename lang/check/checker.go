@@ -182,7 +182,7 @@ func (c *Checker) enter(n ast.Node) bool {
 
 	case *ast.AssignStmt:
 		if !c.scope.AllowsMutation() {
-			c.errAt(n.SrcSpan, CodeMutationOutside, "mutation not allowed outside func bodies")
+			c.errAt(n.SrcSpan, CodeMutationOutside, "mutation not allowed outside func/decl bodies")
 		}
 		c.typeOf(n.Target)
 		c.typeOf(n.Value)
