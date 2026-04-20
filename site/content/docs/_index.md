@@ -19,4 +19,5 @@ reality match.
   {{< card link="language" title="Language" subtitle="Modules, types, decl calls, trailing blocks — the language at a glance" >}}
   {{< card link="configuration" title="Configuration" subtitle="Deploy blocks, source resolvers, secrets, and project layout" >}}
   {{< card link="steps" title="Step Reference" subtitle="Every built-in step type, with fields and examples" >}}
+  {{< card link="reference" title="Quick Reference" subtitle="Single-page cheatsheet: syntax, steps, enums, and built-ins" >}}
 {{< /cards >}}
