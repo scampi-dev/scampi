@@ -4,7 +4,9 @@ package integration
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -31,12 +33,13 @@ func TestGenAPI(t *testing.T) {
 			expectJSONPath := filepath.Join(dir, "expected.json")
 
 			expect := harness.LoadExpected(t, expectJSONPath)
+			opts := loadGenOpts(t, expectJSONPath)
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
 			var buf bytes.Buffer
-			err := gen.API(specPath, "test", &buf, em, gen.APIOptions{})
+			err := gen.API(specPath, "test", &buf, em, opts)
 
 			if expect.Abort {
 				var abort engine.AbortError
@@ -73,4 +76,25 @@ func findGenSpec(t *testing.T, dir string) string {
 	}
 	t.Fatalf("no spec.yaml or spec.json in %s", dir)
 	return ""
+}
+
+// loadGenOpts reads gen-api options from the expected.json file. The
+// "options" key is optional; tests without it get default APIOptions.
+func loadGenOpts(t *testing.T, path string) gen.APIOptions {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return gen.APIOptions{}
+	}
+	var raw struct {
+		Options struct {
+			NamePrefix string `json:"name_prefix"`
+		} `json:"options"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return gen.APIOptions{}
+	}
+	return gen.APIOptions{
+		NamePrefix: raw.Options.NamePrefix,
+	}
 }

@@ -216,7 +216,7 @@ func helper() std.Step {
 	modules, _ := check.BootstrapModules(std.FS)
 	goodPath := filepath.Join(dir, "good.scampi")
 
-	_, broken := loadSiblingDecls(goodPath, "mylib", modules)
+	_, broken, _ := loadSiblingDecls(goodPath, "mylib", modules)
 	if len(broken) == 0 {
 		t.Fatal("expected broken sibling to be reported")
 	}

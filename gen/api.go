@@ -31,6 +31,7 @@ import (
 // APIOptions configures code generation behavior.
 type APIOptions struct {
 	PathPrefix string    // prepended to all generated route paths
+	NamePrefix string    // prepended to all generated function names
 	ModuleName string    // override the module declaration name (default: derived from spec filename)
 	NoTest     bool      // skip generating the companion *_test.scampi file
 	TestWriter io.Writer // if set, write test output here instead of to disk
@@ -62,6 +63,7 @@ func API(specPath string, scampiVersion string, w io.Writer, em diagnostic.Emitt
 	g := &apiGenerator{
 		w: &buf, doc: doc, specPath: specPath,
 		scampiVersion: scampiVersion, pathPrefix: prefix,
+		namePrefix: opts.NamePrefix,
 		moduleName: opts.ModuleName,
 	}
 	if err := g.generate(); err != nil {
@@ -274,6 +276,7 @@ type apiGenerator struct {
 	specPath      string
 	scampiVersion string
 	pathPrefix    string
+	namePrefix    string   // prepended to generated function names
 	moduleName    string   // explicit module name (empty = derive from spec)
 	resolvedName  string   // final module name after derivation
 	ops           []testOp // collected during generation for test emission
@@ -338,6 +341,7 @@ func (g *apiGenerator) writeOperation(path, method string, op *openapi3.Operatio
 	if funcName == "" {
 		funcName = strings.ToLower(method) + "_" + sanitizePath(path)
 	}
+	funcName = g.namePrefix + funcName
 	funcName = escapeKeyword(funcName)
 
 	params := buildParams(op, method)

@@ -328,37 +328,47 @@ func (c *Checker) registerDecl(d ast.Decl) {
 		} else {
 			t = &StructType{Name: d.Name.Name}
 		}
-		c.scope.Define(&Symbol{
+		if !c.scope.Define(&Symbol{
 			Name: d.Name.Name, Type: t, Kind: SymType,
 			IsPublic: d.Public || isMain, Span: d.SrcSpan,
-		})
+		}) {
+			c.errAt(d.SrcSpan, CodeDuplicateSymbol, "duplicate type: "+d.Name.Name)
+		}
 	case *ast.AttrTypeDecl:
-		c.scope.Define(&Symbol{
+		if !c.scope.Define(&Symbol{
 			Name: "@" + d.Name.Name,
 			Type: &AttrType{Name: d.Name.Name, Doc: d.Doc},
 			Kind: SymAttrType, IsPublic: true,
 			Span: d.SrcSpan,
-		})
+		}) {
+			c.errAt(d.SrcSpan, CodeDuplicateSymbol, "duplicate attribute type: @"+d.Name.Name)
+		}
 	case *ast.EnumDecl:
 		var variants []string
 		for _, v := range d.Variants {
 			variants = append(variants, v.Name)
 		}
-		c.scope.Define(&Symbol{
+		if !c.scope.Define(&Symbol{
 			Name: d.Name.Name,
 			Type: &EnumType{Name: d.Name.Name, Variants: variants},
 			Kind: SymEnum, IsPublic: d.Public || isMain, Span: d.SrcSpan,
-		})
+		}) {
+			c.errAt(d.SrcSpan, CodeDuplicateSymbol, "duplicate enum: "+d.Name.Name)
+		}
 	case *ast.FuncDecl:
-		c.scope.Define(&Symbol{
+		if !c.scope.Define(&Symbol{
 			Name: d.Name.Name, Kind: SymFunc,
 			IsPublic: d.Public || isMain, Span: d.SrcSpan,
-		})
+		}) {
+			c.errAt(d.SrcSpan, CodeDuplicateSymbol, "duplicate func: "+d.Name.Name)
+		}
 	case *ast.DeclDecl:
-		c.scope.Define(&Symbol{
+		if !c.scope.Define(&Symbol{
 			Name: d.Name.Parts[0].Name, Kind: SymDecl,
 			IsPublic: d.Public || isMain, Span: d.SrcSpan,
-		})
+		}) {
+			c.errAt(d.SrcSpan, CodeDuplicateSymbol, "duplicate decl: "+d.Name.Parts[0].Name)
+		}
 	case *ast.LetDecl:
 		if !c.scope.Define(&Symbol{
 			Name: d.Name.Name, Kind: SymLet,

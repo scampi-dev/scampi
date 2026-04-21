@@ -1,0 +1,28 @@
+openapi: "3.0.3"
+info:
+  title: Prefix Test
+  version: "1.0"
+paths:
+  /items:
+    get:
+      operationId: listItems
+      summary: List items
+      responses:
+        "200":
+          description: ok
+    post:
+      operationId: createItem
+      summary: Create an item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: created

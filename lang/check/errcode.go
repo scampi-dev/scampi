@@ -21,6 +21,7 @@ const (
 	CodeReturnTypeMismatch errs.Code = "lang.ReturnTypeMismatch"
 	CodeLetTypeMismatch    errs.Code = "lang.LetTypeMismatch"
 	CodeDuplicateLet       errs.Code = "lang.DuplicateLet"
+	CodeDuplicateSymbol    errs.Code = "lang.DuplicateSymbol"
 	CodeNotAModule         errs.Code = "lang.NotAModule"
 	CodeModuleMemberUndef  errs.Code = "lang.ModuleMemberUndef"
 	CodeNoField            errs.Code = "lang.NoField"

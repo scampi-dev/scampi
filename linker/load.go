@@ -73,7 +73,10 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 	var brokenSiblings []brokenSibling
 	c := check.New(modules)
 	if modName != "main" {
-		siblings, broken := loadSiblingDecls(cfgPath, modName, modules)
+		siblings, broken, dupeErr := loadSiblingDecls(cfgPath, modName, modules)
+		if dupeErr != nil {
+			return nil, dupeErr
+		}
 		brokenSiblings = append(brokenSiblings, broken...)
 		if siblings != nil {
 			c.WithScope(siblings)

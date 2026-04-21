@@ -244,12 +244,12 @@ func loadSiblingDecls(
 	cfgPath string,
 	modName string,
 	modules map[string]*check.Scope,
-) (*check.Scope, []brokenSibling) {
+) (*check.Scope, []brokenSibling, error) {
 	dir := filepath.Dir(cfgPath)
 	base := filepath.Base(cfgPath)
 	siblings := readModuleDir(dir)
 	if len(siblings) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	var broken []brokenSibling
@@ -275,8 +275,11 @@ func loadSiblingDecls(
 		c := check.New(modules)
 		c.WithScope(scope)
 		c.RegisterForwardDecls(f)
+		if cErrs := c.Errors(); len(cErrs) > 0 {
+			return nil, nil, wrapLangErrors(cErrs, mf.Path, mf.Data)
+		}
 	}
-	return scope, broken
+	return scope, broken, nil
 }
 
 // loadSiblingUserModules builds eval.UserModule entries for sibling
