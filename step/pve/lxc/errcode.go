@@ -10,6 +10,7 @@ const (
 	CodeUnsupportedState errs.Code = "step.pve.lxc.UnsupportedState"
 	CodeTemplateNotFound errs.Code = "step.pve.lxc.TemplateNotFound"
 	CodeSizeTruncated    errs.Code = "step.pve.lxc.SizeTruncated"
+	CodeSSHKeysSkipped   errs.Code = "step.pve.lxc.SSHKeysSkipped"
 	CodeNodeMismatch     errs.Code = "step.pve.lxc.NodeMismatch"
 	CodeImmutableField   errs.Code = "step.pve.lxc.ImmutableField"
 	CodeResizeShrink     errs.Code = "step.pve.lxc.ResizeShrink"

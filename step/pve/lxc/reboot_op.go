@@ -19,9 +19,8 @@ const rebootLxcID = "step.pve.lxc.reboot"
 
 type rebootLxcOp struct {
 	sharedops.BaseOp
-	id       int
+	pveCmd
 	hostname string
-	step     spec.StepInstance
 }
 
 func (op *rebootLxcOp) Check(
@@ -33,8 +32,10 @@ func (op *rebootLxcOp) Check(
 	return op.checkWith(ctx, cmdr)
 }
 
-func (op *rebootLxcOp) checkWith(ctx context.Context, cmdr target.Command) (spec.CheckResult, []spec.DriftDetail, error) {
-	// If the container isn't running, no reboot needed.
+func (op *rebootLxcOp) checkWith(
+	ctx context.Context,
+	cmdr target.Command,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("pct status %d", op.id))
 	if err != nil || result.ExitCode != 0 {
 		return spec.CheckSatisfied, nil, nil
@@ -45,8 +46,6 @@ func (op *rebootLxcOp) checkWith(ctx context.Context, cmdr target.Command) (spec
 
 	var drift []spec.DriftDetail
 
-	// Hostname is "fast-plug" — config updates immediately but the
-	// running OS doesn't pick it up until reboot.
 	result, err = cmdr.RunPrivileged(ctx, fmt.Sprintf("pct exec %d -- hostname", op.id))
 	if err == nil && result.ExitCode == 0 {
 		running := strings.TrimSpace(result.Stdout)
@@ -72,19 +71,15 @@ func (op *rebootLxcOp) Execute(
 ) (spec.Result, error) {
 	cmdr := target.Must[target.Command](rebootLxcID, tgt)
 
-	// Re-check: container may have been stopped by ensureLxcOp since Check ran.
+	// Re-check: container may have been stopped by stateLxcOp since Check ran.
 	result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("pct status %d", op.id))
 	if err == nil && parsePctStatus(result.Stdout) != stateRunning {
 		return spec.Result{}, nil
 	}
 
 	cmd := fmt.Sprintf("pct reboot %d --timeout 30", op.id)
-	result, err = cmdr.RunPrivileged(ctx, cmd)
-	if err != nil {
-		return spec.Result{}, op.cmdErr(err.Error())
-	}
-	if result.ExitCode != 0 {
-		return spec.Result{}, op.cmdErr(result.Stderr)
+	if err := op.runCmd(ctx, cmdr, "reboot", cmd); err != nil {
+		return spec.Result{}, err
 	}
 
 	if err := op.waitRunning(ctx, cmdr); err != nil {
@@ -94,8 +89,6 @@ func (op *rebootLxcOp) Execute(
 	return spec.Result{Changed: true}, nil
 }
 
-// waitRunning polls pct status until the container is running again after
-// reboot, or the context deadline expires.
 func (op *rebootLxcOp) waitRunning(ctx context.Context, cmdr target.Command) error {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
@@ -106,7 +99,7 @@ func (op *rebootLxcOp) waitRunning(ctx context.Context, cmdr target.Command) err
 	for {
 		select {
 		case <-ctx.Done():
-			return op.cmdErr("container did not come back after reboot within 60s")
+			return op.cmdErr("reboot", "container did not come back after reboot within 60s")
 		case <-ticker.C:
 			result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("pct status %d", op.id))
 			if err != nil || result.ExitCode != 0 {
@@ -116,15 +109,6 @@ func (op *rebootLxcOp) waitRunning(ctx context.Context, cmdr target.Command) err
 				return nil
 			}
 		}
-	}
-}
-
-func (op *rebootLxcOp) cmdErr(stderr string) CommandFailedError {
-	return CommandFailedError{
-		Op:     "reboot",
-		VMID:   op.id,
-		Stderr: stderr,
-		Source: op.step.Source,
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
@@ -258,9 +259,10 @@ func TestParsePVEKeys(t *testing.T) {
 			want:    nil,
 		},
 		{
-			name:    "PVE block with user keys outside",
-			content: "ssh-rsa manual-key\n# --- BEGIN PVE ---\nssh-rsa managed-key\n# --- END PVE ---\nssh-ed25519 another-manual\n",
-			want:    []string{"ssh-rsa managed-key"},
+			name: "PVE block with user keys outside",
+			content: "ssh-rsa manual-key\n# --- BEGIN PVE ---\n" +
+				"ssh-rsa managed-key\n# --- END PVE ---\nssh-ed25519 another-manual\n",
+			want: []string{"ssh-rsa managed-key"},
 		},
 		{
 			name:    "empty file",
@@ -323,11 +325,11 @@ func TestBuildAuthorizedKeys(t *testing.T) {
 
 func TestSSHKeyDrift(t *testing.T) {
 	tests := []struct {
-		name       string
-		desired    []string
-		catOutput  string
-		catFails   bool
-		wantDrift  bool
+		name      string
+		desired   []string
+		catOutput string
+		catFails  bool
+		wantDrift bool
 	}{
 		{
 			name:      "no keys desired, no file",
@@ -381,21 +383,23 @@ func TestSSHKeyDrift(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmdr := &mockCommand{handler: func(cmd string) (target.CommandResult, error) {
+			cmdr := &mockTarget{handler: func(cmd string) (target.CommandResult, error) {
 				switch {
-				case cmd == "pct status 100":
-					return target.CommandResult{Stdout: "status: running\n"}, nil
-				case strings.Contains(cmd, "cat /root/.ssh/authorized_keys"):
+				case strings.Contains(cmd, "pct pull"):
 					if tt.catFails {
 						return target.CommandResult{ExitCode: 1, Stderr: "No such file"}, nil
 					}
+					return target.CommandResult{}, nil
+				case strings.HasPrefix(cmd, "cat "):
 					return target.CommandResult{Stdout: tt.catOutput}, nil
+				case strings.HasPrefix(cmd, "rm "):
+					return target.CommandResult{}, nil
 				default:
 					return target.CommandResult{ExitCode: 1}, nil
 				}
 			}}
 
-			op := &ensureLxcOp{id: 100, sshPublicKeys: tt.desired}
+			op := &sshKeysLxcOp{pveCmd: pveCmd{id: 100}, sshPublicKeys: tt.desired}
 			d := op.sshKeyDrift(context.Background(), cmdr)
 			if tt.wantDrift && d == nil {
 				t.Error("expected drift, got nil")
@@ -404,6 +408,43 @@ func TestSSHKeyDrift(t *testing.T) {
 				t.Errorf("expected no drift, got %+v", d)
 			}
 		})
+	}
+}
+
+func TestSSHKeyDrift_StoppedContainer(t *testing.T) {
+	mock := &mockTarget{handler: func(cmd string) (target.CommandResult, error) {
+		switch {
+		case strings.Contains(cmd, "pct list"):
+			return target.CommandResult{
+				Stdout: "VMID       Status     Lock         Name\n" +
+					"100        stopped                 test\n",
+			}, nil
+		case cmd == "pct status 100":
+			return target.CommandResult{Stdout: "status: stopped\n"}, nil
+		default:
+			return target.CommandResult{ExitCode: 1}, nil
+		}
+	}}
+
+	op := &sshKeysLxcOp{
+		pveCmd:        pveCmd{id: 100},
+		sshPublicKeys: []string{"ssh-rsa AAAA..."},
+	}
+
+	// sshKeyDrift itself doesn't know about status — pct pull fails,
+	// keys are desired → it reports drift. This is the bug surface.
+	d := op.sshKeyDrift(context.Background(), mock)
+	if d == nil {
+		t.Fatal("sshKeyDrift should report drift when pull fails and keys desired")
+	}
+
+	// But Check guards on status — stopped container → satisfied, skip key management.
+	result, _, err := op.Check(context.Background(), nil, mock)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != spec.CheckSatisfied {
+		t.Errorf("Check on stopped container: got %v, want CheckSatisfied", result)
 	}
 }
 

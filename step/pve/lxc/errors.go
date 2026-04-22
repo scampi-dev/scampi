@@ -66,9 +66,10 @@ func (e TemplateNotFoundError) Error() string {
 
 func (e TemplateNotFoundError) EventTemplate() event.Template {
 	return event.Template{
-		ID:     CodeTemplateNotFound,
-		Text:   `template "{{.Template}}" not found`,
-		Hint:   `not on storage "{{.Storage}}" and not in pveam available — check the template name or upload it manually`,
+		ID:   CodeTemplateNotFound,
+		Text: `template "{{.Template}}" not found`,
+		Hint: `not on storage "{{.Storage}}" and not in pveam available` +
+			` — check the template name or upload it manually`,
 		Data:   e,
 		Source: &e.Source,
 	}
@@ -91,6 +92,26 @@ func (e SizeTruncatedWarning) EventTemplate() event.Template {
 		ID:     CodeSizeTruncated,
 		Text:   `size {{.Input}} truncated to {{.Rounded}} (PVE sizes are whole GiB)`,
 		Hint:   `use {{.Rounded}} or {{.Exact}} for precision`,
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+type SSHKeysSkippedWarning struct {
+	diagnostic.Warning
+	VMID   int
+	Source spec.SourceSpan
+}
+
+func (e SSHKeysSkippedWarning) Error() string {
+	return fmt.Sprintf("SSH keys skipped for VMID %d — container is not running", e.VMID)
+}
+
+func (e SSHKeysSkippedWarning) EventTemplate() event.Template {
+	return event.Template{
+		ID:     CodeSSHKeysSkipped,
+		Text:   `SSH keys skipped for VMID {{.VMID}} — container is not running`,
+		Hint:   "SSH keys can only be managed on running containers",
 		Data:   e,
 		Source: &e.Source,
 	}
@@ -126,7 +147,10 @@ type ImmutableFieldError struct {
 }
 
 func (e ImmutableFieldError) Error() string {
-	return fmt.Sprintf("pve.lxc field %q is immutable: %s → %s (destroy and recreate to change)", e.Field, e.Current, e.Desired)
+	return fmt.Sprintf(
+		"pve.lxc field %q is immutable: %s → %s (destroy and recreate to change)",
+		e.Field, e.Current, e.Desired,
+	)
 }
 
 func (e ImmutableFieldError) EventTemplate() event.Template {

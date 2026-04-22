@@ -58,7 +58,7 @@ fmt:
 lint severity='warning':
   go tool golangci-lint run
   go tool gomarklint
-  go test -run TestMarkdownTableAlignment ./test/rules/
+  go test -run 'TestMarkdownTableAlignment|TestFuncSignatureStyle|TestBareErrorBan' ./test/rules/
   shellcheck scripts/*.sh
   just license-check
   just _gopls-hints {{severity}}

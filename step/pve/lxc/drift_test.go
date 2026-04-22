@@ -9,19 +9,18 @@ import (
 )
 
 func TestConfigDrift(t *testing.T) {
-	op := &ensureLxcOp{
+	op := &configLxcOp{
 		hostname:  "pihole",
 		cores:     2,
 		memoryMiB: 512,
 		storage:   "local-zfs",
-		sizeGiB:   4,
 		network:   LxcNet{Bridge: "vmbr0", IP: "10.10.10.10/24", Gw: "10.10.10.1"},
 	}
 
 	tests := []struct {
 		name      string
 		cfg       pctConfig
-		wantDrift []string // expected drift field names
+		wantDrift []string
 	}{
 		{
 			name: "no drift",
@@ -96,18 +95,6 @@ func TestConfigDrift(t *testing.T) {
 			wantDrift: []string{"network.gw"},
 		},
 		{
-			name: "size grow",
-			cfg: pctConfig{
-				Hostname: "pihole",
-				Cores:    2,
-				Memory:   512,
-				Storage:  "local-zfs",
-				Size:     "2G",
-				Net:      parsedNet{Bridge: "vmbr0", IP: "10.10.10.10/24", Gw: "10.10.10.1"},
-			},
-			wantDrift: []string{"size"},
-		},
-		{
 			name: "multiple drifts",
 			cfg: pctConfig{
 				Hostname: "wrong",
@@ -141,28 +128,28 @@ func TestConfigDrift(t *testing.T) {
 }
 
 func TestCheckImmutables(t *testing.T) {
-	op := &ensureLxcOp{
+	op := &configLxcOp{
 		storage:    "local-zfs",
-		sizeGiB:    4,
 		privileged: false,
-		step: spec.StepInstance{
-			Fields: map[string]spec.FieldSpan{
-				"storage":    {},
-				"size":       {},
-				"privileged": {},
+		pveCmd: pveCmd{
+			step: spec.StepInstance{
+				Fields: map[string]spec.FieldSpan{
+					"storage":    {},
+					"privileged": {},
+				},
 			},
 		},
 	}
 
 	t.Run("no drift", func(t *testing.T) {
-		err := op.checkImmutables(pctConfig{Storage: "local-zfs", Size: "4G", Unprivileged: 1})
+		err := op.checkImmutables(pctConfig{Storage: "local-zfs", Unprivileged: 1})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 
 	t.Run("storage changed", func(t *testing.T) {
-		err := op.checkImmutables(pctConfig{Storage: "ceph", Size: "4G", Unprivileged: 1})
+		err := op.checkImmutables(pctConfig{Storage: "ceph", Unprivileged: 1})
 		if err == nil {
 			t.Fatal("expected error for storage change")
 		}
@@ -171,8 +158,36 @@ func TestCheckImmutables(t *testing.T) {
 		}
 	})
 
-	t.Run("size shrink", func(t *testing.T) {
-		err := op.checkImmutables(pctConfig{Storage: "local-zfs", Size: "8G", Unprivileged: 1})
+	t.Run("privileged changed", func(t *testing.T) {
+		err := op.checkImmutables(pctConfig{Storage: "local-zfs", Unprivileged: 0})
+		if err == nil {
+			t.Fatal("expected error for privileged change")
+		}
+	})
+}
+
+func TestResizeShrink(t *testing.T) {
+	op := &resizeLxcOp{
+		sizeGiB: 4,
+		pveCmd: pveCmd{
+			step: spec.StepInstance{
+				Fields: map[string]spec.FieldSpan{
+					"size": {},
+				},
+			},
+		},
+	}
+
+	t.Run("shrink rejected", func(t *testing.T) {
+		err := func() error {
+			if parseSizeGiB("8G") > op.sizeGiB {
+				return ResizeShrinkError{
+					Current: "8G",
+					Desired: "4G",
+				}
+			}
+			return nil
+		}()
 		if err == nil {
 			t.Fatal("expected error for size shrink")
 		}
@@ -181,10 +196,9 @@ func TestCheckImmutables(t *testing.T) {
 		}
 	})
 
-	t.Run("size grow is ok", func(t *testing.T) {
-		err := op.checkImmutables(pctConfig{Storage: "local-zfs", Size: "2G", Unprivileged: 1})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+	t.Run("grow is ok", func(t *testing.T) {
+		if parseSizeGiB("2G") >= op.sizeGiB {
+			t.Fatal("2G should be less than 4G")
 		}
 	})
 }

@@ -188,7 +188,7 @@ func parseNet0Value(val string) parsedNet {
 // buildSetCmd builds a `pct set` command for changed mutable fields.
 func buildSetCmd(vmid int, drift []spec.DriftDetail) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "pct set %d", vmid) //nolint:errcheck // strings.Builder never errors
+	_, _ = fmt.Fprintf(&b, "pct set %d", vmid)
 	for _, d := range drift {
 		switch d.Field {
 		case "cores":

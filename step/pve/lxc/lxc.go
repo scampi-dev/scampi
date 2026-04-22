@@ -77,7 +77,7 @@ type (
 		Privileged    bool         `step:"Run as privileged container (less secure)" default:"false"`
 		Network       LxcNet       `step:"Network configuration"`
 		Tags          []string     `step:"PVE tags" optional:"true"`
-		SshPublicKeys []string     `step:"SSH public keys for root" optional:"true"`
+		SSHPublicKeys []string     `step:"SSH public keys for root" optional:"true"`
 		Desc          string       `step:"Human-readable description" optional:"true"`
 	}
 	LxcTemplate struct {
@@ -129,7 +129,7 @@ func (LXC) Plan(step spec.StepInstance) (spec.Action, error) {
 		privileged:    cfg.Privileged,
 		network:       cfg.Network,
 		tags:          cfg.Tags,
-		sshPublicKeys: cfg.SshPublicKeys,
+		sshPublicKeys: cfg.SSHPublicKeys,
 		step:          step,
 	}
 	return act, warn // warn is nil or SizeTruncatedWarning (ImpactNone)
@@ -305,9 +305,10 @@ func (a *lxcAction) Desc() string { return a.desc }
 func (a *lxcAction) Kind() string { return "pve.lxc" }
 
 func (a *lxcAction) Ops() []spec.Op {
-	lxcOp := &ensureLxcOp{
-		id:            a.id,
-		node:          a.node,
+	cmd := pveCmd{id: a.id, step: a.step}
+
+	createOp := &createLxcOp{
+		pveCmd:        cmd,
 		template:      a.template,
 		hostname:      a.hostname,
 		state:         a.state,
@@ -320,13 +321,12 @@ func (a *lxcAction) Ops() []spec.Op {
 		network:       a.network,
 		tags:          a.tags,
 		sshPublicKeys: a.sshPublicKeys,
-		step:          a.step,
 	}
-	lxcOp.SetAction(a)
+	createOp.SetAction(a)
 
-	// Absent: just the ensure op (shutdown + destroy). No download or reboot.
+	// Absent: just create op (which handles destroy).
 	if a.state == StateAbsent {
-		return []spec.Op{lxcOp}
+		return []spec.Op{createOp}
 	}
 
 	dlOp := &downloadTemplateOp{
@@ -334,15 +334,59 @@ func (a *lxcAction) Ops() []spec.Op {
 		step:     a.step,
 	}
 	dlOp.SetAction(a)
-	lxcOp.AddDependency(dlOp)
+	createOp.AddDependency(dlOp)
 
+	// Config, resize, SSH keys — run in parallel, all depend on create.
+	cfgOp := &configLxcOp{
+		pveCmd:     cmd,
+		node:       a.node,
+		hostname:   a.hostname,
+		cores:      a.cores,
+		memoryMiB:  a.memoryMiB,
+		swapMiB:    a.swapMiB,
+		storage:    a.storage,
+		privileged: a.privileged,
+		network:    a.network,
+		tags:       a.tags,
+	}
+	cfgOp.SetAction(a)
+	cfgOp.AddDependency(createOp)
+
+	resizeOp := &resizeLxcOp{
+		pveCmd:  cmd,
+		sizeGiB: a.sizeGiB,
+	}
+	resizeOp.SetAction(a)
+	resizeOp.AddDependency(createOp)
+
+	keysOp := &sshKeysLxcOp{
+		pveCmd:        cmd,
+		sshPublicKeys: a.sshPublicKeys,
+	}
+	keysOp.SetAction(a)
+	keysOp.AddDependency(createOp)
+
+	// Reboot depends on config (hostname changes need reboot).
 	rebootOp := &rebootLxcOp{
-		id:       a.id,
+		pveCmd:   cmd,
 		hostname: a.hostname,
-		step:     a.step,
 	}
 	rebootOp.SetAction(a)
-	rebootOp.AddDependency(lxcOp)
+	rebootOp.AddDependency(cfgOp)
 
-	return []spec.Op{dlOp, lxcOp, rebootOp}
+	// State depends on config, resize, reboot — runs after those settle.
+	stOp := &stateLxcOp{
+		pveCmd: cmd,
+		state:  a.state,
+	}
+	stOp.SetAction(a)
+	stOp.AddDependency(cfgOp)
+	stOp.AddDependency(resizeOp)
+	stOp.AddDependency(rebootOp)
+
+	// SSH keys need a running container (pct exec/push).
+	// Depends on state so the container is started first.
+	keysOp.AddDependency(stOp)
+
+	return []spec.Op{dlOp, createOp, cfgOp, resizeOp, rebootOp, stOp, keysOp}
 }

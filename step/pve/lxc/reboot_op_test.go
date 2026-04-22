@@ -6,35 +6,41 @@ import (
 	"context"
 	"testing"
 
+	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
-type mockCommand struct {
+// mockTarget implements target.Target + target.Command for testing ops.
+type mockTarget struct {
 	handler func(cmd string) (target.CommandResult, error)
 }
 
-func (m *mockCommand) RunCommand(_ context.Context, cmd string) (target.CommandResult, error) {
+func (m *mockTarget) Capabilities() capability.Capability {
+	return capability.PVE | capability.Command
+}
+
+func (m *mockTarget) RunCommand(_ context.Context, cmd string) (target.CommandResult, error) {
 	return m.handler(cmd)
 }
 
-func (m *mockCommand) RunPrivileged(_ context.Context, cmd string) (target.CommandResult, error) {
+func (m *mockTarget) RunPrivileged(_ context.Context, cmd string) (target.CommandResult, error) {
 	return m.handler(cmd)
 }
 
 func TestRebootOpCheck_NoRebootNeeded(t *testing.T) {
-	cmdr := &mockCommand{handler: func(cmd string) (target.CommandResult, error) {
-		switch {
-		case cmd == "pct status 100":
+	cmdr := &mockTarget{handler: func(cmd string) (target.CommandResult, error) {
+		switch cmd {
+		case "pct status 100":
 			return target.CommandResult{Stdout: "status: running\n"}, nil
-		case cmd == "pct exec 100 -- hostname":
+		case "pct exec 100 -- hostname":
 			return target.CommandResult{Stdout: "pihole\n"}, nil
 		default:
 			return target.CommandResult{ExitCode: 1}, nil
 		}
 	}}
 
-	op := &rebootLxcOp{id: 100, hostname: "pihole"}
+	op := &rebootLxcOp{pveCmd: pveCmd{id: 100}, hostname: "pihole"}
 	result, drift, err := op.checkWith(context.Background(), cmdr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -48,18 +54,18 @@ func TestRebootOpCheck_NoRebootNeeded(t *testing.T) {
 }
 
 func TestRebootOpCheck_HostnameMismatch(t *testing.T) {
-	cmdr := &mockCommand{handler: func(cmd string) (target.CommandResult, error) {
-		switch {
-		case cmd == "pct status 100":
+	cmdr := &mockTarget{handler: func(cmd string) (target.CommandResult, error) {
+		switch cmd {
+		case "pct status 100":
 			return target.CommandResult{Stdout: "status: running\n"}, nil
-		case cmd == "pct exec 100 -- hostname":
+		case "pct exec 100 -- hostname":
 			return target.CommandResult{Stdout: "old-name\n"}, nil
 		default:
 			return target.CommandResult{ExitCode: 1}, nil
 		}
 	}}
 
-	op := &rebootLxcOp{id: 100, hostname: "pihole"}
+	op := &rebootLxcOp{pveCmd: pveCmd{id: 100}, hostname: "pihole"}
 	result, drift, err := op.checkWith(context.Background(), cmdr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -73,16 +79,16 @@ func TestRebootOpCheck_HostnameMismatch(t *testing.T) {
 }
 
 func TestRebootOpCheck_ContainerStopped(t *testing.T) {
-	cmdr := &mockCommand{handler: func(cmd string) (target.CommandResult, error) {
-		switch {
-		case cmd == "pct status 100":
+	cmdr := &mockTarget{handler: func(cmd string) (target.CommandResult, error) {
+		switch cmd {
+		case "pct status 100":
 			return target.CommandResult{Stdout: "status: stopped\n"}, nil
 		default:
 			return target.CommandResult{ExitCode: 1}, nil
 		}
 	}}
 
-	op := &rebootLxcOp{id: 100, hostname: "pihole"}
+	op := &rebootLxcOp{pveCmd: pveCmd{id: 100}, hostname: "pihole"}
 	result, _, err := op.checkWith(context.Background(), cmdr)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
