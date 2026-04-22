@@ -124,15 +124,17 @@ func TestFormatNet0(t *testing.T) {
 
 func TestBuildCreateCmd(t *testing.T) {
 	cfg := lxcAction{
-		id:        100,
-		node:      "pve1",
-		template:  &LxcTemplate{Storage: "local", Name: "debian-12-standard_12.7-1_amd64.tar.zst"},
-		hostname:  "pihole",
-		cores:     2,
-		memoryMiB: 512,
-		storage:   "local-zfs",
-		sizeGiB:   4,
-		network:   LxcNet{Bridge: "vmbr0", IP: "10.10.10.10/24", Gw: "10.10.10.1"},
+		id:         100,
+		node:       "pve1",
+		template:   &LxcTemplate{Storage: "local", Name: "debian-12-standard_12.7-1_amd64.tar.zst"},
+		hostname:   "pihole",
+		cores:      2,
+		memoryMiB:  512,
+		swapMiB:    512,
+		storage:    "local-zfs",
+		sizeGiB:    4,
+		privileged: true,
+		network:    LxcNet{Bridge: "vmbr0", IP: "10.10.10.10/24", Gw: "10.10.10.1"},
 	}
 
 	got := buildCreateCmd(cfg)
@@ -140,9 +142,10 @@ func TestBuildCreateCmd(t *testing.T) {
 		" --hostname pihole" +
 		" --cores 2" +
 		" --memory 512" +
+		" --swap 512" +
 		" --rootfs local-zfs:4" +
 		" --net0 name=eth0,bridge=vmbr0,ip=10.10.10.10/24,gw=10.10.10.1,type=veth" +
-		" --unprivileged 1" +
+		" --unprivileged 0" +
 		" --password yolo123"
 	if got != want {
 		t.Errorf("buildCreateCmd:\n got: %s\nwant: %s", got, want)

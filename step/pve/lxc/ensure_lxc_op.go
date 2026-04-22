@@ -19,17 +19,21 @@ const ensureLxcID = "step.pve.lxc"
 
 type ensureLxcOp struct {
 	sharedops.BaseOp
-	id        int
-	node      string
-	template  *LxcTemplate
-	hostname  string
-	state     State
-	cores     int
-	memoryMiB int
-	storage   string
-	sizeGiB   int
-	network   LxcNet
-	step      spec.StepInstance
+	id            int
+	node          string
+	template      *LxcTemplate
+	hostname      string
+	state         State
+	cores         int
+	memoryMiB     int
+	swapMiB       int
+	storage       string
+	sizeGiB       int
+	privileged    bool
+	network       LxcNet
+	tags          []string
+	sshPublicKeys []string
+	step          spec.StepInstance
 }
 
 func (op *ensureLxcOp) Check(
@@ -129,7 +133,7 @@ func (op *ensureLxcOp) Execute(
 	}
 
 	if !exists {
-		return op.executeCreate(ctx, cmdr)
+		return op.executeCreate(ctx, cmdr, tgt)
 	}
 
 	cfg, err := op.inspectConfig(ctx, cmdr)
@@ -250,6 +254,16 @@ func (op *ensureLxcOp) checkNode(ctx context.Context, cmdr target.Command) error
 }
 
 func (op *ensureLxcOp) checkImmutables(cfg pctConfig) error {
+	wantUnpriv := boolToInt(!op.privileged)
+	if cfg.Unprivileged != wantUnpriv {
+		return ImmutableFieldError{
+			Field:   "privileged",
+			Current: strconv.FormatBool(cfg.Unprivileged == 0),
+			Desired: strconv.FormatBool(op.privileged),
+			Source:  op.step.Fields["privileged"].Value,
+		}
+	}
+
 	if cfg.Storage != "" && cfg.Storage != op.storage {
 		return ImmutableFieldError{
 			Field:   "storage",
@@ -291,11 +305,35 @@ func (op *ensureLxcOp) configDrift(cfg pctConfig) []spec.DriftDetail {
 			Desired: strconv.Itoa(op.memoryMiB),
 		})
 	}
+	if cfg.Swap != 0 && cfg.Swap != op.swapMiB {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "swap",
+			Current: strconv.Itoa(cfg.Swap),
+			Desired: strconv.Itoa(op.swapMiB),
+		})
+	}
 	if cfg.Hostname != "" && cfg.Hostname != op.hostname {
 		drift = append(drift, spec.DriftDetail{
 			Field:   "hostname",
 			Current: cfg.Hostname,
 			Desired: op.hostname,
+		})
+	}
+
+	if cfg.Description != op.step.Desc {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "description",
+			Current: valueOrNone(cfg.Description),
+			Desired: valueOrNone(op.step.Desc),
+		})
+	}
+
+	desiredTags := strings.Join(op.tags, ";")
+	if cfg.Tags != desiredTags {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "tags",
+			Current: valueOrNone(cfg.Tags),
+			Desired: valueOrNone(desiredTags),
 		})
 	}
 
@@ -354,7 +392,7 @@ func filterSetDrift(drift []spec.DriftDetail) []spec.DriftDetail {
 	var set []spec.DriftDetail
 	for _, d := range drift {
 		switch d.Field {
-		case "cores", "memory", "hostname":
+		case "cores", "memory", "swap", "hostname", "tags", "description":
 			set = append(set, d)
 		}
 	}
@@ -415,9 +453,31 @@ func (op *ensureLxcOp) executeDestroy(ctx context.Context, cmdr target.Command, 
 	return spec.Result{Changed: true}, nil
 }
 
-func (op *ensureLxcOp) executeCreate(ctx context.Context, cmdr target.Command) (spec.Result, error) {
-	// Create container (template already ensured by downloadTemplateOp)
-	if err := op.runCmd(ctx, cmdr, "create", buildCreateCmd(*op.Action().(*lxcAction))); err != nil {
+func (op *ensureLxcOp) executeCreate(ctx context.Context, cmdr target.Command, tgt target.Target) (spec.Result, error) {
+	cfg := *op.Action().(*lxcAction)
+	createCmd := buildCreateCmd(cfg)
+
+	// SSH keys: write to temp file, pass to pct create, clean up after.
+	var keyFile string
+	if len(op.sshPublicKeys) > 0 {
+		keyFile = fmt.Sprintf("/tmp/.scampi-ssh-keys-%d", op.id)
+		fs := target.Must[target.Filesystem](ensureLxcID, tgt)
+		keyContent := strings.Join(op.sshPublicKeys, "\n") + "\n"
+		if err := fs.WriteFile(ctx, keyFile, []byte(keyContent)); err != nil {
+			return spec.Result{}, op.cmdErrWrap("write ssh keys", err)
+		}
+		createCmd += " --ssh-public-keys " + shellQuote(keyFile)
+	}
+
+	err := op.runCmd(ctx, cmdr, "create", createCmd)
+
+	// Clean up key file regardless of create outcome.
+	if keyFile != "" {
+		fs := target.Must[target.Filesystem](ensureLxcID, tgt)
+		_ = fs.Remove(ctx, keyFile)
+	}
+
+	if err != nil {
 		return spec.Result{}, err
 	}
 
@@ -500,8 +560,10 @@ func (op *ensureLxcOp) Inspect() []spec.InspectField {
 		{Label: "template", Value: templateStr(op.template)},
 		{Label: "cores", Value: fmt.Sprintf("%d", op.cores)},
 		{Label: "memory", Value: fmt.Sprintf("%d MiB", op.memoryMiB)},
+		{Label: "swap", Value: fmt.Sprintf("%d MiB", op.swapMiB)},
 		{Label: "storage", Value: op.storage},
 		{Label: "size", Value: fmt.Sprintf("%dG", op.sizeGiB)},
 		{Label: "network", Value: formatNet0(op.network)},
+		{Label: "tags", Value: strings.Join(op.tags, ", ")},
 	}
 }

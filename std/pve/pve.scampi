@@ -42,18 +42,23 @@ pub type LxcNet {
 // from a template if it doesn't exist, ensures it matches the
 // desired running state.
 pub decl lxc(
-  id:        int
-  node:      string
-  template:  Template?
-  hostname:  string
-  state:     LxcState = LxcState.running
-  cores:     int = 1
-  memory:    string = "512M"
-  storage:   string = "local-zfs"
-  size:      string = "8G"
-  network:   LxcNet
-  desc:      string?
-  on_change: list[std.Step] = []
+  id:              int
+  node:            string
+  template:        Template?
+  hostname:        string
+  state:           LxcState = LxcState.running
+  cores:           int = 1
+  memory:          string = "512M"
+  // Defaults to memory value if unset.
+  swap:            string?
+  storage:         string = "local-zfs"
+  size:            string = "8G"
+  privileged:      bool = false
+  network:         LxcNet
+  tags:            list[string] = []
+  ssh_public_keys: list[string] = []
+  desc:            string?
+  on_change:       list[std.Step] = []
 ) std.Step
 
 // Declarative datacenter configuration. Renders and writes

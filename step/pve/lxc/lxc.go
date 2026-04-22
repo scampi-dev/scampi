@@ -64,17 +64,21 @@ type (
 	LxcConfig struct {
 		_ struct{} `summary:"Manage LXC container lifecycle on Proxmox VE via pct"`
 
-		ID       int         `step:"Container VMID (unique per cluster)" example:"100"`
-		Node     string      `step:"PVE node name" example:"pve1"`
-		Template *LxcTemplate `step:"OS template" optional:"true"`
-		Hostname string      `step:"Container hostname" example:"pihole"`
-		State    string      `step:"Desired state" default:"running"`
-		Cores    int         `step:"CPU cores" default:"1"`
-		Memory   string      `step:"Memory with unit (e.g. 512M, 2G)" default:"512M"`
-		Storage  string      `step:"Storage pool for rootfs" default:"local-zfs"`
-		Size     string      `step:"Root disk size with unit (e.g. 8G, 500M)" default:"8G"`
-		Network  LxcNet      `step:"Network configuration"`
-		Desc     string      `step:"Human-readable description" optional:"true"`
+		ID            int          `step:"Container VMID (unique per cluster)" example:"100"`
+		Node          string       `step:"PVE node name" example:"pve1"`
+		Template      *LxcTemplate `step:"OS template" optional:"true"`
+		Hostname      string       `step:"Container hostname" example:"pihole"`
+		State         string       `step:"Desired state" default:"running"`
+		Cores         int          `step:"CPU cores" default:"1"`
+		Memory        string       `step:"Memory with unit (e.g. 512M, 2G)" default:"512M"`
+		Swap          string       `step:"Swap with unit (e.g. 512M, 2G) — defaults to memory value" optional:"true"`
+		Storage       string       `step:"Storage pool for rootfs" default:"local-zfs"`
+		Size          string       `step:"Root disk size with unit (e.g. 8G, 500M)" default:"8G"`
+		Privileged    bool         `step:"Run as privileged container (less secure)" default:"false"`
+		Network       LxcNet       `step:"Network configuration"`
+		Tags          []string     `step:"PVE tags" optional:"true"`
+		SshPublicKeys []string     `step:"SSH public keys for root" optional:"true"`
+		Desc          string       `step:"Human-readable description" optional:"true"`
 	}
 	LxcTemplate struct {
 		Storage string `step:"Storage pool holding the template" default:"local"`
@@ -111,18 +115,22 @@ func (LXC) Plan(step spec.StepInstance) (spec.Action, error) {
 	}
 
 	act := &lxcAction{
-		desc:      cfg.Desc,
-		id:        cfg.ID,
-		node:      cfg.Node,
-		template:  cfg.Template,
-		hostname:  cfg.Hostname,
-		state:     parseState(cfg.State),
-		cores:     cfg.Cores,
-		memoryMiB: sizeToMiB(cfg.Memory),
-		storage:   cfg.Storage,
-		sizeGiB:   sizeToGiB(cfg.Size),
-		network:   cfg.Network,
-		step:      step,
+		desc:          cfg.Desc,
+		id:            cfg.ID,
+		node:          cfg.Node,
+		template:      cfg.Template,
+		hostname:      cfg.Hostname,
+		state:         parseState(cfg.State),
+		cores:         cfg.Cores,
+		memoryMiB:     sizeToMiB(cfg.Memory),
+		swapMiB:       resolveSwap(cfg.Swap, cfg.Memory),
+		storage:       cfg.Storage,
+		sizeGiB:       sizeToGiB(cfg.Size),
+		privileged:    cfg.Privileged,
+		network:       cfg.Network,
+		tags:          cfg.Tags,
+		sshPublicKeys: cfg.SshPublicKeys,
+		step:          step,
 	}
 	return act, warn // warn is nil or SizeTruncatedWarning (ImpactNone)
 }
@@ -163,6 +171,15 @@ func parseSizeSpec(s string) (int, string, error) {
 		// bare-error: wrapped by InvalidConfigError in validate()
 		return 0, "", errs.Errorf("invalid size %q — use M, G, or T suffix (e.g. 512M, 8G, 1T)", s)
 	}
+}
+
+// resolveSwap returns swap MiB — uses the explicit swap value if set, otherwise
+// clamps to the memory value.
+func resolveSwap(swap, memory string) int {
+	if swap != "" {
+		return sizeToMiB(swap)
+	}
+	return sizeToMiB(memory)
 }
 
 // sizeToMiB parses a size string to MiB. Panics on invalid input (validation should catch first).
@@ -219,6 +236,15 @@ func (c *LxcConfig) validate(step spec.StepInstance) error {
 			Source: step.Fields["memory"].Value,
 		}
 	}
+	if c.Swap != "" {
+		if _, _, err := parseSizeSpec(c.Swap); err != nil {
+			return InvalidConfigError{
+				Field:  "swap",
+				Reason: fmt.Sprintf("%s — use M or G suffix (e.g. 512M, 2G)", err),
+				Source: step.Fields["swap"].Value,
+			}
+		}
+	}
 	sizeMiB, sizeUnit, err := parseSizeSpec(c.Size)
 	if err != nil {
 		return InvalidConfigError{
@@ -257,18 +283,22 @@ func (c *LxcConfig) validate(step spec.StepInstance) error {
 // -----------------------------------------------------------------------------
 
 type lxcAction struct {
-	desc      string
-	id        int
-	node      string
-	template  *LxcTemplate
-	hostname  string
-	state     State
-	cores     int
-	memoryMiB int
-	storage   string
-	sizeGiB   int
-	network   LxcNet
-	step      spec.StepInstance
+	desc          string
+	id            int
+	node          string
+	template      *LxcTemplate
+	hostname      string
+	state         State
+	cores         int
+	memoryMiB     int
+	swapMiB       int
+	storage       string
+	sizeGiB       int
+	privileged    bool
+	network       LxcNet
+	tags          []string
+	sshPublicKeys []string
+	step          spec.StepInstance
 }
 
 func (a *lxcAction) Desc() string { return a.desc }
@@ -276,17 +306,21 @@ func (a *lxcAction) Kind() string { return "pve.lxc" }
 
 func (a *lxcAction) Ops() []spec.Op {
 	lxcOp := &ensureLxcOp{
-		id:        a.id,
-		node:      a.node,
-		template:  a.template,
-		hostname:  a.hostname,
-		state:     a.state,
-		cores:     a.cores,
-		memoryMiB: a.memoryMiB,
-		storage:   a.storage,
-		sizeGiB:   a.sizeGiB,
-		network:   a.network,
-		step:      a.step,
+		id:            a.id,
+		node:          a.node,
+		template:      a.template,
+		hostname:      a.hostname,
+		state:         a.state,
+		cores:         a.cores,
+		memoryMiB:     a.memoryMiB,
+		swapMiB:       a.swapMiB,
+		storage:       a.storage,
+		sizeGiB:       a.sizeGiB,
+		privileged:    a.privileged,
+		network:       a.network,
+		tags:          a.tags,
+		sshPublicKeys: a.sshPublicKeys,
+		step:          a.step,
 	}
 	lxcOp.SetAction(a)
 

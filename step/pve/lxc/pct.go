@@ -86,12 +86,16 @@ func formatNet0(net LxcNet) string {
 
 // pctConfig holds the parsed fields from `pct config <id>` that we care about.
 type pctConfig struct {
-	Hostname string
-	Cores    int
-	Memory   int
-	Storage  string // rootfs storage pool
-	Size     string // rootfs size with unit (e.g. "4G")
-	Net      parsedNet
+	Hostname     string
+	Cores        int
+	Memory       int
+	Swap         int
+	Unprivileged int    // 0 or 1
+	Tags         string // semicolon-separated
+	Description  string
+	Storage      string // rootfs storage pool
+	Size         string // rootfs size with unit (e.g. "4G")
+	Net          parsedNet
 }
 
 type parsedNet struct {
@@ -122,6 +126,14 @@ func parsePctConfig(output string) pctConfig {
 			cfg.Cores, _ = strconv.Atoi(val)
 		case "memory":
 			cfg.Memory, _ = strconv.Atoi(val)
+		case "swap":
+			cfg.Swap, _ = strconv.Atoi(val)
+		case "unprivileged":
+			cfg.Unprivileged, _ = strconv.Atoi(val)
+		case "tags":
+			cfg.Tags = val
+		case "description":
+			cfg.Description = val
 		case "rootfs":
 			cfg.Storage, cfg.Size = parseRootfs(val)
 		case "net0":
@@ -185,9 +197,18 @@ func buildSetCmd(vmid int, drift []spec.DriftDetail) string {
 		case "memory":
 			b.WriteString(" --memory ")
 			b.WriteString(d.Desired)
+		case "swap":
+			b.WriteString(" --swap ")
+			b.WriteString(d.Desired)
 		case "hostname":
 			b.WriteString(" --hostname ")
-			b.WriteString(d.Desired)
+			b.WriteString(shellQuote(d.Desired))
+		case "tags":
+			b.WriteString(" --tags ")
+			b.WriteString(shellQuote(d.Desired))
+		case "description":
+			b.WriteString(" --description ")
+			b.WriteString(shellQuote(d.Desired))
 		}
 	}
 	return b.String()
@@ -196,21 +217,42 @@ func buildSetCmd(vmid int, drift []spec.DriftDetail) string {
 // buildCreateCmd builds the full `pct create` command.
 // Template storage and rootfs storage are independent pools.
 func buildCreateCmd(cfg lxcAction) string {
-	return fmt.Sprintf("pct create %d %s"+
+	cmd := fmt.Sprintf("pct create %d %s"+
 		" --hostname %s"+
 		" --cores %d"+
 		" --memory %d"+
+		" --swap %d"+
 		" --rootfs %s:%d"+
 		" --net0 %s"+
-		" --unprivileged 1"+
+		" --unprivileged %d"+
 		" --password yolo123",
 		cfg.id, cfg.template.templatePath(),
 		cfg.hostname,
 		cfg.cores,
 		cfg.memoryMiB,
+		cfg.swapMiB,
 		cfg.storage, cfg.sizeGiB,
 		formatNet0(cfg.network),
+		boolToInt(!cfg.privileged),
 	)
+	if len(cfg.tags) > 0 {
+		cmd += " --tags " + shellQuote(strings.Join(cfg.tags, ";"))
+	}
+	if cfg.desc != "" {
+		cmd += " --description " + shellQuote(cfg.desc)
+	}
+	return cmd
+}
+
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // buildDownloadCmd builds the `pveam download` command from a parsed template.
