@@ -3,6 +3,10 @@
 package lxc
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
 )
@@ -60,17 +64,17 @@ type (
 	LxcConfig struct {
 		_ struct{} `summary:"Manage LXC container lifecycle on Proxmox VE via pct"`
 
-		ID       int          `step:"Container VMID (unique per cluster)" example:"100"`
-		Node     string       `step:"PVE node name" example:"pve1"`
+		ID       int         `step:"Container VMID (unique per cluster)" example:"100"`
+		Node     string      `step:"PVE node name" example:"pve1"`
 		Template LxcTemplate `step:"OS template"`
-		Hostname string       `step:"Container hostname" example:"pihole"`
-		State    string       `step:"Desired state" default:"running"`
-		Cores    int          `step:"CPU cores" default:"1"`
-		Memory   int          `step:"Memory in MiB" default:"512"`
-		Storage  string       `step:"Storage pool for rootfs" default:"local-zfs"`
-		Size     string       `step:"Root disk size" default:"8G"`
-		Network  LxcNet       `step:"Network configuration"`
-		Desc     string       `step:"Human-readable description" optional:"true"`
+		Hostname string      `step:"Container hostname" example:"pihole"`
+		State    string      `step:"Desired state" default:"running"`
+		Cores    int         `step:"CPU cores" default:"1"`
+		Memory   string      `step:"Memory with unit (e.g. 512M, 2G)" default:"512M"`
+		Storage  string      `step:"Storage pool for rootfs" default:"local-zfs"`
+		Size     string      `step:"Root disk size with unit (e.g. 8G, 500M)" default:"8G"`
+		Network  LxcNet      `step:"Network configuration"`
+		Desc     string      `step:"Human-readable description" optional:"true"`
 	}
 	LxcTemplate struct {
 		Storage string `step:"Storage pool holding the template" default:"local"`
@@ -98,29 +102,85 @@ func (LXC) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &LxcConfig{}, step.Config)
 	}
 
-	if err := cfg.validate(step); err != nil {
-		return nil, err
+	warn := cfg.validate(step)
+	if warn != nil {
+		// Fatal errors → no action. Warnings → action + warning.
+		if _, ok := warn.(SizeTruncatedWarning); !ok {
+			return nil, warn
+		}
 	}
 
-	return &lxcAction{
-		desc:     cfg.Desc,
-		id:       cfg.ID,
-		node:     cfg.Node,
-		template: cfg.Template,
-		hostname: cfg.Hostname,
-		state:    parseState(cfg.State),
-		cores:    cfg.Cores,
-		memory:   cfg.Memory,
-		storage:  cfg.Storage,
-		size:     cfg.Size,
-		network:  cfg.Network,
-		step:     step,
-	}, nil
+	act := &lxcAction{
+		desc:      cfg.Desc,
+		id:        cfg.ID,
+		node:      cfg.Node,
+		template:  cfg.Template,
+		hostname:  cfg.Hostname,
+		state:     parseState(cfg.State),
+		cores:     cfg.Cores,
+		memoryMiB: sizeToMiB(cfg.Memory),
+		storage:   cfg.Storage,
+		sizeGiB:   sizeToGiB(cfg.Size),
+		network:   cfg.Network,
+		step:      step,
+	}
+	return act, warn // warn is nil or SizeTruncatedWarning (ImpactNone)
 }
 
 // templatePath returns the full PVE template path for pct create.
 func (t LxcTemplate) templatePath() string {
 	return t.Storage + ":vztmpl/" + t.Name
+}
+
+// parseSizeSpec parses a human-readable size like "512M", "2G", "1T" into MiB.
+// Accepted units: M (MiB), G (GiB), T (TiB). Returns an error for invalid formats.
+//
+// bare-error: internal validation helper — callers wrap the result in typed diagnostic errors
+func parseSizeSpec(s string) (int, string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		// bare-error: wrapped by InvalidConfigError in validate()
+		return 0, "", errs.Errorf("empty size")
+	}
+
+	unit := strings.ToUpper(s[len(s)-1:])
+	numStr := s[:len(s)-1]
+
+	f, err := strconv.ParseFloat(numStr, 64)
+	if err != nil || f <= 0 {
+		// bare-error: wrapped by InvalidConfigError in validate()
+		return 0, "", errs.Errorf("invalid size %q", s)
+	}
+
+	switch unit {
+	case "M":
+		return int(f), "M", nil
+	case "G":
+		return int(f * 1024), "G", nil
+	case "T":
+		return int(f * 1024 * 1024), "T", nil
+	default:
+		// bare-error: wrapped by InvalidConfigError in validate()
+		return 0, "", errs.Errorf("invalid size %q — use M, G, or T suffix (e.g. 512M, 8G, 1T)", s)
+	}
+}
+
+// sizeToMiB parses a size string to MiB. Panics on invalid input (validation should catch first).
+func sizeToMiB(s string) int {
+	n, _, err := parseSizeSpec(s)
+	if err != nil {
+		panic(errs.BUG("invalid size %q in sizeToMiB — should have been caught by validate", s))
+	}
+	return n
+}
+
+// sizeToGiB parses a disk size string to GiB. Returns 0 if < 1G.
+func sizeToGiB(s string) int {
+	mib, _, err := parseSizeSpec(s)
+	if err != nil {
+		return 0
+	}
+	return mib / 1024
 }
 
 func (c *LxcConfig) validate(step spec.StepInstance) error {
@@ -152,11 +212,42 @@ func (c *LxcConfig) validate(step spec.StepInstance) error {
 			Source: step.Fields["template"].Value,
 		}
 	}
+	if _, _, err := parseSizeSpec(c.Memory); err != nil {
+		return InvalidConfigError{
+			Field:  "memory",
+			Reason: fmt.Sprintf("%s — use M or G suffix (e.g. 512M, 2G)", err),
+			Source: step.Fields["memory"].Value,
+		}
+	}
+	sizeMiB, sizeUnit, err := parseSizeSpec(c.Size)
+	if err != nil {
+		return InvalidConfigError{
+			Field:  "size",
+			Reason: fmt.Sprintf("%s — use M, G, or T suffix (e.g. 8G, 500M, 1T)", err),
+			Source: step.Fields["size"].Value,
+		}
+	}
+	sizeGiB := sizeMiB / 1024
+	if sizeGiB < 1 {
+		return InvalidConfigError{
+			Field:  "size",
+			Reason: fmt.Sprintf("%s is less than the minimum 1G — PVE rootfs must be at least 1G", c.Size),
+			Source: step.Fields["size"].Value,
+		}
+	}
 	if c.Network.IP == "" {
 		return InvalidConfigError{
 			Field:  "network.ip",
 			Reason: "network IP address is required",
 			Source: step.Fields["network"].Value,
+		}
+	}
+	if sizeUnit != "M" && sizeMiB%1024 != 0 {
+		return SizeTruncatedWarning{
+			Input:   c.Size,
+			Rounded: fmt.Sprintf("%dG", sizeGiB),
+			Exact:   fmt.Sprintf("%dM", sizeMiB),
+			Source:  step.Fields["size"].Value,
 		}
 	}
 	return nil
@@ -166,18 +257,18 @@ func (c *LxcConfig) validate(step spec.StepInstance) error {
 // -----------------------------------------------------------------------------
 
 type lxcAction struct {
-	desc     string
-	id       int
-	node     string
-	template LxcTemplate
-	hostname string
-	state    State
-	cores    int
-	memory   int
-	storage  string
-	size     string
-	network  LxcNet
-	step     spec.StepInstance
+	desc      string
+	id        int
+	node      string
+	template  LxcTemplate
+	hostname  string
+	state     State
+	cores     int
+	memoryMiB int
+	storage   string
+	sizeGiB   int
+	network   LxcNet
+	step      spec.StepInstance
 }
 
 func (a *lxcAction) Desc() string { return a.desc }
@@ -191,17 +282,17 @@ func (a *lxcAction) Ops() []spec.Op {
 	dlOp.SetAction(a)
 
 	lxcOp := &ensureLxcOp{
-		id:       a.id,
-		node:     a.node,
-		template: a.template,
-		hostname: a.hostname,
-		state:    a.state,
-		cores:    a.cores,
-		memory:   a.memory,
-		storage:  a.storage,
-		size:     a.size,
-		network:  a.network,
-		step:     a.step,
+		id:        a.id,
+		node:      a.node,
+		template:  a.template,
+		hostname:  a.hostname,
+		state:     a.state,
+		cores:     a.cores,
+		memoryMiB: a.memoryMiB,
+		storage:   a.storage,
+		sizeGiB:   a.sizeGiB,
+		network:   a.network,
+		step:      a.step,
 	}
 	lxcOp.SetAction(a)
 	lxcOp.AddDependency(dlOp)

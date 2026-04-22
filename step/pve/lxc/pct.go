@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"scampi.dev/scampi/spec"
 )
 
 // pctListEntry represents one row from `pct list` output.
@@ -82,10 +84,113 @@ func formatNet0(net LxcNet) string {
 	return b.String()
 }
 
-// normalizeSizeGiB strips a trailing "G" or "g" suffix so "4G" becomes "4".
-// PVE rootfs sizes are always in GiB without a unit suffix.
-func normalizeSizeGiB(s string) string {
-	return strings.TrimRight(s, "Gg")
+// pctConfig holds the parsed fields from `pct config <id>` that we care about.
+type pctConfig struct {
+	Hostname string
+	Cores    int
+	Memory   int
+	Storage  string // rootfs storage pool
+	Size     string // rootfs size with unit (e.g. "4G")
+	Net      parsedNet
+}
+
+type parsedNet struct {
+	Bridge string
+	IP     string
+	Gw     string
+}
+
+// parsePctConfig parses the key: value output of `pct config <id>`.
+//
+//	arch: amd64
+//	cores: 2
+//	hostname: pihole
+//	memory: 512
+//	net0: name=eth0,bridge=vmbr0,ip=10.10.10.10/24,gw=10.10.10.1,type=veth
+//	rootfs: local-zfs:subvol-100-disk-0,size=4G
+func parsePctConfig(output string) pctConfig {
+	var cfg pctConfig
+	for line := range strings.SplitSeq(output, "\n") {
+		key, val, ok := strings.Cut(line, ": ")
+		if !ok {
+			continue
+		}
+		switch key {
+		case "hostname":
+			cfg.Hostname = val
+		case "cores":
+			cfg.Cores, _ = strconv.Atoi(val)
+		case "memory":
+			cfg.Memory, _ = strconv.Atoi(val)
+		case "rootfs":
+			cfg.Storage, cfg.Size = parseRootfs(val)
+		case "net0":
+			cfg.Net = parseNet0Value(val)
+		}
+	}
+	return cfg
+}
+
+// parseRootfs extracts storage pool and size from a rootfs value.
+//
+//	"local-zfs:subvol-100-disk-0,size=4G" → ("local-zfs", "4G")
+//	"local-zfs:vm-100-disk-0,size=10G" → ("local-zfs", "10G")
+func parseRootfs(val string) (storage, size string) {
+	// Storage is before the first colon.
+	storage, rest, ok := strings.Cut(val, ":")
+	if !ok {
+		return val, ""
+	}
+	// Size is in the comma-separated params after the volume name.
+	for param := range strings.SplitSeq(rest, ",") {
+		if k, v, ok := strings.Cut(param, "="); ok && k == "size" {
+			size = v
+			break
+		}
+	}
+	return storage, size
+}
+
+// parseNet0Value parses the comma-separated key=value net0 config value.
+//
+//	"name=eth0,bridge=vmbr0,hwaddr=...,ip=10.10.10.10/24,gw=10.10.10.1,type=veth"
+func parseNet0Value(val string) parsedNet {
+	var net parsedNet
+	for kv := range strings.SplitSeq(val, ",") {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			continue
+		}
+		switch k {
+		case "bridge":
+			net.Bridge = v
+		case "ip":
+			net.IP = v
+		case "gw":
+			net.Gw = v
+		}
+	}
+	return net
+}
+
+// buildSetCmd builds a `pct set` command for changed mutable fields.
+func buildSetCmd(vmid int, drift []spec.DriftDetail) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "pct set %d", vmid) //nolint:errcheck // strings.Builder never errors
+	for _, d := range drift {
+		switch d.Field {
+		case "cores":
+			b.WriteString(" --cores ")
+			b.WriteString(d.Desired)
+		case "memory":
+			b.WriteString(" --memory ")
+			b.WriteString(d.Desired)
+		case "hostname":
+			b.WriteString(" --hostname ")
+			b.WriteString(d.Desired)
+		}
+	}
+	return b.String()
 }
 
 // buildCreateCmd builds the full `pct create` command.
@@ -95,15 +200,15 @@ func buildCreateCmd(cfg lxcAction) string {
 		" --hostname %s"+
 		" --cores %d"+
 		" --memory %d"+
-		" --rootfs %s:%s"+
+		" --rootfs %s:%d"+
 		" --net0 %s"+
 		" --unprivileged 1"+
 		" --password yolo123",
 		cfg.id, cfg.template.templatePath(),
 		cfg.hostname,
 		cfg.cores,
-		cfg.memory,
-		cfg.storage, normalizeSizeGiB(cfg.size),
+		cfg.memoryMiB,
+		cfg.storage, cfg.sizeGiB,
 		formatNet0(cfg.network),
 	)
 }

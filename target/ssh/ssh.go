@@ -160,7 +160,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 	}
 	sshTgt.SvcBackend = svcmgr.Detect(detectCmd)
 	sshTgt.CtrBackend = ctrmgr.Detect(detectCmd)
-	sshTgt.HasPVE = detectAllCmds(detectCmd, "pct", "qm", "pvesm")
+	sshTgt.HasPVE = detectAllCmds(detectCmd, "/usr/sbin/pct", "/usr/sbin/qm", "/usr/sbin/pvesm")
 
 	// Privilege escalation detection.
 	if result, err := sshTgt.RunCommand(ctx, "id -u"); err == nil {

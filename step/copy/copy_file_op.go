@@ -10,8 +10,8 @@ import (
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/sharedops"

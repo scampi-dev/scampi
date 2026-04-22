@@ -108,7 +108,7 @@ func planOneStep(
 	tgtCaps capability.Capability,
 ) (spec.Action, error) {
 	act, err := step.Type.Plan(step)
-	if err != nil {
+	if err != nil && act == nil {
 		return nil, err
 	}
 	reqCaps := collectRequiredCaps(act)
@@ -122,7 +122,7 @@ func planOneStep(
 			Source:       step.Source,
 		}
 	}
-	return act, nil
+	return act, err
 }
 
 func planSteps(
@@ -140,8 +140,10 @@ func planSteps(
 		if err != nil {
 			impact, _ := emitPlanDiagnostic(em, i, step.Type.Kind(), step.Desc, err)
 			impacts = append(impacts, impact)
-			causes = append(causes, err)
-			continue
+			if act == nil || impact.ShouldAbort() {
+				causes = append(causes, err)
+				continue
+			}
 		}
 
 		actionIdx := len(actions)

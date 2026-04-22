@@ -13,8 +13,8 @@ import (
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/errs"
-	"scampi.dev/scampi/signal"
 	rendertmpl "scampi.dev/scampi/render/template"
+	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/sharedops"

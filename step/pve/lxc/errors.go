@@ -66,10 +66,75 @@ func (e TemplateNotFoundError) Error() string {
 
 func (e TemplateNotFoundError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeTemplateNotFound,
-		Text: `template "{{.Template}}" not found`,
-		Hint: `not on storage "{{.Storage}}" and not in pveam available — check the template name or upload it manually`,
-		Data: e,
+		ID:     CodeTemplateNotFound,
+		Text:   `template "{{.Template}}" not found`,
+		Hint:   `not on storage "{{.Storage}}" and not in pveam available — check the template name or upload it manually`,
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+type SizeTruncatedWarning struct {
+	diagnostic.Warning
+	Input   string
+	Rounded string
+	Exact   string
+	Source  spec.SourceSpan
+}
+
+func (e SizeTruncatedWarning) Error() string {
+	return fmt.Sprintf("size %s truncated to %s", e.Input, e.Rounded)
+}
+
+func (e SizeTruncatedWarning) EventTemplate() event.Template {
+	return event.Template{
+		ID:     CodeSizeTruncated,
+		Text:   `size {{.Input}} truncated to {{.Rounded}} (PVE sizes are whole GiB)`,
+		Hint:   `use {{.Rounded}} or {{.Exact}} for precision`,
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+type ImmutableFieldError struct {
+	diagnostic.FatalError
+	Field   string
+	Current string
+	Desired string
+	Source  spec.SourceSpan
+}
+
+func (e ImmutableFieldError) Error() string {
+	return fmt.Sprintf("pve.lxc field %q is immutable: %s → %s (destroy and recreate to change)", e.Field, e.Current, e.Desired)
+}
+
+func (e ImmutableFieldError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     CodeImmutableField,
+		Text:   `pve.lxc field "{{.Field}}" cannot be changed ({{.Current}} → {{.Desired}})`,
+		Hint:   "destroy and recreate the container to change this field",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+type ResizeShrinkError struct {
+	diagnostic.FatalError
+	Current string
+	Desired string
+	Source  spec.SourceSpan
+}
+
+func (e ResizeShrinkError) Error() string {
+	return fmt.Sprintf("pve.lxc rootfs cannot shrink: %s → %s", e.Current, e.Desired)
+}
+
+func (e ResizeShrinkError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     CodeResizeShrink,
+		Text:   `pve.lxc rootfs cannot shrink ({{.Current}} → {{.Desired}})`,
+		Hint:   "PVE only supports growing the rootfs, not shrinking",
+		Data:   e,
 		Source: &e.Source,
 	}
 }

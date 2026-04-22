@@ -42,17 +42,17 @@ pub type LxcNet {
 // from a template if it doesn't exist, ensures it matches the
 // desired running state.
 pub decl lxc(
-  id:       int
-  node:     string
-  template: Template
-  hostname: string
-  state:    LxcState = LxcState.running
-  cores:    int = 1
-  memory:   int = 512
-  storage:  string = "local-zfs"
-  size:     string = "8G"
-  network:  LxcNet
-  desc:     string?
+  id:        int
+  node:      string
+  template:  Template
+  hostname:  string
+  state:     LxcState = LxcState.running
+  cores:     int = 1
+  memory:    string = "512M"
+  storage:   string = "local-zfs"
+  size:      string = "8G"
+  network:   LxcNet
+  desc:      string?
   on_change: list[std.Step] = []
 ) std.Step
 
@@ -77,22 +77,22 @@ pub decl datacenter(
   let tag_colors = std.join([t.name + ":" + std.trim_prefix(t.bg, "#") + ":" + std.trim_prefix(t.fg, "#") for t in tags], ";")
 
   return posix.template {
-    src   = posix.source_inline {
+    src    = posix.source_inline {
       content = "{{if .console}}console: {{.console}}\n{{end}}{{if .description}}description: {{.description}}\n{{end}}{{if .email_from}}email_from: {{.email_from}}\n{{end}}{{if .http_proxy}}http_proxy: {{.http_proxy}}\n{{end}}{{if .keyboard}}keyboard: {{.keyboard}}\n{{end}}{{if .language}}language: {{.language}}\n{{end}}{{if .mac_prefix}}mac_prefix: {{.mac_prefix}}\n{{end}}{{if .max_workers}}max_workers: {{.max_workers}}\n{{end}}{{if .tag_names}}registered-tags: {{.tag_names}}\ntag-style: color-map={{.tag_colors}},shape=full\nuser-tag-access: user-allow=list\n{{end}}"
     }
-    dest  = "/etc/pve/datacenter.cfg"
-    data  = {
+    dest   = "/etc/pve/datacenter.cfg"
+    data   = {
       "values": {
-        "console":     console_str,
+        "console": console_str,
         "description": description,
-        "email_from":  email_from,
-        "http_proxy":  http_proxy,
-        "keyboard":    keyboard,
-        "language":    language,
-        "mac_prefix":  mac_prefix,
+        "email_from": email_from,
+        "http_proxy": http_proxy,
+        "keyboard": keyboard,
+        "language": language,
+        "mac_prefix": mac_prefix,
         "max_workers": max_workers,
-        "tag_names":   tag_names,
-        "tag_colors":  tag_colors,
+        "tag_names": tag_names,
+        "tag_colors": tag_colors,
       },
     }
     perm   = "0640"

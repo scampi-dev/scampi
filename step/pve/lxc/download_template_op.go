@@ -29,7 +29,7 @@ func (op *downloadTemplateOp) Check(
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	cmdr := target.Must[target.Command](downloadTemplateID, tgt)
 
-	result, err := cmdr.RunCommand(ctx, fmt.Sprintf("pveam list %s", op.template.Storage))
+	result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("pveam list %s", op.template.Storage))
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, op.cmdErrWrap(err)
 	}
@@ -42,7 +42,7 @@ func (op *downloadTemplateOp) Check(
 	}
 
 	// Not on storage — verify it's available for download.
-	result, err = cmdr.RunCommand(ctx, "pveam available")
+	result, err = cmdr.RunPrivileged(ctx, "pveam available")
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, op.cmdErrWrap(err)
 	}
@@ -73,7 +73,7 @@ func (op *downloadTemplateOp) Execute(
 	cmdr := target.Must[target.Command](downloadTemplateID, tgt)
 
 	cmd := buildDownloadCmd(op.template.Storage, op.template.Name)
-	result, err := cmdr.RunCommand(ctx, cmd)
+	result, err := cmdr.RunPrivileged(ctx, cmd)
 	if err != nil {
 		return spec.Result{}, op.cmdErrWrap(err)
 	}

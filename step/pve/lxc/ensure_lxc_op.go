@@ -5,6 +5,8 @@ package lxc
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
@@ -17,17 +19,17 @@ const ensureLxcID = "step.pve.lxc"
 
 type ensureLxcOp struct {
 	sharedops.BaseOp
-	id       int
-	node     string
-	template LxcTemplate
-	hostname string
-	state    State
-	cores    int
-	memory   int
-	storage  string
-	size     string
-	network  LxcNet
-	step     spec.StepInstance
+	id        int
+	node      string
+	template  LxcTemplate
+	hostname  string
+	state     State
+	cores     int
+	memoryMiB int
+	storage   string
+	sizeGiB   int
+	network   LxcNet
+	step      spec.StepInstance
 }
 
 func (op *ensureLxcOp) Check(
@@ -44,7 +46,7 @@ func (op *ensureLxcOp) Check(
 
 	cmdr := target.Must[target.Command](ensureLxcID, tgt)
 
-	exists, status, err := op.inspect(ctx, cmdr)
+	exists, status, err := op.inspectExists(ctx, cmdr)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, err
 	}
@@ -57,28 +59,43 @@ func (op *ensureLxcOp) Check(
 		}}, nil
 	}
 
-	switch op.state {
-	case StateRunning:
-		if status == stateRunning {
-			return spec.CheckSatisfied, nil, nil
-		}
-		return spec.CheckUnsatisfied, []spec.DriftDetail{{
-			Field:   "state",
-			Current: status,
-			Desired: stateRunning,
-		}}, nil
-
-	case StateStopped:
-		if status == stateStopped {
-			return spec.CheckSatisfied, nil, nil
-		}
-		return spec.CheckUnsatisfied, []spec.DriftDetail{{
-			Field:   "state",
-			Current: status,
-			Desired: stateStopped,
-		}}, nil
+	// Container exists — fetch config and detect drift.
+	cfg, err := op.inspectConfig(ctx, cmdr)
+	if err != nil {
+		return spec.CheckUnsatisfied, nil, err
 	}
 
+	// Immutable fields: reject at check time.
+	if err := op.checkImmutables(cfg); err != nil {
+		return spec.CheckUnsatisfied, nil, err
+	}
+
+	// Mutable drift.
+	drift := op.configDrift(cfg)
+
+	// State drift.
+	switch op.state {
+	case StateRunning:
+		if status != stateRunning {
+			drift = append(drift, spec.DriftDetail{
+				Field:   "state",
+				Current: status,
+				Desired: stateRunning,
+			})
+		}
+	case StateStopped:
+		if status != stateStopped {
+			drift = append(drift, spec.DriftDetail{
+				Field:   "state",
+				Current: status,
+				Desired: stateStopped,
+			})
+		}
+	}
+
+	if len(drift) > 0 {
+		return spec.CheckUnsatisfied, drift, nil
+	}
 	return spec.CheckSatisfied, nil, nil
 }
 
@@ -89,7 +106,7 @@ func (op *ensureLxcOp) Execute(
 ) (spec.Result, error) {
 	cmdr := target.Must[target.Command](ensureLxcID, tgt)
 
-	exists, status, err := op.inspect(ctx, cmdr)
+	exists, status, err := op.inspectExists(ctx, cmdr)
 	if err != nil {
 		return spec.Result{}, err
 	}
@@ -98,23 +115,67 @@ func (op *ensureLxcOp) Execute(
 		return op.executeCreate(ctx, cmdr)
 	}
 
+	cfg, err := op.inspectConfig(ctx, cmdr)
+	if err != nil {
+		return spec.Result{}, err
+	}
+
+	changed := false
+
+	// Apply mutable config drift via pct set.
+	drift := op.configDrift(cfg)
+	setDrift := filterSetDrift(drift)
+	if len(setDrift) > 0 {
+		if err := op.runCmd(ctx, cmdr, "set", buildSetCmd(op.id, setDrift)); err != nil {
+			return spec.Result{}, err
+		}
+		changed = true
+	}
+
+	// Apply network drift via pct set --net0.
+	if hasNetworkDrift(drift) {
+		cmd := fmt.Sprintf("pct set %d --net0 %s", op.id, formatNet0(op.network))
+		if err := op.runCmd(ctx, cmdr, "set network", cmd); err != nil {
+			return spec.Result{}, err
+		}
+		changed = true
+	}
+
+	// Resize rootfs if needed (grow only).
+	if sizeDrift := findDrift(drift, "size"); sizeDrift != nil {
+		cmd := fmt.Sprintf("pct resize %d rootfs %dG", op.id, op.sizeGiB)
+		if err := op.runCmd(ctx, cmdr, "resize", cmd); err != nil {
+			return spec.Result{}, err
+		}
+		changed = true
+	}
+
+	// State transitions.
 	switch op.state {
 	case StateRunning:
 		if status != stateRunning {
-			return op.executeStart(ctx, cmdr)
+			if err := op.runCmd(ctx, cmdr, "start", fmt.Sprintf("pct start %d", op.id)); err != nil {
+				return spec.Result{}, err
+			}
+			changed = true
 		}
 	case StateStopped:
 		if status != stateStopped {
-			return op.executeStop(ctx, cmdr)
+			if err := op.runCmd(ctx, cmdr, "shutdown", fmt.Sprintf("pct shutdown %d --timeout 30", op.id)); err != nil {
+				return spec.Result{}, err
+			}
+			changed = true
 		}
 	}
 
-	return spec.Result{}, nil
+	return spec.Result{Changed: changed}, nil
 }
 
-// inspect checks whether the container exists and its running status.
-func (op *ensureLxcOp) inspect(ctx context.Context, cmdr target.Command) (exists bool, status string, err error) {
-	result, err := cmdr.RunCommand(ctx, "pct list")
+// Inspect helpers
+// -----------------------------------------------------------------------------
+
+func (op *ensureLxcOp) inspectExists(ctx context.Context, cmdr target.Command) (exists bool, status string, err error) {
+	result, err := cmdr.RunPrivileged(ctx, "pct list")
 	if err != nil {
 		return false, "", op.cmdErrWrap("list", err)
 	}
@@ -127,7 +188,7 @@ func (op *ensureLxcOp) inspect(ctx context.Context, cmdr target.Command) (exists
 		return false, "", nil
 	}
 
-	result, err = cmdr.RunCommand(ctx, fmt.Sprintf("pct status %d", op.id))
+	result, err = cmdr.RunPrivileged(ctx, fmt.Sprintf("pct status %d", op.id))
 	if err != nil {
 		return false, "", op.cmdErrWrap("status", err)
 	}
@@ -138,13 +199,173 @@ func (op *ensureLxcOp) inspect(ctx context.Context, cmdr target.Command) (exists
 	return true, parsePctStatus(result.Stdout), nil
 }
 
+func (op *ensureLxcOp) inspectConfig(ctx context.Context, cmdr target.Command) (pctConfig, error) {
+	result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("pct config %d", op.id))
+	if err != nil {
+		return pctConfig{}, op.cmdErrWrap("config", err)
+	}
+	if result.ExitCode != 0 {
+		return pctConfig{}, op.cmdErrStr("config", result.Stderr)
+	}
+	return parsePctConfig(result.Stdout), nil
+}
+
+// Drift detection
+// -----------------------------------------------------------------------------
+
+func (op *ensureLxcOp) checkImmutables(cfg pctConfig) error {
+	if cfg.Storage != "" && cfg.Storage != op.storage {
+		return ImmutableFieldError{
+			Field:   "storage",
+			Current: cfg.Storage,
+			Desired: op.storage,
+			Source:  op.step.Fields["storage"].Value,
+		}
+	}
+
+	// Size can grow but not shrink.
+	if cfg.Size != "" {
+		currentGiB := parseSizeGiB(cfg.Size)
+		if op.sizeGiB > 0 && currentGiB > 0 && op.sizeGiB < currentGiB {
+			return ResizeShrinkError{
+				Current: fmt.Sprintf("%dG", currentGiB),
+				Desired: fmt.Sprintf("%dG", op.sizeGiB),
+				Source:  op.step.Fields["size"].Value,
+			}
+		}
+	}
+
+	return nil
+}
+
+func (op *ensureLxcOp) configDrift(cfg pctConfig) []spec.DriftDetail {
+	var drift []spec.DriftDetail
+
+	if cfg.Cores != 0 && cfg.Cores != op.cores {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "cores",
+			Current: strconv.Itoa(cfg.Cores),
+			Desired: strconv.Itoa(op.cores),
+		})
+	}
+	if cfg.Memory != 0 && cfg.Memory != op.memoryMiB {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "memory",
+			Current: strconv.Itoa(cfg.Memory),
+			Desired: strconv.Itoa(op.memoryMiB),
+		})
+	}
+	if cfg.Hostname != "" && cfg.Hostname != op.hostname {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "hostname",
+			Current: cfg.Hostname,
+			Desired: op.hostname,
+		})
+	}
+
+	// Network drift (any sub-field).
+	if cfg.Net.Bridge != "" {
+		bridge := op.network.Bridge
+		if bridge == "" {
+			bridge = "vmbr0"
+		}
+		if cfg.Net.Bridge != bridge {
+			drift = append(drift, spec.DriftDetail{
+				Field:   "network.bridge",
+				Current: cfg.Net.Bridge,
+				Desired: bridge,
+			})
+		}
+	}
+	if cfg.Net.IP != "" && cfg.Net.IP != op.network.IP {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "network.ip",
+			Current: cfg.Net.IP,
+			Desired: op.network.IP,
+		})
+	}
+	if cfg.Net.Gw != op.network.Gw {
+		if cfg.Net.Gw != "" || op.network.Gw != "" {
+			drift = append(drift, spec.DriftDetail{
+				Field:   "network.gw",
+				Current: valueOrNone(cfg.Net.Gw),
+				Desired: valueOrNone(op.network.Gw),
+			})
+		}
+	}
+
+	// Size drift (grow only — shrink rejected in checkImmutables).
+	if cfg.Size != "" {
+		currentGiB := parseSizeGiB(cfg.Size)
+		if op.sizeGiB > 0 && currentGiB > 0 && op.sizeGiB > currentGiB {
+			drift = append(drift, spec.DriftDetail{
+				Field:   "size",
+				Current: fmt.Sprintf("%dG", currentGiB),
+				Desired: fmt.Sprintf("%dG", op.sizeGiB),
+			})
+		}
+	}
+
+	return drift
+}
+
+// Drift helpers
+// -----------------------------------------------------------------------------
+
+// filterSetDrift returns only the drift details that map to `pct set` flags
+// (cores, memory, hostname). Network and size are handled separately.
+func filterSetDrift(drift []spec.DriftDetail) []spec.DriftDetail {
+	var set []spec.DriftDetail
+	for _, d := range drift {
+		switch d.Field {
+		case "cores", "memory", "hostname":
+			set = append(set, d)
+		}
+	}
+	return set
+}
+
+func hasNetworkDrift(drift []spec.DriftDetail) bool {
+	for _, d := range drift {
+		if strings.HasPrefix(d.Field, "network.") {
+			return true
+		}
+	}
+	return false
+}
+
+func findDrift(drift []spec.DriftDetail, field string) *spec.DriftDetail {
+	for i := range drift {
+		if drift[i].Field == field {
+			return &drift[i]
+		}
+	}
+	return nil
+}
+
+// parseSizeGiB extracts the numeric GiB value from "4G", "10G", "4", etc.
+func parseSizeGiB(s string) int {
+	s = strings.TrimRight(s, "GgTt")
+	n, _ := strconv.Atoi(s)
+	return n
+}
+
+func valueOrNone(s string) string {
+	if s == "" {
+		return "(none)"
+	}
+	return s
+}
+
+// Execute helpers
+// -----------------------------------------------------------------------------
+
 func (op *ensureLxcOp) executeCreate(ctx context.Context, cmdr target.Command) (spec.Result, error) {
 	// Create container (template already ensured by downloadTemplateOp)
 	if err := op.runCmd(ctx, cmdr, "create", buildCreateCmd(*op.Action().(*lxcAction))); err != nil {
 		return spec.Result{}, err
 	}
 
-	// Start if desired
 	if op.state == StateRunning {
 		if err := op.runCmd(ctx, cmdr, "start", fmt.Sprintf("pct start %d", op.id)); err != nil {
 			return spec.Result{}, err
@@ -154,23 +375,11 @@ func (op *ensureLxcOp) executeCreate(ctx context.Context, cmdr target.Command) (
 	return spec.Result{Changed: true}, nil
 }
 
-func (op *ensureLxcOp) executeStart(ctx context.Context, cmdr target.Command) (spec.Result, error) {
-	if err := op.runCmd(ctx, cmdr, "start", fmt.Sprintf("pct start %d", op.id)); err != nil {
-		return spec.Result{}, err
-	}
-	return spec.Result{Changed: true}, nil
-}
+// Command helpers
+// -----------------------------------------------------------------------------
 
-func (op *ensureLxcOp) executeStop(ctx context.Context, cmdr target.Command) (spec.Result, error) {
-	if err := op.runCmd(ctx, cmdr, "shutdown", fmt.Sprintf("pct shutdown %d --timeout 30", op.id)); err != nil {
-		return spec.Result{}, err
-	}
-	return spec.Result{Changed: true}, nil
-}
-
-// runCmd executes a command and wraps any failure as a CommandFailedError.
 func (op *ensureLxcOp) runCmd(ctx context.Context, cmdr target.Command, opName, cmd string) error {
-	result, err := cmdr.RunCommand(ctx, cmd)
+	result, err := cmdr.RunPrivileged(ctx, cmd)
 	if err != nil {
 		return op.cmdErrWrap(opName, err)
 	}
@@ -228,17 +437,16 @@ func (op *ensureLxcOp) OpDescription() spec.OpDescription {
 }
 
 func (op *ensureLxcOp) Inspect() []spec.InspectField {
-	fields := []spec.InspectField{
+	return []spec.InspectField{
 		{Label: "vmid", Value: fmt.Sprintf("%d", op.id)},
 		{Label: "node", Value: op.node},
 		{Label: "hostname", Value: op.hostname},
 		{Label: "state", Value: op.state.String()},
 		{Label: "template", Value: op.template.templatePath()},
 		{Label: "cores", Value: fmt.Sprintf("%d", op.cores)},
-		{Label: "memory", Value: fmt.Sprintf("%d MiB", op.memory)},
+		{Label: "memory", Value: fmt.Sprintf("%d MiB", op.memoryMiB)},
 		{Label: "storage", Value: op.storage},
-		{Label: "size", Value: op.size},
+		{Label: "size", Value: fmt.Sprintf("%dG", op.sizeGiB)},
 		{Label: "network", Value: formatNet0(op.network)},
 	}
-	return fields
 }
