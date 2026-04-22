@@ -297,5 +297,13 @@ func (a *lxcAction) Ops() []spec.Op {
 	lxcOp.SetAction(a)
 	lxcOp.AddDependency(dlOp)
 
-	return []spec.Op{dlOp, lxcOp}
+	rebootOp := &rebootLxcOp{
+		id:       a.id,
+		hostname: a.hostname,
+		step:     a.step,
+	}
+	rebootOp.SetAction(a)
+	rebootOp.AddDependency(lxcOp)
+
+	return []spec.Op{dlOp, lxcOp, rebootOp}
 }

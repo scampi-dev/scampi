@@ -96,6 +96,27 @@ func (e SizeTruncatedWarning) EventTemplate() event.Template {
 	}
 }
 
+type NodeMismatchError struct {
+	diagnostic.FatalError
+	Declared string
+	Actual   string
+	Source   spec.SourceSpan
+}
+
+func (e NodeMismatchError) Error() string {
+	return fmt.Sprintf("pve.lxc node mismatch: declared %q but connected to %q", e.Declared, e.Actual)
+}
+
+func (e NodeMismatchError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     CodeNodeMismatch,
+		Text:   `node mismatch: declared "{{.Declared}}" but connected to "{{.Actual}}"`,
+		Hint:   `change node to "{{.Actual}}" or connect to "{{.Declared}}"`,
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
 type ImmutableFieldError struct {
 	diagnostic.FatalError
 	Field   string

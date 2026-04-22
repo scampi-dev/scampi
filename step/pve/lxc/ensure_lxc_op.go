@@ -46,6 +46,10 @@ func (op *ensureLxcOp) Check(
 
 	cmdr := target.Must[target.Command](ensureLxcID, tgt)
 
+	if err := op.checkNode(ctx, cmdr); err != nil {
+		return spec.CheckUnsatisfied, nil, err
+	}
+
 	exists, status, err := op.inspectExists(ctx, cmdr)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, err
@@ -212,6 +216,25 @@ func (op *ensureLxcOp) inspectConfig(ctx context.Context, cmdr target.Command) (
 
 // Drift detection
 // -----------------------------------------------------------------------------
+
+func (op *ensureLxcOp) checkNode(ctx context.Context, cmdr target.Command) error {
+	result, err := cmdr.RunPrivileged(ctx, "hostname")
+	if err != nil {
+		return nil // can't verify, skip
+	}
+	if result.ExitCode != 0 {
+		return nil
+	}
+	actual := strings.TrimSpace(result.Stdout)
+	if actual != op.node {
+		return NodeMismatchError{
+			Declared: op.node,
+			Actual:   actual,
+			Source:   op.step.Fields["node"].Value,
+		}
+	}
+	return nil
+}
 
 func (op *ensureLxcOp) checkImmutables(cfg pctConfig) error {
 	if cfg.Storage != "" && cfg.Storage != op.storage {
