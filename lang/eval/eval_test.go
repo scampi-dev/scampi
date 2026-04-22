@@ -671,6 +671,25 @@ std.deploy(name = "t", targets = [host]) {
 	}
 }
 
+// Std module func bodies
+// -----------------------------------------------------------------------------
+
+func TestEvalStdJoin(t *testing.T) {
+	r := evalSrc(t, `
+module main
+import "std"
+
+let full = std.join(["a", "b", "c"], ";")
+let single = std.join(["x"], "-")
+`)
+	if v, ok := r.Bindings["full"].(*StringVal); !ok || v.V != "a;b;c" {
+		t.Fatalf("full: got %v, want 'a;b;c'", r.Bindings["full"])
+	}
+	if v, ok := r.Bindings["single"].(*StringVal); !ok || v.V != "x" {
+		t.Fatalf("single: got %v, want 'x'", r.Bindings["single"])
+	}
+}
+
 // Struct indexing
 // -----------------------------------------------------------------------------
 

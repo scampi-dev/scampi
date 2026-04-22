@@ -53,6 +53,11 @@ type Evaluator struct {
 	// "Target"). Built from stubs at init time.
 	declReturns map[string]string
 
+	// returnVal is set by ReturnStmt to signal a return from any
+	// nesting depth (if/for bodies). Checked after each statement
+	// in callFunc and evalBlock loops.
+	returnVal Value
+
 	// envLookup resolves env vars. Injected by caller.
 	envLookup EnvLookupFunc
 
@@ -207,15 +212,37 @@ func (ev *Evaluator) registerStubInfo() {
 			}
 			modMap.Set(enumName, variantMap)
 		}
+		// First pass: create FuncVals without scope.
+		var bodied []*FuncVal
 		for _, sf := range info.funcs[modName] {
-			modMap.Set(sf.Name, &FuncVal{
+			fv := &FuncVal{
 				Name:     sf.Name,
 				QualName: modName + "." + sf.Name,
 				Params:   sf.Params,
+				Defaults: sf.Defaults,
 				RetType:  sf.RetType,
-			})
+			}
+			if sf.Body != nil {
+				fv.body = sf.Body
+				bodied = append(bodied, fv)
+			}
+			modMap.Set(sf.Name, fv)
 		}
 		ev.env.set(modName, modMap)
+		// Second pass: set scope for bodied funcs to a child env
+		// that includes the module's own functions as bare names
+		// (same-module visibility).
+		if len(bodied) > 0 {
+			modScope := newEnv(ev.env)
+			for _, sf := range info.funcs[modName] {
+				if v, ok := modMap.Get(sf.Name); ok {
+					modScope.set(sf.Name, v)
+				}
+			}
+			for _, fv := range bodied {
+				fv.scope = modScope
+			}
+		}
 	}
 }
 
@@ -346,11 +373,15 @@ func (ev *Evaluator) registerSiblingModules() {
 	}
 }
 
-// stubFunc describes a stub function extracted from a .scampi file.
+// stubFunc describes a function extracted from a .scampi stub file.
+// For bodiless stubs, Body is nil. For funcs/decls with bodies,
+// Body carries the AST node so the evaluator can execute it.
 type stubFunc struct {
-	Name    string
-	Params  []string
-	RetType string
+	Name     string
+	Params   []string
+	Defaults []any
+	RetType  string
+	Body     ast.Node
 }
 
 // stubInfo holds extracted metadata from parsed stub files.
@@ -403,26 +434,29 @@ func extractStubInfo(fsys fs.FS) stubInfo {
 					retName = typeExprName(d.Ret)
 					info.declReturns[modName+"."+declName] = retName
 				}
-				if d.Body == nil {
-					var params []string
-					for _, p := range d.Params {
-						params = append(params, p.Name.Name)
+				var params []string
+				var defaults []any
+				for _, p := range d.Params {
+					params = append(params, p.Name.Name)
+					if p.Default != nil {
+						defaults = append(defaults, p.Default)
+					} else {
+						defaults = append(defaults, nil)
 					}
-					info.funcs[modName] = append(info.funcs[modName], stubFunc{
-						Name:    declName,
-						Params:  params,
-						RetType: retName,
-					})
 				}
+				sf := stubFunc{
+					Name:     declName,
+					Params:   params,
+					Defaults: defaults,
+					RetType:  retName,
+				}
+				if d.Body != nil {
+					sf.Body = d.Body
+				}
+				info.funcs[modName] = append(info.funcs[modName], sf)
 			case *ast.FuncDecl:
 				retName := ""
 				if d.Ret != nil {
-					// block[T] needs the full string so callFunc
-					// can detect-and-unwrap into a BlockVal. For
-					// non-generic returns use the unqualified leaf
-					// name so the linker's RetType match (which
-					// uses leaf names like "Target") is consistent
-					// across `func` and `decl` returns.
 					if _, isGeneric := d.Ret.(*ast.GenericType); isGeneric {
 						retName = typeExprString(d.Ret)
 					} else {
@@ -430,17 +464,26 @@ func extractStubInfo(fsys fs.FS) stubInfo {
 					}
 					info.declReturns[modName+"."+d.Name.Name] = typeExprName(d.Ret)
 				}
-				if d.Body == nil {
-					var params []string
-					for _, p := range d.Params {
-						params = append(params, p.Name.Name)
+				var params []string
+				var defaults []any
+				for _, p := range d.Params {
+					params = append(params, p.Name.Name)
+					if p.Default != nil {
+						defaults = append(defaults, p.Default)
+					} else {
+						defaults = append(defaults, nil)
 					}
-					info.funcs[modName] = append(info.funcs[modName], stubFunc{
-						Name:    d.Name.Name,
-						Params:  params,
-						RetType: retName,
-					})
 				}
+				sf := stubFunc{
+					Name:     d.Name.Name,
+					Params:   params,
+					Defaults: defaults,
+					RetType:  retName,
+				}
+				if d.Body != nil {
+					sf.Body = d.Body
+				}
+				info.funcs[modName] = append(info.funcs[modName], sf)
 			}
 		}
 		return nil
@@ -602,7 +645,11 @@ func (ev *Evaluator) evalStmt(s ast.Stmt) {
 	case *ast.IfStmt:
 		ev.evalIf(s)
 	case *ast.ReturnStmt:
-		// Handled by callFunc.
+		if s.Value != nil {
+			ev.returnVal = ev.evalExpr(s.Value)
+		} else {
+			ev.returnVal = &NoneVal{}
+		}
 	case *ast.AssignStmt:
 		ev.evalAssign(s)
 	}
@@ -614,6 +661,9 @@ func (ev *Evaluator) evalBlock(b *ast.Block) {
 	}
 	for _, s := range b.Stmts {
 		ev.evalStmt(s)
+		if ev.returnVal != nil {
+			return
+		}
 	}
 }
 
@@ -631,6 +681,9 @@ func (ev *Evaluator) evalFor(f *ast.ForStmt) {
 		ev.env = child
 		ev.evalBlock(f.Body)
 		ev.env = prev
+		if ev.returnVal != nil {
+			return
+		}
 	}
 }
 
@@ -1112,16 +1165,15 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 	}
 	prev := ev.env
 	ev.env = child
-	var retVal Value
+	ev.returnVal = nil
 	for _, s := range body.Stmts {
-		if rs, ok := s.(*ast.ReturnStmt); ok {
-			if rs.Value != nil {
-				retVal = ev.evalExpr(rs.Value)
-			}
+		ev.evalStmt(s)
+		if ev.returnVal != nil {
 			break
 		}
-		ev.evalStmt(s)
 	}
+	retVal := ev.returnVal
+	ev.returnVal = nil
 	ev.env = prev
 	if retVal == nil {
 		return &NoneVal{}
