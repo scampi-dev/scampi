@@ -76,6 +76,7 @@ type (
 		Size          string       `step:"Root disk size with unit (e.g. 8G, 500M)" default:"8G"`
 		Privileged    bool         `step:"Run as privileged container (less secure)" default:"false"`
 		Features      *LxcFeatures `step:"Advanced LXC features" optional:"true"`
+		Startup       *LxcStartup  `step:"Startup/shutdown ordering" optional:"true"`
 		Network       LxcNet       `step:"Network configuration"`
 		Tags          []string     `step:"PVE tags" optional:"true"`
 		SSHPublicKeys []string     `step:"SSH public keys for root" optional:"true"`
@@ -89,6 +90,12 @@ type (
 		Bridge string `step:"Bridge interface" default:"vmbr0"`
 		IP     string `step:"IP address in CIDR or dhcp" example:"10.10.10.10/24"`
 		Gw     string `step:"Gateway" optional:"true" example:"10.10.10.1"`
+	}
+	LxcStartup struct {
+		OnBoot bool `step:"Start on host boot" default:"false"`
+		Order  int  `step:"Startup sequence number" default:"0"`
+		Up     int  `step:"Seconds delay before next container starts" default:"0"`
+		Down   int  `step:"Seconds delay before next container stops" default:"0"`
 	}
 	LxcFeatures struct {
 		Nesting    bool     `step:"Allow nesting (required by systemd)" default:"false"`
@@ -137,6 +144,7 @@ func (LXC) Plan(step spec.StepInstance) (spec.Action, error) {
 		sizeGiB:       sizeToGiB(cfg.Size),
 		privileged:    cfg.Privileged,
 		features:      cfg.Features,
+		startup:       cfg.Startup,
 		network:       cfg.Network,
 		tags:          cfg.Tags,
 		sshPublicKeys: cfg.SSHPublicKeys,
@@ -306,6 +314,7 @@ type lxcAction struct {
 	sizeGiB       int
 	privileged    bool
 	features      *LxcFeatures
+	startup       *LxcStartup
 	network       LxcNet
 	tags          []string
 	sshPublicKeys []string
@@ -358,6 +367,7 @@ func (a *lxcAction) Ops() []spec.Op {
 		storage:    a.storage,
 		privileged: a.privileged,
 		features:   a.features,
+		startup:    a.startup,
 		network:    a.network,
 		tags:       a.tags,
 	}

@@ -28,6 +28,7 @@ type configLxcOp struct {
 	storage    string
 	privileged bool
 	features   *LxcFeatures
+	startup    *LxcStartup
 	network    LxcNet
 	tags       []string
 }
@@ -169,6 +170,31 @@ func (op *configLxcOp) configDrift(cfg pctConfig) []spec.DriftDetail {
 			Field:   "description",
 			Current: valueOrNone(cfg.Description),
 			Desired: valueOrNone(op.step.Desc),
+		})
+	}
+
+	// Startup drift.
+	desiredOnBoot := 0
+	desiredStartup := ""
+	if op.startup != nil {
+		if op.startup.OnBoot {
+			desiredOnBoot = 1
+		}
+		desiredStartup = formatStartup(op.startup)
+	}
+	if cfg.OnBoot != desiredOnBoot {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "onboot",
+			Current: strconv.Itoa(cfg.OnBoot),
+			Desired: strconv.Itoa(desiredOnBoot),
+		})
+	}
+	currentStartup := formatStartup(&cfg.Startup)
+	if currentStartup != desiredStartup {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "startup",
+			Current: valueOrNone(currentStartup),
+			Desired: valueOrNone(desiredStartup),
 		})
 	}
 

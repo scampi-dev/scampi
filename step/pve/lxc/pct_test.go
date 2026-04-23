@@ -385,10 +385,12 @@ func TestSSHKeyDrift(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmdr := &mockTarget{handler: func(cmd string) (target.CommandResult, error) {
 				switch {
-				case strings.Contains(cmd, "pct pull"):
+				case strings.Contains(cmd, "test -f"):
 					if tt.catFails {
-						return target.CommandResult{ExitCode: 1, Stderr: "No such file"}, nil
+						return target.CommandResult{ExitCode: 1}, nil
 					}
+					return target.CommandResult{}, nil
+				case strings.Contains(cmd, "pct pull"):
 					return target.CommandResult{}, nil
 				case strings.HasPrefix(cmd, "cat "):
 					return target.CommandResult{Stdout: tt.catOutput}, nil
@@ -511,6 +513,58 @@ func TestParseFeatures(t *testing.T) {
 				t.Errorf("got %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFormatStartup(t *testing.T) {
+	tests := []struct {
+		name string
+		s    *LxcStartup
+		want string
+	}{
+		{"nil", nil, ""},
+		{"empty", &LxcStartup{}, ""},
+		{"order only", &LxcStartup{Order: 5}, "order=5"},
+		{"all fields", &LxcStartup{Order: 1, Up: 30, Down: 60}, "order=1,up=30,down=60"},
+		{"up only", &LxcStartup{Up: 10}, "up=10"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatStartup(tt.s)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseStartup(t *testing.T) {
+	tests := []struct {
+		name string
+		val  string
+		want LxcStartup
+	}{
+		{"empty", "", LxcStartup{}},
+		{"order", "order=5", LxcStartup{Order: 5}},
+		{"all", "order=1,up=30,down=60", LxcStartup{Order: 1, Up: 30, Down: 60}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseStartup(tt.val)
+			if formatStartup(&got) != formatStartup(&tt.want) {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStartupRoundtrip(t *testing.T) {
+	orig := LxcStartup{Order: 3, Up: 15, Down: 30}
+	formatted := formatStartup(&orig)
+	parsed := parseStartup(formatted)
+	if formatStartup(&parsed) != formatted {
+		t.Errorf("roundtrip failed: %q → %+v → %q",
+			formatted, parsed, formatStartup(&parsed))
 	}
 }
 

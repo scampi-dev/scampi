@@ -91,6 +91,8 @@ type pctConfig struct {
 	Memory       int
 	Swap         int
 	Unprivileged int // 0 or 1
+	OnBoot       int // 0 or 1
+	Startup      LxcStartup
 	Features     LxcFeatures
 	Tags         string // semicolon-separated
 	Description  string
@@ -135,6 +137,10 @@ func parsePctConfig(output string) pctConfig {
 			cfg.Tags = val
 		case "description":
 			cfg.Description = val
+		case "onboot":
+			cfg.OnBoot, _ = strconv.Atoi(val)
+		case "startup":
+			cfg.Startup = parseStartup(val)
 		case "features":
 			cfg.Features = parseFeatures(val)
 		case "rootfs":
@@ -215,6 +221,16 @@ func buildSetCmd(vmid int, drift []spec.DriftDetail) string {
 		case "features":
 			b.WriteString(" --features ")
 			b.WriteString(shellQuote(d.Desired))
+		case "onboot":
+			b.WriteString(" --onboot ")
+			b.WriteString(d.Desired)
+		case "startup":
+			if d.Desired == "" || d.Desired == "(none)" {
+				b.WriteString(" --delete startup")
+			} else {
+				b.WriteString(" --startup ")
+				b.WriteString(shellQuote(d.Desired))
+			}
 		}
 	}
 	return b.String()
@@ -250,6 +266,14 @@ func buildCreateCmd(cfg lxcAction) string {
 	if feat := formatFeatures(cfg.features); feat != "" {
 		cmd += " --features " + shellQuote(feat)
 	}
+	if cfg.startup != nil {
+		if cfg.startup.OnBoot {
+			cmd += " --onboot 1"
+		}
+		if s := formatStartup(cfg.startup); s != "" {
+			cmd += " --startup " + shellQuote(s)
+		}
+	}
 	return cmd
 }
 
@@ -284,6 +308,46 @@ func buildAuthorizedKeys(keys []string) string {
 	}
 	b.WriteString("# --- END PVE ---\n")
 	return b.String()
+}
+
+// formatStartup builds the --startup value for pct create/set.
+//
+//	"order=1,up=30,down=60"
+func formatStartup(s *LxcStartup) string {
+	if s == nil {
+		return ""
+	}
+	var parts []string
+	if s.Order != 0 {
+		parts = append(parts, fmt.Sprintf("order=%d", s.Order))
+	}
+	if s.Up != 0 {
+		parts = append(parts, fmt.Sprintf("up=%d", s.Up))
+	}
+	if s.Down != 0 {
+		parts = append(parts, fmt.Sprintf("down=%d", s.Down))
+	}
+	return strings.Join(parts, ",")
+}
+
+// parseStartup parses the startup value from pct config.
+func parseStartup(val string) LxcStartup {
+	var s LxcStartup
+	for kv := range strings.SplitSeq(val, ",") {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			continue
+		}
+		switch k {
+		case "order":
+			s.Order, _ = strconv.Atoi(v)
+		case "up":
+			s.Up, _ = strconv.Atoi(v)
+		case "down":
+			s.Down, _ = strconv.Atoi(v)
+		}
+	}
+	return s
 }
 
 // formatFeatures builds the --features value for pct create/set.

@@ -80,11 +80,25 @@ func (op *sshKeysLxcOp) Execute(
 }
 
 func (op *sshKeysLxcOp) sshKeyDrift(ctx context.Context, cmdr target.Command) *spec.DriftDetail {
-	// Use pct pull to read the file — works on both running and stopped containers.
+	// Check if the file exists before pulling — avoids PVE task log errors.
+	testCmd := fmt.Sprintf("pct exec %d -- test -f /root/.ssh/authorized_keys", op.id)
+	result, err := cmdr.RunPrivileged(ctx, testCmd)
+	if err != nil || result.ExitCode != 0 {
+		// File doesn't exist.
+		if len(op.sshPublicKeys) == 0 {
+			return nil
+		}
+		return &spec.DriftDetail{
+			Field:   "ssh_public_keys",
+			Current: "0 key(s)",
+			Desired: fmt.Sprintf("%d key(s)", len(op.sshPublicKeys)),
+		}
+	}
+
+	// File exists — pull and compare.
 	tmpFile := fmt.Sprintf("/tmp/.scampi-ssh-read-%d", op.id)
 	pullCmd := fmt.Sprintf("pct pull %d /root/.ssh/authorized_keys %s", op.id, shellQuote(tmpFile))
-
-	result, err := cmdr.RunPrivileged(ctx, pullCmd)
+	result, err = cmdr.RunPrivileged(ctx, pullCmd)
 	if err != nil || result.ExitCode != 0 {
 		if len(op.sshPublicKeys) == 0 {
 			return nil

@@ -28,6 +28,19 @@ pub type Template {
   name:    string
 }
 
+// Startup and shutdown ordering for containers on the same host.
+// Shutdown order is the reverse of startup order.
+pub type Startup {
+  // Start this container automatically when the host boots.
+  on_boot: bool = false
+  // Startup sequence number. Lower numbers start first.
+  order:   int = 0
+  // Seconds to wait after starting before starting the next container.
+  up:      int = 0
+  // Seconds to wait after stopping before stopping the next container.
+  down:    int = 0
+}
+
 // Advanced LXC features. All disabled by default.
 // Changing features on a running container triggers a reboot.
 pub type Features {
@@ -79,6 +92,7 @@ pub decl lxc(
   size:            string = "8G"
   privileged:      bool = false
   features:        Features?
+  startup:         Startup?
   network:         LxcNet
   tags:            list[string] = []
   ssh_public_keys: list[string] = []
