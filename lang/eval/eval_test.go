@@ -128,7 +128,86 @@ type User {
 }
 let u = User { name = "alice" }
 `)
-	_ = r
+	sv, ok := r.Bindings["u"].(*StructVal)
+	if !ok {
+		t.Fatal("u is not a StructVal")
+	}
+	if sv.Fields["name"].(*StringVal).V != "alice" {
+		t.Error("name should be alice")
+	}
+	bv, ok := sv.Fields["admin"].(*BoolVal)
+	if !ok {
+		t.Fatal("admin field missing or wrong type")
+	}
+	if bv.V != false {
+		t.Error("admin default should be false")
+	}
+}
+
+func TestEvalTypeFieldDefaultOverride(t *testing.T) {
+	r := evalSrc(t, `
+module main
+type Item {
+  name:  string
+  count: int = 1
+}
+let a = Item { name = "x" }
+let b = Item { name = "y", count = 5 }
+`)
+	a := r.Bindings["a"].(*StructVal)
+	if a.Fields["count"].(*IntVal).V != 1 {
+		t.Error("a.count should default to 1")
+	}
+	b := r.Bindings["b"].(*StructVal)
+	if b.Fields["count"].(*IntVal).V != 5 {
+		t.Error("b.count should be 5 (explicit override)")
+	}
+}
+
+func TestEvalTypeFieldDefaultDotAccess(t *testing.T) {
+	r := evalSrc(t, `
+module main
+type Box {
+  label: string
+  size:  int = 10
+}
+let b = Box { label = "test" }
+let s = b.size
+`)
+	iv, ok := r.Bindings["s"].(*IntVal)
+	if !ok {
+		t.Fatal("s should be an IntVal")
+	}
+	if iv.V != 10 {
+		t.Error("b.size should be 10 from default")
+	}
+}
+
+func TestEvalTypeFieldDefaultInLoop(t *testing.T) {
+	r := evalSrc(t, `
+module main
+type Entry {
+  id:    int
+  cores: int    = 1
+  mem:   string = "512M"
+}
+let items = [
+  Entry { id = 1, cores = 4 },
+  Entry { id = 2 },
+]
+let c0 = items[0].cores
+let c1 = items[1].cores
+let m1 = items[1].mem
+`)
+	if r.Bindings["c0"].(*IntVal).V != 4 {
+		t.Error("c0 should be 4 (explicit)")
+	}
+	if r.Bindings["c1"].(*IntVal).V != 1 {
+		t.Error("c1 should be 1 (default)")
+	}
+	if r.Bindings["m1"].(*StringVal).V != "512M" {
+		t.Error("m1 should be 512M (default)")
+	}
 }
 
 // Function calls

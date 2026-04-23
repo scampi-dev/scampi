@@ -91,6 +91,11 @@ type Evaluator struct {
 	// non-pub helpers are callable within the same module. The env
 	// only stores the pub-filtered map for external callers.
 	modInternalMaps map[string]*MapVal
+
+	// typeDefaults maps type name → AST fields for user-defined types
+	// that have field defaults. Used by evalStructLit to fill in
+	// omitted fields.
+	typeDefaults map[string][]*ast.Field
 }
 
 // Error is an eval-time error.
@@ -322,6 +327,8 @@ func (ev *Evaluator) registerUserModules() {
 				if d.Public {
 					pubMap.Set(declName, fv)
 				}
+			case *ast.TypeDecl:
+				ev.registerTypeDefaults(um.Name+"."+d.Name.Name, d.Fields)
 			case *ast.EnumDecl:
 				variantMap := &MapVal{}
 				for _, v := range d.Variants {
@@ -371,6 +378,8 @@ func (ev *Evaluator) registerSiblingModules() {
 						scope: ev.env,
 					})
 				}
+			case *ast.TypeDecl:
+				ev.registerTypeDefaults(d.Name.Name, d.Fields)
 			}
 		}
 	}
@@ -540,8 +549,10 @@ func (ev *Evaluator) evalFile(f *ast.File) {
 			ev.evalDecl(d)
 		case *ast.DeclDecl:
 			ev.evalDecl(d)
-		case *ast.TypeDecl, *ast.EnumDecl:
-			// Type declarations don't produce runtime values.
+		case *ast.TypeDecl:
+			ev.registerTypeDefaults(d.Name.Name, d.Fields)
+		case *ast.EnumDecl:
+			// Enum declarations don't produce runtime values.
 		}
 	}
 
@@ -607,8 +618,51 @@ func (ev *Evaluator) evalDecl(d ast.Decl) {
 				scope: ev.env,
 			})
 		}
-	case *ast.TypeDecl, *ast.EnumDecl:
-		// Type declarations don't produce runtime values.
+	case *ast.TypeDecl:
+		ev.registerTypeDefaults(d.Name.Name, d.Fields)
+	case *ast.EnumDecl:
+		// Enum declarations don't produce runtime values.
+	}
+}
+
+// registerTypeDefaults records a type declaration's fields so that
+// evalStructLit can fill in default values for omitted fields.
+func (ev *Evaluator) registerTypeDefaults(name string, fields []*ast.Field) {
+	if fields == nil {
+		return // opaque type
+	}
+	hasDefaults := false
+	for _, f := range fields {
+		if f.Default != nil {
+			hasDefaults = true
+			break
+		}
+	}
+	if !hasDefaults {
+		return
+	}
+	if ev.typeDefaults == nil {
+		ev.typeDefaults = map[string][]*ast.Field{}
+	}
+	ev.typeDefaults[name] = fields
+}
+
+// applyTypeDefaults fills in default values for fields missing from a
+// struct literal. It checks both the leaf type name and the qualified
+// name (for imported module types).
+func (ev *Evaluator) applyTypeDefaults(typeName, qualName string, fields map[string]Value) {
+	typeFields := ev.typeDefaults[typeName]
+	if typeFields == nil && qualName != typeName {
+		typeFields = ev.typeDefaults[qualName]
+	}
+	for _, f := range typeFields {
+		if f.Default == nil {
+			continue
+		}
+		if _, exists := fields[f.Name.Name]; exists {
+			continue
+		}
+		fields[f.Name.Name] = ev.evalExpr(f.Default)
 	}
 }
 
@@ -1254,6 +1308,9 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 			}
 		}
 	}
+
+	// Fill defaults from the type declaration for any missing fields.
+	ev.applyTypeDefaults(typeName, qualName, fields)
 
 	return &StructVal{
 		TypeName: typeName,

@@ -406,6 +406,9 @@ func (c *Checker) checkTypeDecl(d *ast.TypeDecl) {
 			c.errAt(f.SrcSpan, CodeUnknownFieldType, "unknown type in field "+f.Name.Name)
 			continue
 		}
+		if f.Default != nil {
+			c.typeOf(f.Default)
+		}
 		c.checkFieldAttributes(f)
 		st.Fields = append(st.Fields, &FieldDef{
 			Name:   f.Name.Name,
