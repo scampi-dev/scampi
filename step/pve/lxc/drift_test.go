@@ -12,7 +12,7 @@ import (
 func TestConfigDrift(t *testing.T) {
 	op := &configLxcOp{
 		hostname:  "pihole",
-		cores:     2,
+		cpu:       LxcCPU{Cores: 2},
 		memoryMiB: 512,
 		storage:   "local-zfs",
 		networks:  []LxcNet{{Bridge: "vmbr0", IP: "10.10.10.10/24", Gw: "10.10.10.1"}},
@@ -256,7 +256,7 @@ func TestFilterSetDrift(t *testing.T) {
 func TestMultiNicDrift(t *testing.T) {
 	op := &configLxcOp{
 		hostname:  "pihole",
-		cores:     2,
+		cpu:       LxcCPU{Cores: 2},
 		memoryMiB: 512,
 		storage:   "local-zfs",
 		networks: []LxcNet{
@@ -320,7 +320,7 @@ func TestMultiNicDrift(t *testing.T) {
 
 	t.Run("second nic removed", func(t *testing.T) {
 		oneNicOp := &configLxcOp{
-			hostname: "pihole", cores: 2, memoryMiB: 512, storage: "local-zfs",
+			hostname: "pihole", cpu: LxcCPU{Cores: 2}, memoryMiB: 512, storage: "local-zfs",
 			networks: []LxcNet{{Bridge: "vmbr0", IP: "10.0.0.1/24", Gw: "10.0.0.1"}},
 		}
 		cfg := pctConfig{
@@ -347,7 +347,7 @@ func TestDeviceDrift(t *testing.T) {
 	base := func(devs []LxcDevice) *configLxcOp {
 		return &configLxcOp{
 			hostname:  "gpu-box",
-			cores:     4,
+			cpu:       LxcCPU{Cores: 4},
 			memoryMiB: 4096,
 			storage:   "local-zfs",
 			devices:   devs,

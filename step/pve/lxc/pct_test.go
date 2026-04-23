@@ -137,7 +137,7 @@ func TestBuildCreateCmd(t *testing.T) {
 		node:       "pve1",
 		template:   &LxcTemplate{Storage: "local", Name: "debian-12-standard_12.7-1_amd64.tar.zst"},
 		hostname:   "pihole",
-		cores:      2,
+		cpu:        LxcCPU{Cores: 2},
 		memoryMiB:  512,
 		swapMiB:    512,
 		storage:    "local-zfs",

@@ -22,11 +22,12 @@ type configLxcOp struct {
 	pveCmd
 	node       string
 	hostname   string
-	cores      int
+	cpu        LxcCPU
 	memoryMiB  int
 	swapMiB    int
 	storage    string
 	privileged bool
+	dns        LxcDNS
 	features   *LxcFeatures
 	startup    *LxcStartup
 	networks   []LxcNet
@@ -80,7 +81,7 @@ func (op *configLxcOp) Execute(
 ) (spec.Result, error) {
 	cmdr := target.Must[target.Command](configLxcID, tgt)
 
-	exists, _, err := op.inspectExists(ctx, cmdr)
+	exists, status, err := op.inspectExists(ctx, cmdr)
 	if err != nil || !exists {
 		return spec.Result{}, err
 	}
@@ -91,6 +92,7 @@ func (op *configLxcOp) Execute(
 	}
 
 	changed := false
+	needsReboot := false
 
 	drift := op.configDrift(cfg)
 	setDrift := filterSetDrift(drift)
@@ -99,6 +101,9 @@ func (op *configLxcOp) Execute(
 			return spec.Result{}, err
 		}
 		changed = true
+		if hasDNSDrift(drift) {
+			needsReboot = true
+		}
 	}
 
 	if hasNetworkDrift(drift) {
@@ -113,6 +118,16 @@ func (op *configLxcOp) Execute(
 			return spec.Result{}, err
 		}
 		changed = true
+	}
+
+	// DNS changes take effect on container restart (PVE writes
+	// resolv.conf at start). Reboot inline because the reboot op
+	// can't reliably detect stale DNS when desired is empty.
+	if needsReboot && status == stateRunning {
+		cmd := fmt.Sprintf("pct reboot %d --timeout 30", op.id)
+		if err := op.runCmd(ctx, cmdr, "reboot", cmd); err != nil {
+			return spec.Result{}, err
+		}
 	}
 
 	return spec.Result{Changed: changed}, nil
@@ -144,11 +159,25 @@ func (op *configLxcOp) checkImmutables(cfg pctConfig) error {
 func (op *configLxcOp) configDrift(cfg pctConfig) []spec.DriftDetail {
 	var drift []spec.DriftDetail
 
-	if cfg.Cores != 0 && cfg.Cores != op.cores {
+	if cfg.Cores != 0 && cfg.Cores != op.cpu.Cores {
 		drift = append(drift, spec.DriftDetail{
 			Field:   "cores",
 			Current: strconv.Itoa(cfg.Cores),
-			Desired: strconv.Itoa(op.cores),
+			Desired: strconv.Itoa(op.cpu.Cores),
+		})
+	}
+	if normalizeCPULimit(cfg.CPULimit) != normalizeCPULimit(op.cpu.Limit) {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "cpulimit",
+			Current: valueOrNone(cfg.CPULimit),
+			Desired: valueOrNone(op.cpu.Limit),
+		})
+	}
+	if cfg.CPUUnits != op.cpu.Weight {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "cpuunits",
+			Current: strconv.Itoa(cfg.CPUUnits),
+			Desired: strconv.Itoa(op.cpu.Weight),
 		})
 	}
 	if cfg.Memory != 0 && cfg.Memory != op.memoryMiB {
@@ -177,6 +206,20 @@ func (op *configLxcOp) configDrift(cfg pctConfig) []spec.DriftDetail {
 			Field:   "description",
 			Current: valueOrNone(cfg.Description),
 			Desired: valueOrNone(op.step.Desc),
+		})
+	}
+	if cfg.Nameserver != op.dns.Nameserver {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "nameserver",
+			Current: valueOrNone(cfg.Nameserver),
+			Desired: valueOrNone(op.dns.Nameserver),
+		})
+	}
+	if cfg.Searchdomain != op.dns.Searchdomain {
+		drift = append(drift, spec.DriftDetail{
+			Field:   "searchdomain",
+			Current: valueOrNone(cfg.Searchdomain),
+			Desired: valueOrNone(op.dns.Searchdomain),
 		})
 	}
 
@@ -403,7 +446,7 @@ func (op *configLxcOp) Inspect() []spec.InspectField {
 	fields := []spec.InspectField{
 		{Label: "vmid", Value: fmt.Sprintf("%d", op.id)},
 		{Label: "hostname", Value: op.hostname},
-		{Label: "cores", Value: fmt.Sprintf("%d", op.cores)},
+		{Label: "cores", Value: fmt.Sprintf("%d", op.cpu.Cores)},
 		{Label: "memory", Value: fmt.Sprintf("%d MiB", op.memoryMiB)},
 		{Label: "swap", Value: fmt.Sprintf("%d MiB", op.swapMiB)},
 	}

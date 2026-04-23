@@ -69,12 +69,13 @@ type (
 		Template      *LxcTemplate `step:"OS template" optional:"true"`
 		Hostname      string       `step:"Container hostname" example:"pihole"`
 		State         string       `step:"Desired state" default:"running"`
-		Cores         int          `step:"CPU cores" default:"1"`
+		CPU           *LxcCPU      `step:"CPU configuration" optional:"true"`
 		Memory        string       `step:"Memory with unit (e.g. 512M, 2G)" default:"512M"`
 		Swap          string       `step:"Swap with unit — defaults to memory value" optional:"true"`
 		Storage       string       `step:"Storage pool for rootfs" default:"local-zfs"`
 		Size          string       `step:"Root disk size with unit (e.g. 8G, 500M)" default:"8G"`
 		Privileged    bool         `step:"Run as privileged container (less secure)" default:"false"`
+		DNS           *LxcDNS      `step:"DNS configuration" optional:"true"`
 		Features      *LxcFeatures `step:"Advanced LXC features" optional:"true"`
 		Startup       *LxcStartup  `step:"Startup/shutdown ordering" optional:"true"`
 		Networks      []LxcNet     `step:"Network interfaces" optional:"true"`
@@ -97,6 +98,15 @@ type (
 	LxcDevice struct {
 		Path string `step:"Host device path" example:"/dev/dri/renderD128"`
 		Mode string `step:"Permission mode" default:"0666"`
+	}
+	LxcCPU struct {
+		Cores  int    `step:"CPU cores" default:"1"`
+		Limit  string `step:"CPU usage limit (e.g. 0.5, 2)" optional:"true"`
+		Weight int    `step:"CPU weight for scheduler" optional:"true"`
+	}
+	LxcDNS struct {
+		Nameserver   string `step:"DNS server IP" optional:"true"`
+		Searchdomain string `step:"DNS search domain" optional:"true"`
 	}
 	LxcStartup struct {
 		OnBoot bool `step:"Start on host boot" default:"false"`
@@ -144,12 +154,13 @@ func (LXC) Plan(step spec.StepInstance) (spec.Action, error) {
 		template:      cfg.Template,
 		hostname:      cfg.Hostname,
 		state:         parseState(cfg.State),
-		cores:         cfg.Cores,
+		cpu:           resolveCPU(cfg.CPU),
 		memoryMiB:     sizeToMiB(cfg.Memory),
 		swapMiB:       resolveSwap(cfg.Swap, cfg.Memory),
 		storage:       cfg.Storage,
 		sizeGiB:       sizeToGiB(cfg.Size),
 		privileged:    cfg.Privileged,
+		dns:           resolveDNS(cfg.DNS),
 		features:      cfg.Features,
 		startup:       cfg.Startup,
 		networks:      cfg.Networks,
@@ -198,6 +209,23 @@ func parseSizeSpec(s string) (int, string, error) {
 		// bare-error: wrapped by InvalidConfigError in validate()
 		return 0, "", errs.Errorf("invalid size %q — use M, G, or T suffix (e.g. 512M, 8G, 1T)", s)
 	}
+}
+
+func resolveCPU(c *LxcCPU) LxcCPU {
+	if c == nil {
+		return LxcCPU{Cores: 1}
+	}
+	if c.Cores == 0 {
+		c.Cores = 1
+	}
+	return *c
+}
+
+func resolveDNS(d *LxcDNS) LxcDNS {
+	if d == nil {
+		return LxcDNS{}
+	}
+	return *d
 }
 
 // resolveSwap returns swap MiB — uses the explicit swap value if set, otherwise
@@ -356,12 +384,13 @@ type lxcAction struct {
 	template      *LxcTemplate
 	hostname      string
 	state         State
-	cores         int
+	cpu           LxcCPU
 	memoryMiB     int
 	swapMiB       int
 	storage       string
 	sizeGiB       int
 	privileged    bool
+	dns           LxcDNS
 	features      *LxcFeatures
 	startup       *LxcStartup
 	networks      []LxcNet
@@ -383,7 +412,7 @@ func (a *lxcAction) Ops() []spec.Op {
 		template:      a.template,
 		hostname:      a.hostname,
 		state:         a.state,
-		cores:         a.cores,
+		cpu:           a.cpu,
 		memoryMiB:     a.memoryMiB,
 		swapMiB:       a.swapMiB,
 		storage:       a.storage,
@@ -413,11 +442,12 @@ func (a *lxcAction) Ops() []spec.Op {
 		pveCmd:     cmd,
 		node:       a.node,
 		hostname:   a.hostname,
-		cores:      a.cores,
+		cpu:        a.cpu,
 		memoryMiB:  a.memoryMiB,
 		swapMiB:    a.swapMiB,
 		storage:    a.storage,
 		privileged: a.privileged,
+		dns:        a.dns,
 		features:   a.features,
 		startup:    a.startup,
 		networks:   a.networks,
@@ -447,6 +477,7 @@ func (a *lxcAction) Ops() []spec.Op {
 		pveCmd:   cmd,
 		hostname: a.hostname,
 		features: a.features,
+		dns:      a.dns,
 		devices:  a.devices,
 	}
 	rebootOp.SetAction(a)

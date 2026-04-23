@@ -84,6 +84,24 @@ pub type Device {
   mode: string = "0666"
 }
 
+// CPU configuration.
+pub type Cpu {
+  cores:  int = 1
+  // Maximum total CPU usage across all cores (e.g. "0.5" = half
+  // a physical core, "2" = two full cores, unset = unlimited).
+  limit:  string?
+  // Relative CPU weight for the kernel scheduler. Higher values
+  // get more CPU time when the host is contested.
+  weight: int = 0
+}
+
+// DNS configuration. If neither nameserver nor searchdomain is set,
+// PVE inherits DNS settings from the host.
+pub type Dns {
+  nameserver:   string?
+  searchdomain: string?
+}
+
 // Steps
 // -----------------------------------------------------------------------------
 
@@ -96,13 +114,14 @@ pub decl lxc(
   template:        Template?
   hostname:        string
   state:           LxcState = LxcState.running
-  cores:           int = 1
+  cpu:             Cpu?
   memory:          string = "512M"
   // Defaults to memory value if unset.
   swap:            string?
   storage:         string = "local-zfs"
   size:            string = "8G"
   privileged:      bool = false
+  dns:             Dns?
   features:        Features?
   startup:         Startup?
   networks:        list[LxcNet] = []

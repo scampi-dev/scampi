@@ -94,12 +94,16 @@ func formatNet(idx int, net LxcNet) string {
 type pctConfig struct {
 	Hostname     string
 	Cores        int
+	CPULimit     string // "0.500000" — PVE stores with trailing zeros
+	CPUUnits     int
 	Memory       int
 	Swap         int
 	Unprivileged int // 0 or 1
 	OnBoot       int // 0 or 1
 	Startup      LxcStartup
 	Features     LxcFeatures
+	Nameserver   string
+	Searchdomain string
 	Tags         string // semicolon-separated
 	Description  string
 	Storage      string      // rootfs storage pool
@@ -216,12 +220,20 @@ func parsePctConfig(output string) pctConfig {
 			cfg.Hostname = val
 		case "cores":
 			cfg.Cores, _ = strconv.Atoi(val)
+		case "cpulimit":
+			cfg.CPULimit = val
+		case "cpuunits":
+			cfg.CPUUnits, _ = strconv.Atoi(val)
 		case "memory":
 			cfg.Memory, _ = strconv.Atoi(val)
 		case "swap":
 			cfg.Swap, _ = strconv.Atoi(val)
 		case "unprivileged":
 			cfg.Unprivileged, _ = strconv.Atoi(val)
+		case "nameserver":
+			cfg.Nameserver = val
+		case "searchdomain":
+			cfg.Searchdomain = val
 		case "tags":
 			cfg.Tags = val
 		case "description":
@@ -304,6 +316,20 @@ func buildSetCmd(vmid int, drift []spec.DriftDetail) string {
 		case "cores":
 			b.WriteString(" --cores ")
 			b.WriteString(d.Desired)
+		case "cpulimit":
+			if d.Desired == "" || d.Desired == "(none)" {
+				b.WriteString(" --delete cpulimit")
+			} else {
+				b.WriteString(" --cpulimit ")
+				b.WriteString(d.Desired)
+			}
+		case "cpuunits":
+			if d.Desired == "0" {
+				b.WriteString(" --delete cpuunits")
+			} else {
+				b.WriteString(" --cpuunits ")
+				b.WriteString(d.Desired)
+			}
 		case "memory":
 			b.WriteString(" --memory ")
 			b.WriteString(d.Desired)
@@ -319,6 +345,20 @@ func buildSetCmd(vmid int, drift []spec.DriftDetail) string {
 		case "description":
 			b.WriteString(" --description ")
 			b.WriteString(shellQuote(d.Desired))
+		case "nameserver":
+			if d.Desired == "" || d.Desired == "(none)" {
+				b.WriteString(" --delete nameserver")
+			} else {
+				b.WriteString(" --nameserver ")
+				b.WriteString(shellQuote(d.Desired))
+			}
+		case "searchdomain":
+			if d.Desired == "" || d.Desired == "(none)" {
+				b.WriteString(" --delete searchdomain")
+			} else {
+				b.WriteString(" --searchdomain ")
+				b.WriteString(shellQuote(d.Desired))
+			}
 		case "features":
 			b.WriteString(" --features ")
 			b.WriteString(shellQuote(d.Desired))
@@ -349,12 +389,18 @@ func buildCreateCmd(cfg lxcAction) string {
 		" --unprivileged %d",
 		cfg.id, cfg.template.templatePath(),
 		cfg.hostname,
-		cfg.cores,
+		cfg.cpu.Cores,
 		cfg.memoryMiB,
 		cfg.swapMiB,
 		cfg.storage, cfg.sizeGiB,
 		boolToInt(!cfg.privileged),
 	)
+	if cfg.cpu.Limit != "" {
+		cmd += " --cpulimit " + cfg.cpu.Limit
+	}
+	if cfg.cpu.Weight != 0 {
+		cmd += fmt.Sprintf(" --cpuunits %d", cfg.cpu.Weight)
+	}
 	for i, net := range cfg.networks {
 		cmd += fmt.Sprintf(" --net%d %s", i, formatNet(i, net))
 	}
@@ -366,6 +412,12 @@ func buildCreateCmd(cfg lxcAction) string {
 	}
 	if cfg.desc != "" {
 		cmd += " --description " + shellQuote(cfg.desc)
+	}
+	if cfg.dns.Nameserver != "" {
+		cmd += " --nameserver " + shellQuote(cfg.dns.Nameserver)
+	}
+	if cfg.dns.Searchdomain != "" {
+		cmd += " --searchdomain " + shellQuote(cfg.dns.Searchdomain)
 	}
 	if feat := formatFeatures(cfg.features); feat != "" {
 		cmd += " --features " + shellQuote(feat)

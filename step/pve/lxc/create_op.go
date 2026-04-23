@@ -22,7 +22,7 @@ type createLxcOp struct {
 	template      *LxcTemplate
 	hostname      string
 	state         State
-	cores         int
+	cpu           LxcCPU
 	memoryMiB     int
 	swapMiB       int
 	storage       string

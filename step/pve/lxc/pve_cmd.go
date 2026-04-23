@@ -79,7 +79,9 @@ func filterSetDrift(drift []spec.DriftDetail) []spec.DriftDetail {
 	var set []spec.DriftDetail
 	for _, d := range drift {
 		switch d.Field {
-		case "cores", "memory", "swap", "hostname", "tags", "description", "features", "onboot", "startup":
+		case "cores", "cpulimit", "cpuunits", "memory", "swap",
+			"hostname", "nameserver", "searchdomain",
+			"tags", "description", "features", "onboot", "startup":
 			set = append(set, d)
 		}
 	}
@@ -97,6 +99,15 @@ func hasNetworkDrift(drift []spec.DriftDetail) bool {
 
 func parsedToLxcNet(p parsedNet) LxcNet {
 	return LxcNet(p)
+}
+
+func hasDNSDrift(drift []spec.DriftDetail) bool {
+	for _, d := range drift {
+		if d.Field == "nameserver" || d.Field == "searchdomain" {
+			return true
+		}
+	}
+	return false
 }
 
 func hasDeviceDrift(drift []spec.DriftDetail) bool {
@@ -119,6 +130,31 @@ func parseSizeGiB(s string) int {
 }
 
 func valueOrNone(s string) string {
+	if s == "" {
+		return "(none)"
+	}
+	return s
+}
+
+// normalizeCPULimit strips trailing zeros for comparison.
+// PVE stores "0.500000", user writes "0.5" — both mean the same thing.
+func normalizeCPULimit(s string) string {
+	if s == "" {
+		return ""
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return s
+	}
+	if f == 0 {
+		return ""
+	}
+	return strconv.FormatFloat(f, 'f', -1, 64)
+}
+
+// dnsFingerprint returns "(none)" for empty values so the reboot
+// check runner's empty-string guard doesn't swallow the comparison.
+func dnsFingerprint(s string) string {
 	if s == "" {
 		return "(none)"
 	}

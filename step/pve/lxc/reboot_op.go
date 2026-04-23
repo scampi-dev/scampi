@@ -60,6 +60,32 @@ func buildRebootChecks(op *rebootLxcOp) []rebootCheck {
 		})
 	}
 
+	// DNS: resolv.conf is written at container start. Compare
+	// config state (pre-cfgOp) against desired. Catches both
+	// additions and removals at Check time.
+	checks = append(checks, rebootCheck{
+		field:   "nameserver",
+		desired: dnsFingerprint(op.dns.Nameserver),
+		probe: func(ctx context.Context, cmdr target.Command, _ int) string {
+			cfg, err := op.inspectConfig(ctx, cmdr)
+			if err != nil {
+				return ""
+			}
+			return dnsFingerprint(cfg.Nameserver)
+		},
+	})
+	checks = append(checks, rebootCheck{
+		field:   "searchdomain",
+		desired: dnsFingerprint(op.dns.Searchdomain),
+		probe: func(ctx context.Context, cmdr target.Command, _ int) string {
+			cfg, err := op.inspectConfig(ctx, cmdr)
+			if err != nil {
+				return ""
+			}
+			return dnsFingerprint(cfg.Searchdomain)
+		},
+	})
+
 	// Devices: devN entries are read at container start. Compare
 	// what the config says (pre-cfgOp state during Check) against
 	// what's actually inside the running container. Catches:
@@ -124,6 +150,7 @@ type rebootLxcOp struct {
 	pveCmd
 	hostname string
 	features *LxcFeatures
+	dns      LxcDNS
 	devices  []LxcDevice
 }
 
