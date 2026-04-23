@@ -30,8 +30,6 @@ type configLxcOp struct {
 	dns        LxcDNS
 	features   *LxcFeatures
 	startup    *LxcStartup
-	networks   []LxcNet
-	devices    []LxcDevice
 	tags       []string
 }
 
@@ -104,20 +102,6 @@ func (op *configLxcOp) Execute(
 		if hasDNSDrift(drift) {
 			needsReboot = true
 		}
-	}
-
-	if hasNetworkDrift(drift) {
-		if err := op.applyNetworkDrift(ctx, cmdr, cfg); err != nil {
-			return spec.Result{}, err
-		}
-		changed = true
-	}
-
-	if hasDeviceDrift(drift) {
-		if err := op.applyDeviceDrift(ctx, cmdr, cfg); err != nil {
-			return spec.Result{}, err
-		}
-		changed = true
 	}
 
 	// DNS changes take effect on container restart (PVE writes
@@ -267,156 +251,7 @@ func (op *configLxcOp) configDrift(cfg pctConfig) []spec.DriftDetail {
 		})
 	}
 
-	// Network drift — compare per-index.
-	maxNets := max(len(cfg.Nets), len(op.networks))
-	for i := range maxNets {
-		field := fmt.Sprintf("network[%d]", i)
-		if i >= len(op.networks) {
-			// Extra NIC on host — needs removal.
-			drift = append(drift, spec.DriftDetail{
-				Field:   field,
-				Current: formatNet(i, parsedToLxcNet(cfg.Nets[i])),
-				Desired: "(absent)",
-			})
-			continue
-		}
-		if i >= len(cfg.Nets) {
-			// Missing NIC on host — needs creation.
-			drift = append(drift, spec.DriftDetail{
-				Field:   field,
-				Current: "(absent)",
-				Desired: formatNet(i, op.networks[i]),
-			})
-			continue
-		}
-		desired := formatNet(i, op.networks[i])
-		current := formatNet(i, parsedToLxcNet(cfg.Nets[i]))
-		if current != desired {
-			drift = append(drift, spec.DriftDetail{
-				Field:   field,
-				Current: current,
-				Desired: desired,
-			})
-		}
-	}
-
-	// Device drift — compare per-index.
-	maxDevs := max(len(cfg.Devs), len(op.devices))
-	for i := range maxDevs {
-		field := fmt.Sprintf("device[%d]", i)
-		if i >= len(op.devices) {
-			drift = append(drift, spec.DriftDetail{
-				Field:   field,
-				Current: formatDev(parsedToLxcDevice(cfg.Devs[i])),
-				Desired: "(absent)",
-			})
-			continue
-		}
-		if i >= len(cfg.Devs) {
-			drift = append(drift, spec.DriftDetail{
-				Field:   field,
-				Current: "(absent)",
-				Desired: formatDev(op.devices[i]),
-			})
-			continue
-		}
-		desired := formatDev(op.devices[i])
-		current := formatDev(parsedToLxcDevice(cfg.Devs[i]))
-		if current != desired {
-			drift = append(drift, spec.DriftDetail{
-				Field:   field,
-				Current: current,
-				Desired: desired,
-			})
-		}
-	}
-
 	return drift
-}
-
-func (op *configLxcOp) applyNetworkDrift(
-	ctx context.Context,
-	cmdr target.Command,
-	cfg pctConfig,
-) error {
-	maxNets := max(len(cfg.Nets), len(op.networks))
-
-	// Phase 1: delete changed/removed NICs in reverse order.
-	// Deleting first avoids veth conflicts when hotplugging reordered interfaces.
-	for i := maxNets - 1; i >= 0; i-- {
-		if i >= len(cfg.Nets) {
-			continue
-		}
-		if i < len(op.networks) {
-			desired := formatNet(i, op.networks[i])
-			current := formatNet(i, parsedToLxcNet(cfg.Nets[i]))
-			if current == desired {
-				continue
-			}
-		}
-		cmd := fmt.Sprintf("pct set %d --delete net%d", op.id, i)
-		if err := op.runCmd(ctx, cmdr, "delete network", cmd); err != nil {
-			return err
-		}
-	}
-
-	// Phase 2: recreate desired NICs.
-	for i, net := range op.networks {
-		if i < len(cfg.Nets) {
-			desired := formatNet(i, net)
-			current := formatNet(i, parsedToLxcNet(cfg.Nets[i]))
-			if current == desired {
-				continue
-			}
-		}
-		cmd := fmt.Sprintf("pct set %d --net%d %s", op.id, i, formatNet(i, net))
-		if err := op.runCmd(ctx, cmdr, "set network", cmd); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (op *configLxcOp) applyDeviceDrift(
-	ctx context.Context,
-	cmdr target.Command,
-	cfg pctConfig,
-) error {
-	maxDevs := max(len(cfg.Devs), len(op.devices))
-
-	// Phase 1: delete changed/removed devices in reverse order.
-	for i := maxDevs - 1; i >= 0; i-- {
-		if i >= len(cfg.Devs) {
-			continue
-		}
-		if i < len(op.devices) {
-			desired := formatDev(op.devices[i])
-			current := formatDev(parsedToLxcDevice(cfg.Devs[i]))
-			if current == desired {
-				continue
-			}
-		}
-		cmd := fmt.Sprintf("pct set %d --delete dev%d", op.id, i)
-		if err := op.runCmd(ctx, cmdr, "delete device", cmd); err != nil {
-			return err
-		}
-	}
-
-	// Phase 2: recreate desired devices.
-	for i, dev := range op.devices {
-		if i < len(cfg.Devs) {
-			desired := formatDev(dev)
-			current := formatDev(parsedToLxcDevice(cfg.Devs[i]))
-			if current == desired {
-				continue
-			}
-		}
-		cmd := fmt.Sprintf("pct set %d --dev%d %s", op.id, i, formatDev(dev))
-		if err := op.runCmd(ctx, cmdr, "set device", cmd); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (configLxcOp) RequiredCapabilities() capability.Capability {
@@ -443,25 +278,12 @@ func (op *configLxcOp) OpDescription() spec.OpDescription {
 }
 
 func (op *configLxcOp) Inspect() []spec.InspectField {
-	fields := []spec.InspectField{
+	return []spec.InspectField{
 		{Label: "vmid", Value: fmt.Sprintf("%d", op.id)},
 		{Label: "hostname", Value: op.hostname},
 		{Label: "cores", Value: fmt.Sprintf("%d", op.cpu.Cores)},
 		{Label: "memory", Value: fmt.Sprintf("%d MiB", op.memoryMiB)},
 		{Label: "swap", Value: fmt.Sprintf("%d MiB", op.swapMiB)},
+		{Label: "tags", Value: strings.Join(op.tags, ", ")},
 	}
-	for i, net := range op.networks {
-		fields = append(fields, spec.InspectField{
-			Label: fmt.Sprintf("net%d", i),
-			Value: formatNet(i, net),
-		})
-	}
-	for i, dev := range op.devices {
-		fields = append(fields, spec.InspectField{
-			Label: fmt.Sprintf("dev%d", i),
-			Value: formatDev(dev),
-		})
-	}
-	fields = append(fields, spec.InspectField{Label: "tags", Value: strings.Join(op.tags, ", ")})
-	return fields
 }

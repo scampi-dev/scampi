@@ -437,7 +437,7 @@ func (a *lxcAction) Ops() []spec.Op {
 	dlOp.SetAction(a)
 	createOp.AddDependency(dlOp)
 
-	// Config, resize, SSH keys — run in parallel, all depend on create.
+	// Scalar config (cores, memory, hostname, tags, etc.).
 	cfgOp := &configLxcOp{
 		pveCmd:     cmd,
 		node:       a.node,
@@ -450,29 +450,30 @@ func (a *lxcAction) Ops() []spec.Op {
 		dns:        a.dns,
 		features:   a.features,
 		startup:    a.startup,
-		networks:   a.networks,
-		devices:    a.devices,
 		tags:       a.tags,
 	}
 	cfgOp.SetAction(a)
 	cfgOp.AddDependency(createOp)
 
-	resizeOp := &resizeLxcOp{
-		pveCmd:  cmd,
-		sizeGiB: a.sizeGiB,
-	}
+	// Indexed config — each runs in parallel, all depend on create.
+	netOp := &networkLxcOp{pveCmd: cmd, networks: a.networks}
+	netOp.SetAction(a)
+	netOp.AddDependency(createOp)
+
+	devOp := &deviceLxcOp{pveCmd: cmd, devices: a.devices}
+	devOp.SetAction(a)
+	devOp.AddDependency(createOp)
+
+	resizeOp := &resizeLxcOp{pveCmd: cmd, sizeGiB: a.sizeGiB}
 	resizeOp.SetAction(a)
 	resizeOp.AddDependency(createOp)
 
-	keysOp := &sshKeysLxcOp{
-		pveCmd:        cmd,
-		sshPublicKeys: a.sshPublicKeys,
-	}
+	keysOp := &sshKeysLxcOp{pveCmd: cmd, sshPublicKeys: a.sshPublicKeys}
 	keysOp.SetAction(a)
 	keysOp.AddDependency(createOp)
 
-	// Reboot depends on config (hostname/features/device changes
-	// need a reboot to take effect in the running container).
+	// Reboot depends on all config ops (must run after they write
+	// the conf file so the reboot picks up the new values).
 	rebootOp := &rebootLxcOp{
 		pveCmd:   cmd,
 		hostname: a.hostname,
@@ -482,19 +483,20 @@ func (a *lxcAction) Ops() []spec.Op {
 	}
 	rebootOp.SetAction(a)
 	rebootOp.AddDependency(cfgOp)
+	rebootOp.AddDependency(devOp)
 
-	// State depends on config, resize, reboot — runs after those settle.
-	stOp := &stateLxcOp{
-		pveCmd: cmd,
-		state:  a.state,
-	}
+	// State depends on reboot + resize — runs after those settle.
+	stOp := &stateLxcOp{pveCmd: cmd, state: a.state}
 	stOp.SetAction(a)
 	stOp.AddDependency(resizeOp)
 	stOp.AddDependency(rebootOp)
 
 	// SSH keys need a running container (pct exec/push).
-	// Depends on state so the container is started first.
 	keysOp.AddDependency(stOp)
 
-	return []spec.Op{dlOp, createOp, cfgOp, resizeOp, rebootOp, stOp, keysOp}
+	return []spec.Op{
+		dlOp, createOp,
+		cfgOp, netOp, devOp, resizeOp,
+		rebootOp, stOp, keysOp,
+	}
 }
