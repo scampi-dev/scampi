@@ -138,6 +138,30 @@ func (e NodeMismatchError) EventTemplate() event.Template {
 	}
 }
 
+type BindSourceMissingError struct {
+	diagnostic.FatalError
+	Path   string
+	Source spec.SourceSpan
+}
+
+func (e BindSourceMissingError) Error() string {
+	return fmt.Sprintf("bind mount source %q does not exist on host", e.Path)
+}
+
+func (e BindSourceMissingError) EventTemplate() event.Template {
+	return event.Template{
+		ID:     CodeBindSourceMissing,
+		Text:   `bind mount source "{{.Path}}" does not exist on host`,
+		Hint:   `create "{{.Path}}" on the PVE host first, e.g. with posix.dir`,
+		Data:   e,
+		Source: &e.Source,
+	}
+}
+
+func (e BindSourceMissingError) DeferredResource() spec.Resource {
+	return spec.PathResource(e.Path)
+}
+
 type ImmutableFieldError struct {
 	diagnostic.FatalError
 	Field   string

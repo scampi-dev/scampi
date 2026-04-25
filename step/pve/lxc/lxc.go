@@ -30,6 +30,11 @@ const (
 
 var StateValues = []string{stateRunning, stateStopped, stateAbsent}
 
+const (
+	MountBind MountKind = iota + 1
+	MountVolume
+)
+
 func (s State) String() string {
 	switch s {
 	case StateRunning:
@@ -80,6 +85,7 @@ type (
 		Startup       *LxcStartup  `step:"Startup/shutdown ordering" optional:"true"`
 		Networks      []LxcNet     `step:"Network interfaces" optional:"true"`
 		Devices       []LxcDevice  `step:"Device passthrough (PVE 8.1+)" optional:"true"`
+		Mounts        []LxcMount   `step:"Mount points (bind and volume)" optional:"true"`
 		Tags          []string     `step:"PVE tags" optional:"true"`
 		Password      string       `step:"Root password (create-only)" optional:"true"`
 		SSHPublicKeys []string     `step:"SSH public keys for root" optional:"true"`
@@ -90,14 +96,25 @@ type (
 		Name    string `step:"Template filename" example:"debian-12-standard_12.7-1_amd64.tar.zst"`
 	}
 	LxcNet struct {
-		Name   string `step:"Interface name inside container" optional:"true"`
-		Bridge string `step:"Bridge interface" default:"vmbr0"`
-		IP     string `step:"IP address in CIDR or dhcp" example:"10.10.10.10/24"`
-		Gw     string `step:"Gateway" optional:"true" example:"10.10.10.1"`
+		Name    string `step:"Interface name inside container" optional:"true"`
+		Bridge  string `step:"Bridge interface" default:"vmbr0"`
+		IP      string `step:"IP address in CIDR or dhcp" example:"10.10.10.10/24|dhcp"`
+		Gw      string `step:"Gateway" optional:"true" example:"10.10.10.1"`
+		VlanTag int    `step:"VLAN tag" optional:"true"`
 	}
 	LxcDevice struct {
 		Path string `step:"Host device path" example:"/dev/dri/renderD128"`
 		Mode string `step:"Permission mode" default:"0666"`
+	}
+	MountKind uint8
+	LxcMount  struct {
+		Kind       MountKind
+		Source     string // bind: host path
+		Storage    string // volume: storage pool
+		Mountpoint string
+		Size       string // volume: size with unit
+		ReadOnly   bool
+		Backup     bool
 	}
 	LxcCPU struct {
 		Cores  int    `step:"CPU cores" default:"1"`
@@ -165,6 +182,7 @@ func (LXC) Plan(step spec.StepInstance) (spec.Action, error) {
 		startup:       cfg.Startup,
 		networks:      cfg.Networks,
 		devices:       cfg.Devices,
+		mounts:        cfg.Mounts,
 		tags:          cfg.Tags,
 		password:      cfg.Password,
 		sshPublicKeys: cfg.SSHPublicKeys,
@@ -363,6 +381,54 @@ func (c *LxcConfig) validate(step spec.StepInstance) error {
 		}
 		devPaths[dev.Path] = true
 	}
+	mpPaths := make(map[string]bool)
+	for i, m := range c.Mounts {
+		if m.Mountpoint == "" {
+			return InvalidConfigError{
+				Field:  fmt.Sprintf("mounts[%d].mountpoint", i),
+				Reason: "mountpoint is required",
+				Source: step.Fields["mounts"].Value,
+			}
+		}
+		if mpPaths[m.Mountpoint] {
+			return InvalidConfigError{
+				Field:  fmt.Sprintf("mounts[%d].mountpoint", i),
+				Reason: fmt.Sprintf("duplicate mountpoint %q", m.Mountpoint),
+				Source: step.Fields["mounts"].Value,
+			}
+		}
+		mpPaths[m.Mountpoint] = true
+		if m.Kind == MountBind && m.Source == "" {
+			return InvalidConfigError{
+				Field:  fmt.Sprintf("mounts[%d].source", i),
+				Reason: "bind mount requires a source path",
+				Source: step.Fields["mounts"].Value,
+			}
+		}
+		if m.Kind == MountVolume {
+			if m.Storage == "" {
+				return InvalidConfigError{
+					Field:  fmt.Sprintf("mounts[%d].storage", i),
+					Reason: "volume mount requires a storage pool",
+					Source: step.Fields["mounts"].Value,
+				}
+			}
+			if m.Size == "" {
+				return InvalidConfigError{
+					Field:  fmt.Sprintf("mounts[%d].size", i),
+					Reason: "volume mount requires a size",
+					Source: step.Fields["mounts"].Value,
+				}
+			}
+			if _, _, err := parseSizeSpec(m.Size); err != nil {
+				return InvalidConfigError{
+					Field:  fmt.Sprintf("mounts[%d].size", i),
+					Reason: fmt.Sprintf("%s — use M, G, or T suffix", err),
+					Source: step.Fields["mounts"].Value,
+				}
+			}
+		}
+	}
 	if sizeUnit != "M" && sizeMiB%1024 != 0 {
 		return SizeTruncatedWarning{
 			Input:   c.Size,
@@ -395,6 +461,7 @@ type lxcAction struct {
 	startup       *LxcStartup
 	networks      []LxcNet
 	devices       []LxcDevice
+	mounts        []LxcMount
 	tags          []string
 	password      string
 	sshPublicKeys []string
@@ -403,6 +470,18 @@ type lxcAction struct {
 
 func (a *lxcAction) Desc() string { return a.desc }
 func (a *lxcAction) Kind() string { return "pve.lxc" }
+
+func (a *lxcAction) Inputs() []spec.Resource {
+	var r []spec.Resource
+	for _, m := range a.mounts {
+		if m.Kind == MountBind {
+			r = append(r, spec.PathResource(m.Source))
+		}
+	}
+	return r
+}
+
+func (a *lxcAction) Promises() []spec.Resource { return nil }
 
 func (a *lxcAction) Ops() []spec.Op {
 	cmd := pveCmd{id: a.id, step: a.step}
@@ -464,18 +543,18 @@ func (a *lxcAction) Ops() []spec.Op {
 	devOp.SetAction(a)
 	devOp.AddDependency(createOp)
 
+	mountOp := &mountLxcOp{pveCmd: cmd, mounts: a.mounts, step: a.step}
+	mountOp.SetAction(a)
+	mountOp.AddDependency(createOp)
+
 	resizeOp := &resizeLxcOp{pveCmd: cmd, sizeGiB: a.sizeGiB}
 	resizeOp.SetAction(a)
 	resizeOp.AddDependency(createOp)
 
-	keysOp := &sshKeysLxcOp{pveCmd: cmd, sshPublicKeys: a.sshPublicKeys}
-	keysOp.SetAction(a)
-	keysOp.AddDependency(createOp)
-
 	// Reboot collects checks from all reboot-aware ops and runs
 	// after them so the conf file reflects the new values.
 	rebootOp := &rebootLxcOp{pveCmd: cmd}
-	for _, o := range []spec.Op{cfgOp, netOp, devOp} {
+	for _, o := range []spec.Op{cfgOp, netOp, devOp, mountOp} {
 		if ra, ok := o.(rebootAware); ok {
 			rebootOp.checks = append(rebootOp.checks, ra.RebootChecks()...)
 		}
@@ -489,12 +568,16 @@ func (a *lxcAction) Ops() []spec.Op {
 	stOp.AddDependency(resizeOp)
 	stOp.AddDependency(rebootOp)
 
+	keysOp := &sshKeysLxcOp{pveCmd: cmd, sshPublicKeys: a.sshPublicKeys}
+	keysOp.SetAction(a)
+	keysOp.AddDependency(createOp)
+
 	// SSH keys need a running container (pct exec/push).
 	keysOp.AddDependency(stOp)
 
 	return []spec.Op{
 		dlOp, createOp,
-		cfgOp, netOp, devOp, resizeOp,
+		cfgOp, netOp, devOp, mountOp, resizeOp,
 		rebootOp, stOp, keysOp,
 	}
 }

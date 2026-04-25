@@ -83,6 +83,7 @@ func NewRegistry() *Registry {
 		steprest.Converters(),
 		rest.Converters(),
 		container.Converters(),
+		lxc.Converters(),
 	} {
 		maps.Copy(r.converters, cm)
 	}

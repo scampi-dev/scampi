@@ -123,6 +123,10 @@ func parsedToLxcDevice(p parsedDev) LxcDevice {
 	return LxcDevice(p)
 }
 
+func parsedToLxcMount(p parsedMount) LxcMount {
+	return LxcMount(p)
+}
+
 func parseSizeGiB(s string) int {
 	s = strings.TrimRight(s, "GgTt")
 	n, _ := strconv.Atoi(s)

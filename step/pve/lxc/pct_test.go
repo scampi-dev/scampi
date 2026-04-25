@@ -119,6 +119,16 @@ func TestFormatNet(t *testing.T) {
 			net:  LxcNet{Bridge: "vmbr0", IP: "dhcp"},
 			want: "name=eth0,bridge=vmbr0,ip=dhcp,type=veth",
 		},
+		{
+			name: "vlan tag",
+			net:  LxcNet{Bridge: "vmbr0", IP: "10.10.10.10/24", Gw: "10.10.10.1", VlanTag: 100},
+			want: "name=eth0,bridge=vmbr0,ip=10.10.10.10/24,gw=10.10.10.1,tag=100,type=veth",
+		},
+		{
+			name: "dhcp with vlan",
+			net:  LxcNet{Bridge: "vmbr0", IP: "dhcp", VlanTag: 200},
+			want: "name=eth0,bridge=vmbr0,ip=dhcp,tag=200,type=veth",
+		},
 	}
 
 	for _, tt := range tests {
@@ -128,6 +138,37 @@ func TestFormatNet(t *testing.T) {
 				t.Errorf("got %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestParseNetValue_VlanTag(t *testing.T) {
+	net := parseNetValue("name=eth0,bridge=vmbr0,ip=10.0.0.1/24,gw=10.0.0.1,tag=100,type=veth")
+	if net.VlanTag != 100 {
+		t.Errorf("tag = %d, want 100", net.VlanTag)
+	}
+	if net.IP != "10.0.0.1/24" {
+		t.Errorf("ip = %q", net.IP)
+	}
+}
+
+func TestParseNetValue_DHCP(t *testing.T) {
+	net := parseNetValue("name=eth0,bridge=vmbr0,ip=dhcp,type=veth")
+	if net.IP != "dhcp" {
+		t.Errorf("ip = %q, want %q", net.IP, "dhcp")
+	}
+	if net.Gw != "" {
+		t.Errorf("gw should be empty for DHCP, got %q", net.Gw)
+	}
+}
+
+func TestNetRoundtrip_VlanTag(t *testing.T) {
+	net := LxcNet{Bridge: "vmbr0", IP: "10.0.0.5/24", Gw: "10.0.0.1", VlanTag: 42}
+	formatted := formatNet(0, net)
+	parsed := parseNetValue(formatted)
+	reparsed := parsedToLxcNet(parsed)
+	reformatted := formatNet(0, reparsed)
+	if formatted != reformatted {
+		t.Errorf("roundtrip: %q → %q", formatted, reformatted)
 	}
 }
 

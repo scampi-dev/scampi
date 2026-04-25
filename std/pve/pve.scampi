@@ -69,10 +69,13 @@ pub type Features {
 // net index (first element → net0, second → net1, etc.).
 pub type LxcNet {
   // Interface name inside the container. Defaults to ethN.
-  name:   string?
-  bridge: string = "vmbr0"
-  ip:     string
-  gw:     string?
+  name:     string?
+  bridge:   string = "vmbr0"
+  // IP address in CIDR notation, or "dhcp" for DHCP.
+  ip:       string
+  gw:       string?
+  // VLAN tag. 0 or unset means no VLAN tagging.
+  vlan_tag: int = 0
 }
 
 // Host device passthrough (PVE 8.1+). List index determines the
@@ -83,6 +86,36 @@ pub type Device {
   // Permission mode for the device node inside the container.
   mode: string = "0666"
 }
+
+// Mount point — produced by bind_mount or volume_mount.
+// List index determines the PVE mount index (first → mp0, etc.).
+pub type Mount
+
+// Bind mount: maps a host directory into the container.
+pub decl bind_mount(
+  // Absolute path on the PVE host.
+  source:     string
+  // Absolute path inside the container.
+  mountpoint: string
+  // Mount read-only.
+  ro:         bool = false
+  // Include in PVE backups.
+  backup:     bool = true
+) Mount
+
+// Volume mount: allocates a dedicated storage volume for the container.
+pub decl volume_mount(
+  // Storage pool (e.g. "local-zfs", "local-lvm").
+  storage:    string
+  // Absolute path inside the container.
+  mountpoint: string
+  // Volume size (e.g. "50G", "100G").
+  size:       string
+  // Mount read-only.
+  ro:         bool = false
+  // Include in PVE backups.
+  backup:     bool = true
+) Mount
 
 // CPU configuration.
 pub type Cpu {
@@ -127,9 +160,12 @@ pub decl lxc(
   networks:        list[LxcNet] = []
   // Host device passthrough via PVE 8.1+ devN: syntax.
   devices:         list[Device] = []
+  // Mount points (bind mounts and volume mounts).
+  mounts:          list[Mount] = []
   tags:            list[string] = []
-  // Root password set on create. Cannot be changed after creation.
+  // Root password for console/PVE UI access. Set at create time.
   password:        string?
+  // SSH public keys injected into root's authorized_keys.
   ssh_public_keys: list[string] = []
   desc:            string?
   on_change:       list[std.Step] = []

@@ -129,7 +129,7 @@ func (op *createLxcOp) Execute(
 }
 
 func (createLxcOp) RequiredCapabilities() capability.Capability {
-	return capability.PVE | capability.Command
+	return capability.PVE | capability.Command | capability.Filesystem
 }
 
 // OpDescription

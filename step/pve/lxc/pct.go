@@ -86,6 +86,10 @@ func formatNet(idx int, net LxcNet) string {
 		b.WriteString(net.Gw)
 	}
 
+	if net.VlanTag != 0 {
+		_, _ = fmt.Fprintf(&b, ",tag=%d", net.VlanTag)
+	}
+
 	b.WriteString(",type=veth")
 	return b.String()
 }
@@ -106,17 +110,19 @@ type pctConfig struct {
 	Searchdomain string
 	Tags         string // semicolon-separated
 	Description  string
-	Storage      string      // rootfs storage pool
-	Size         string      // rootfs size with unit (e.g. "4G")
-	Nets         []parsedNet // indexed by net0, net1, ...
-	Devs         []parsedDev // indexed by dev0, dev1, ...
+	Storage      string        // rootfs storage pool
+	Size         string        // rootfs size with unit (e.g. "4G")
+	Nets         []parsedNet   // indexed by net0, net1, ...
+	Devs         []parsedDev   // indexed by dev0, dev1, ...
+	Mounts       []parsedMount // indexed by mp0, mp1, ...
 }
 
 type parsedNet struct {
-	Name   string
-	Bridge string
-	IP     string
-	Gw     string
+	Name    string
+	Bridge  string
+	IP      string
+	Gw      string
+	VlanTag int
 }
 
 type parsedDev struct {
@@ -200,6 +206,107 @@ func devicesFingerprint(devs []LxcDevice) string {
 	return strings.Join(parts, ";")
 }
 
+// Mount point types
+// -----------------------------------------------------------------------------
+
+type parsedMount struct {
+	Kind       MountKind
+	Source     string // bind: host path
+	Storage    string // volume: "storage:volume-name"
+	Mountpoint string
+	Size       string
+	ReadOnly   bool
+	Backup     bool
+}
+
+// parseMpKey extracts the index from "mp0", "mp1", etc.
+func parseMpKey(key string) (int, bool) {
+	if !strings.HasPrefix(key, "mp") {
+		return 0, false
+	}
+	idx, err := strconv.Atoi(key[2:])
+	if err != nil {
+		return 0, false
+	}
+	return idx, true
+}
+
+// parseMpValue parses a PVE mount point config value.
+//
+//	"/host/path,mp=/container/path"                              → bind mount
+//	"/host/path,mp=/container/path,ro=1,backup=0"                → bind mount with options
+//	"local-zfs:subvol-100-disk-1,mp=/data,size=50G"              → volume mount
+//	"local-zfs:subvol-100-disk-1,mp=/data,size=50G,ro=1"         → volume mount with options
+func parseMpValue(val string) parsedMount {
+	m := parsedMount{Backup: true}
+
+	// Split into source and key=value params.
+	parts := strings.SplitN(val, ",", 2)
+	source := strings.TrimSpace(parts[0])
+
+	// Bind mount: source starts with /.
+	// Volume mount: source is storage:volume-name.
+	if strings.HasPrefix(source, "/") {
+		m.Kind = MountBind
+		m.Source = source
+	} else {
+		m.Kind = MountVolume
+		// Extract just the storage pool name (before the colon).
+		if pool, _, ok := strings.Cut(source, ":"); ok {
+			m.Storage = pool
+		} else {
+			m.Storage = source
+		}
+	}
+
+	if len(parts) < 2 {
+		return m
+	}
+
+	for kv := range strings.SplitSeq(parts[1], ",") {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			continue
+		}
+		switch k {
+		case "mp":
+			m.Mountpoint = v
+		case "size":
+			m.Size = v
+		case "ro":
+			m.ReadOnly = v == "1"
+		case "backup":
+			m.Backup = v == "1"
+		}
+	}
+	return m
+}
+
+// formatMp formats an LxcMount for use in pct create/set --mpN flags.
+func formatMp(m LxcMount) string {
+	var b strings.Builder
+	switch m.Kind {
+	case MountBind:
+		b.WriteString(m.Source)
+	case MountVolume:
+		// PVE auto-allocates volume — pass size as the volume
+		// identifier so PVE creates a new disk of that size.
+		_, _ = fmt.Fprintf(&b, "%s:%d", m.Storage, sizeToGiB(m.Size))
+	}
+	b.WriteString(",mp=")
+	b.WriteString(m.Mountpoint)
+	if m.Kind == MountVolume && m.Size != "" {
+		_, _ = fmt.Fprintf(&b, ",size=%dG", sizeToGiB(m.Size))
+	}
+	if m.ReadOnly {
+		b.WriteString(",ro=1")
+	}
+	if !m.Backup {
+		b.WriteString(",backup=0")
+	}
+	return b.String()
+}
+
 // parsePctConfig parses the key: value output of `pct config <id>`.
 //
 //	arch: amd64
@@ -257,6 +364,11 @@ func parsePctConfig(output string) pctConfig {
 					cfg.Devs = append(cfg.Devs, parsedDev{})
 				}
 				cfg.Devs[idx] = parseDevValue(val)
+			} else if idx, ok := parseMpKey(key); ok {
+				for len(cfg.Mounts) <= idx {
+					cfg.Mounts = append(cfg.Mounts, parsedMount{})
+				}
+				cfg.Mounts[idx] = parseMpValue(val)
 			}
 		}
 	}
@@ -302,6 +414,8 @@ func parseNetValue(val string) parsedNet {
 			net.IP = v
 		case "gw":
 			net.Gw = v
+		case "tag":
+			net.VlanTag, _ = strconv.Atoi(v)
 		}
 	}
 	return net
@@ -432,6 +546,9 @@ func buildCreateCmd(cfg lxcAction) string {
 	}
 	for i, dev := range cfg.devices {
 		cmd += fmt.Sprintf(" --dev%d %s", i, formatDev(dev))
+	}
+	for i, m := range cfg.mounts {
+		cmd += fmt.Sprintf(" --mp%d %s", i, formatMp(m))
 	}
 	return cmd
 }
