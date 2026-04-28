@@ -264,7 +264,7 @@ func (c *cli) EmitInspect(e event.InspectEvent) {
 
 	header := f.fmtfMsg(
 		ansi.Blue().Bold(),
-		"deploy %q → %s",
+		"deploy %q "+f.glyphs.arrow+" %s",
 		e.Detail.DeployName,
 		e.Detail.TargetName,
 	)

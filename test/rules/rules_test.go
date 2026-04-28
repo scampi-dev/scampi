@@ -959,3 +959,58 @@ func TestLangPackageIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestGlyphDiscipline rejects non-ASCII Unicode in string literals
+// inside render/cli/. CLI glyphs must go through the glyphSet in
+// glyph.go (which has both fancy and ASCII variants), never be
+// hardcoded — otherwise --ascii output ships fancy glyphs.
+//
+// Comments are allowed to contain Unicode (they don't reach output).
+// Test files are allowed (they may assert on rendered fancy output).
+// glyph.go itself is the canonical glyph source — exempt by design.
+func TestGlyphDiscipline(t *testing.T) {
+	root := "../../render/cli"
+
+	fset := token.NewFileSet()
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(p, ".go") {
+			return nil
+		}
+		base := filepath.Base(p)
+		if base == "glyph.go" || strings.HasSuffix(base, "_test.go") {
+			return nil
+		}
+
+		f, perr := parser.ParseFile(fset, p, nil, 0)
+		if perr != nil {
+			return perr
+		}
+
+		ast.Inspect(f, func(n ast.Node) bool {
+			lit, ok := n.(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING {
+				return true
+			}
+			for _, r := range lit.Value {
+				if r > 127 {
+					pos := fset.Position(lit.Pos())
+					rel, _ := filepath.Rel(root, pos.Filename)
+					t.Errorf(
+						"render/cli/%s:%d: non-ASCII rune %q in string literal — "+
+							"use glyphSet from glyph.go (fancy + ASCII fallback) instead of hardcoding",
+						rel, pos.Line, r,
+					)
+					break
+				}
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
