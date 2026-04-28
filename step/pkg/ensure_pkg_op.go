@@ -191,17 +191,15 @@ func (op *ensureLatestPkgOp) Check(
 	_ source.Source,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
+	// Check is read-only: use the existing pkg cache rather than
+	// refreshing it. Cache refresh is a target mutation and belongs
+	// in Execute. A stale cache may cause Check to miss a pending
+	// upgrade — Execute refreshes before deciding what to install,
+	// so the corrective action still runs accurately.
 	t := target.Must[interface {
 		target.PkgManager
 		target.PkgUpdater
 	}](ensurePkgID, tgt)
-
-	if err := t.UpdateCache(ctx); err != nil {
-		return spec.CheckUnsatisfied, nil, PkgCacheError{
-			Stderr: err.Error(),
-			Source: op.pkgsSource,
-		}
-	}
 
 	var drift []spec.DriftDetail
 	for _, pkg := range op.packages {
@@ -242,6 +240,15 @@ func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt t
 		target.PkgManager
 		target.PkgUpdater
 	}](ensurePkgID, tgt)
+
+	// Refresh the pkg cache before deciding what to install — Check
+	// uses cached metadata which may be stale.
+	if err := t.UpdateCache(ctx); err != nil {
+		return spec.Result{}, PkgCacheError{
+			Stderr: err.Error(),
+			Source: op.pkgsSource,
+		}
+	}
 
 	var actionable []string
 	for _, pkg := range op.packages {

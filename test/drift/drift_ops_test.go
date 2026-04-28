@@ -331,6 +331,30 @@ func TestDrift_Pkg_Upgradable(t *testing.T) {
 	assertDrift(t, details, "state", "vim: upgradable", "latest")
 }
 
+// TestDrift_Pkg_Latest_CheckIsReadOnly is the regression for #242:
+// state=latest must not refresh the package cache during Check.
+// Cache refresh is a target mutation and belongs in Execute.
+func TestDrift_Pkg_Latest_CheckIsReadOnly(t *testing.T) {
+	src := source.NewMemSource()
+	tgt := target.NewMemTarget()
+	tgt.Pkgs["vim"] = true
+	tgt.CacheStale = true // simulate cache that would otherwise be refreshed
+
+	ops := planOps(t, pkg.Pkg{}, &pkg.PkgConfig{
+		Packages: []string{"vim"},
+		State:    "latest",
+		Source:   spec.PkgSourceRef{Kind: spec.PkgSourceNative},
+	}, map[string]spec.FieldSpan{
+		"packages": {},
+	})
+
+	_ = collectDrift(t, ops, src, tgt)
+
+	if !tgt.CacheStale {
+		t.Error("Check refreshed the pkg cache (CacheStale -> false) — Check must be read-only")
+	}
+}
+
 func TestDrift_Pkg_WantAbsent(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
