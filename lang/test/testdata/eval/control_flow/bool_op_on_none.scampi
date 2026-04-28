@@ -1,0 +1,8 @@
+module main
+
+type Cfg {
+  flag: bool?
+}
+
+let c = Cfg {}
+let r = c.flag && true

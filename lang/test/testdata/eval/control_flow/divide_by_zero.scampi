@@ -1,0 +1,4 @@
+module main
+
+let a = 10 / 0
+let b = 10 % 0

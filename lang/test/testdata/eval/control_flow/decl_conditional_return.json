@@ -1,0 +1,5 @@
+{
+  "deploys": [
+    {"name": "test", "steps": 1}
+  ]
+}

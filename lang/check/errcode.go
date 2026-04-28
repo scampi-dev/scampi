@@ -66,4 +66,6 @@ const (
 	CodeEnvVarNotSet      errs.Code = "lang.EnvVarNotSet"
 	CodeSecretLookup      errs.Code = "lang.SecretLookup"
 	CodeCallError         errs.Code = "lang.CallError"
+	CodeDivByZero         errs.Code = "lang.DivByZero"
+	CodeNotBool           errs.Code = "lang.NotBool"
 )

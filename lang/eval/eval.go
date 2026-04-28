@@ -746,7 +746,7 @@ func (ev *Evaluator) evalFor(f *ast.ForStmt) {
 
 func (ev *Evaluator) evalIf(s *ast.IfStmt) {
 	cond := ev.evalExpr(s.Cond)
-	if asBool(cond) {
+	if ev.asBool(cond, s.Cond.Span()) {
 		child := newEnv(ev.env)
 		prev := ev.env
 		ev.env = child
@@ -846,7 +846,7 @@ func (ev *Evaluator) evalExpr(e ast.Expr) Value {
 		return ev.evalUnary(e)
 	case *ast.IfExpr:
 		cond := ev.evalExpr(e.Cond)
-		if asBool(cond) {
+		if ev.asBool(cond, e.Cond.Span()) {
 			return ev.evalExpr(e.Then)
 		}
 		return ev.evalExpr(e.Else)
@@ -1387,15 +1387,30 @@ func (ev *Evaluator) expandUserStep(fv *FuncVal, fields map[string]Value) Value 
 	// return to produce their step value. Non-return statements
 	// (let bindings, if/for, bare expression steps) are handled
 	// by evalStmt/emitValue as usual.
+	//
+	// Returns nested in if/for set ev.returnVal via evalStmt; check
+	// it after each statement so conditional returns aren't dropped
+	// (matches the callFunc body loop).
+	prevReturn := ev.returnVal
+	ev.returnVal = nil
 	for _, s := range stepDecl.Body.Stmts {
 		if rs, ok := s.(*ast.ReturnStmt); ok && rs.Value != nil {
 			v := ev.evalExpr(rs.Value)
 			ev.emitValue(v)
-			break
+			ev.returnVal = nil
+			ev.env = prevEnv
+			ev.returnVal = prevReturn
+			return &NoneVal{}
 		}
 		ev.evalStmt(s)
+		if ev.returnVal != nil {
+			ev.emitValue(ev.returnVal)
+			ev.returnVal = nil
+			break
+		}
 	}
 	ev.env = prevEnv
+	ev.returnVal = prevReturn
 	return &NoneVal{}
 }
 
@@ -1452,19 +1467,17 @@ func (ev *Evaluator) evalBinary(bin *ast.BinaryExpr) Value {
 	case token.Star:
 		return intBinOp(lv, rv, func(a, b int64) int64 { return a * b })
 	case token.Slash:
-		return intBinOp(lv, rv, func(a, b int64) int64 {
-			if b == 0 {
-				return 0
-			}
-			return a / b
-		})
+		if isIntZero(rv) {
+			ev.errAt(bin.SrcSpan, check.CodeDivByZero, "division by zero")
+			return &NoneVal{}
+		}
+		return intBinOp(lv, rv, func(a, b int64) int64 { return a / b })
 	case token.Percent:
-		return intBinOp(lv, rv, func(a, b int64) int64 {
-			if b == 0 {
-				return 0
-			}
-			return a % b
-		})
+		if isIntZero(rv) {
+			ev.errAt(bin.SrcSpan, check.CodeDivByZero, "modulo by zero")
+			return &NoneVal{}
+		}
+		return intBinOp(lv, rv, func(a, b int64) int64 { return a % b })
 	case token.Eq:
 		return &BoolVal{V: valuesEqual(lv, rv)}
 	case token.Neq:
@@ -1478,9 +1491,9 @@ func (ev *Evaluator) evalBinary(bin *ast.BinaryExpr) Value {
 	case token.Geq:
 		return &BoolVal{V: compareInts(lv, rv) >= 0}
 	case token.And:
-		return &BoolVal{V: lv.(*BoolVal).V && rv.(*BoolVal).V}
+		return &BoolVal{V: ev.asBool(lv, bin.Left.Span()) && ev.asBool(rv, bin.Right.Span())}
 	case token.Or:
-		return &BoolVal{V: lv.(*BoolVal).V || rv.(*BoolVal).V}
+		return &BoolVal{V: ev.asBool(lv, bin.Left.Span()) || ev.asBool(rv, bin.Right.Span())}
 	case token.In:
 		return &BoolVal{V: valueIn(lv, rv)}
 	}
@@ -1491,7 +1504,7 @@ func (ev *Evaluator) evalUnary(un *ast.UnaryExpr) Value {
 	xv := ev.evalExpr(un.X)
 	switch un.Op {
 	case token.Not:
-		return &BoolVal{V: !xv.(*BoolVal).V}
+		return &BoolVal{V: !ev.asBool(xv, un.X.Span())}
 	case token.Minus:
 		if iv, ok := xv.(*IntVal); ok {
 			return &IntVal{V: -iv.V}
@@ -1514,7 +1527,7 @@ func (ev *Evaluator) evalListComp(comp *ast.ListComp) Value {
 		ev.env = child
 		if comp.Cond != nil {
 			cond := ev.evalExpr(comp.Cond)
-			if !asBool(cond) {
+			if !ev.asBool(cond, comp.Cond.Span()) {
 				ev.env = prev
 				continue
 			}
@@ -1528,10 +1541,52 @@ func (ev *Evaluator) evalListComp(comp *ast.ListComp) Value {
 // Helpers
 // -----------------------------------------------------------------------------
 
-// asBool unwraps a BoolVal. The type checker guarantees only bool
-// values reach here; a non-bool panics (compiler bug).
-func asBool(v Value) bool {
-	return v.(*BoolVal).V
+// asBool unwraps a BoolVal at the given span. The type checker
+// rejects most non-bool uses, but optional-typed values (`T?`) can
+// be `none` at runtime — emit a typed diagnostic and return false
+// instead of panicking.
+func (ev *Evaluator) asBool(v Value, span token.Span) bool {
+	if bv, ok := v.(*BoolVal); ok {
+		return bv.V
+	}
+	ev.errAt(span, check.CodeNotBool, "expected bool, got "+typeNameOf(v))
+	return false
+}
+
+// isIntZero reports whether v is an IntVal with value 0.
+func isIntZero(v Value) bool {
+	iv, ok := v.(*IntVal)
+	return ok && iv.V == 0
+}
+
+// typeNameOf returns a short user-facing type name for diagnostics.
+func typeNameOf(v Value) string {
+	switch v.(type) {
+	case *BoolVal:
+		return "bool"
+	case *IntVal:
+		return "int"
+	case *StringVal:
+		return "string"
+	case *NoneVal:
+		return "none"
+	case *ListVal:
+		return "list"
+	case *MapVal:
+		return "map"
+	case *StructVal:
+		return "struct"
+	case *FuncVal:
+		return "func"
+	case *BlockVal, *BlockResultVal:
+		return "block"
+	case *OpaqueVal:
+		return "opaque"
+	case *RefVal:
+		return "ref"
+	default:
+		return "unknown"
+	}
 }
 
 func valueToString(v Value) string {
