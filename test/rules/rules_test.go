@@ -183,6 +183,20 @@ func TestImportCapabilities(t *testing.T) {
 			github.com/pkg/sftp`,
 		},
 		{
+			pattern: "target/pve/pve.go",
+			allowedImports: `net,os,
+			golang.org/x/crypto/ssh,
+			golang.org/x/crypto/ssh/agent,
+			golang.org/x/crypto/ssh/knownhosts,
+			github.com/pkg/sftp`,
+		},
+		{
+			pattern: "target/pve/target.go",
+			allowedImports: `crypto/rand,
+			golang.org/x/crypto/ssh,
+			github.com/pkg/sftp`,
+		},
+		{
 			pattern:        "osutil/signals_unix.go",
 			allowedImports: "os,syscall",
 		},

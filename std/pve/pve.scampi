@@ -135,6 +135,27 @@ pub type Dns {
   searchdomain: string?
 }
 
+// Targets
+// -----------------------------------------------------------------------------
+
+// LXC container target. Connects to the PVE host via SSH and proxies
+// every operation through `pct exec`/`pct push` — no SSH connection
+// into the container itself.
+//
+// Use this to run `posix.*` steps inside an LXC container without
+// needing an SSH server in the container or any network configuration
+// for direct access.
+pub decl lxc_target(
+  name:     string
+  host:     string
+  user:     string
+  vmid:     int
+  port:     int = 22
+  key:      string?
+  insecure: bool?
+  timeout:  string = "5s"
+) std.Target
+
 // Steps
 // -----------------------------------------------------------------------------
 
