@@ -4,6 +4,9 @@ package engine
 
 import (
 	"context"
+	"sync"
+
+	"golang.org/x/sync/errgroup"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/diagnostic"
@@ -110,21 +113,15 @@ func forEachResolvedOffline(
 	}
 
 	allCaps := capabilityTarget{caps: capability.All}
-	for _, res := range resolved {
+	return runPlansConcurrent(ctx, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
 		e, err := NewWithTarget(ctx, src, res, em, allCaps)
 		if err != nil {
 			return err
 		}
+		defer e.Close()
 		e.store = store
-
-		if err := run(ctx, e); err != nil {
-			e.Close()
-			return err
-		}
-		e.Close()
-	}
-
-	return nil
+		return run(ctx, e)
+	})
 }
 
 func forEachResolved(
@@ -151,19 +148,56 @@ func forEachResolved(
 		return err
 	}
 
-	for _, res := range resolved {
+	return runPlansConcurrent(ctx, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
 		e, err := New(ctx, src, res, em)
 		if err != nil {
 			return err
 		}
+		defer e.Close()
 		e.store = store
+		return run(ctx, e)
+	})
+}
 
-		if err := run(ctx, e); err != nil {
-			e.Close()
-			return err
-		}
-		e.Close()
+// runPlansConcurrent runs each resolved plan in its own goroutine and
+// aggregates errors. A failure in one plan does not cancel siblings —
+// we surface every plan's outcome. ctx cancellation (e.g. SIGINT) does
+// propagate to all in-flight plans.
+//
+// Concurrency is currently unbounded — see #236 for the rationale and
+// follow-ups for a tunable cap if real configs hit shared-infra limits.
+func runPlansConcurrent(
+	ctx context.Context,
+	resolved []spec.ResolvedConfig,
+	work func(ctx context.Context, res spec.ResolvedConfig) error,
+) error {
+	if len(resolved) == 1 {
+		return work(ctx, resolved[0])
 	}
 
+	g, gctx := errgroup.WithContext(ctx)
+	var (
+		mu     sync.Mutex
+		causes []error
+	)
+
+	for _, res := range resolved {
+		g.Go(func() error {
+			if err := work(gctx, res); err != nil {
+				mu.Lock()
+				causes = append(causes, err)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	_ = g.Wait()
+
+	if len(causes) == 1 {
+		return causes[0]
+	}
+	if len(causes) > 0 {
+		return AbortError{Causes: causes}
+	}
 	return nil
 }

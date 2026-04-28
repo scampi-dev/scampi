@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
@@ -42,20 +43,27 @@ func InspectDiffPaths(
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 ) ([]string, error) {
-	var paths []string
+	var (
+		mu    sync.Mutex
+		paths []string
+	)
 
 	err := forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(_ context.Context, e *Engine) error {
 		p, _, _, planErr := plan(e.cfg, e.em, e.tgt.Capabilities())
 		if planErr != nil {
 			return planErr
 		}
+		var local []string
 		for _, act := range p.Unit.Actions {
 			for _, op := range act.Ops() {
 				if d, ok := op.(spec.Diffable); ok {
-					paths = append(paths, d.DestPath())
+					local = append(local, d.DestPath())
 				}
 			}
 		}
+		mu.Lock()
+		paths = append(paths, local...)
+		mu.Unlock()
 		return nil
 	})
 
@@ -71,14 +79,19 @@ func InspectDiff(
 	opts spec.ResolveOptions,
 	destPath string,
 ) (*InspectDiffResult, error) {
-	var result *InspectDiffResult
+	var (
+		mu     sync.Mutex
+		result *InspectDiffResult
+	)
 
 	err := forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
 		r, err := e.InspectDiffFile(ctx, destPath)
 		if err != nil {
 			return err
 		}
+		mu.Lock()
 		result = r
+		mu.Unlock()
 		return nil
 	})
 

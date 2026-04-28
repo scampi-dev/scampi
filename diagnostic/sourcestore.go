@@ -4,11 +4,16 @@ package diagnostic
 
 import (
 	"strings"
+	"sync"
 )
 
 // SourceStore caches source file contents so the renderer can display
 // source-context lines in diagnostic error messages.
+//
+// SourceStore is safe for concurrent use — multiple plan workers writing
+// source paths in parallel and the renderer reading lines must not race.
 type SourceStore struct {
+	mu    sync.RWMutex
 	files map[string][]byte
 }
 
@@ -19,6 +24,8 @@ func NewSourceStore() *SourceStore {
 }
 
 func (s *SourceStore) AddFile(name string, data []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.files[name] = data
 }
 
@@ -49,6 +56,8 @@ func (s *SourceStore) Line(name string, line int) (string, bool) {
 }
 
 func (s *SourceStore) findFile(name string) ([]byte, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	for _, p := range fallbackPaths(name) {
 		if data, ok := s.files[p]; ok {
 			return data, true
