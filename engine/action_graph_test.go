@@ -56,6 +56,14 @@ func groups(s ...string) []spec.Resource {
 	return r
 }
 
+func containers(s ...string) []spec.Resource {
+	r := make([]spec.Resource, len(s))
+	for i, c := range s {
+		r[i] = spec.ContainerResource(c)
+	}
+	return r
+}
+
 func TestBuildActionGraph_NoDependencies(t *testing.T) {
 	// Two Promiser actions with no path overlap -> no dependencies
 	actions := []spec.Action{
@@ -286,6 +294,42 @@ func TestBuildActionGraph_MixedResourceChain(t *testing.T) {
 
 	requiresExactly(t, nodes[1], "user", nodes[0])
 	requiresExactly(t, nodes[2], "dir", nodes[1])
+}
+
+func TestBuildActionGraph_ContainerResource_DistinctIDsParallel(t *testing.T) {
+	// Three pve.lxc-style actions with distinct container slots —
+	// no resource overlap and not barriers, so they run in parallel.
+	actions := []spec.Action{
+		&mockPromiserAction{desc: "lxc100", promises: containers("pve://midgard/100")},
+		&mockPromiserAction{desc: "lxc101", promises: containers("pve://midgard/101")},
+		&mockPromiserAction{desc: "lxc102", promises: containers("pve://midgard/102")},
+	}
+
+	nodes := buildActionGraph(actions)
+
+	for _, n := range nodes {
+		if len(n.requires) != 0 {
+			t.Errorf("%s: expected no dependencies, got %d", n.action.Desc(), len(n.requires))
+		}
+	}
+}
+
+func TestBuildActionGraph_ContainerResource_NotABarrier(t *testing.T) {
+	// A container-resource action between two path actions must not act
+	// as a barrier (regression test for #235).
+	actions := []spec.Action{
+		&mockPromiserAction{desc: "P1", promises: paths("/a")},
+		&mockPromiserAction{desc: "lxc", promises: containers("pve://midgard/100")},
+		&mockPromiserAction{desc: "P2", promises: paths("/b")},
+	}
+
+	nodes := buildActionGraph(actions)
+
+	for _, n := range nodes {
+		if len(n.requires) != 0 {
+			t.Errorf("%s: expected no dependencies, got %d", n.action.Desc(), len(n.requires))
+		}
+	}
 }
 
 func TestBuildActionGraph_ParentDirDoesNotApplyToNonPaths(t *testing.T) {

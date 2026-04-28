@@ -21,6 +21,7 @@ const (
 	ResourceUser
 	ResourceGroup
 	ResourceRef
+	ResourceContainer
 )
 
 // Resource is a typed key for a promised or deferred resource.
@@ -29,9 +30,10 @@ type Resource struct {
 	Name string
 }
 
-func PathResource(name string) Resource  { return Resource{Kind: ResourcePath, Name: name} }
-func UserResource(name string) Resource  { return Resource{Kind: ResourceUser, Name: name} }
-func GroupResource(name string) Resource { return Resource{Kind: ResourceGroup, Name: name} }
+func PathResource(name string) Resource      { return Resource{Kind: ResourcePath, Name: name} }
+func UserResource(name string) Resource      { return Resource{Kind: ResourceUser, Name: name} }
+func GroupResource(name string) Resource     { return Resource{Kind: ResourceGroup, Name: name} }
+func ContainerResource(name string) Resource { return Resource{Kind: ResourceContainer, Name: name} }
 
 type (
 	Config struct {

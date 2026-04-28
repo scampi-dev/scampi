@@ -481,7 +481,13 @@ func (a *lxcAction) Inputs() []spec.Resource {
 	return r
 }
 
-func (a *lxcAction) Promises() []spec.Resource { return nil }
+// Promises declares per-(node, vmid) ownership so the action graph
+// treats distinct containers as independent. Without this, lxcAction
+// would have empty Inputs and Promises (when no bind mounts), making
+// it a barrier — and consecutive barriers chain sequentially.
+func (a *lxcAction) Promises() []spec.Resource {
+	return []spec.Resource{spec.ContainerResource(fmt.Sprintf("pve://%s/%d", a.node, a.id))}
+}
 
 func (a *lxcAction) Ops() []spec.Op {
 	cmd := pveCmd{id: a.id, step: a.step}

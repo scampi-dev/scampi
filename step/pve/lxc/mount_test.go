@@ -406,6 +406,39 @@ func TestLxcAction_Inputs_NoMounts(t *testing.T) {
 	}
 }
 
+// Promises
+// -----------------------------------------------------------------------------
+
+func TestLxcAction_Promises_PerVMID(t *testing.T) {
+	cases := []struct {
+		node string
+		id   int
+		want string
+	}{
+		{"midgard", 100, "pve://midgard/100"},
+		{"midgard", 101, "pve://midgard/101"},
+		{"asgard", 100, "pve://asgard/100"},
+	}
+	for _, tc := range cases {
+		act := &lxcAction{node: tc.node, id: tc.id}
+		got := act.Promises()
+		if len(got) != 1 {
+			t.Fatalf("node=%s id=%d: got %d promises, want 1", tc.node, tc.id, len(got))
+		}
+		if got[0] != spec.ContainerResource(tc.want) {
+			t.Errorf("node=%s id=%d: got %v, want ContainerResource(%q)", tc.node, tc.id, got[0], tc.want)
+		}
+	}
+}
+
+func TestLxcAction_Promises_DistinctVMIDsAreIndependent(t *testing.T) {
+	a := &lxcAction{node: "midgard", id: 100}
+	b := &lxcAction{node: "midgard", id: 101}
+	if a.Promises()[0] == b.Promises()[0] {
+		t.Error("distinct VMIDs should produce distinct resource keys")
+	}
+}
+
 func TestBindSourceMissingError_IsDeferrable(t *testing.T) {
 	err := BindSourceMissingError{Path: "/mnt/data"}
 
