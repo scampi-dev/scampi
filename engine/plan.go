@@ -60,7 +60,7 @@ func plan(
 	unitID := spec.UnitID(cfg.DeployName)
 	em.EmitPlanLifecycle(diagnostic.PlanStarted(unitID))
 
-	actions, onChange, causes, impacts := planSteps(cfg.Steps, em, tgtCaps)
+	actions, actionSteps, onChange, causes, impacts := planSteps(cfg.Steps, em, tgtCaps)
 	hookActions, hookCauses, hookImpacts := planHooks(cfg.Hooks, em, tgtCaps)
 	causes = append(causes, hookCauses...)
 	impacts = append(impacts, hookImpacts...)
@@ -88,6 +88,9 @@ func plan(
 	}
 
 	if err := validateHooks(em, cfg, hp); err != nil {
+		return spec.Plan{}, nil, nil, err
+	}
+	if err := detectDuplicatePromises(em, actions, actionSteps, cfg.Steps); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 	if err := DetectPlanCycles(em, p); err != nil {
@@ -129,8 +132,9 @@ func planSteps(
 	steps []spec.StepInstance,
 	em diagnostic.Emitter,
 	tgtCaps capability.Capability,
-) ([]spec.Action, map[int][]string, []error, []diagnostic.Impact) {
+) ([]spec.Action, []int, map[int][]string, []error, []diagnostic.Impact) {
 	var actions []spec.Action
+	var actionSteps []int // actionSteps[k] = source step index of actions[k]
 	onChange := make(map[int][]string)
 	var causes []error
 	var impacts []diagnostic.Impact
@@ -148,6 +152,7 @@ func planSteps(
 
 		actionIdx := len(actions)
 		actions = append(actions, act)
+		actionSteps = append(actionSteps, i)
 		em.EmitPlanLifecycle(diagnostic.StepPlanned(i, act.Desc(), step.Type.Kind()))
 
 		if len(step.OnChange) > 0 {
@@ -155,7 +160,7 @@ func planSteps(
 		}
 	}
 
-	return actions, onChange, causes, impacts
+	return actions, actionSteps, onChange, causes, impacts
 }
 
 func planHooks(
