@@ -45,7 +45,10 @@ func LoadConfig(
 			// user sees something instead of a silent abort.
 			em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(
 				cfgPath,
-				&LoadConfigError{Cause: err},
+				&LoadConfigError{
+					Cause:  err,
+					Source: spec.SourceSpan{Filename: cfgPath},
+				},
 			))
 		}
 		return spec.Config{}, AbortError{Causes: []error{err}}
@@ -57,12 +60,14 @@ func LoadConfig(
 // ResolveMultiple produces ResolvedConfigs for all matching (deploy, target)
 // combinations based on the provided options.
 func ResolveMultiple(cfg spec.Config, opts spec.ResolveOptions) ([]spec.ResolvedConfig, error) {
+	cfgSpan := spec.SourceSpan{Filename: cfg.Path}
+
 	var blocks []spec.DeployBlock
 	if len(opts.DeployNames) > 0 {
 		for _, name := range opts.DeployNames {
 			b, ok := cfg.DeployByName(name)
 			if !ok {
-				return nil, UnknownDeployBlockError{Name: name}
+				return nil, UnknownDeployBlockError{Name: name, Source: cfgSpan}
 			}
 			blocks = append(blocks, b)
 		}
@@ -71,7 +76,7 @@ func ResolveMultiple(cfg spec.Config, opts spec.ResolveOptions) ([]spec.Resolved
 	}
 
 	if len(blocks) == 0 {
-		return nil, NoDeployBlocksError{}
+		return nil, NoDeployBlocksError{Source: cfgSpan}
 	}
 
 	var results []spec.ResolvedConfig

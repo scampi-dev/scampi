@@ -30,7 +30,8 @@ func (AbortError) Error() string {
 // than a silent abort.
 type LoadConfigError struct {
 	diagnostic.FatalError
-	Cause error
+	Cause  error
+	Source spec.SourceSpan
 }
 
 func (e *LoadConfigError) Error() string {
@@ -48,6 +49,7 @@ func (e *LoadConfigError) EventTemplate() event.Template {
 		Data: loadConfigErrorData{
 			Message: e.Error(),
 		},
+		Source: &e.Source,
 	}
 }
 
@@ -202,7 +204,8 @@ func (e UnknownIndexKindError) EventTemplate() event.Template {
 
 type UnknownDeployBlockError struct {
 	diagnostic.FatalError
-	Name string
+	Name   string
+	Source spec.SourceSpan
 }
 
 func (e UnknownDeployBlockError) Error() string {
@@ -211,24 +214,30 @@ func (e UnknownDeployBlockError) Error() string {
 
 func (e UnknownDeployBlockError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeUnknownDeployBlock,
-		Text: `unknown deploy block "{{.Name}}"`,
-		Hint: "check that the deploy block name is spelled correctly",
-		Data: e,
+		ID:     CodeUnknownDeployBlock,
+		Text:   `unknown deploy block "{{.Name}}"`,
+		Hint:   "check that the deploy block name is spelled correctly",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
-type NoDeployBlocksError struct{ diagnostic.FatalError }
+type NoDeployBlocksError struct {
+	diagnostic.FatalError
+	Source spec.SourceSpan
+}
 
 func (NoDeployBlocksError) Error() string {
 	return "no deploy blocks defined"
 }
 
-func (NoDeployBlocksError) EventTemplate() event.Template {
+func (e NoDeployBlocksError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeNoDeployBlocks,
-		Text: "no deploy blocks defined",
-		Hint: "add at least one deploy block to the configuration",
+		ID:     CodeNoDeployBlocks,
+		Text:   "no deploy blocks defined",
+		Hint:   "add at least one deploy block to the configuration",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
