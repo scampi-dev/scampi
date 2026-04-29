@@ -18,6 +18,7 @@ import (
 	"scampi.dev/scampi/lang/token"
 	"scampi.dev/scampi/linker"
 	"scampi.dev/scampi/mod"
+	"scampi.dev/scampi/render/template"
 	"scampi.dev/scampi/std"
 )
 
@@ -218,8 +219,21 @@ func diagnosticToLSP(d diagnostic.Diagnostic, src []byte) protocol.Diagnostic {
 	if e, ok := d.(error); ok {
 		msg = e.Error()
 	}
+	// Render Hint/Help against tmpl.Data — the raw fields are Go
+	// template strings (e.g. `{{.Hint}}`) that would otherwise leak
+	// verbatim into the LSP message. Both get a labelled prefix so
+	// the two sections are visually distinct in editor popups (the
+	// CLI renderer uses glyph icons; LSP clients can't reliably show
+	// those, so we use ASCII labels).
 	if tmpl.Hint != "" {
-		msg += "\n\nhint: " + tmpl.Hint
+		if rendered, ok := template.Render(tmpl.HintField()); ok {
+			msg += "\n\nhint: " + rendered
+		}
+	}
+	if tmpl.Help != "" {
+		if rendered, ok := template.Render(tmpl.HelpField()); ok {
+			msg += "\nhelp: " + rendered
+		}
 	}
 	rng := protocol.Range{}
 	if tmpl.Source != nil {
