@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"scampi.dev/scampi/spec"
 )
 
 // Fetch clones dep into <cacheDir>/<dep.Path>@<dep.Version>/.
@@ -15,12 +17,20 @@ import (
 // When vanity import resolution maps the module to a subdirectory
 // within a repo, only that subdirectory is kept in the cache.
 // On success the .git directory is removed.
-func Fetch(dep Dependency, cacheDir string) error {
+//
+// m is the module that owns dep; it provides the source span for any
+// returned FetchError (pointing at the require entry in scampi.mod).
+// May be nil for callers that don't have a Module in scope (e.g.
+// transitive deps discovered through a chain of unparsed modules) —
+// in that case the error carries no span.
+func Fetch(m *Module, dep Dependency, cacheDir string) error {
 	dest := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
 
 	if _, err := os.Stat(dest); err == nil {
 		return nil
 	}
+
+	span := depSpan(m, &dep)
 
 	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 		return &FetchError{
@@ -28,6 +38,7 @@ func Fetch(dep Dependency, cacheDir string) error {
 			Version: dep.Version,
 			Detail:  fmt.Sprintf("could not create cache directory: %v", err),
 			Hint:    "check that " + cacheDir + " is writable",
+			Source:  span,
 		}
 	}
 
@@ -42,6 +53,7 @@ func Fetch(dep Dependency, cacheDir string) error {
 				ModPath: dep.Path,
 				Version: dep.Version,
 				Detail:  fmt.Sprintf("could not create temp dir: %v", err),
+				Source:  span,
 			}
 		}
 		defer func() { _ = os.RemoveAll(cloneDest) }()
@@ -66,6 +78,7 @@ func Fetch(dep Dependency, cacheDir string) error {
 			Version: dep.Version,
 			Detail:  firstLine(out),
 			Hint:    "check that version " + dep.Version + " exists in " + rm.URL,
+			Source:  span,
 		}
 	}
 
@@ -80,7 +93,8 @@ func Fetch(dep Dependency, cacheDir string) error {
 					"subdirectory %s not found in repository",
 					rm.Subdir,
 				),
-				Hint: "check that the module path matches a directory in " + rm.URL,
+				Hint:   "check that the module path matches a directory in " + rm.URL,
+				Source: span,
 			}
 		}
 		if err := os.Rename(subdirPath, dest); err != nil {
@@ -88,6 +102,7 @@ func Fetch(dep Dependency, cacheDir string) error {
 				ModPath: dep.Path,
 				Version: dep.Version,
 				Detail:  fmt.Sprintf("could not extract subdirectory: %v", err),
+				Source:  span,
 			}
 		}
 	} else {
@@ -98,11 +113,21 @@ func Fetch(dep Dependency, cacheDir string) error {
 				Version: dep.Version,
 				Detail:  fmt.Sprintf("could not remove .git directory: %v", err),
 				Hint:    "check permissions on " + dest,
+				Source:  span,
 			}
 		}
 	}
 
 	return nil
+}
+
+// depSpan returns the source span for a dependency entry in scampi.mod,
+// or a zero span if the owning module is unknown.
+func depSpan(m *Module, dep *Dependency) spec.SourceSpan {
+	if m == nil {
+		return spec.SourceSpan{}
+	}
+	return m.DepSpan(dep)
 }
 
 // firstLine returns the first non-empty line of b, trimmed of whitespace.

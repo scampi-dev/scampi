@@ -32,7 +32,7 @@ func TestResolveDeps_NoTransitive(t *testing.T) {
 		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
 	}
 
-	got, err := ResolveDeps(ctx, src, direct, cacheDir)
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestResolveDeps_SimpleChain(t *testing.T) {
 		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
 	}
 
-	got, err := ResolveDeps(ctx, src, direct, cacheDir)
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestResolveDeps_Diamond(t *testing.T) {
 		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
 	}
 
-	got, err := ResolveDeps(ctx, src, direct, cacheDir)
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestResolveDeps_Cycle(t *testing.T) {
 		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
 	}
 
-	_, err := ResolveDeps(ctx, src, direct, cacheDir)
+	_, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err == nil {
 		t.Fatal("expected CycleError, got nil")
 	}
@@ -161,7 +161,7 @@ func TestResolveDeps_ModuleNoScampiMod(t *testing.T) {
 		{Path: "codeberg.org/user/leaf", Version: "v1.0.0"},
 	}
 
-	got, err := ResolveDeps(ctx, src, direct, cacheDir)
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -186,7 +186,7 @@ func TestResolveDeps_LocalDepSkipped(t *testing.T) {
 		{Path: "codeberg.org/user/remote", Version: "v1.0.0"},
 	}
 
-	got, err := ResolveDeps(ctx, src, direct, cacheDir)
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -231,7 +231,7 @@ func TestResolveDeps_DirectVersionWins(t *testing.T) {
 		{Path: "codeberg.org/user/d", Version: "v2.0.0"},
 	}
 
-	got, err := ResolveDeps(ctx, src, direct, cacheDir)
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestResolveDeps_IndirectInputStaysIndirect(t *testing.T) {
 		{Path: "codeberg.org/user/b", Version: "v1.0.0", Indirect: true},
 	}
 
-	got, err := ResolveDeps(ctx, src, direct, cacheDir)
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

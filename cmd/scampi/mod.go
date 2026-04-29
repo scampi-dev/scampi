@@ -245,13 +245,13 @@ func modDownloadCmd() *cli.Command {
 				if dep.IsLocal() {
 					continue
 				}
-				if err := mod.Fetch(dep, cacheDir); err != nil {
+				if err := mod.Fetch(m, dep, cacheDir); err != nil {
 					emitModDiagnostic(em, err)
 					return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
 				}
 
 				dest := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
-				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, dep, dest); err != nil {
+				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, m, dep, dest); err != nil {
 					emitModDiagnostic(em, err)
 					return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
 				}
@@ -272,7 +272,7 @@ func modDownloadCmd() *cli.Command {
 			}
 
 			// Resolve and fetch transitive dependencies.
-			allDeps, err := mod.FetchTransitive(ctx, src, m.Require, cacheDir)
+			allDeps, err := mod.FetchTransitive(ctx, src, m, cacheDir)
 			if err != nil {
 				emitModDiagnostic(em, err)
 				return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
@@ -283,7 +283,7 @@ func modDownloadCmd() *cli.Command {
 					continue
 				}
 				dest := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
-				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, dep, dest); err != nil {
+				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, m, dep, dest); err != nil {
 					emitModDiagnostic(em, err)
 					return handleEngineError("mod download", engine.AbortError{Causes: []error{err}})
 				}
@@ -422,11 +422,11 @@ func modVerifyCmd() *cli.Command {
 					continue
 				}
 				modDir := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
-				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, dep, modDir); err != nil {
+				if err := mod.ValidateEntryPoint(ctx, source.LocalPosixSource{}, m, dep, modDir); err != nil {
 					emitModDiagnostic(em, err)
 					return handleEngineError("mod verify", engine.AbortError{Causes: []error{err}})
 				}
-				if err := mod.VerifyModule(dep, modDir, sums); err != nil {
+				if err := mod.VerifyModule(m, dep, modDir, sums); err != nil {
 					emitModDiagnostic(em, err)
 					return handleEngineError("mod verify", engine.AbortError{Causes: []error{err}})
 				}

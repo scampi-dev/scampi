@@ -59,16 +59,24 @@ func Resolve(ctx context.Context, src source.Source, m *Module, loadPath string,
 	return "", &ModuleNoEntryPointError{
 		ModPath: dep.Path,
 		Tried:   tried,
+		Source:  m.DepSpan(dep),
 	}
 }
 
 // ValidateEntryPoint checks that a module directory contains a loadable
 // .scampi entry point. Returns NotAModuleError if not.
-func ValidateEntryPoint(ctx context.Context, src source.Source, dep Dependency, dir string) error {
+//
+// m carries the project's scampi.mod for source-span attribution; pass
+// nil if no owning module is in scope.
+func ValidateEntryPoint(ctx context.Context, src source.Source, m *Module, dep Dependency, dir string) error {
 	if hasEntryPoint(ctx, src, dir, lastSegment(dep.Path)) {
 		return nil
 	}
-	return &NotAModuleError{ModPath: dep.Path, Version: dep.Version}
+	return &NotAModuleError{
+		ModPath: dep.Path,
+		Version: dep.Version,
+		Source:  depSpan(m, &dep),
+	}
 }
 
 // modDirFor returns the directory where a dependency's files live.

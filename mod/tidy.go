@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/source"
+	"scampi.dev/scampi/spec"
 )
 
 var loadPathRe = regexp.MustCompile(`load\(\s*"([^"]+)"`)
@@ -25,6 +26,7 @@ func Tidy(ctx context.Context, src source.Source, dir string) ([]string, error) 
 		return nil, &TidyError{
 			Detail: fmt.Sprintf("could not read scampi.mod: %v", err),
 			Hint:   "run: scampi mod init",
+			Source: spec.SourceSpan{Filename: modPath},
 		}
 	}
 
@@ -99,6 +101,7 @@ func collectLoadPaths(ctx context.Context, src source.Source, dir string, mod *M
 		return nil, &TidyError{
 			Detail: fmt.Sprintf("could not scan *.scampi files: %v", err),
 			Hint:   "check directory permissions",
+			Source: spec.SourceSpan{Filename: dir},
 		}
 	}
 
@@ -109,6 +112,7 @@ func collectLoadPaths(ctx context.Context, src source.Source, dir string, mod *M
 			return nil, &TidyError{
 				Detail: fmt.Sprintf("could not read %s: %v", f, err),
 				Hint:   "check file permissions",
+				Source: spec.SourceSpan{Filename: f},
 			}
 		}
 

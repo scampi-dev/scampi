@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/source"
+	"scampi.dev/scampi/spec"
 )
 
 // Add adds or updates a dependency in scampi.mod (and scampi.sum for remote deps).
@@ -40,7 +41,7 @@ func addLocal(ctx context.Context, src source.Source, dep Dependency, dir string
 		localDir = filepath.Join(dir, localDir)
 	}
 
-	if err := ValidateEntryPoint(ctx, src, dep, localDir); err != nil {
+	if err := ValidateEntryPoint(ctx, src, nil, dep, localDir); err != nil {
 		return "", 0, err
 	}
 
@@ -63,13 +64,15 @@ func addRemote(
 		dep.Version = resolved
 	}
 
-	if err := Fetch(dep, cacheDir); err != nil {
+	// dep is freshly resolved and not yet in scampi.mod; no source span
+	// is available. The Fetch error (if any) carries a zero span.
+	if err := Fetch(nil, dep, cacheDir); err != nil {
 		return "", 0, err
 	}
 
 	dest := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
 
-	if err := ValidateEntryPoint(ctx, src, dep, dest); err != nil {
+	if err := ValidateEntryPoint(ctx, src, nil, dep, dest); err != nil {
 		_ = os.RemoveAll(dest)
 		return "", 0, err
 	}
@@ -86,6 +89,7 @@ func addRemote(
 		return "", 0, &AddError{
 			Detail: "could not read scampi.mod: " + err.Error(),
 			Hint:   "run: scampi mod init",
+			Source: spec.SourceSpan{Filename: modFile},
 		}
 	}
 	m, err := Parse(modFile, data)
@@ -111,8 +115,10 @@ func addRemote(
 		deps = append(deps, Dependency{Path: dep.Path, Version: dep.Version})
 	}
 
-	// Resolve and fetch transitive dependencies.
-	allDeps, err := FetchTransitive(ctx, src, deps, cacheDir)
+	// Resolve and fetch transitive dependencies. m carries spans for
+	// existing requires; the new dep being added has no span yet.
+	tmpModule := &Module{Filename: m.Filename, Module: m.Module, Require: deps}
+	allDeps, err := FetchTransitive(ctx, src, tmpModule, cacheDir)
 	if err != nil {
 		return "", 0, err
 	}
@@ -131,7 +137,7 @@ func addRemote(
 			continue
 		}
 		tdest := filepath.Join(cacheDir, tdep.Path+"@"+tdep.Version)
-		if err := ValidateEntryPoint(ctx, src, tdep, tdest); err != nil {
+		if err := ValidateEntryPoint(ctx, src, tmpModule, tdep, tdest); err != nil {
 			return "", 0, err
 		}
 		h, err := ComputeHash(tdest)
@@ -172,6 +178,7 @@ func updateModFile(ctx context.Context, src source.Source, dep Dependency, dir s
 		return 0, &AddError{
 			Detail: "could not read scampi.mod: " + err.Error(),
 			Hint:   "run: scampi mod init",
+			Source: spec.SourceSpan{Filename: modFile},
 		}
 	}
 

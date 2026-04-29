@@ -52,7 +52,7 @@ func TestFetch_Basic(t *testing.T) {
 	cacheDir := t.TempDir()
 
 	dep := mod.Dependency{Path: bare, Version: "v0.1.0"}
-	if err := mod.Fetch(dep, cacheDir); err != nil {
+	if err := mod.Fetch(nil, dep, cacheDir); err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
 
@@ -74,10 +74,10 @@ func TestFetch_Idempotent(t *testing.T) {
 	cacheDir := t.TempDir()
 
 	dep := mod.Dependency{Path: bare, Version: "v0.1.0"}
-	if err := mod.Fetch(dep, cacheDir); err != nil {
+	if err := mod.Fetch(nil, dep, cacheDir); err != nil {
 		t.Fatalf("first Fetch: %v", err)
 	}
-	if err := mod.Fetch(dep, cacheDir); err != nil {
+	if err := mod.Fetch(nil, dep, cacheDir); err != nil {
 		t.Fatalf("second Fetch (idempotent): %v", err)
 	}
 }
@@ -87,7 +87,7 @@ func TestFetch_BadTag(t *testing.T) {
 	cacheDir := t.TempDir()
 
 	dep := mod.Dependency{Path: bare, Version: "v9.9.9"}
-	err := mod.Fetch(dep, cacheDir)
+	err := mod.Fetch(nil, dep, cacheDir)
 	if err == nil {
 		t.Fatal("expected error for nonexistent tag, got nil")
 	}

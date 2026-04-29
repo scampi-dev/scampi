@@ -169,7 +169,7 @@ func TestVerifyModule_OK(t *testing.T) {
 		"codeberg.org/foo/bar v1.0.0": hash,
 	}
 
-	if err := mod.VerifyModule(dep, dir, sums); err != nil {
+	if err := mod.VerifyModule(nil, dep, dir, sums); err != nil {
 		t.Errorf("expected nil, got %v", err)
 	}
 }
@@ -183,7 +183,7 @@ func TestVerifyModule_Mismatch(t *testing.T) {
 		"codeberg.org/foo/bar v1.0.0": "h1:0000000000000000000000000000000000000000000000000000000000000000",
 	}
 
-	err := mod.VerifyModule(dep, dir, sums)
+	err := mod.VerifyModule(nil, dep, dir, sums)
 	if err == nil {
 		t.Fatal("expected error for mismatched hash, got nil")
 	}
@@ -200,7 +200,7 @@ func TestVerifyModule_NotInSum(t *testing.T) {
 	dep := mod.Dependency{Path: "codeberg.org/new/module", Version: "v1.0.0"}
 	sums := map[string]string{}
 
-	if err := mod.VerifyModule(dep, dir, sums); err != nil {
+	if err := mod.VerifyModule(nil, dep, dir, sums); err != nil {
 		t.Errorf("expected nil for new module, got %v", err)
 	}
 }

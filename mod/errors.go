@@ -162,16 +162,18 @@ type WriteError struct {
 	diagnostic.FatalError
 	Detail string
 	Hint   string
+	Source spec.SourceSpan
 }
 
 func (e *WriteError) Error() string { return e.Detail }
 
 func (e *WriteError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeWriteError,
-		Text: "{{.Detail}}",
-		Hint: "{{.Hint}}",
-		Data: e,
+		ID:     CodeWriteError,
+		Text:   "{{.Detail}}",
+		Hint:   "{{.Hint}}",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -183,16 +185,18 @@ type InitError struct {
 	diagnostic.FatalError
 	Detail string
 	Hint   string
+	Source spec.SourceSpan
 }
 
 func (e *InitError) Error() string { return e.Detail }
 
 func (e *InitError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeInitError,
-		Text: "{{.Detail}}",
-		Hint: "{{.Hint}}",
-		Data: e,
+		ID:     CodeInitError,
+		Text:   "{{.Detail}}",
+		Hint:   "{{.Hint}}",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -233,16 +237,18 @@ type TidyError struct {
 	diagnostic.FatalError
 	Detail string
 	Hint   string
+	Source spec.SourceSpan
 }
 
 func (e *TidyError) Error() string { return e.Detail }
 
 func (e *TidyError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeTidyError,
-		Text: "{{.Detail}}",
-		Hint: "{{.Hint}}",
-		Data: e,
+		ID:     CodeTidyError,
+		Text:   "{{.Detail}}",
+		Hint:   "{{.Hint}}",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -254,16 +260,18 @@ type SumError struct {
 	diagnostic.FatalError
 	Detail string
 	Hint   string
+	Source spec.SourceSpan
 }
 
 func (e *SumError) Error() string { return e.Detail }
 
 func (e *SumError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeSumError,
-		Text: "{{.Detail}}",
-		Hint: "{{.Hint}}",
-		Data: e,
+		ID:     CodeSumError,
+		Text:   "{{.Detail}}",
+		Hint:   "{{.Hint}}",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -277,6 +285,7 @@ type FetchError struct {
 	Version string
 	Detail  string
 	Hint    string
+	Source  spec.SourceSpan
 }
 
 func (e *FetchError) Error() string {
@@ -285,10 +294,11 @@ func (e *FetchError) Error() string {
 
 func (e *FetchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeFetchError,
-		Text: "fetch {{.ModPath}}@{{.Version}}: {{.Detail}}",
-		Hint: "{{.Hint}}",
-		Data: e,
+		ID:     CodeFetchError,
+		Text:   "fetch {{.ModPath}}@{{.Version}}: {{.Detail}}",
+		Hint:   "{{.Hint}}",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -300,6 +310,7 @@ type NotAModuleError struct {
 	diagnostic.FatalError
 	ModPath string
 	Version string
+	Source  spec.SourceSpan
 }
 
 func (e *NotAModuleError) Error() string {
@@ -308,10 +319,11 @@ func (e *NotAModuleError) Error() string {
 
 func (e *NotAModuleError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeNotAModule,
-		Text: "{{.ModPath}}@{{.Version}} is not a scampi module",
-		Hint: "a module must contain _index.scampi or <name>.scampi at its root",
-		Data: e,
+		ID:     CodeNotAModule,
+		Text:   "{{.ModPath}}@{{.Version}} is not a scampi module",
+		Hint:   "a module must contain _index.scampi or <name>.scampi at its root",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -323,16 +335,18 @@ type AddError struct {
 	diagnostic.FatalError
 	Detail string
 	Hint   string
+	Source spec.SourceSpan
 }
 
 func (e *AddError) Error() string { return e.Detail }
 
 func (e *AddError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeAddError,
-		Text: "{{.Detail}}",
-		Hint: "{{.Hint}}",
-		Data: e,
+		ID:     CodeAddError,
+		Text:   "{{.Detail}}",
+		Hint:   "{{.Hint}}",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -343,6 +357,7 @@ func (e *AddError) EventTemplate() event.Template {
 type NoStableVersionError struct {
 	diagnostic.FatalError
 	ModPath string
+	Source  spec.SourceSpan
 }
 
 func (e *NoStableVersionError) Error() string {
@@ -351,10 +366,11 @@ func (e *NoStableVersionError) Error() string {
 
 func (e *NoStableVersionError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeNoStableVersion,
-		Text: "no stable version found for {{.ModPath}}",
-		Hint: "specify a version explicitly: scampi mod add {{.ModPath}}@v1.0.0-alpha.1",
-		Data: e,
+		ID:     CodeNoStableVersion,
+		Text:   "no stable version found for {{.ModPath}}",
+		Hint:   "specify a version explicitly: scampi mod add {{.ModPath}}@v1.0.0-alpha.1",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -364,19 +380,21 @@ func (e *NoStableVersionError) EventTemplate() event.Template {
 // CycleError is raised when transitive dependency resolution detects a cycle.
 type CycleError struct {
 	diagnostic.FatalError
-	Chain []string
+	Chain  []string
+	Source spec.SourceSpan
 }
 
 func (e *CycleError) Error() string {
-	return "dependency cycle detected: " + strings.Join(e.Chain, " → ")
+	return "dependency cycle detected: " + strings.Join(e.Chain, " -> ")
 }
 
 func (e *CycleError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeCycleError,
-		Text: "dependency cycle detected",
-		Hint: `{{join " → " .Chain}}`,
-		Data: e,
+		ID:     CodeCycleError,
+		Text:   "dependency cycle detected",
+		Hint:   `{{join " -> " .Chain}}`,
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 
@@ -390,6 +408,7 @@ type SumMismatchError struct {
 	Version  string
 	Expected string
 	Actual   string
+	Source   spec.SourceSpan
 }
 
 func (e *SumMismatchError) Error() string {
@@ -398,9 +417,10 @@ func (e *SumMismatchError) Error() string {
 
 func (e *SumMismatchError) EventTemplate() event.Template {
 	return event.Template{
-		ID:   CodeSumMismatch,
-		Text: "checksum mismatch for {{.ModPath}}@{{.Version}}",
-		Hint: "the cached module may have been tampered with — run: scampi mod clean && scampi mod download",
-		Data: e,
+		ID:     CodeSumMismatch,
+		Text:   "checksum mismatch for {{.ModPath}}@{{.Version}}",
+		Hint:   "the cached module may have been tampered with — run: scampi mod clean && scampi mod download",
+		Data:   e,
+		Source: &e.Source,
 	}
 }

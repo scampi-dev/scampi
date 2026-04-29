@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/source"
+	"scampi.dev/scampi/spec"
 )
 
 // WriteModFile serialises module and deps to path in canonical scampi.mod format.
@@ -33,6 +34,7 @@ func WriteModFile(ctx context.Context, src source.Source, path, module string, d
 		return &WriteError{
 			Detail: fmt.Sprintf("could not write scampi.mod: %v", err),
 			Hint:   "check file permissions",
+			Source: spec.SourceSpan{Filename: path},
 		}
 	}
 	return nil

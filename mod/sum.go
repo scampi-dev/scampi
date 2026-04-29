@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/source"
+	"scampi.dev/scampi/spec"
 )
 
 // ComputeHash computes a deterministic SHA-256 hash of the directory tree at dir.
@@ -45,6 +46,7 @@ func ComputeHash(dir string) (string, error) {
 		return "", &SumError{
 			Detail: "failed to walk directory: " + err.Error(),
 			Hint:   "ensure the directory exists and is readable",
+			Source: spec.SourceSpan{Filename: dir},
 		}
 	}
 
@@ -58,6 +60,7 @@ func ComputeHash(dir string) (string, error) {
 			return "", &SumError{
 				Detail: "failed to read file " + slashPath + ": " + readErr.Error(),
 				Hint:   "ensure all files in the directory are readable",
+				Source: spec.SourceSpan{Filename: filepath.Join(dir, rel)},
 			}
 		}
 		//nolint:errcheck,revive // sha256.Hash.Write never returns an error
@@ -86,6 +89,7 @@ func ReadSum(ctx context.Context, src source.Source, path string) (map[string]st
 		return nil, &SumError{
 			Detail: "failed to read scampi.sum: " + err.Error(),
 			Hint:   "ensure the file is readable",
+			Source: spec.SourceSpan{Filename: path},
 		}
 	}
 
@@ -126,6 +130,7 @@ func WriteSum(ctx context.Context, src source.Source, path string, sums map[stri
 		return &SumError{
 			Detail: "failed to write scampi.sum: " + err.Error(),
 			Hint:   "ensure the directory is writable",
+			Source: spec.SourceSpan{Filename: path},
 		}
 	}
 	return nil
@@ -133,7 +138,11 @@ func WriteSum(ctx context.Context, src source.Source, path string, sums map[stri
 
 // VerifyModule checks whether dep's hash in modDir matches what's recorded in sums.
 // If dep is not yet in sums, nil is returned (new module, not yet recorded).
-func VerifyModule(dep Dependency, modDir string, sums map[string]string) error {
+//
+// m is the project's parsed scampi.mod; if dep appears in m.Require, the
+// resulting SumMismatchError carries the require entry's source span.
+// Pass nil when no owning module is in scope.
+func VerifyModule(m *Module, dep Dependency, modDir string, sums map[string]string) error {
 	key := dep.Path + " " + dep.Version
 	expected, ok := sums[key]
 	if !ok {
@@ -151,6 +160,7 @@ func VerifyModule(dep Dependency, modDir string, sums map[string]string) error {
 			Version:  dep.Version,
 			Expected: expected,
 			Actual:   actual,
+			Source:   depSpan(m, &dep),
 		}
 	}
 	return nil
