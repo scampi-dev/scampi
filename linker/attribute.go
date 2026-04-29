@@ -170,6 +170,7 @@ func DefaultAttributes() *AttributeRegistry {
 	r.Register("secrets.@secretkey", SecretKeyAttribute{})
 	r.Register("std.@nonempty", NonEmptyAttribute{})
 	r.Register("std.@filemode", FileModeAttribute{})
+	r.Register("std.@size", SizeAttribute{})
 	r.Register("std.@pattern", PatternAttribute{})
 	r.Register("std.@oneof", OneOfAttribute{})
 	r.Register("std.@deprecated", DeprecatedAttribute{})

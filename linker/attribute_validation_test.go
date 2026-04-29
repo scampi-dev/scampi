@@ -121,6 +121,37 @@ func TestFileMode_ComputedSkipped(t *testing.T) {
 	}
 }
 
+// Size
+// -----------------------------------------------------------------------------
+
+func TestSize_Valid(t *testing.T) {
+	for _, s := range []string{"1024", "512K", "4M", "8G", "12T", "1.5G", "0.25T", "256B"} {
+		ctx := newAttrCtx("std.@size", "memory", stringLitExpr(s), nil)
+		SizeAttribute{}.StaticCheck(ctx)
+		if diags(ctx) != 0 {
+			t.Errorf("expected no diagnostics for %q, got %d", s, diags(ctx))
+		}
+	}
+}
+
+func TestSize_Invalid(t *testing.T) {
+	for _, s := range []string{"", "12g", "8 G", "M", "abc", "12X", "1..5G", "-1G", "+1G"} {
+		ctx := newAttrCtx("std.@size", "memory", stringLitExpr(s), nil)
+		SizeAttribute{}.StaticCheck(ctx)
+		if diags(ctx) != 1 {
+			t.Errorf("expected 1 diagnostic for %q, got %d", s, diags(ctx))
+		}
+	}
+}
+
+func TestSize_ComputedSkipped(t *testing.T) {
+	ctx := newAttrCtx("std.@size", "memory", computedExpr(), nil)
+	SizeAttribute{}.StaticCheck(ctx)
+	if diags(ctx) != 0 {
+		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
+	}
+}
+
 // Pattern
 // -----------------------------------------------------------------------------
 

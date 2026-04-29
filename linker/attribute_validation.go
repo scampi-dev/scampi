@@ -87,6 +87,25 @@ func (FileModeAttribute) StaticCheck(ctx StaticCheckContext) {
 	}
 }
 
+// SizeAttribute validates that the annotated string parameter is a
+// recognised human-readable byte amount. Accepts bare integers (bytes)
+// or numbers with an uppercase unit suffix B/K/M/G/T, optionally with
+// a decimal point. Lowercase suffixes are rejected — keeping it case-
+// sensitive avoids ambiguity in mixed-case configs.
+type SizeAttribute struct{}
+
+var sizeRegex = regexp.MustCompile(`^[0-9]+(\.[0-9]+)?[BKMGT]?$`)
+
+func (SizeAttribute) StaticCheck(ctx StaticCheckContext) {
+	v, ok := literalString(ctx.ParamArg)
+	if !ok {
+		return
+	}
+	if !sizeRegex.MatchString(v) {
+		ctx.Linker.Emit(newAttrDocError(ctx, fmt.Sprintf("invalid size %q", v)))
+	}
+}
+
 // PatternAttribute validates that the annotated string parameter
 // matches a regex declared on the attribute itself (the `regex`
 // arg). The error includes the regex itself for context; the
@@ -271,8 +290,8 @@ func splitDoc(doc string) (hint, help string) {
 	if doc == "" {
 		return "", ""
 	}
-	if i := strings.Index(doc, "\n\n"); i >= 0 {
-		return strings.TrimSpace(doc[:i]), strings.TrimSpace(doc[i+2:])
+	if before, after, ok := strings.Cut(doc, "\n\n"); ok {
+		return strings.TrimSpace(before), strings.TrimSpace(after)
 	}
 	return doc, ""
 }

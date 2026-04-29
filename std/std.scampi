@@ -29,6 +29,17 @@ type @nonempty {}
 //   - posix style:  u=rw,g=r,o=r
 type @filemode {}
 
+// expected a human-readable byte size with optional unit suffix
+//
+// supported formats:
+//   - bare bytes:   1024
+//   - with unit:    512K, 4M, 8G, 12T (binary multiples — KiB, MiB, etc.)
+//   - decimal:      1.5G, 0.25T
+//
+// the unit suffix is one of B, K, M, G, T (uppercase, optional —
+// bare numbers mean bytes). case-sensitive: "12g" is rejected.
+type @size {}
+
 // the value must match the pattern declared on the parameter
 //
 // the parameter author has restricted the accepted form to a regex.

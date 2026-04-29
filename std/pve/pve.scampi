@@ -114,7 +114,7 @@ pub decl volume_mount(
   @std.path(absolute=true)
   mountpoint: string
   // Volume size (e.g. "50G", "100G").
-  @std.nonempty
+  @std.size
   size:       string
   // Mount read-only.
   ro:         bool = false
@@ -183,13 +183,14 @@ pub decl lxc(
   hostname:        string
   state:           LxcState = LxcState.running
   cpu:             Cpu?
-  @std.nonempty
+  @std.size
   memory:          string = "512M"
   // Defaults to memory value if unset.
+  @std.size
   swap:            string?
   @std.nonempty
   storage:         string = "local-zfs"
-  @std.nonempty
+  @std.size
   size:            string = "8G"
   privileged:      bool = false
   dns:             Dns?
