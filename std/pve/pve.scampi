@@ -94,8 +94,10 @@ pub type Mount
 // Bind mount: maps a host directory into the container.
 pub decl bind_mount(
   // Absolute path on the PVE host.
+  @std.path(absolute=true)
   source:     string
   // Absolute path inside the container.
+  @std.path(absolute=true)
   mountpoint: string
   // Mount read-only.
   ro:         bool = false
@@ -106,10 +108,13 @@ pub decl bind_mount(
 // Volume mount: allocates a dedicated storage volume for the container.
 pub decl volume_mount(
   // Storage pool (e.g. "local-zfs", "local-lvm").
+  @std.nonempty
   storage:    string
   // Absolute path inside the container.
+  @std.path(absolute=true)
   mountpoint: string
   // Volume size (e.g. "50G", "100G").
+  @std.nonempty
   size:       string
   // Mount read-only.
   ro:         bool = false
@@ -146,10 +151,16 @@ pub type Dns {
 // needing an SSH server in the container or any network configuration
 // for direct access.
 pub decl lxc_target(
+  @std.nonempty
   name:     string
+  @std.nonempty
   host:     string
+  @std.nonempty
   user:     string
+  @std.min(value=100)
   vmid:     int
+  @std.min(value=1)
+  @std.max(value=65535)
   port:     int = 22
   key:      string?
   insecure: bool?
@@ -163,16 +174,22 @@ pub decl lxc_target(
 // from a template if it doesn't exist, ensures it matches the
 // desired running state.
 pub decl lxc(
+  @std.min(value=100)
   id:              int
+  @std.nonempty
   node:            string
   template:        Template?
+  @std.nonempty
   hostname:        string
   state:           LxcState = LxcState.running
   cpu:             Cpu?
+  @std.nonempty
   memory:          string = "512M"
   // Defaults to memory value if unset.
   swap:            string?
+  @std.nonempty
   storage:         string = "local-zfs"
+  @std.nonempty
   size:            string = "8G"
   privileged:      bool = false
   dns:             Dns?
@@ -198,8 +215,11 @@ pub decl datacenter(
   console:     Console = Console.xtermjs
   keyboard:    string?
   language:    string?
+  @std.pattern("[a-fA-F0-9]{2}:[a-fA-F0-9]{2}")
   mac_prefix:  string?
+  @std.min(value=1)
   max_workers: int?
+  @std.pattern("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
   email_from:  string?
   http_proxy:  string?
   description: string?
