@@ -2,7 +2,7 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "linker.NonLiteralAttributeArg",
+      "id": "linker.AttributeViolation",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",

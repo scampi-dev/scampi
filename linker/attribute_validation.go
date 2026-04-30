@@ -401,26 +401,3 @@ type attrDeprecationData struct {
 	Param   string
 	Message string
 }
-
-// nonLiteralAttrArgError is emitted when an attribute-annotated
-// parameter receives a non-literal value that can't be validated
-// at compile time.
-type nonLiteralAttrArgError struct {
-	diagnostic.FatalError
-	Param string
-	Src   *spec.SourceSpan
-}
-
-func (e *nonLiteralAttrArgError) Error() string {
-	return fmt.Sprintf("%s must be a literal value", e.Param)
-}
-
-func (e *nonLiteralAttrArgError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeNonLiteralAttributeArg,
-		Text:   "{{.Param}} must be a literal value",
-		Hint:   "attributes require compile-time constant values",
-		Source: e.Src,
-		Data:   struct{ Param string }{e.Param},
-	}
-}

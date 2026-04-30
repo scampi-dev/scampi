@@ -61,19 +61,19 @@ type attributeCheckVisitor struct {
 	result    *eval.Result
 }
 
+// enter dispatches attribute checks for AST shapes whose call-site
+// arguments don't survive eval — UFCS and plain function calls.
+// Decl/struct-literal invocations are validated via the eval-walker
+// (see attribute_eval_walk.go) which sees the resolved values rather
+// than the syntactic AST.
 func (v *attributeCheckVisitor) enter(n ast.Node) bool {
-	switch n := n.(type) {
-	case *ast.CallExpr:
+	if n, ok := n.(*ast.CallExpr); ok {
 		if n.UFCS && n.UFCSModule != "" {
 			if ft := v.resolveUFCSTarget(n); ft != nil {
 				v.checkCall(n, ft)
 			}
 		} else if ft := v.resolveCallTarget(n.Fn); ft != nil {
 			v.checkCall(n, ft)
-		}
-	case *ast.StructLit:
-		if dt := v.resolveStructLitDecl(n); dt != nil {
-			v.checkStructLit(n, dt)
 		}
 	}
 	return true
@@ -96,88 +96,6 @@ func (v *attributeCheckVisitor) resolveUFCSTarget(call *ast.CallExpr) *check.Fun
 	}
 	ft, _ := sym.Type.(*check.FuncType)
 	return ft
-}
-
-// resolveStructLitDecl looks up the DeclType for a struct literal's
-// dotted type name. Returns nil if the struct literal is anonymous,
-// not declared via `decl ...`, or otherwise not relevant to attribute
-// dispatch.
-func (v *attributeCheckVisitor) resolveStructLitDecl(sl *ast.StructLit) *check.DeclType {
-	if sl.Type == nil {
-		return nil
-	}
-	nt, ok := sl.Type.(*ast.NamedType)
-	if !ok {
-		return nil
-	}
-	parts := nt.Name.Parts
-	switch len(parts) {
-	case 1:
-		if v.fileScope == nil {
-			return nil
-		}
-		sym := v.fileScope.Lookup(parts[0].Name)
-		if sym == nil {
-			return nil
-		}
-		dt, _ := sym.Type.(*check.DeclType)
-		return dt
-	case 2:
-		mod := v.modules[parts[0].Name]
-		if mod == nil {
-			return nil
-		}
-		sym := mod.Lookup(parts[1].Name)
-		if sym == nil {
-			return nil
-		}
-		dt, _ := sym.Type.(*check.DeclType)
-		return dt
-	}
-	return nil
-}
-
-// checkStructLit dispatches attribute behaviours for the parameters
-// of a decl invocation written as a struct literal. Field
-// initializers bind by name (struct literals don't have positional
-// args).
-func (v *attributeCheckVisitor) checkStructLit(sl *ast.StructLit, dt *check.DeclType) {
-	if len(dt.Params) == 0 {
-		return
-	}
-	byName := make(map[string]ast.Expr, len(sl.Fields))
-	for _, fi := range sl.Fields {
-		byName[fi.Name.Name] = fi.Value
-	}
-	for _, p := range dt.Params {
-		if len(p.Attributes) == 0 {
-			continue
-		}
-		argExpr, ok := byName[p.Name]
-		if !ok {
-			continue
-		}
-		if !isLiteral(argExpr) {
-			v.rejectNonLiteral(p.Name, argExpr)
-			continue
-		}
-		for _, attr := range p.Attributes {
-			behaviour := v.registry.Lookup(attr.QualifiedName)
-			if behaviour == nil {
-				continue
-			}
-			useSpan := nodeSourceSpan(argExpr, v.source, v.cfgPath)
-			behaviour.StaticCheck(StaticCheckContext{
-				Linker:    v.ctx,
-				AttrName:  attr.QualifiedName,
-				AttrArgs:  attr.Args,
-				AttrDoc:   attrDoc(attr),
-				ParamName: p.Name,
-				ParamArg:  argExpr,
-				UseSpan:   useSpan,
-			})
-		}
-	}
 }
 
 // attrDoc returns the doc-comment block of an attribute's resolved
@@ -261,10 +179,10 @@ func (v *attributeCheckVisitor) checkCall(call *ast.CallExpr, ft *check.FuncType
 		if !ok {
 			continue
 		}
-		if !isLiteral(argExpr) {
-			v.rejectNonLiteral(p.Name, argExpr)
-			continue
-		}
+		// Non-literal args (let-bound, computed, etc.) skip silently
+		// — eval has consumed the value, so there's nothing to
+		// validate statically. Behaviours that absolutely need a
+		// literal (@secretkey) bail early on their own.
 		for _, attr := range p.Attributes {
 			behaviour := v.registry.Lookup(attr.QualifiedName)
 			if behaviour == nil {
@@ -349,27 +267,6 @@ type linkContext struct {
 
 func (lc *linkContext) Emit(d diagnostic.Diagnostic) {
 	lc.diags = append(lc.diags, d)
-}
-
-// isLiteral reports whether an expression is a compile-time constant.
-// Today that means a bare literal node. Once const-folding lands, this
-// will also accept folded expressions.
-func isLiteral(e ast.Expr) bool {
-	switch e.(type) {
-	case *ast.IntLit, *ast.StringLit, *ast.BoolLit, *ast.NoneLit:
-		return true
-	case *ast.ListLit:
-		return true // element validation is the behaviour's job
-	}
-	return false
-}
-
-func (v *attributeCheckVisitor) rejectNonLiteral(paramName string, argExpr ast.Expr) {
-	span := nodeSourceSpan(argExpr, v.source, v.cfgPath)
-	v.ctx.Emit(&nonLiteralAttrArgError{
-		Param: paramName,
-		Src:   &span,
-	})
 }
 
 func nodeSourceSpan(node ast.Node, source []byte, cfgPath string) spec.SourceSpan {

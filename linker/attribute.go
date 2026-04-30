@@ -108,18 +108,6 @@ type LinkContext interface {
 	Emit(d diagnostic.Diagnostic)
 }
 
-// BoundArg is a single argument bound to a declared field of an
-// attribute type, in its raw AST form. Behaviours inspect the
-// expression to detect literal values they can validate eagerly.
-//
-// Deprecated: kept for transitional compatibility with existing
-// callers; prefer reading directly from StaticCheckContext fields.
-type BoundArg struct {
-	Field   string   // declared field name
-	Value   ast.Expr // raw expression (may be a literal or a variable)
-	SrcSpan spec.SourceSpan
-}
-
 // AttributeRegistry holds the AttributeBehaviour for every attribute
 // type the linker recognises, keyed by the fully qualified attribute
 // name (with the leading `@`, e.g. `std.@secretkey`).

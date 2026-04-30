@@ -5,7 +5,7 @@ import "std/posix"
 import "std/local"
 
 let host = local.target { name = "host" }
-let p = 22
+let p = 99999
 
 std.deploy(name = "main", targets = [host]) {
   posix.firewall { port = p }

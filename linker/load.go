@@ -112,18 +112,34 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 		return nil, wrapLangErrors(evalErrs, cfgPath, data)
 	}
 
-	// Run attribute static checks. This walks the user file's AST
-	// looking for call sites of functions whose parameters carry
-	// `@`-attributes, dispatches each to its registered behaviour,
-	// and validates literal arguments before plan/apply runs.
+	// Run attribute static checks. Two complementary passes:
+	// the AST-walk catches func/UFCS calls (where eval consumed the
+	// args) and the eval-walk catches decl invocations (where eval
+	// preserved the resolved values in StructVal.Fields).
+	// Comprehensions and let-bindings naturally resolve through the
+	// eval-walk; literal-only call sites still go through the AST-
+	// walk's CallExpr branch. Overlap during the transition is
+	// dedup'd downstream at the diagnostic.policyEmitter boundary.
+	registry := DefaultAttributes()
+	fileScope := c.FileScope()
 	if attrErr := runAttributeStaticChecks(
 		f,
 		data,
 		cfgPath,
-		c.FileScope(),
+		fileScope,
 		modules,
-		DefaultAttributes(),
+		registry,
 		result,
+	); attrErr != nil {
+		return nil, attrErr
+	}
+	if attrErr := runAttributeEvalChecks(
+		result,
+		data,
+		cfgPath,
+		fileScope,
+		modules,
+		registry,
 	); attrErr != nil {
 		return nil, attrErr
 	}
