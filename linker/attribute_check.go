@@ -11,15 +11,21 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
-// runAttributeStaticChecks walks the parsed file looking for call
-// sites of functions whose parameters carry `@`-attributes. For each
-// such call site it dispatches the corresponding registered
-// AttributeBehaviour with the literal argument expressions, allowing
-// behaviours to validate literal values before plan/apply runs.
+// runAttributeStaticChecks walks the AST looking for func/UFCS call
+// sites whose parameters carry `@`-attributes and dispatches the
+// registered AttributeBehaviour for each. This path covers shapes
+// where eval consumed the call's args (`secrets.get("key")`, plain
+// `f(arg)`, `std.deploy(name=, targets=)`) — the literal lives only
+// in the AST.
 //
-// Function calls whose target cannot be resolved (e.g. user-defined
-// helpers without registered behaviour) are skipped silently — the
-// type checker has already validated them at the lang layer.
+// Decl/struct-literal invocations (`pve.lxc { id = ... }`) are NOT
+// validated here; they go through runAttributeEvalChecks which sees
+// the eval-resolved values. That gets us comprehensions, let-bindings,
+// and field access for free.
+//
+// Non-literal call args (let-bound, computed, etc.) skip silently —
+// behaviours that need a literal (like @secretkey) bail early on
+// their own.
 func runAttributeStaticChecks(
 	f *ast.File,
 	source []byte,
