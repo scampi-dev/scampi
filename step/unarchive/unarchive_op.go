@@ -23,7 +23,7 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
@@ -43,7 +43,7 @@ func truncateStderr(s string) string {
 const stateDir = "/var/lib/scampi/unarchive"
 
 type unarchiveOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	src    string
 	srcRef spec.SourceRef
 	dest   string
@@ -73,7 +73,7 @@ func (op *unarchiveOp) Check(
 
 	srcData, err := src.ReadFile(ctx, op.src)
 	if err != nil {
-		if result, drift, ok := sharedops.CheckSourcePending(op.srcRef, "archive"); ok {
+		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "archive"); ok {
 			return result, drift, nil
 		}
 		return spec.CheckUnsatisfied, nil, ArchiveNotFoundError{
@@ -137,23 +137,23 @@ func (op *unarchiveOp) Execute(
 	// Ensure dest and state dirs exist
 	if err := fsTgt.Mkdir(ctx, op.dest, 0o755); err != nil {
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "mkdir " + op.dest,
 				Source:    op.DestSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 	if err := fsTgt.Mkdir(ctx, stateDir, 0o755); err != nil {
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "mkdir " + stateDir,
 				Source:    op.DestSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	// Extract
@@ -170,7 +170,7 @@ func (op *unarchiveOp) Execute(
 
 	// Write marker
 	if err := fsTgt.WriteFile(ctx, marker, []byte(srcHash+"\n")); err != nil {
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: true}, nil
@@ -211,7 +211,7 @@ func (op *unarchiveOp) extractWithTool(
 	tmpPath := "/tmp/.scampi-unarchive-" + hashBytes(data)[:16] + filepath.Ext(op.src)
 
 	if err := fsTgt.WriteFile(ctx, tmpPath, data); err != nil {
-		return sharedops.DiagnoseTargetError(err)
+		return sharedop.DiagnoseTargetError(err)
 	}
 
 	cmd := op.format.extractCmd(tmpPath, op.dest)
@@ -221,7 +221,7 @@ func (op *unarchiveOp) extractWithTool(
 	_ = fsTgt.Remove(ctx, tmpPath)
 
 	if err != nil {
-		return sharedops.DiagnoseTargetError(err)
+		return sharedop.DiagnoseTargetError(err)
 	}
 	if res.ExitCode != 0 {
 		return ExtractionError{
@@ -369,7 +369,7 @@ func (op *unarchiveOp) extractNested(
 	findCmd := fmt.Sprintf("find %s -type f \\( %s \\)", op.dest, archiveExtensions())
 	res, err := cmdTgt.RunPrivileged(ctx, findCmd)
 	if err != nil {
-		return sharedops.DiagnoseTargetError(err)
+		return sharedop.DiagnoseTargetError(err)
 	}
 	if res.ExitCode != 0 || strings.TrimSpace(res.Stdout) == "" {
 		return nil
@@ -391,7 +391,7 @@ func (op *unarchiveOp) extractNested(
 		cmd := nestedFmt.extractCmd(archivePath, parentDir)
 		extractRes, err := cmdTgt.RunPrivileged(ctx, cmd)
 		if err != nil {
-			return sharedops.DiagnoseTargetError(err)
+			return sharedop.DiagnoseTargetError(err)
 		}
 		if extractRes.ExitCode != 0 {
 			return ExtractionError{
@@ -406,7 +406,7 @@ func (op *unarchiveOp) extractNested(
 		rmCmd := "rm " + archivePath
 		rmRes, err := cmdTgt.RunPrivileged(ctx, rmCmd)
 		if err != nil {
-			return sharedops.DiagnoseTargetError(err)
+			return sharedop.DiagnoseTargetError(err)
 		}
 		if rmRes.ExitCode != 0 {
 			return ExtractionError{

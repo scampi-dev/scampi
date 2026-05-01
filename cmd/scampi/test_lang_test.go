@@ -10,11 +10,10 @@ import (
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/render"
 	"scampi.dev/scampi/source"
 )
 
-// nopDisplayer satisfies render.Displayer with no-op writes. Used
+// nopDisplayer satisfies diagnostic.Displayer with no-op writes. Used
 // to keep the runner happy in unit tests where we only care about
 // the structured (passed, failed, err) return values, not what
 // would be printed to the terminal.
@@ -39,7 +38,7 @@ func (d *nopDisplayer) EmitOpDiagnostic(event.OpDiagnostic)         {}
 func (d *nopDisplayer) Interrupt()                                  {}
 func (d *nopDisplayer) Close()                                      {}
 
-var _ render.Displayer = (*nopDisplayer)(nil)
+var _ diagnostic.Displayer = (*nopDisplayer)(nil)
 
 // writeTestFile writes content to a temp file and returns the path.
 func writeTestFile(t *testing.T, name, content string) string {

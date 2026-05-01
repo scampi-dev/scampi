@@ -8,7 +8,7 @@ import "std/test/matchers"
 
 // Mock target backends for testing scampi configs.
 //
-// Tests are scampi-lang configs that:
+// Tests are scampi configs that:
 //   1. construct one or more mock targets via `test.target_*` here
 //   2. include a `std.deploy(...)` that runs against those mocks
 //   3. carry expected end state on each mock as data

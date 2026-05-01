@@ -14,15 +14,15 @@ import (
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
-	"scampi.dev/scampi/step/sharedops/fileops"
+	"scampi.dev/scampi/step/sharedop"
+	"scampi.dev/scampi/step/sharedop/fileop"
 	"scampi.dev/scampi/target"
 )
 
 const copyFileID = "step.copy-file"
 
 type copyFileOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	src    string
 	srcRef spec.SourceRef
 	dest   string
@@ -52,7 +52,7 @@ func (op *copyFileOp) Check(
 
 	srcData, err := op.getContent(ctx, src)
 	if err != nil {
-		if result, drift, ok := sharedops.CheckSourcePending(op.srcRef, "content"); ok {
+		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "content"); ok {
 			return result, drift, nil
 		}
 		return spec.CheckUnsatisfied, nil, err
@@ -115,20 +115,20 @@ func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target
 	}
 
 	if op.backup {
-		if err := fileops.Backup(ctx, fsTgt, op.dest); err != nil {
-			return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		if err := fileop.Backup(ctx, fsTgt, op.dest); err != nil {
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
 	}
 
 	if op.verify != "" {
-		if err := fileops.VerifiedWrite(ctx, tgt, op.dest, srcData, op.verify); err != nil {
-			return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		if err := fileop.VerifiedWrite(ctx, tgt, op.dest, srcData, op.verify); err != nil {
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
 		return spec.Result{Changed: true}, nil
 	}
 
 	if err := fsTgt.WriteFile(ctx, op.dest, srcData); err != nil {
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: true}, nil

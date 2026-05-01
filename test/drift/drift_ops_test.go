@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/copy"
 	"scampi.dev/scampi/step/pkg"
-	"scampi.dev/scampi/step/sharedops/fileops"
+	"scampi.dev/scampi/step/sharedop/fileop"
 	stepsymlink "scampi.dev/scampi/step/symlink"
 	"scampi.dev/scampi/step/sysctl"
 	"scampi.dev/scampi/step/template"
@@ -241,7 +241,7 @@ func TestDrift_EnsureMode_Missing(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	op := &fileops.EnsureModeOp{Path: "/etc/app.conf", Mode: 0o644}
+	op := &fileop.EnsureModeOp{Path: "/etc/app.conf", Mode: 0o644}
 	details := mustCheckDrift(t, op, src, tgt)
 	assertDrift(t, details, "perm", "", "-rw-r--r--")
 }
@@ -252,7 +252,7 @@ func TestDrift_EnsureMode_Differs(t *testing.T) {
 	tgt.Files["/etc/app.conf"] = []byte("content")
 	tgt.Modes["/etc/app.conf"] = 0o755
 
-	op := &fileops.EnsureModeOp{Path: "/etc/app.conf", Mode: 0o644}
+	op := &fileop.EnsureModeOp{Path: "/etc/app.conf", Mode: 0o644}
 	details := mustCheckDrift(t, op, src, tgt)
 	assertDrift(
 		t,
@@ -270,7 +270,7 @@ func TestDrift_EnsureOwner_Missing(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	op := &fileops.EnsureOwnerOp{
+	op := &fileop.EnsureOwnerOp{
 		Path: "/etc/app.conf", Owner: "app", Group: "staff",
 	}
 	details := mustCheckDrift(t, op, src, tgt)
@@ -286,7 +286,7 @@ func TestDrift_EnsureOwner_Differs(t *testing.T) {
 		User: "root", Group: "wheel",
 	}
 
-	op := &fileops.EnsureOwnerOp{
+	op := &fileop.EnsureOwnerOp{
 		Path: "/etc/app.conf", Owner: "app", Group: "staff",
 	}
 	details := mustCheckDrift(t, op, src, tgt)

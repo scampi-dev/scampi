@@ -14,7 +14,6 @@ import (
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/model"
-	"scampi.dev/scampi/render"
 	"scampi.dev/scampi/render/ansi"
 	"scampi.dev/scampi/render/layout"
 	"scampi.dev/scampi/signal"
@@ -47,7 +46,7 @@ type actionState struct {
 }
 
 // New creates a new CLI renderer.
-func New(opts Options, store *diagnostic.SourceStore) render.Displayer {
+func New(opts Options, store *diagnostic.SourceStore) diagnostic.Displayer {
 	glyphs := fancyGlyphs
 	if opts.ForceASCII {
 		glyphs = asciiGlyphs

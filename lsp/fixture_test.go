@@ -38,7 +38,7 @@ import (
 
 const cursorMarker = "$0"
 
-type fixtureSpec struct {
+type fixtureCase struct {
 	Request string          `json:"request"`
 	Cursor  *cursorPosition `json:"cursor,omitempty"`
 	Expect  json.RawMessage `json:"expect"`
@@ -131,7 +131,7 @@ func runFixture(t *testing.T, scampiPath, jsonPath string) {
 		t.Fatal(err)
 	}
 
-	var spec fixtureSpec
+	var spec fixtureCase
 	if err := json.Unmarshal(expBytes, &spec); err != nil {
 		t.Fatalf("bad expectation JSON: %v", err)
 	}

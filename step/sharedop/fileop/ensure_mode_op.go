@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package fileops
+package fileop
 
 import (
 	"context"
@@ -13,14 +13,14 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const ensureModeID = "step.ensure-mode"
 
 type EnsureModeOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	Path      string
 	Mode      fs.FileMode
 	Recursive bool
@@ -138,13 +138,13 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 		// Can't catch during Check: file may not exist yet, and probing
 		// write-permission would mutate state in a read-only phase.
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chmod %s %s", op.Mode, op.Path),
 				Source:    op.DestSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: changed}, nil
@@ -155,13 +155,13 @@ func (op *EnsureModeOp) executeRecursive(ctx context.Context, tgt target.Target)
 
 	if err := t.ChmodRecursive(ctx, op.Path, op.Mode); err != nil {
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chmod -R %s %s", op.Mode, op.Path),
 				Source:    op.DestSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: true}, nil

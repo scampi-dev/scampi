@@ -7,8 +7,8 @@ import (
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
-	"scampi.dev/scampi/step/sharedops/fileops"
+	"scampi.dev/scampi/step/sharedop"
+	"scampi.dev/scampi/step/sharedop/fileop"
 )
 
 type (
@@ -80,7 +80,7 @@ func (u Unarchive) Plan(step spec.StepInstance) (spec.Action, error) {
 	var mode fs.FileMode
 	if cfg.Perm != "" {
 		var err error
-		mode, err = fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
+		mode, err = fileop.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func (a *unarchiveAction) Promises() []spec.Resource {
 
 func (a *unarchiveAction) Ops() []spec.Op {
 	extract := &unarchiveOp{
-		BaseOp: sharedops.BaseOp{
+		BaseOp: sharedop.BaseOp{
 			SrcSpan:  a.step.Fields["src"].Value,
 			DestSpan: a.step.Fields["dest"].Value,
 		},
@@ -133,11 +133,11 @@ func (a *unarchiveAction) Ops() []spec.Op {
 	extract.SetAction(a)
 
 	ops := []spec.Op{extract}
-	ops = append(sharedops.ResolveSourceOps(a.srcRef, extract, a, a.step.Fields["src"].Value), ops...)
+	ops = append(sharedop.ResolveSourceOps(a.srcRef, extract, a, a.step.Fields["src"].Value), ops...)
 
 	if a.owner != "" && a.group != "" {
-		chown := &fileops.EnsureOwnerOp{
-			BaseOp: sharedops.BaseOp{
+		chown := &fileop.EnsureOwnerOp{
+			BaseOp: sharedop.BaseOp{
 				DestSpan: a.step.Fields["dest"].Value,
 			},
 			Path:      a.dest,
@@ -153,8 +153,8 @@ func (a *unarchiveAction) Ops() []spec.Op {
 	}
 
 	if a.mode != 0 {
-		chmod := &fileops.EnsureModeOp{
-			BaseOp: sharedops.BaseOp{
+		chmod := &fileop.EnsureModeOp{
+			BaseOp: sharedop.BaseOp{
 				DestSpan: a.step.Fields["dest"].Value,
 			},
 			Path:      a.dest,

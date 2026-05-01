@@ -8,7 +8,7 @@ import (
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 )
 
 // keyCachePath returns the source-side cache path for a downloaded GPG key.
@@ -132,7 +132,7 @@ func (a *pkgAction) Ops() []spec.Op {
 	var lastDep spec.Op
 
 	if a.source.KeyURL != "" {
-		dlOp := &sharedops.DownloadOp{
+		dlOp := &sharedop.DownloadOp{
 			URL:       a.source.KeyURL,
 			CachePath: keyCachePath(a.source.KeyURL),
 		}

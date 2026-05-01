@@ -19,7 +19,7 @@ import (
 	steprest "scampi.dev/scampi/step/rest"
 	"scampi.dev/scampi/step/run"
 	"scampi.dev/scampi/step/service"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/step/symlink"
 	"scampi.dev/scampi/step/sysctl"
 	"scampi.dev/scampi/step/template"
@@ -80,7 +80,7 @@ func NewRegistry() *Registry {
 
 	// Register type converters from owning packages.
 	for _, cm := range []spec.ConverterMap{
-		sharedops.Converters(),
+		sharedop.Converters(),
 		pkg.Converters(),
 		steprest.Converters(),
 		rest.Converters(),

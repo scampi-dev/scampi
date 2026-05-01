@@ -9,8 +9,8 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
-	"scampi.dev/scampi/step/sharedops/fileops"
+	"scampi.dev/scampi/step/sharedop"
+	"scampi.dev/scampi/step/sharedop/fileop"
 	"scampi.dev/scampi/target"
 )
 
@@ -96,9 +96,9 @@ func (a *dirAction) Ops() []spec.Op {
 	ops := []spec.Op{dir}
 
 	if cfg.Perm != "" {
-		mode, _ := fileops.ParsePerm(cfg.Perm, a.step.Fields["perm"].Value)
-		chmod := &fileops.EnsureModeOp{
-			BaseOp: sharedops.BaseOp{
+		mode, _ := fileop.ParsePerm(cfg.Perm, a.step.Fields["perm"].Value)
+		chmod := &fileop.EnsureModeOp{
+			BaseOp: sharedop.BaseOp{
 				DestSpan: a.step.Fields["path"].Value,
 			},
 			Path: a.path,
@@ -110,8 +110,8 @@ func (a *dirAction) Ops() []spec.Op {
 	}
 
 	if cfg.Owner != "" && cfg.Group != "" {
-		chown := &fileops.EnsureOwnerOp{
-			BaseOp: sharedops.BaseOp{
+		chown := &fileop.EnsureOwnerOp{
+			BaseOp: sharedop.BaseOp{
 				DestSpan: a.step.Fields["path"].Value,
 			},
 			Path:      a.path,
@@ -132,7 +132,7 @@ func (a *dirAction) Ops() []spec.Op {
 // -----------------------------------------------------------------------------
 
 type ensureDirOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	path     string
 	pathSpan spec.SourceSpan
 }
@@ -189,13 +189,13 @@ func (op *ensureDirOp) Execute(
 
 	if err := fsTgt.Mkdir(ctx, op.path, 0o755); err != nil {
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "mkdir " + op.path,
 				Source:    op.pathSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: true}, nil

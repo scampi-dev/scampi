@@ -15,7 +15,7 @@ import (
 // state of a target.MemTarget. Returns every mismatch found.
 //
 // expect is the StructVal produced by `test.ExpectedState{...}` in
-// scampi-lang. Its Fields map carries one entry per slot kind
+// scampi. Its Fields map carries one entry per slot kind
 // (files, packages, services, dirs, symlinks); each slot is a
 // MapVal of string → Matcher StructVal. Slots that are nil or
 // NoneVal are skipped.

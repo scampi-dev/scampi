@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
@@ -39,7 +39,7 @@ type categorizedItem struct {
 }
 
 type resourceSetOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	query        *RequestConfig
 	keyJQ        *JQCheck
 	orphanFilter *JQCheck

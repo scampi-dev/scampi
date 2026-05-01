@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package sharedops
+package sharedop
 
 import (
 	"crypto/sha256"
@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
-// Converters returns the type converters owned by sharedops.
+// Converters returns the type converters owned by sharedop.
 func Converters() spec.ConverterMap {
 	return spec.ConverterMap{
 		reflect.TypeFor[spec.SourceRef](): ConvertSourceRef,

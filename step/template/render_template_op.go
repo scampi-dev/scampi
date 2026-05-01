@@ -17,15 +17,15 @@ import (
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
-	"scampi.dev/scampi/step/sharedops/fileops"
+	"scampi.dev/scampi/step/sharedop"
+	"scampi.dev/scampi/step/sharedop/fileop"
 	"scampi.dev/scampi/target"
 )
 
 const renderTemplateID = "step.render-template"
 
 type renderTemplateOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	src    string
 	srcRef spec.SourceRef
 	dest   string
@@ -48,7 +48,7 @@ func (op *renderTemplateOp) Check(
 
 	tmplContent, err := op.getTemplateContent(ctx, src)
 	if err != nil {
-		if result, drift, ok := sharedops.CheckSourcePending(op.srcRef, "content"); ok {
+		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "content"); ok {
 			return result, drift, nil
 		}
 		return spec.CheckUnsatisfied, nil, err
@@ -139,27 +139,27 @@ func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt 
 	}
 
 	if op.backup {
-		if err := fileops.Backup(ctx, fsTgt, op.dest); err != nil {
-			return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		if err := fileop.Backup(ctx, fsTgt, op.dest); err != nil {
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
 	}
 
 	if op.verify != "" {
-		if err := fileops.VerifiedWrite(ctx, tgt, op.dest, buf.Bytes(), op.verify); err != nil {
-			return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		if err := fileop.VerifiedWrite(ctx, tgt, op.dest, buf.Bytes(), op.verify); err != nil {
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
 		return spec.Result{Changed: true}, nil
 	}
 
 	if err := fsTgt.WriteFile(ctx, op.dest, buf.Bytes()); err != nil {
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "write " + op.dest,
 				Source:    op.DestSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: true}, nil

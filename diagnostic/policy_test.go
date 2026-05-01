@@ -161,7 +161,7 @@ func makeTemplate(id, text string) event.Template {
 	return event.Template{ID: errs.Code(id), Text: text}
 }
 
-// recordingDisplayer is a minimal render.Displayer that captures
+// recordingDisplayer is a minimal Displayer that captures
 // each emission for later inspection.
 type recordingDisplayer struct {
 	engineLifecycle []event.EngineEvent

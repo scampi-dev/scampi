@@ -7,8 +7,8 @@ import (
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
-	"scampi.dev/scampi/step/sharedops/fileops"
+	"scampi.dev/scampi/step/sharedop"
+	"scampi.dev/scampi/step/sharedop/fileop"
 )
 
 var _ spec.StepType = Copy{}
@@ -59,7 +59,7 @@ func (c Copy) Plan(step spec.StepInstance) (spec.Action, error) {
 	// indicates a non-literal expression (e.g. perm = std.env(...))
 	// that bypassed the static check — fail with the same error
 	// shape as the link-time check would have produced.
-	mode, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
+	mode, err := fileop.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (c *copyAction) Promises() []spec.Resource { return []spec.Resource{spec.Pa
 
 func (c *copyAction) Ops() []spec.Op {
 	cp := &copyFileOp{
-		BaseOp: sharedops.BaseOp{
+		BaseOp: sharedop.BaseOp{
 			SrcSpan:  c.step.Fields["src"].Value,
 			DestSpan: c.step.Fields["dest"].Value,
 		},
@@ -110,8 +110,8 @@ func (c *copyAction) Ops() []spec.Op {
 		verify: c.verify,
 		backup: c.backup,
 	}
-	chown := &fileops.EnsureOwnerOp{
-		BaseOp: sharedops.BaseOp{
+	chown := &fileop.EnsureOwnerOp{
+		BaseOp: sharedop.BaseOp{
 			DestSpan: c.step.Fields["dest"].Value,
 		},
 		Path:      c.dest,
@@ -120,8 +120,8 @@ func (c *copyAction) Ops() []spec.Op {
 		OwnerSpan: c.step.Fields["owner"].Value,
 		GroupSpan: c.step.Fields["group"].Value,
 	}
-	chmod := &fileops.EnsureModeOp{
-		BaseOp: sharedops.BaseOp{
+	chmod := &fileop.EnsureModeOp{
+		BaseOp: sharedop.BaseOp{
 			DestSpan: c.step.Fields["dest"].Value,
 		},
 		Path: c.dest,
@@ -136,7 +136,7 @@ func (c *copyAction) Ops() []spec.Op {
 	chmod.AddDependency(cp)
 
 	ops := []spec.Op{cp, chown, chmod}
-	ops = append(sharedops.ResolveSourceOps(c.srcRef, cp, c, c.step.Fields["src"].Value), ops...)
+	ops = append(sharedop.ResolveSourceOps(c.srcRef, cp, c, c.step.Fields["src"].Value), ops...)
 
 	return ops
 }

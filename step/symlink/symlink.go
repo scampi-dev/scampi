@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
@@ -65,7 +65,7 @@ func (a *symlinkAction) Promises() []spec.Resource {
 }
 func (a *symlinkAction) Ops() []spec.Op {
 	op := &ensureSymlinkOp{
-		BaseOp: sharedops.BaseOp{
+		BaseOp: sharedop.BaseOp{
 			SrcSpan:  a.step.Fields["target"].Value,
 			DestSpan: a.step.Fields["link"].Value,
 		},
@@ -79,7 +79,7 @@ func (a *symlinkAction) Ops() []spec.Op {
 }
 
 type ensureSymlinkOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	target string
 	link   string
 }
@@ -208,26 +208,26 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 		// Remove existing (symlink with wrong target, or other file type)
 		if err := t.Remove(ctx, op.link); err != nil {
 			if target.IsPermission(err) {
-				return spec.Result{}, sharedops.PermissionDeniedError{
+				return spec.Result{}, sharedop.PermissionDeniedError{
 					Operation: "remove " + op.link,
 					Source:    op.DestSpan,
 					Err:       err,
 				}
 			}
-			return spec.Result{}, sharedops.DiagnoseTargetError(err)
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
 	}
 
 	// Create symlink
 	if err := t.Symlink(ctx, relTarget, op.link); err != nil {
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "symlink " + op.link,
 				Source:    op.DestSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: true}, nil

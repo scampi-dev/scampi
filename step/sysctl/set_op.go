@@ -10,14 +10,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const setSysctlID = "step.sysctl.set"
 
 type setSysctlOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	key   string
 	value string
 }
@@ -31,7 +31,7 @@ func (op *setSysctlOp) Check(
 
 	result, err := cmdr.RunCommand(ctx, fmt.Sprintf("sysctl -n %s", op.key))
 	if err != nil {
-		return spec.CheckUnsatisfied, nil, sharedops.DiagnoseTargetError(err)
+		return spec.CheckUnsatisfied, nil, sharedop.DiagnoseTargetError(err)
 	}
 	if result.ExitCode != 0 {
 		stderr := result.Stderr
@@ -65,7 +65,7 @@ func (op *setSysctlOp) Execute(
 
 	result, err := cmdr.RunCommand(ctx, fmt.Sprintf("sysctl -w %s=%s", op.key, op.value))
 	if err != nil {
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 	if result.ExitCode != 0 {
 		stderr := result.Stderr

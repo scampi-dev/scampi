@@ -73,7 +73,7 @@ target/      # Write-side effects (mutations only)
 - `diagnostic`: emits events, never influences execution
 - `render`: transforms diagnostics to user output, purely presentational
 - `source`: source-side access (configs, env, local cache — never touches target)
-- `target`: write-only mutations (no inspection, no planning)
+- `target`: managed-environment surface — both reads (drift detection during Check) and writes (mutations during Execute). Planning logic does not live here.
 
 **Execution model:**
 - Actions execute sequentially
@@ -92,7 +92,7 @@ target/      # Write-side effects (mutations only)
 See `doc/design/naming.md` for authoritative terminology.
 
 - **Step**: declarative work item
-- **StepType**: Go handler for a step kind (one per kind)
+- **StepType**: Go type representing a step kind (one per kind)
 - **Action**: planned execution of one step instance
 - **Op**: smallest executable step (forms DAG)
 - **Target**: execution environment
@@ -101,12 +101,18 @@ Avoid: `Impl`, `Handler`, `Spec` suffixes. Package names are singular nouns desc
 
 ## CLI Output Semantics
 
-Colors are semantic, not decorative:
-- Yellow: mutation/change
-- Green: already correct, no change needed
-- Red: failure
-- Blue: engine/action boundaries
-- Dim: detail (higher verbosity only)
+Colors are semantic, not decorative. See `doc/design/cli-semantics.md`
+for the full contract; the canonical palette is:
+
+| Color   | Meaning                 |
+| ------- | ----------------------- |
+| Yellow  | Change / Mutation       |
+| Green   | Correctness / Stability |
+| Red     | Failure                 |
+| Blue    | Deploy block boundaries |
+| Cyan    | Action boundaries       |
+| Magenta | Plan structure          |
+| Dim     | Detail / Noise          |
 
 Verbosity: `-v` (why), `-vv` (how), `-vvv` (everything)
 

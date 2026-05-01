@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/render"
 	"scampi.dev/scampi/signal"
 )
 
@@ -23,7 +22,7 @@ type (
 	}
 	policyEmitter struct {
 		pol  Policy
-		out  render.Displayer
+		out  Displayer
 		seen seenDiags
 	}
 	// seenDiags records the per-method set of templates already
@@ -38,7 +37,7 @@ type (
 	}
 )
 
-func NewEmitter(policy Policy, displayer render.Displayer) Emitter {
+func NewEmitter(policy Policy, displayer Displayer) Emitter {
 	return &policyEmitter{
 		pol: policy,
 		out: displayer,

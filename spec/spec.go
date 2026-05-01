@@ -59,7 +59,8 @@ type (
 		Hooks      map[string][]StepInstance // hook ID → steps (execute only when notified)
 	}
 
-	// TargetType is the Go handler for a target kind (one per kind).
+	// TargetType is the Go type representing a target kind (one per kind).
+	// It decodes target configuration and creates live target connections.
 	TargetType interface {
 		Kind() string
 		NewConfig() any
@@ -85,7 +86,8 @@ type (
 		Source   SourceSpan
 		Fields   map[string]FieldSpan
 	}
-	// StepType is the Go handler for a step kind (one per kind).
+	// StepType is the Go type representing a step kind (one per kind).
+	// It decodes step configuration and plans execution.
 	StepType interface {
 		Kind() string
 		// NewConfig MUST return a pointer to a freshly allocated config struct.

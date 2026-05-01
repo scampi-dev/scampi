@@ -444,7 +444,7 @@ func (p *opParams) allBody() []field {
 	return out
 }
 
-// allTyped returns the scampi-lang typed param list. Path params are
+// allTyped returns the scampi typed param list. Path params are
 // required strings; body params are optional strings defaulting to
 // none (so the function works as a rest.resource template). GET
 // functions get a trailing `check: rest.Check?` parameter.

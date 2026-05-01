@@ -15,14 +15,14 @@ import (
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const requestID = "step.rest.request"
 
 type requestOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	method  string
 	path    string
 	headers map[string]string

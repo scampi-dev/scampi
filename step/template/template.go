@@ -7,8 +7,8 @@ import (
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
-	"scampi.dev/scampi/step/sharedops/fileops"
+	"scampi.dev/scampi/step/sharedop"
+	"scampi.dev/scampi/step/sharedop/fileop"
 )
 
 type (
@@ -59,7 +59,7 @@ func (t Template) Plan(step spec.StepInstance) (spec.Action, error) {
 	// are validated at link time by stub attributes (@std.path,
 	// @std.filemode, @std.pattern). Perm parsing here remains
 	// because the runtime needs the parsed fs.FileMode value.
-	mode, err := fileops.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
+	mode, err := fileop.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (a *templateAction) Promises() []spec.Resource {
 
 func (a *templateAction) Ops() []spec.Op {
 	render := &renderTemplateOp{
-		BaseOp: sharedops.BaseOp{
+		BaseOp: sharedop.BaseOp{
 			SrcSpan:  a.step.Fields["src"].Value,
 			DestSpan: a.step.Fields["dest"].Value,
 		},
@@ -114,8 +114,8 @@ func (a *templateAction) Ops() []spec.Op {
 		verify: a.verify,
 		backup: a.backup,
 	}
-	chown := &fileops.EnsureOwnerOp{
-		BaseOp: sharedops.BaseOp{
+	chown := &fileop.EnsureOwnerOp{
+		BaseOp: sharedop.BaseOp{
 			DestSpan: a.step.Fields["dest"].Value,
 		},
 		Path:      a.dest,
@@ -124,8 +124,8 @@ func (a *templateAction) Ops() []spec.Op {
 		OwnerSpan: a.step.Fields["owner"].Value,
 		GroupSpan: a.step.Fields["group"].Value,
 	}
-	chmod := &fileops.EnsureModeOp{
-		BaseOp: sharedops.BaseOp{
+	chmod := &fileop.EnsureModeOp{
+		BaseOp: sharedop.BaseOp{
 			DestSpan: a.step.Fields["dest"].Value,
 		},
 		Path: a.dest,
@@ -140,7 +140,7 @@ func (a *templateAction) Ops() []spec.Op {
 	chmod.AddDependency(render)
 
 	ops := []spec.Op{render, chown, chmod}
-	ops = append(sharedops.ResolveSourceOps(a.srcRef, render, a, a.step.Fields["src"].Value), ops...)
+	ops = append(sharedop.ResolveSourceOps(a.srcRef, render, a, a.step.Fields["src"].Value), ops...)
 
 	return ops
 }

@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/copy"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 	"scampi.dev/scampi/target/local"
 	"scampi.dev/scampi/test/harness"
@@ -381,7 +381,7 @@ func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
-			return spec.CheckUnsatisfied, nil, sharedops.UnknownUserError{
+			return spec.CheckUnsatisfied, nil, sharedop.UnknownUserError{
 				User: "appd",
 			}
 		},
@@ -430,7 +430,7 @@ func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
-			return spec.CheckUnsatisfied, nil, sharedops.UnknownGroupError{
+			return spec.CheckUnsatisfied, nil, sharedop.UnknownGroupError{
 				Group: "appusers",
 			}
 		},
@@ -473,7 +473,7 @@ func TestCheck_DeferredUser_NoPromise_StillAborts(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
-			return spec.CheckUnsatisfied, nil, sharedops.UnknownUserError{
+			return spec.CheckUnsatisfied, nil, sharedop.UnknownUserError{
 				User: "nobody-promised",
 			}
 		},

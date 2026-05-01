@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
@@ -25,7 +25,7 @@ const ensurePkgID = "step.ensure-pkg"
 const cacheStaleThreshold = 1 * time.Second
 
 type ensurePkgOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	packages   []string
 	state      State
 	pkgsSource spec.SourceSpan
@@ -181,7 +181,7 @@ func (op *ensurePkgOp) Inspect() []spec.InspectField {
 // -----------------------------------------------------------------------------
 
 type ensureLatestPkgOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	packages   []string
 	pkgsSource spec.SourceSpan
 }

@@ -35,9 +35,9 @@ const (
 	InlayHintKindParameter InlayHintKind = 2
 )
 
-// inlayHintHandler returns a jsonrpc2.Handler that intercepts
+// withInlayHint returns a jsonrpc2.Handler that intercepts
 // textDocument/inlayHint and delegates everything else to next.
-func (s *Server) inlayHintHandler(next jsonrpc2.Handler) jsonrpc2.Handler {
+func (s *Server) withInlayHint(next jsonrpc2.Handler) jsonrpc2.Handler {
 	return func(ctx context.Context, reply jsonrpc2.Replier, req jsonrpc2.Request) error {
 		switch req.Method() {
 		case "textDocument/inlayHint":

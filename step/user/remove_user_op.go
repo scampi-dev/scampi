@@ -8,14 +8,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const removeUserID = "step.remove-user"
 
 type removeUserOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	name       string
 	nameSource spec.SourceSpan
 }

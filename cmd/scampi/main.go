@@ -22,7 +22,6 @@ import (
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/osutil"
-	"scampi.dev/scampi/render"
 	clir "scampi.dev/scampi/render/cli"
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/spec"
@@ -242,7 +241,7 @@ func mustGlobalOpts(ctx context.Context) globalOpts {
 // Displayer
 // -----------------------------------------------------------------------------
 
-func newDisplayer(opts globalOpts, store *diagnostic.SourceStore) render.Displayer {
+func newDisplayer(opts globalOpts, store *diagnostic.SourceStore) diagnostic.Displayer {
 	d := clir.New(
 		clir.Options{
 			ColorMode:  opts.colorMode,
@@ -260,7 +259,7 @@ func newDisplayer(opts globalOpts, store *diagnostic.SourceStore) render.Display
 // withDisplayer creates a displayer and returns a cleanup function that
 // should be deferred. The cleanup function closes the displayer and
 // recovers from panics.
-func withDisplayer(opts globalOpts, store *diagnostic.SourceStore) (render.Displayer, func()) {
+func withDisplayer(opts globalOpts, store *diagnostic.SourceStore) (diagnostic.Displayer, func()) {
 	d := newDisplayer(opts, store)
 	return d, func() {
 		d.Close()

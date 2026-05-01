@@ -8,14 +8,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const persistSysctlID = "step.sysctl.persist"
 
 type persistSysctlOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	key   string
 	value string
 	path  string
@@ -41,7 +41,7 @@ func (op *persistSysctlOp) Check(
 				Desired: op.path,
 			}}, nil
 		}
-		return spec.CheckUnsatisfied, nil, sharedops.DiagnoseTargetError(err)
+		return spec.CheckUnsatisfied, nil, sharedop.DiagnoseTargetError(err)
 	}
 
 	desired := op.desiredContent()
@@ -66,7 +66,7 @@ func (op *persistSysctlOp) Execute(
 	if err := fs.WriteFile(ctx, op.path, op.desiredContent()); err != nil {
 		return spec.Result{}, PersistError{
 			Path: op.path,
-			Err:  sharedops.DiagnoseTargetError(err),
+			Err:  sharedop.DiagnoseTargetError(err),
 		}
 	}
 

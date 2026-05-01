@@ -10,14 +10,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const downloadTemplateID = "step.pve.lxc.download-template"
 
 type downloadTemplateOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	template LxcTemplate
 	step     spec.StepInstance
 }

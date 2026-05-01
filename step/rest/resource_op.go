@@ -16,7 +16,7 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
@@ -37,7 +37,7 @@ const (
 )
 
 type resourceOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	query    *RequestConfig
 	missing  *RequestConfig
 	found    *RequestConfig

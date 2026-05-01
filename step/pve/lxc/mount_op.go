@@ -9,14 +9,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const mountLxcID = "step.pve.lxc.mount"
 
 type mountLxcOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	pveCmd
 	mounts []LxcMount
 	step   spec.StepInstance

@@ -10,14 +10,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const ensureMountID = "step.mount"
 
 type ensureMountOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	src   string
 	dest  string
 	fstyp FsType
@@ -198,7 +198,7 @@ func (op *ensureMountOp) ensureFstab(
 ) error {
 	data, err := fsTgt.ReadFile(ctx, fstabPath)
 	if err != nil {
-		return sharedops.DiagnoseTargetError(err)
+		return sharedop.DiagnoseTargetError(err)
 	}
 
 	content := string(data)
@@ -235,7 +235,7 @@ func (op *ensureMountOp) removeFstab(
 ) error {
 	data, err := fsTgt.ReadFile(ctx, fstabPath)
 	if err != nil {
-		return sharedops.DiagnoseTargetError(err)
+		return sharedop.DiagnoseTargetError(err)
 	}
 
 	var lines []string
@@ -264,7 +264,7 @@ func (op *ensureMountOp) isMounted(ctx context.Context, cmdr target.Command) boo
 func (op *ensureMountOp) doMount(ctx context.Context, cmdr target.Command) error {
 	result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("mount %s", op.dest))
 	if err != nil {
-		return sharedops.DiagnoseTargetError(err)
+		return sharedop.DiagnoseTargetError(err)
 	}
 	if result.ExitCode != 0 {
 		return MountCommandError{
@@ -279,7 +279,7 @@ func (op *ensureMountOp) doMount(ctx context.Context, cmdr target.Command) error
 func (op *ensureMountOp) doUnmount(ctx context.Context, cmdr target.Command) error {
 	result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("umount %s", op.dest))
 	if err != nil {
-		return sharedops.DiagnoseTargetError(err)
+		return sharedop.DiagnoseTargetError(err)
 	}
 	if result.ExitCode != 0 {
 		return MountCommandError{

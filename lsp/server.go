@@ -77,7 +77,7 @@ func Serve(ctx context.Context, in io.Reader, out io.Writer, opts ...Option) err
 	ctx = protocol.WithClient(ctx, client)
 	conn.Go(ctx,
 		protocol.Handlers(
-			s.inlayHintHandler(
+			s.withInlayHint(
 				protocol.ServerHandler(s, jsonrpc2.MethodNotFoundHandler),
 			),
 		),

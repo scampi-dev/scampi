@@ -9,14 +9,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const installKeyID = "step.install-repo-key"
 
 type installKeyOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	source spec.PkgSourceRef
 }
 

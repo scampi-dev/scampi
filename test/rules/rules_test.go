@@ -77,7 +77,7 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "net/http,os,os/exec",
 		},
 		{
-			pattern:        "step/sharedops/convert.go",
+			pattern:        "step/sharedop/convert.go",
 			allowedImports: "crypto/sha256",
 		},
 		{
@@ -245,7 +245,7 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "net/http",
 		},
 		{
-			pattern:        "step/sharedops/download_op.go",
+			pattern:        "step/sharedop/download_op.go",
 			allowedImports: "crypto/md5, crypto/sha1, crypto/sha256, crypto/sha512, net/http",
 		},
 		{

@@ -10,14 +10,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const createLxcID = "step.pve.lxc.create"
 
 type createLxcOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	pveCmd
 	template      *LxcTemplate
 	hostname      string

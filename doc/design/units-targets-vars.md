@@ -65,11 +65,11 @@ let web1 = ssh.target {
 
 ### Target Types
 
-| Type    | Builtin            | Use case                 |
-| ------- | ------------------ | ------------------------ |
-| `local` | `local.target {}`  | Local machine execution  |
-| `ssh`   | `ssh.target {}`    | Remote execution via SSH |
-| `rest`  | `rest.target {}`   | API-driven services      |
+| Type    | Builtin           | Use case                 |
+| ------- | ----------------- | ------------------------ |
+| `local` | `local.target {}` | Local machine execution  |
+| `ssh`   | `ssh.target {}`   | Remote execution via SSH |
+| `rest`  | `rest.target {}`  | API-driven services      |
 
 SSH targets accept additional fields:
 
@@ -424,15 +424,15 @@ inspection is a liability, not an optimization.
 
 ## Summary
 
-| Concept       | How                                       | Key property                    |
-| ------------- | ----------------------------------------- | ------------------------------- |
+| Concept       | How                                            | Key property                    |
+| ------------- | ---------------------------------------------- | ------------------------------- |
 | Steps         | `posix.copy { ... }`, `posix.dir { ... }`, ... | Batteries included              |
 | Targets       | `local.target { ... }`, `ssh.target { ... }`   | Pure identity                   |
-| Deploy blocks | `std.deploy(name, targets) { ... }`       | Host-centric: "on X run Y"      |
-| Environment   | `std.env(key, default?)`                  | Explicit, no precedence         |
-| Secrets       | `secrets.from_age(...).get(key)`          | Pluggable backend, never logged |
-| Multi-file    | `import`                                  | Standard scampi                 |
-| Groups        | Plain lists                               | Just scampi                     |
+| Deploy blocks | `std.deploy(name, targets) { ... }`            | Host-centric: "on X run Y"      |
+| Environment   | `std.env(key, default?)`                       | Explicit, no precedence         |
+| Secrets       | `secrets.from_age(...).get(key)`               | Pluggable backend, never logged |
+| Multi-file    | `import`                                       | Standard scampi                 |
+| Groups        | Plain lists                                    | Just scampi                     |
 
 Complexity scales from one file to full layout. Explicit over implicit.
 Target is truth.

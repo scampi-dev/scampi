@@ -8,14 +8,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const cleanupSysctlID = "step.sysctl.cleanup"
 
 type cleanupSysctlOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	path string
 }
 
@@ -31,7 +31,7 @@ func (op *cleanupSysctlOp) Check(
 		if target.IsNotExist(err) {
 			return spec.CheckSatisfied, nil, nil
 		}
-		return spec.CheckUnsatisfied, nil, sharedops.DiagnoseTargetError(err)
+		return spec.CheckUnsatisfied, nil, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.CheckUnsatisfied, []spec.DriftDetail{{
@@ -54,7 +54,7 @@ func (op *cleanupSysctlOp) Execute(
 		}
 		return spec.Result{}, CleanupError{
 			Path: op.path,
-			Err:  sharedops.DiagnoseTargetError(err),
+			Err:  sharedop.DiagnoseTargetError(err),
 		}
 	}
 

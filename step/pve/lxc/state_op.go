@@ -9,14 +9,14 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const stateLxcID = "step.pve.lxc.state"
 
 type stateLxcOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	pveCmd
 	state State
 }

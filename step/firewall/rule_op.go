@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
@@ -25,7 +25,7 @@ const (
 )
 
 type ensureRuleOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	port   FirewallPort
 	action Action
 }
@@ -74,7 +74,7 @@ func (op *ensureRuleOp) checkUFW(
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	result, err := cmdr.RunPrivileged(ctx, "ufw show added")
 	if err != nil {
-		return spec.CheckUnsatisfied, nil, sharedops.DiagnoseTargetError(err)
+		return spec.CheckUnsatisfied, nil, sharedop.DiagnoseTargetError(err)
 	}
 	if result.ExitCode != 0 {
 		stderr := result.Stderr
@@ -108,7 +108,7 @@ func (op *ensureRuleOp) checkFirewalld(
 	if op.action == ActionAllow {
 		result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("firewall-cmd --query-port=%s", op.port.String()))
 		if err != nil {
-			return spec.CheckUnsatisfied, nil, sharedops.DiagnoseTargetError(err)
+			return spec.CheckUnsatisfied, nil, sharedop.DiagnoseTargetError(err)
 		}
 		if result.ExitCode == 0 {
 			return spec.CheckSatisfied, nil, nil
@@ -117,7 +117,7 @@ func (op *ensureRuleOp) checkFirewalld(
 		richRule := op.firewalldRichRule()
 		result, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("firewall-cmd --query-rich-rule='%s'", richRule))
 		if err != nil {
-			return spec.CheckUnsatisfied, nil, sharedops.DiagnoseTargetError(err)
+			return spec.CheckUnsatisfied, nil, sharedop.DiagnoseTargetError(err)
 		}
 		if result.ExitCode == 0 {
 			return spec.CheckSatisfied, nil, nil
@@ -163,7 +163,7 @@ func (op *ensureRuleOp) executeUFW(
 	cmd := fmt.Sprintf("ufw %s %s", op.action, op.port.String())
 	result, err := cmdr.RunPrivileged(ctx, cmd)
 	if err != nil {
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 	if result.ExitCode != 0 {
 		stderr := result.Stderr
@@ -188,7 +188,7 @@ func (op *ensureRuleOp) executeFirewalld(
 		cmd := fmt.Sprintf("firewall-cmd --permanent --add-port=%s", op.port.String())
 		result, err := cmdr.RunPrivileged(ctx, cmd)
 		if err != nil {
-			return spec.Result{}, sharedops.DiagnoseTargetError(err)
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
 		if result.ExitCode != 0 {
 			return spec.Result{}, op.applyError(result)
@@ -198,7 +198,7 @@ func (op *ensureRuleOp) executeFirewalld(
 		cmd := fmt.Sprintf("firewall-cmd --permanent --add-rich-rule='%s'", richRule)
 		result, err := cmdr.RunPrivileged(ctx, cmd)
 		if err != nil {
-			return spec.Result{}, sharedops.DiagnoseTargetError(err)
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
 		if result.ExitCode != 0 {
 			return spec.Result{}, op.applyError(result)
@@ -207,7 +207,7 @@ func (op *ensureRuleOp) executeFirewalld(
 
 	reload, err := cmdr.RunPrivileged(ctx, "firewall-cmd --reload")
 	if err != nil {
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 	if reload.ExitCode != 0 {
 		return spec.Result{}, RuleApplyError{

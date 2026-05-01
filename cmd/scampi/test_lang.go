@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/testkit"
 )
 
-// runLangTestFile runs a single scampi-lang test file end-to-end:
+// runLangTestFile runs a single scampi test file end-to-end:
 // link → resolve → apply against mock targets → verify each
 // registered mock against its declared `expect` field. Mismatches
 // turn into TestFail diagnostics; clean apply + clean verify counts

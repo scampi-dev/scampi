@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
@@ -24,7 +24,7 @@ const ensureContainerID = "step.ensure-container"
 const healthPollCeil = 2 * time.Second
 
 type ensureContainerOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	name        string
 	image       string
 	state       State

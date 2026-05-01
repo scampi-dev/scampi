@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package sharedops
+package sharedop
 
 import "scampi.dev/scampi/spec"
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package fileops
+package fileop
 
 import (
 	"context"
@@ -12,14 +12,14 @@ import (
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedops"
+	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/target"
 )
 
 const ensureOwnerID = "step.ensure-owner"
 
 type EnsureOwnerOp struct {
-	sharedops.BaseOp
+	sharedop.BaseOp
 	Path      string
 	Owner     string
 	Group     string
@@ -37,14 +37,14 @@ func (op *EnsureOwnerOp) Check(
 	desired := op.Owner + ":" + op.Group
 
 	if !owTgt.HasUser(ctx, op.Owner) {
-		return spec.CheckUnsatisfied, nil, sharedops.UnknownUserError{
+		return spec.CheckUnsatisfied, nil, sharedop.UnknownUserError{
 			User:   op.Owner,
 			Source: op.OwnerSpan,
 			Err:    nil,
 		}
 	}
 	if !owTgt.HasGroup(ctx, op.Group) {
-		return spec.CheckUnsatisfied, nil, sharedops.UnknownGroupError{
+		return spec.CheckUnsatisfied, nil, sharedop.UnknownGroupError{
 			Group:  op.Group,
 			Source: op.GroupSpan,
 			Err:    nil,
@@ -154,14 +154,14 @@ func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt targe
 
 	if err := owTgt.Chown(ctx, op.Path, target.Owner{User: op.Owner, Group: op.Group}); err != nil {
 		if target.IsUnknownUser(err) {
-			return spec.Result{}, sharedops.UnknownUserError{
+			return spec.Result{}, sharedop.UnknownUserError{
 				User:   op.Owner,
 				Source: op.OwnerSpan,
 				Err:    err,
 			}
 		}
 		if target.IsUnknownGroup(err) {
-			return spec.Result{}, sharedops.UnknownGroupError{
+			return spec.Result{}, sharedop.UnknownGroupError{
 				Group:  op.Group,
 				Source: op.GroupSpan,
 				Err:    err,
@@ -170,13 +170,13 @@ func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt targe
 		// Can't catch during Check: file may not exist yet, and probing
 		// write-permission would mutate state in a read-only phase.
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chown %s:%s %s", op.Owner, op.Group, op.Path),
 				Source:    op.OwnerSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: changed}, nil
@@ -187,27 +187,27 @@ func (op *EnsureOwnerOp) executeRecursive(ctx context.Context, tgt target.Target
 
 	if err := owTgt.ChownRecursive(ctx, op.Path, target.Owner{User: op.Owner, Group: op.Group}); err != nil {
 		if target.IsUnknownUser(err) {
-			return spec.Result{}, sharedops.UnknownUserError{
+			return spec.Result{}, sharedop.UnknownUserError{
 				User:   op.Owner,
 				Source: op.OwnerSpan,
 				Err:    err,
 			}
 		}
 		if target.IsUnknownGroup(err) {
-			return spec.Result{}, sharedops.UnknownGroupError{
+			return spec.Result{}, sharedop.UnknownGroupError{
 				Group:  op.Group,
 				Source: op.GroupSpan,
 				Err:    err,
 			}
 		}
 		if target.IsPermission(err) {
-			return spec.Result{}, sharedops.PermissionDeniedError{
+			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chown -R %s:%s %s", op.Owner, op.Group, op.Path),
 				Source:    op.OwnerSpan,
 				Err:       err,
 			}
 		}
-		return spec.Result{}, sharedops.DiagnoseTargetError(err)
+		return spec.Result{}, sharedop.DiagnoseTargetError(err)
 	}
 
 	return spec.Result{Changed: true}, nil
