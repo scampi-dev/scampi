@@ -72,18 +72,35 @@ if [[ "$dry_run" == true ]]; then
   exit 0
 fi
 
-# Create an empty release commit and tag it so the changelog generator
-# can see this version in the tag list.
+# Create an empty release commit and tag it so we can stamp the section
+# header with the tag's commit date.
 changelog="$root/CHANGELOG.md"
 touch "$changelog"
 git add "$changelog"
 git commit --allow-empty -m "release: $version"
 git tag -a "$version" -m "$version"
 
-# Now regenerate the full changelog from all tags.
-"$dir/generate-changelog.sh" "$api" "$repo" --refresh >"$changelog"
+# Build the new section by swapping the release-notes header
+# ("## What's Changed") for the changelog header ("## <tag> — <date>").
+tag_date=$(git log -1 --format='%cs' "$version")
+new_section=$(printf '%s\n' "$notes" | sed "1s|.*|## ${version} — ${tag_date}|")
 
-# Amend the release commit with the actual changelog.
+# Prepend the new section to CHANGELOG.md. Old sections are immutable —
+# regenerating them would just burn API calls. Use generate-changelog.sh
+# directly when a history rewrite forces a full rebuild.
+first_tag_line=$(grep -n '^## v' "$changelog" | head -n1 | cut -d: -f1)
+if [[ -n "$first_tag_line" ]]; then
+  {
+    head -n "$((first_tag_line - 1))" "$changelog"
+    printf '%s\n\n' "$new_section"
+    tail -n "+$first_tag_line" "$changelog"
+  } > "$changelog.tmp"
+  mv "$changelog.tmp" "$changelog"
+else
+  printf '# Changelog\n\n%s\n' "$new_section" > "$changelog"
+fi
+
+# Amend the release commit with the updated changelog.
 git add "$changelog"
 git commit --amend --no-edit
 
