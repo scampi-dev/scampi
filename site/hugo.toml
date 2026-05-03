@@ -29,16 +29,23 @@ publishDir = "../build/site"
     base = "https://codeberg.org/scampi-dev/scampi/_edit/main/site/content"
 
 [[menus.main]]
+  name = "Why"
+  pageRef = "/why"
+  weight = 1
+  [menus.main.params]
+    type = "link"
+
+[[menus.main]]
   name = "About"
   pageRef = "/about"
-  weight = 1
+  weight = 2
   [menus.main.params]
     type = "link"
 
 [[menus.main]]
   name = "Docs"
   pageRef = "/docs"
-  weight = 2
+  weight = 3
   [menus.main.params]
     type = "link"
     icon = "book-open"
@@ -46,20 +53,20 @@ publishDir = "../build/site"
 [[menus.main]]
   name = "Install"
   pageRef = "/get"
-  weight = 3
+  weight = 4
   [menus.main.params]
     type = "link"
     icon = "download"
 
 [[menus.main]]
   name = "Search"
-  weight = 4
+  weight = 5
   [menus.main.params]
     type = "search"
 
 [[menus.main]]
   name = "Codeberg"
   url = "https://codeberg.org/scampi-dev/scampi"
-  weight = 5
+  weight = 6
   [menus.main.params]
     icon = "codeberg"
