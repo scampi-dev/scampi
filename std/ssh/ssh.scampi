@@ -5,11 +5,12 @@ module ssh
 import "std"
 
 pub decl target(
-  name:     string
-  host:     string
-  user:     string
-  port:     int = 22
-  key:      string?
-  insecure: bool?
-  timeout:  string = "5s"
+  name:         string
+  host:         string
+  user:         string
+  port:         int = 22
+  key:          string?
+  insecure:     bool?
+  timeout:      string = "5s"
+  max_sessions: int = 10
 ) std.Target

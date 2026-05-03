@@ -11,6 +11,7 @@ tool (
 
 require (
 	filippo.io/age v1.3.1
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/getkin/kin-openapi v0.134.0
 	github.com/itchyny/gojq v0.12.18

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -32,13 +33,14 @@ const knownHostsFile = "~/.ssh/known_hosts"
 type (
 	SSH    struct{}
 	Config struct {
-		_        struct{} `summary:"Connect to a remote host via SSH"`
-		Host     string   `step:"Hostname or IP address" example:"10.0.0.1"`
-		Port     int      `step:"SSH port" default:"22"`
-		User     string   `step:"SSH user" example:"root"`
-		Key      string   `step:"Path to SSH private key" optional:"true"`
-		Insecure bool     `step:"Skip host key verification" optional:"true"`
-		Timeout  string   `step:"Connection timeout" default:"5s"`
+		_           struct{} `summary:"Connect to a remote host via SSH"`
+		Host        string   `step:"Hostname or IP address" example:"10.0.0.1"`
+		Port        int      `step:"SSH port" default:"22"`
+		User        string   `step:"SSH user" example:"root"`
+		Key         string   `step:"Path to SSH private key" optional:"true"`
+		Insecure    bool     `step:"Skip host key verification" optional:"true"`
+		Timeout     string   `step:"Connection timeout" default:"5s"`
+		MaxSessions int      `step:"Max concurrent SSH sessions (client-side sanity cap)" default:"10" optional:"true"`
 	}
 )
 
@@ -82,7 +84,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 	}
 
 	addr := net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
-	client, err := ssh.Dial("tcp", addr, sshCfg)
+	client, err := dialWithRetry(ctx, addr, sshCfg)
 	if err != nil {
 		defer func() { _ = closeAgent() }()
 		var ke *knownhosts.KeyError
@@ -127,12 +129,20 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 		return nil, SFTPSessionError{Err: err}
 	}
 
-	sshTgt := &SSHTarget{
-		config:     cfg,
-		client:     client,
-		sftp:       sftpClient,
-		closeAgent: closeAgent,
+	maxSessions := cfg.MaxSessions
+	if maxSessions <= 0 {
+		maxSessions = DefaultMaxSessions
 	}
+
+	sshTgt := &SSHTarget{
+		config:      cfg,
+		client:      client,
+		sftp:        sftpClient,
+		closeAgent:  closeAgent,
+		slots:       make(chan struct{}, maxSessions),
+		maxSessions: maxSessions,
+	}
+	sshTgt.dialCount.Add(1)
 	sshTgt.Runner = sshTgt.RunCommand
 
 	// OS detection for package manager and platform-specific dispatch.
@@ -244,6 +254,64 @@ func buildSSHConfig(
 		HostKeyCallback: hostKeyCallback,
 		Timeout:         timeout,
 	}, closeAgent, nil
+}
+
+// dialWithRetry wraps ssh.Dial with bounded exponential backoff for
+// transient failures: i/o timeouts, connection resets, unexpected
+// EOFs. These are the failure shapes you get when sshd is at
+// MaxStartups (it drops or resets the new connection without a clean
+// rejection), when the network is briefly flaky, or when the server
+// is mid-restart. Permanent failures — auth errors, wrong host,
+// refused connection — propagate immediately so misconfig bails fast.
+func dialWithRetry(ctx context.Context, addr string, sshCfg *ssh.ClientConfig) (*ssh.Client, error) {
+	var client *ssh.Client
+	op := func() error {
+		c, err := ssh.Dial("tcp", addr, sshCfg)
+		if err == nil {
+			client = c
+			return nil
+		}
+		if !isTransientDialError(err) {
+			return backoff.Permanent(err)
+		}
+		return err
+	}
+	if err := backoff.Retry(op, backoff.WithContext(dialBackoff(), ctx)); err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+// dialBackoff returns a fresh exponential-backoff schedule for
+// ssh.Dial. Slower than session-level backoff because network
+// conditions take longer to clear; capped at ~30s total to avoid
+// hanging the user on a misconfigured remote.
+func dialBackoff() backoff.BackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 1 * time.Second
+	b.MaxInterval = 5 * time.Second
+	b.Multiplier = 2.0
+	b.RandomizationFactor = 0.5
+	b.MaxElapsedTime = 30 * time.Second
+	b.Reset()
+	return b
+}
+
+// isTransientDialError tells retry-worthy network conditions apart
+// from "this will never work, stop wasting the user's time" errors.
+func isTransientDialError(err error) bool {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "i/o timeout"):
+		return true
+	case strings.Contains(msg, "connection reset"):
+		return true
+	case strings.Contains(msg, "EOF"):
+		// Server dropped the connection — typical sshd MaxStartups
+		// behavior. Worth a retry with backoff.
+		return true
+	}
+	return false
 }
 
 func isHostResolvable(h string) bool {
