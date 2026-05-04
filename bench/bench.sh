@@ -38,6 +38,24 @@ META="$RESULTS_DIR/$TS.metadata.txt"
 
 # ----- record run metadata --------------------------------------------------
 
+# Pull PVE host hardware specs in one SSH round-trip — readers of
+# the report shouldn't have to ask "what's midgard, again?".
+pve_specs=$(ssh -o BatchMode=yes "${PVE_USER}@${PVE_HOST}" '
+    cpu=$(awk -F: "/model name/{print \$2; exit}" /proc/cpuinfo | sed "s/^ *//")
+    cores=$(nproc)
+    threads=$(grep -c ^processor /proc/cpuinfo)
+    mem=$(awk "/MemTotal/{printf \"%.1f GB\", \$2/1048576}" /proc/meminfo)
+    kernel=$(uname -r)
+    pve=$(pveversion 2>/dev/null | head -1 | sed "s|pve-manager/||; s| .*||")
+    pool=$(sudo zpool list -H -o name,size 2>/dev/null | head -1 | tr "\t" " ")
+    echo "pve_cpu:      $cpu"
+    echo "pve_cores:    ${cores} cores / ${threads} threads"
+    echo "pve_mem:      $mem"
+    echo "pve_kernel:   $kernel"
+    echo "pve_version:  $pve"
+    echo "pve_storage:  ${pool:-unknown}"
+')
+
 {
     echo "# bench run metadata"
     echo "timestamp:    $TS"
@@ -51,6 +69,7 @@ META="$RESULTS_DIR/$TS.metadata.txt"
     echo "wan_delay_ms: $WAN_DELAY_MS"
     echo "pve_host:     $PVE_HOST"
     echo "pve_node:     $PVE_NODE"
+    echo "$pve_specs"
     vmids=""; ips=""
     for i in $(seq 0 $((BENCH_HOSTS - 1))); do
         vmids+="$((BENCH_VMID_BASE + i)) "

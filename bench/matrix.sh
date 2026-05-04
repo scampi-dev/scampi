@@ -71,5 +71,6 @@ for hosts in $HOSTS_MATRIX; do
     done
 done
 
-echo "matrix complete. metadata files for this run:"
-find "$RESULTS_DIR" -maxdepth 1 -name '*.metadata.txt' -newer "$marker" -print 2>/dev/null | sort
+echo "matrix complete."
+report=$(python3 bench/aggregate.py --since "$marker" --results-dir "$RESULTS_DIR" 2>&1)
+echo "$report"
