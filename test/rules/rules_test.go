@@ -183,6 +183,11 @@ func TestImportCapabilities(t *testing.T) {
 			github.com/pkg/sftp`,
 		},
 		{
+			pattern: "target/ssh/shell_session.go",
+			allowedImports: `crypto/rand,
+			golang.org/x/crypto/ssh`,
+		},
+		{
 			pattern: "target/pve/pve.go",
 			allowedImports: `net,os,
 			golang.org/x/crypto/ssh,
@@ -752,7 +757,8 @@ func TestBareErrorBan(t *testing.T) {
 	// Sanctioned files: internal helpers whose fmt.Errorf/errors.New
 	// errors are wrapped before reaching the engine.
 	sanctioned := []string{
-		"lang/resolve/resolve.go", // internal FS errors wrapped into resolve.Error
+		"lang/resolve/resolve.go",     // internal FS errors wrapped into resolve.Error
+		"target/ssh/shell_session.go", // framing errors wrapped by run() into errSession
 	}
 
 	usedSanctions := map[string]bool{}

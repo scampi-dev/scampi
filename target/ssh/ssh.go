@@ -135,13 +135,14 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 	}
 
 	sshTgt := &SSHTarget{
-		config:      cfg,
-		client:      client,
-		sftp:        sftpClient,
-		closeAgent:  closeAgent,
-		slots:       make(chan struct{}, maxSessions),
-		maxSessions: maxSessions,
+		config:     cfg,
+		client:     client,
+		sftp:       sftpClient,
+		closeAgent: closeAgent,
 	}
+	sshTgt.pool = newShellPool(maxSessions, func() (*shellSession, error) {
+		return openShellSession(client)
+	})
 	sshTgt.dialCount.Add(1)
 	sshTgt.Runner = sshTgt.RunCommand
 

@@ -60,11 +60,20 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 	if stats.DialCount != 1 {
 		t.Errorf("DialCount = %d, want 1 — connection should be pooled per target", stats.DialCount)
 	}
-	wantSessions := int64(sequentialOps + parallelOps)
+	wantCommands := int64(sequentialOps + parallelOps)
+	gotCommands := stats.CommandsRun - baseline.CommandsRun
+	if gotCommands != wantCommands {
+		t.Errorf("CommandsRun delta = %d, want %d (baseline = %d, total = %d)",
+			gotCommands, wantCommands, baseline.CommandsRun, stats.CommandsRun)
+	}
+	// SessionsOpened is now a measure of pool churn, not command
+	// count. With persistent shells, a small handful of sessions
+	// should serve every command. Cap is loose — small fluctuations
+	// based on parallelism timing are fine.
 	gotSessions := stats.SessionsOpened - baseline.SessionsOpened
-	if gotSessions != wantSessions {
-		t.Errorf("SessionsOpened delta = %d, want %d (baseline = %d, total = %d)",
-			gotSessions, wantSessions, baseline.SessionsOpened, stats.SessionsOpened)
+	if gotSessions > int64(parallelOps) {
+		t.Errorf("SessionsOpened delta = %d, want at most %d — shells should be reused",
+			gotSessions, parallelOps)
 	}
 }
 
