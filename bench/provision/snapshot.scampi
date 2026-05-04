@@ -2,10 +2,10 @@
 
 // Bench provisioning — Phase 3 of 3: pristine snapshot per LXC.
 //
-// The bench harness (run.sh) rolls back to this snapshot between
+// The bench harness (bench.sh) rolls back to this snapshot between
 // cold runs so each cold timing measures a true from-scratch deploy.
 // Requires phases 1 and 2 to have completed. To apply by hand
-// outside run.sh, source bench/.env first:
+// outside provision.sh, source bench/.env first:
 //
 //   set -a; source bench/.env.example; source bench/.env 2>/dev/null; set +a
 //   scampi apply bench/provision/snapshot.scampi
@@ -20,13 +20,16 @@ let pve_host = std.env("PVE_HOST")
 let pve_user = std.env("PVE_USER")
 let snapshot_name = std.env("SNAPSHOT_NAME")
 let base_vmid = std.parse_int(std.env("BENCH_VMID_BASE"))
+let host_count = std.parse_int(std.env("BENCH_HOSTS"))
 
-let vmids = [base_vmid + i for i in std.range(3)]
+let vmids = [base_vmid + i for i in std.range(host_count)]
 
+// See provision/lxcs.scampi for why max_sessions is bumped.
 let pve_ssh = ssh.target {
-  name = "pve"
-  host = pve_host
-  user = pve_user
+  name         = "pve"
+  host         = pve_host
+  user         = pve_user
+  max_sessions = 40
 }
 
 // posix.run does NOT auto-escalate, so pct calls must go through sudo.

@@ -6,7 +6,7 @@
 //   scampi apply bench/scampi/deploy.scampi
 //
 // On a converged target a second run is a no-op. The harness
-// (../run.sh) measures cold (snapshot rollback between runs) and
+// (../bench.sh) measures cold (snapshot rollback between runs) and
 // warm (idempotent re-run) timings.
 
 module main
@@ -15,18 +15,19 @@ import "std"
 import "std/ssh"
 import "std/posix"
 
-// All environment values come from bench/.env via run.sh. Same vars
+// All environment values come from bench/.env via bench.sh. Same vars
 // as the provision phases — see bench/.env.example for documentation.
 let bench_user = std.env("BENCH_USER")
 let bench_key = std.env("SCAMPI_BENCH_SSH_KEY", default = "bench/.ssh/scampi_bench")
 let ip_prefix = std.env("BENCH_IP_PREFIX")
 let base_ip3 = std.parse_int(std.env("BENCH_IP_BASE"))
+let host_count = std.parse_int(std.env("BENCH_HOSTS"))
 
 // insecure = true skips host-key verification — bench LXCs are
 // ephemeral and IP-recycled, so adding them to known_hosts would
 // just collect stale entries. Matches ansible's host_key_checking
 // = False in ansible.cfg.
-let bench_hosts = [ssh.target { name = "bench-${i + 1}", host = "${ip_prefix}.${base_ip3 + i}", user = bench_user, key = bench_key, insecure = true } for i in std.range(3)]
+let bench_hosts = [ssh.target { name = "bench-${i + 1}", host = "${ip_prefix}.${base_ip3 + i}", user = bench_user, key = bench_key, insecure = true } for i in std.range(host_count)]
 
 // nginx version pin comes from NGINX_VERSION (bench/.env.example
 // holds the default + bump notes). Both this file and ansible's

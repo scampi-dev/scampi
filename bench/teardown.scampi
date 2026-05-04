@@ -4,7 +4,7 @@
 // Snapshots are removed automatically when the LXC is destroyed.
 //
 // Reads the same env vars as the provision phases — source bench/.env
-// before invoking by hand, or just run via bench/run.sh:
+// before invoking by hand:
 //
 //   set -a; source bench/.env.example; source bench/.env 2>/dev/null; set +a
 //   scampi apply bench/teardown.scampi
@@ -19,6 +19,7 @@ let pve_host = std.env("PVE_HOST")
 let pve_user = std.env("PVE_USER")
 let pve_node = std.env("PVE_NODE")
 let base_vmid = std.parse_int(std.env("BENCH_VMID_BASE"))
+let host_count = std.parse_int(std.env("BENCH_HOSTS"))
 
 let pve_ssh = ssh.target {
   name = "pve"
@@ -31,7 +32,7 @@ type Container {
   hostname: string
 }
 
-let containers = [Container { id = base_vmid + i, hostname = "bench-${i + 1}" } for i in std.range(3)]
+let containers = [Container { id = base_vmid + i, hostname = "bench-${i + 1}" } for i in std.range(host_count)]
 
 std.deploy(name = "destroy-bench-lxcs", targets = [pve_ssh]) {
   for c in containers {

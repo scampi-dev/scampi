@@ -26,8 +26,14 @@ require_scampi
 require_ansible
 export_ssh_env
 
+# Apply (or clear) WAN netem once at the top so warm-only runs see
+# the right network state. Cold runs reapply after each rollback.
+bash bench/_apply_wan.sh
+
 mkdir -p "$RESULTS_DIR"
-TS=$(date +%Y%m%d-%H%M%S)
+# Filename suffix encodes the scenario so matrix runs don't collide.
+WAN_TAG=$([[ "$WAN_DELAY_MS" == "0" ]] && echo lan || echo "wan${WAN_DELAY_MS}")
+TS="$(date +%Y%m%d-%H%M%S).h${BENCH_HOSTS}.${WAN_TAG}"
 META="$RESULTS_DIR/$TS.metadata.txt"
 
 # ----- record run metadata --------------------------------------------------
@@ -41,10 +47,17 @@ META="$RESULTS_DIR/$TS.metadata.txt"
     echo "hyperfine:    $(hyperfine --version 2>&1 | head -1)"
     echo "runs:         $RUNS"
     echo "phases:       $PHASES"
+    echo "hosts:        $BENCH_HOSTS"
+    echo "wan_delay_ms: $WAN_DELAY_MS"
     echo "pve_host:     $PVE_HOST"
     echo "pve_node:     $PVE_NODE"
-    echo "vmids:        ${BENCH_VMID_BASE} $((BENCH_VMID_BASE + 1)) $((BENCH_VMID_BASE + 2))"
-    echo "ips:          ${BENCH_IP_PREFIX}.${BENCH_IP_BASE} ${BENCH_IP_PREFIX}.$((BENCH_IP_BASE + 1)) ${BENCH_IP_PREFIX}.$((BENCH_IP_BASE + 2))"
+    vmids=""; ips=""
+    for i in $(seq 0 $((BENCH_HOSTS - 1))); do
+        vmids+="$((BENCH_VMID_BASE + i)) "
+        ips+="${BENCH_IP_PREFIX}.$((BENCH_IP_BASE + i)) "
+    done
+    echo "vmids:        ${vmids% }"
+    echo "ips:          ${ips% }"
     echo "snapshot:     $SNAPSHOT_NAME"
 } | tee "$META"
 

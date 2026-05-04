@@ -70,6 +70,7 @@ require_env_basics() {
     require_var BENCH_IP_BASE
     require_var BENCH_USER
     require_var SNAPSHOT_NAME
+    require_var BENCH_HOSTS
 }
 
 require_scampi() {

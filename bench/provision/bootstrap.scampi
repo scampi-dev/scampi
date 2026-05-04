@@ -4,7 +4,7 @@
 //
 // Requires phase 1 (create LXCs) to have completed. See
 // provision/lxcs.scampi for the full phase context. To apply by hand
-// outside run.sh, source bench/.env first:
+// outside provision.sh, source bench/.env first:
 //
 //   set -a; source bench/.env.example; source bench/.env 2>/dev/null; set +a
 //   scampi apply bench/provision/bootstrap.scampi
@@ -19,10 +19,11 @@ let pve_host = std.env("PVE_HOST")
 let pve_user = std.env("PVE_USER")
 let bench_user = std.env("BENCH_USER")
 let base_vmid = std.parse_int(std.env("BENCH_VMID_BASE"))
+let host_count = std.parse_int(std.env("BENCH_HOSTS"))
 
 let ssh_keys = [std.env("SCAMPI_BENCH_SSH_PUB")]
 
-let vmids = [base_vmid + i for i in std.range(3)]
+let vmids = [base_vmid + i for i in std.range(host_count)]
 
 // pve.lxc_target per container — for bootstrap via pct exec / pct push
 // from the PVE host, before the container has its own SSH listener.
