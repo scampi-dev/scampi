@@ -112,6 +112,22 @@ type @path {
 //   let port = std.env("PORT", default = "8080")
 pub func env(name: string, default: string?) string
 
+// like env, but registers the resolved value as a secret so it gets
+// redacted in inspect / apply / diagnostic output. use this for env
+// vars holding passwords, tokens, API keys — anywhere a leaked value
+// would be a problem.
+//
+//   let db_pass = std.secret_env("DB_PASSWORD")
+//   posix.run {
+//     env   = { DB_PASSWORD = db_pass }
+//     apply = "psql ..."
+//   }
+//
+// scampi can't tell which env vars are sensitive (HOME isn't, but
+// DB_PASSWORD is), so the user marks them explicitly. unmarked env
+// vars (via std.env) continue to flow through as plain strings.
+pub func secret_env(name: string, default: string?) string
+
 // produce a list of integers from 0 to n-1
 //
 //   let items = std.range(5)   // [0, 1, 2, 3, 4]

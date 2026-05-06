@@ -134,6 +134,7 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source, opts ...Ana
 		eval.WithBuiltinFunc("secrets.from_age", secretFromAge(configDir, src.LookupEnv, readFile)),
 		eval.WithBuiltinFunc("secrets.from_file", secretFromFile(configDir, readFile)),
 		eval.WithBuiltinFunc("secrets.get", secretGetBuiltin(o.redactor)),
+		eval.WithBuiltinFunc("std.secret_env", secretEnvBuiltin(src.LookupEnv, o.redactor)),
 	}
 	if o.lenient {
 		evalOpts = append(evalOpts, eval.WithLenient())
@@ -343,6 +344,44 @@ func secretGetBuiltin(redactor *secret.Redactor) eval.BuiltinFunc {
 		}
 		redactor.Add(v)
 		return &eval.StringVal{V: v}, ""
+	}
+}
+
+// secretEnvBuiltin returns a BuiltinFunc for std.secret_env(name, default).
+// Mirrors std.env semantics — read env via the source's lookup, fall back
+// to default on miss — but registers every successful resolution with
+// the redactor so the value gets masked in subsequent rendered output.
+// See #282.
+func secretEnvBuiltin(envLookup func(string) (string, bool), redactor *secret.Redactor) eval.BuiltinFunc {
+	return func(positional []eval.Value, kwargs map[string]eval.Value) (eval.Value, string) {
+		name := stringArg(positional, kwargs, "name")
+		if name == "" {
+			return nil, "std.secret_env requires a non-empty name"
+		}
+		if v, ok := envLookup(name); ok {
+			redactor.Add(v)
+			return &eval.StringVal{V: v}, ""
+		}
+		// Default fallback: secrets are still values, so a default
+		// for an unset secret env is a plain string (not registered
+		// — it didn't come from the env). The user opting into
+		// secret_env wants the *real* value redacted; the default is
+		// literally inline text in the config.
+		def := ""
+		if len(positional) > 1 {
+			if s, ok := positional[1].(*eval.StringVal); ok {
+				def = s.V
+			}
+		}
+		if d, ok := kwargs["default"]; ok {
+			if s, ok := d.(*eval.StringVal); ok {
+				def = s.V
+			}
+		}
+		if def != "" {
+			return &eval.StringVal{V: def}, ""
+		}
+		return nil, "secret env var " + name + " not set and no default given"
 	}
 }
 
