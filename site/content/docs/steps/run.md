@@ -7,13 +7,15 @@ when no built-in step type fits your needs.
 
 ## Fields
 
-| Field       | Type        | Required | Default | Description                                        |
-| ----------- | ----------- | :------: | ------- | -------------------------------------------------- |
-| `apply`     | string      |    ✓     |         | Shell command to execute (`@std.nonempty`)         |
-| `check`     | string?     |          |         | Shell command that exits 0 if apply is unnecessary |
-| `always`    | bool?       |          | `false` | Always run apply, skip check                       |
-| `desc`      | string?     |          |         | Human-readable description                         |
-| `on_change` | list\[Step] |          |         | Steps to trigger when apply runs                   |
+| Field       | Type          | Required | Default | Description                                        |
+| ----------- | ------------- | :------: | ------- | -------------------------------------------------- |
+| `apply`     | string        |    ✓     |         | Shell command to execute (`@std.nonempty`)         |
+| `check`     | string?       |          |         | Shell command that exits 0 if apply is unnecessary |
+| `always`    | bool?         |          | `false` | Always run apply, skip check                       |
+| `desc`      | string?       |          |         | Human-readable description                         |
+| `on_change` | list\[Step]   |          |         | Steps to trigger when apply runs                   |
+| `promises`  | list\[string] |          | `[]`    | Cross-deploy resources this step produces          |
+| `inputs`    | list\[string] |          | `[]`    | Cross-deploy resources this step consumes          |
 
 Provide either `check` or `always` (or neither — but at least one of them is recommended for idempotency).
 

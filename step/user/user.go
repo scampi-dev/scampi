@@ -59,6 +59,8 @@ type (
 		System   bool     `step:"Create as system user" optional:"true"`
 		Password string   `step:"Password hash" optional:"true"`
 		Groups   []string `step:"Supplementary groups" optional:"true" example:"[\"sudo\", \"docker\"]"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	userAction struct {
 		desc   string
@@ -81,6 +83,10 @@ func (*UserConfig) FieldEnumValues() map[string][]string {
 
 func (User) Kind() string   { return "user" }
 func (User) NewConfig() any { return &UserConfig{} }
+
+func (c *UserConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (u User) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*UserConfig)

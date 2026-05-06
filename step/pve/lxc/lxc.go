@@ -90,6 +90,8 @@ type (
 		Password      string       `step:"Root password (create-only)" optional:"true"`
 		SSHPublicKeys []string     `step:"SSH public keys for root" optional:"true"`
 		Desc          string       `step:"Human-readable description" optional:"true"`
+		Promises      []string     `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs        []string     `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	LxcTemplate struct {
 		Storage string `step:"Storage pool holding the template" default:"local"`
@@ -150,6 +152,21 @@ func (*LxcConfig) FieldEnumValues() map[string][]string {
 
 func (LXC) Kind() string   { return "pve.lxc" }
 func (LXC) NewConfig() any { return &LxcConfig{} }
+
+func (c *LxcConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
+
+// StaticPromises reports the LXC this step produces — the engine uses
+// it to order sibling deploy blocks whose targets input the same
+// `lxc:<id>`. See engine/deploy_graph.go and #275.
+func (LXC) StaticPromises(cfg any) []spec.Resource {
+	c, ok := cfg.(*LxcConfig)
+	if !ok || c.ID < 100 {
+		return nil
+	}
+	return []spec.Resource{spec.LXCResource(c.ID)}
+}
 
 func (LXC) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*LxcConfig)

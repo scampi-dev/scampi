@@ -24,4 +24,6 @@ const (
 	CodeNoTargetsInDeploy   errs.Code = "config.NoTargetsInDeploy"
 	CodeUnknownTarget       errs.Code = "config.UnknownTarget"
 	CodeTargetNotInDeploy   errs.Code = "config.TargetNotInDeploy"
+	CodeDeployCycle         errs.Code = "engine.DeployCycle"
+	CodeMultipleProducers   errs.Code = "engine.MultipleProducers"
 )

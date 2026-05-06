@@ -41,6 +41,18 @@ type (
 
 func (LXC) Kind() string   { return "pve.lxc_target" }
 func (LXC) NewConfig() any { return &Config{} }
+
+// StaticInputs reports the LXC this target consumes — the engine uses
+// it to order this deploy block after whichever sibling deploy block
+// produces `lxc:<vmid>`. Returns nil if VMID is unset (pre-link state)
+// or invalid; downstream graph build treats nil as "no input".
+func (LXC) StaticInputs(cfg any) []spec.Resource {
+	c, ok := cfg.(*Config)
+	if !ok || c.VMID < 100 {
+		return nil
+	}
+	return []spec.Resource{spec.LXCResource(c.VMID)}
+}
 func (LXC) Create(ctx context.Context, src source.Source, tgt spec.TargetInstance) (target.Target, error) {
 	cfg, ok := tgt.Config.(*Config)
 	if !ok {

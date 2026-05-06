@@ -59,6 +59,8 @@ pub decl copy(
   backup:    bool = false
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 pub decl dir(
@@ -70,6 +72,8 @@ pub decl dir(
   group:     string?
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 pub decl symlink(
@@ -79,6 +83,8 @@ pub decl symlink(
   link:      string
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 pub decl template(
@@ -97,6 +103,8 @@ pub decl template(
   backup:    bool = false
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 pub decl unarchive(
@@ -110,6 +118,8 @@ pub decl unarchive(
   perm:      string?
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 // Package management
@@ -122,6 +132,8 @@ pub decl pkg(
   state:     PkgState = PkgState.present
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 // Note on `@std.nonempty` placement:
@@ -139,6 +151,11 @@ pub decl service(
   enabled:   bool = true
   desc:      string?
   on_change: list[std.Step] = []
+  // Cross-deploy ordering: this step produces / consumes named
+  // resources visible to other deploy blocks. Matching is exact
+  // string. See engine/deploy_graph.go (#275).
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 // User and group management
@@ -155,6 +172,8 @@ pub decl user(
   groups:    list[string]?
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 pub decl group(
@@ -165,6 +184,8 @@ pub decl group(
   system:    bool?
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 // System configuration
@@ -178,6 +199,8 @@ pub decl sysctl(
   persist:   bool = true
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 pub decl mount(
@@ -190,6 +213,8 @@ pub decl mount(
   state:     MountState? = MountState.mounted
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 pub decl firewall(
@@ -203,6 +228,8 @@ pub decl firewall(
   action:    FirewallAction = FirewallAction.allow
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 // Command execution
@@ -215,4 +242,9 @@ pub decl run(
   always:    bool? = false
   desc:      string?
   on_change: list[std.Step] = []
+  // Cross-deploy ordering: this step produces / consumes named
+  // resources visible to other deploy blocks. Matching is exact
+  // string. See engine/deploy_graph.go (#275).
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step

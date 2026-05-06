@@ -5,6 +5,7 @@ package spec
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"scampi.dev/scampi/capability"
@@ -22,6 +23,8 @@ const (
 	ResourceGroup
 	ResourceRef
 	ResourceContainer
+	ResourceLXC   // PVE LXC container, Name = vmid as string
+	ResourceLabel // arbitrary user-named resource (e.g. "realm:skrynet.lan")
 )
 
 // Resource is a typed key for a promised or deferred resource.
@@ -34,6 +37,12 @@ func PathResource(name string) Resource      { return Resource{Kind: ResourcePat
 func UserResource(name string) Resource      { return Resource{Kind: ResourceUser, Name: name} }
 func GroupResource(name string) Resource     { return Resource{Kind: ResourceGroup, Name: name} }
 func ContainerResource(name string) Resource { return Resource{Kind: ResourceContainer, Name: name} }
+func LXCResource(vmid int) Resource {
+	return Resource{Kind: ResourceLXC, Name: strconv.Itoa(vmid)}
+}
+func LabelResource(name string) Resource {
+	return Resource{Kind: ResourceLabel, Name: name}
+}
 
 type (
 	Config struct {
@@ -66,6 +75,14 @@ type (
 		NewConfig() any
 		Create(ctx context.Context, src source.Source, tgt TargetInstance) (target.Target, error)
 	}
+	// StaticInputProvider is implemented by TargetTypes that consume
+	// resources produced by other deploy blocks. The engine uses this
+	// to order plans cross-deploy: a deploy block whose target inputs
+	// `lxc:1000` waits for whichever block promises it. Pure config
+	// inspection — no live connections, no probes.
+	StaticInputProvider interface {
+		StaticInputs(cfg any) []Resource
+	}
 	TargetInstance struct {
 		Type   TargetType
 		Config any
@@ -85,6 +102,25 @@ type (
 		OnChange []string // hook IDs to notify when this step changes
 		Source   SourceSpan
 		Fields   map[string]FieldSpan
+	}
+	// StaticPromiseProvider is implemented by StepTypes that produce
+	// resources visible to other deploy blocks (e.g. pve.lxc creating
+	// an LXC consumed by a sibling block's lxc_target). Pure config
+	// inspection. The op-level Promiser intra-action surface stays
+	// separate — those run after Plan(), this is pre-plan.
+	StaticPromiseProvider interface {
+		StaticPromises(cfg any) []Resource
+	}
+	// ResourceDeclarer is implemented by step Config structs that
+	// expose user-driven `promises = [...]` / `inputs = [...]` fields
+	// (e.g. posix.run, posix.service). The engine reads these
+	// alongside type-driven StaticPromises to build the cross-deploy
+	// resource graph: dc1's `samba-ad-dc` service can promise
+	// `realm:skrynet.lan`, and dc2's join step can input it, so the
+	// engine orders dc2 after dc1. Each declared name maps to a
+	// LabelResource — matching is exact-string. See #275.
+	ResourceDeclarer interface {
+		ResourceDeclarations() (promises, inputs []string)
 	}
 	// StepType is the Go type representing a step kind (one per kind).
 	// It decodes step configuration and plans execution.

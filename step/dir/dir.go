@@ -21,11 +21,13 @@ type (
 	DirConfig struct {
 		_ struct{} `summary:"Ensure a directory exists with optional permissions and ownership"`
 
-		Desc  string `step:"Human-readable description" optional:"true"`
-		Path  string `step:"Absolute path to ensure exists (creates parents)" example:"/opt/app/data"`
-		Perm  string `step:"File permissions" optional:"true" example:"0755|u=rwx,g=r-x,o=r-x|rwxr-xr-x"`
-		Owner string `step:"Owner user name or UID" optional:"true" example:"root"`
-		Group string `step:"Owner group name or GID" optional:"true" example:"root"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Path     string   `step:"Absolute path to ensure exists (creates parents)" example:"/opt/app/data"`
+		Perm     string   `step:"File permissions" optional:"true" example:"0755|u=rwx,g=r-x,o=r-x|rwxr-xr-x"`
+		Owner    string   `step:"Owner user name or UID" optional:"true" example:"root"`
+		Group    string   `step:"Owner group name or GID" optional:"true" example:"root"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	dirAction struct {
 		desc string
@@ -37,6 +39,10 @@ type (
 
 func (Dir) Kind() string   { return "dir" }
 func (Dir) NewConfig() any { return &DirConfig{} }
+
+func (c *DirConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (d Dir) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*DirConfig)

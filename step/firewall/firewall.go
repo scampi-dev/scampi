@@ -82,11 +82,13 @@ type (
 	FirewallConfig struct {
 		_ struct{} `summary:"Manage firewall rules via UFW or firewalld"`
 
-		Desc    string `step:"Human-readable description" optional:"true"`
-		Port    int    `step:"Port number" example:"8080"`
-		EndPort int    `step:"End of port range (for ranges)" optional:"true" example:"9000"`
-		Proto   string `step:"Protocol" default:"tcp" example:"udp"`
-		Action  string `step:"Rule action" default:"allow" example:"allow|deny|reject"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Port     int      `step:"Port number" example:"8080"`
+		EndPort  int      `step:"End of port range (for ranges)" optional:"true" example:"9000"`
+		Proto    string   `step:"Protocol" default:"tcp" example:"udp"`
+		Action   string   `step:"Rule action" default:"allow" example:"allow|deny|reject"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	firewallAction struct {
 		desc   string
@@ -98,6 +100,10 @@ type (
 
 func (Firewall) Kind() string   { return "firewall" }
 func (Firewall) NewConfig() any { return &FirewallConfig{} }
+
+func (c *FirewallConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (*FirewallConfig) FieldEnumValues() map[string][]string {
 	return map[string][]string{

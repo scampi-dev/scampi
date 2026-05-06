@@ -100,6 +100,8 @@ pub decl request(
   check:     Check?
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 // Declarative single-resource management. Queries for one resource and
@@ -113,6 +115,8 @@ pub decl resource(
   state:     map[string, any]?
   desc:      string?
   on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
 ) std.Step
 
 // Declarative set reconciliation. Fetches the full remote set with a
@@ -131,4 +135,6 @@ pub decl resource_set(
   orphan_state:  map[string, any]?
   desc:          string?
   on_change:     list[std.Step] = []
+  promises:      list[string] = []
+  inputs:        list[string] = []
 ) std.Step

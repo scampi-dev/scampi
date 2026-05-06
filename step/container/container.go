@@ -81,6 +81,8 @@ type (
 		Labels  map[string]string `step:"Container labels" optional:"true" example:"{\"app\": \"myapp\"}"`
 
 		Healthcheck *target.Healthcheck `step:"Healthcheck" optional:"true"`
+		Promises    []string            `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs      []string            `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	instanceAction struct {
 		desc        string
@@ -107,6 +109,10 @@ func (*InstanceConfig) FieldEnumValues() map[string][]string {
 
 func (Instance) Kind() string   { return "container.instance" }
 func (Instance) NewConfig() any { return &InstanceConfig{} }
+
+func (c *InstanceConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (Instance) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*InstanceConfig)

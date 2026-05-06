@@ -70,6 +70,8 @@ type (
 		Packages []string          `step:"Packages to manage" example:"[\"nginx\", \"curl\"]"`
 		State    string            `step:"Desired package state" default:"present" example:"latest"`
 		Source   spec.PkgSourceRef `step:"Package source" example:"system()|apt_repo(url=..., key_url=...)"`
+		Promises []string          `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string          `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	pkgAction struct {
 		desc     string
@@ -88,6 +90,10 @@ func (*PkgConfig) FieldEnumValues() map[string][]string {
 
 func (Pkg) Kind() string   { return "pkg" }
 func (Pkg) NewConfig() any { return &PkgConfig{} }
+
+func (c *PkgConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (p Pkg) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*PkgConfig)

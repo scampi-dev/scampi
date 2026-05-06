@@ -22,6 +22,8 @@ type (
 		OrphanFilter CheckConfig           `step:"jq filter for orphan narrowing" optional:"true"`
 		Bindings     map[string]*JQBinding `step:"Per-item bindings from matched remote object" optional:"true"`
 		OrphanState  map[string]any        `step:"State to send for orphan items" optional:"true"`
+		Promises     []string              `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs       []string              `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 
 	resourceSetAction struct {
@@ -36,6 +38,10 @@ type (
 
 func (ResourceSet) Kind() string   { return "rest.resource_set" }
 func (ResourceSet) NewConfig() any { return &ResourceSetConfig{} }
+
+func (c *ResourceSetConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (c *ResourceSetConfig) RefMaps() []map[string]any {
 	var maps []map[string]any

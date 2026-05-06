@@ -63,37 +63,37 @@ func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 			kind:           "copy",
 			wantSummary:    "Copy files with owner and permission management",
 			wantFields:     []string{"src", "dest", "perm", "owner", "group", "verify", "backup"},
-			wantFieldCount: 8, // includes desc
+			wantFieldCount: 10, // includes desc, promises, inputs
 		},
 		{
 			kind:           "symlink",
 			wantSummary:    "Create and manage symbolic links",
 			wantFields:     []string{"target", "link"},
-			wantFieldCount: 3, // includes desc
+			wantFieldCount: 5, // includes desc, promises, inputs
 		},
 		{
 			kind:           "pkg",
 			wantSummary:    "Ensure packages are present, absent, or at the latest version on the target",
 			wantFields:     []string{"packages", "state", "source"},
-			wantFieldCount: 4, // includes desc
+			wantFieldCount: 6, // includes desc, promises, inputs
 		},
 		{
 			kind:           "firewall",
 			wantSummary:    "Manage firewall rules via UFW or firewalld",
 			wantFields:     []string{"port", "endport", "proto", "action"},
-			wantFieldCount: 5, // includes desc
+			wantFieldCount: 7, // includes desc, promises, inputs
 		},
 		{
 			kind:           "sysctl",
 			wantSummary:    "Manage kernel parameters via sysctl with optional persistence",
 			wantFields:     []string{"key", "value"},
-			wantFieldCount: 4, // includes desc, persist
+			wantFieldCount: 6, // includes desc, persist, promises, inputs
 		},
 		{
 			kind:           "unarchive",
 			wantSummary:    "Extract an archive to a target directory with optional recursive unpacking",
 			wantFields:     []string{"src", "dest", "depth", "owner", "group", "perm"},
-			wantFieldCount: 7, // includes desc
+			wantFieldCount: 9, // includes desc, promises, inputs
 		},
 	}
 

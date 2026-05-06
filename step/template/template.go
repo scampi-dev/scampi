@@ -16,15 +16,17 @@ type (
 	TemplateConfig struct {
 		_ struct{} `summary:"Render templates with data substitution and owner/permission management"`
 
-		Desc   string         `step:"Human-readable description" optional:"true"`
-		Src    spec.SourceRef `step:"Source" example:"local(\"./tmpl\") | inline(\"content\")"`
-		Dest   string         `step:"Output file path" example:"/etc/nginx/nginx.conf"`
-		Data   DataConfig     `step:"Data sources for template rendering" optional:"true"`
-		Perm   string         `step:"File permissions" example:"0644|u=rw,g=r,o=r|rw-r--r--"`
-		Owner  string         `step:"Owner user name or UID" example:"root"`
-		Group  string         `step:"Group name or GID" example:"root"`
-		Verify string         `step:"Validation command (%s = temp file)" optional:"true" example:"nginx -t -c %s"`
-		Backup bool           `step:"Back up existing file to .bak before overwriting" optional:"true"`
+		Desc     string         `step:"Human-readable description" optional:"true"`
+		Src      spec.SourceRef `step:"Source" example:"local(\"./tmpl\") | inline(\"content\")"`
+		Dest     string         `step:"Output file path" example:"/etc/nginx/nginx.conf"`
+		Data     DataConfig     `step:"Data sources for template rendering" optional:"true"`
+		Perm     string         `step:"File permissions" example:"0644|u=rw,g=r,o=r|rw-r--r--"`
+		Owner    string         `step:"Owner user name or UID" example:"root"`
+		Group    string         `step:"Group name or GID" example:"root"`
+		Verify   string         `step:"Validation command (%s = temp file)" optional:"true" example:"nginx -t -c %s"`
+		Backup   bool           `step:"Back up existing file to .bak before overwriting" optional:"true"`
+		Promises []string       `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string       `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	DataConfig struct {
 		Values map[string]any
@@ -48,6 +50,10 @@ type (
 
 func (Template) Kind() string   { return "template" }
 func (Template) NewConfig() any { return &TemplateConfig{} }
+
+func (c *TemplateConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (t Template) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*TemplateConfig)

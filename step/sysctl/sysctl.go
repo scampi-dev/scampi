@@ -14,10 +14,12 @@ type (
 	SysctlConfig struct {
 		_ struct{} `summary:"Manage kernel parameters via sysctl with optional persistence"`
 
-		Desc    string `step:"Human-readable description" optional:"true"`
-		Key     string `step:"Sysctl parameter name" example:"net.ipv4.ip_forward"`
-		Value   string `step:"Desired parameter value" example:"1"`
-		Persist bool   `step:"Write to /etc/sysctl.d/ for persistence across reboots" default:"true"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Key      string   `step:"Sysctl parameter name" example:"net.ipv4.ip_forward"`
+		Value    string   `step:"Desired parameter value" example:"1"`
+		Persist  bool     `step:"Write to /etc/sysctl.d/ for persistence across reboots" default:"true"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	sysctlAction struct {
 		desc    string
@@ -30,6 +32,10 @@ type (
 
 func (Sysctl) Kind() string   { return "sysctl" }
 func (Sysctl) NewConfig() any { return &SysctlConfig{} }
+
+func (c *SysctlConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (Sysctl) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*SysctlConfig)

@@ -213,6 +213,8 @@ pub decl lxc(
   ssh_public_keys: list[string] = []
   desc:            string?
   on_change:       list[std.Step] = []
+  promises:        list[string] = []
+  inputs:          list[string] = []
 ) std.Step
 
 // Declarative datacenter configuration. Renders and writes
@@ -233,17 +235,19 @@ pub decl datacenter(
   backup:      bool = true
   desc:        string?
   on_change:   list[std.Step] = []
+  promises:    list[string] = []
+  inputs:      list[string] = []
 ) std.Step {
   let console_str = "${console}"
   let tag_names = std.join([t.name for t in tags], ";")
   let tag_colors = std.join([t.name + ":" + std.trim_prefix(t.bg, "#") + ":" + std.trim_prefix(t.fg, "#") for t in tags], ";")
 
   return posix.template {
-    src    = posix.source_inline {
+    src      = posix.source_inline {
       content = "{{if .console}}console: {{.console}}\n{{end}}{{if .description}}description: {{.description}}\n{{end}}{{if .email_from}}email_from: {{.email_from}}\n{{end}}{{if .http_proxy}}http_proxy: {{.http_proxy}}\n{{end}}{{if .keyboard}}keyboard: {{.keyboard}}\n{{end}}{{if .language}}language: {{.language}}\n{{end}}{{if .mac_prefix}}mac_prefix: {{.mac_prefix}}\n{{end}}{{if .max_workers}}max_workers: {{.max_workers}}\n{{end}}{{if .tag_names}}registered-tags: {{.tag_names}}\ntag-style: color-map={{.tag_colors}},shape=full\nuser-tag-access: user-allow=list\n{{end}}"
     }
-    dest   = "/etc/pve/datacenter.cfg"
-    data   = {
+    dest     = "/etc/pve/datacenter.cfg"
+    data     = {
       "values": {
         "console": console_str,
         "description": description,
@@ -257,9 +261,11 @@ pub decl datacenter(
         "tag_colors": tag_colors,
       },
     }
-    perm   = "0640"
-    owner  = "root"
-    group  = "www-data"
-    backup = backup
+    perm     = "0640"
+    owner    = "root"
+    group    = "www-data"
+    backup   = backup
+    promises = promises
+    inputs   = inputs
   }
 }

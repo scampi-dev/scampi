@@ -14,6 +14,8 @@ Works with systemd, OpenRC, and launchctl.
 | `enabled`   | bool           |          | `true`                 | Whether the service should start at boot   |
 | `desc`      | string?        |          |                        | Human-readable description                 |
 | `on_change` | list\[Step]    |          |                        | Steps to trigger when this service changes |
+| `promises`  | list\[string]  |          | `[]`                   | Cross-deploy resources this step produces  |
+| `inputs`    | list\[string]  |          | `[]`                   | Cross-deploy resources this step consumes  |
 
 ## States
 

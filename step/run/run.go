@@ -12,10 +12,12 @@ type (
 	RunConfig struct {
 		_ struct{} `summary:"Run an arbitrary shell command with optional check for idempotency"`
 
-		Desc   string `step:"Human-readable description" optional:"true"`
-		Apply  string `step:"Shell command to execute" example:"sysctl -w net.ipv4.ip_forward=1"`
-		Check  string `step:"Exit 0 = already satisfied" optional:"true" exclusive:"trigger"`
-		Always bool   `step:"Always run apply, skip check" optional:"true" exclusive:"trigger" default:"false"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Apply    string   `step:"Shell command to execute" example:"sysctl -w net.ipv4.ip_forward=1"`
+		Check    string   `step:"Exit 0 = already satisfied" optional:"true" exclusive:"trigger"`
+		Always   bool     `step:"Always run apply, skip check" optional:"true" exclusive:"trigger" default:"false"`
+		Promises []string `step:"Resources this step produces (cross-deploy ordering)" optional:"true"`
+		Inputs   []string `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
 	}
 	runAction struct {
 		desc   string
@@ -28,6 +30,10 @@ type (
 
 func (Run) Kind() string   { return "run" }
 func (Run) NewConfig() any { return &RunConfig{} }
+
+func (c *RunConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (Run) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*RunConfig)

@@ -18,6 +18,8 @@ type (
 		Found    *RequestConfig        `step:"Request to execute when resource is found" optional:"true"`
 		Bindings map[string]*JQBinding `step:"Named jq bindings resolved from query result" optional:"true"`
 		State    map[string]any        `step:"Desired resource state" optional:"true"`
+		Promises []string              `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string              `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 
 	resourceAction struct {
@@ -29,6 +31,10 @@ type (
 
 func (Resource) Kind() string   { return "rest.resource" }
 func (Resource) NewConfig() any { return &ResourceConfig{} }
+
+func (c *ResourceConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (c *ResourceConfig) RefMaps() []map[string]any {
 	var maps []map[string]any

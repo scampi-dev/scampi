@@ -62,10 +62,12 @@ type (
 	ServiceConfig struct {
 		_ struct{} `summary:"Manage service state: running, stopped, restarted, or reloaded"`
 
-		Desc    string `step:"Human-readable description" optional:"true"`
-		Name    string `step:"Service name" example:"nginx"`
-		State   string `step:"Desired service state" default:"running" example:"stopped"`
-		Enabled bool   `step:"Whether the service should start at boot" default:"true"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Name     string   `step:"Service name" example:"nginx"`
+		State    string   `step:"Desired service state" default:"running" example:"stopped"`
+		Enabled  bool     `step:"Whether the service should start at boot" default:"true"`
+		Promises []string `step:"Resources this step produces (cross-deploy ordering)" optional:"true"`
+		Inputs   []string `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
 	}
 	serviceAction struct {
 		desc    string
@@ -84,6 +86,10 @@ func (*ServiceConfig) FieldEnumValues() map[string][]string {
 
 func (Service) Kind() string   { return "service" }
 func (Service) NewConfig() any { return &ServiceConfig{} }
+
+func (c *ServiceConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (s Service) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*ServiceConfig)

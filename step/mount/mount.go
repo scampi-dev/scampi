@@ -146,12 +146,14 @@ type (
 	MountConfig struct {
 		_ struct{} `summary:"Manage filesystem mounts and fstab entries"`
 
-		Desc  string `step:"Human-readable description" optional:"true"`
-		Src   string `step:"Mount source (device or remote path)" example:"10.10.2.2:/volume2/data"`
-		Dest  string `step:"Mount point path" example:"/mnt/data"`
-		Type  string `step:"Filesystem type" example:"nfs"`
-		Opts  string `step:"Mount options" optional:"true" default:"defaults" example:"defaults,noatime"`
-		State string `step:"Desired state" optional:"true" default:"mounted" example:"mounted|unmounted|absent"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Src      string   `step:"Mount source (device or remote path)" example:"10.10.2.2:/volume2/data"`
+		Dest     string   `step:"Mount point path" example:"/mnt/data"`
+		Type     string   `step:"Filesystem type" example:"nfs"`
+		Opts     string   `step:"Mount options" optional:"true" default:"defaults" example:"defaults,noatime"`
+		State    string   `step:"Desired state" optional:"true" default:"mounted" example:"mounted|unmounted|absent"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	mountAction struct {
 		desc  string
@@ -173,6 +175,10 @@ func (*MountConfig) FieldEnumValues() map[string][]string {
 
 func (Mount) Kind() string   { return "mount" }
 func (Mount) NewConfig() any { return &MountConfig{} }
+
+func (c *MountConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (Mount) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*MountConfig)

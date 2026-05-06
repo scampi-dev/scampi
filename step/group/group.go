@@ -51,11 +51,13 @@ type (
 	GroupConfig struct {
 		_ struct{} `summary:"Ensure a group exists or is absent on the target"`
 
-		Desc   string `step:"Human-readable description" optional:"true"`
-		Name   string `step:"Group name to manage" example:"appusers"`
-		State  string `step:"Desired state" default:"present" example:"absent"`
-		GID    int    `step:"Group ID" optional:"true" example:"1100"`
-		System bool   `step:"Create as system group" optional:"true"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Name     string   `step:"Group name to manage" example:"appusers"`
+		State    string   `step:"Desired state" default:"present" example:"absent"`
+		GID      int      `step:"Group ID" optional:"true" example:"1100"`
+		System   bool     `step:"Create as system group" optional:"true"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	groupAction struct {
 		desc   string
@@ -75,6 +77,10 @@ func (*GroupConfig) FieldEnumValues() map[string][]string {
 
 func (Group) Kind() string   { return "group" }
 func (Group) NewConfig() any { return &GroupConfig{} }
+
+func (c *GroupConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (g Group) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*GroupConfig)

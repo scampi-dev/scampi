@@ -22,9 +22,11 @@ type (
 	SymlinkConfig struct {
 		_ struct{} `summary:"Create and manage symbolic links"`
 
-		Desc   string `step:"Human-readable description" optional:"true"`
-		Target string `step:"Path the symlink points to (like ln -s TARGET)" example:"/opt/app/config.yaml"`
-		Link   string `step:"Path where symlink is created (like ln -s ... LINK)" example:"/etc/app/config.yaml"`
+		Desc     string   `step:"Human-readable description" optional:"true"`
+		Target   string   `step:"Path the symlink points to (like ln -s TARGET)" example:"/opt/app/config.yaml"`
+		Link     string   `step:"Path where symlink is created (like ln -s ... LINK)" example:"/etc/app/config.yaml"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 	symlinkAction struct {
 		desc   string
@@ -37,6 +39,10 @@ type (
 
 func (Symlink) Kind() string   { return "symlink" }
 func (Symlink) NewConfig() any { return &SymlinkConfig{} }
+
+func (c *SymlinkConfig) ResourceDeclarations() (promises, inputs []string) {
+	return c.Promises, c.Inputs
+}
 
 func (s Symlink) Plan(step spec.StepInstance) (spec.Action, error) {
 	cfg, ok := step.Config.(*SymlinkConfig)

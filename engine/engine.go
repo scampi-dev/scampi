@@ -159,13 +159,17 @@ func forEachResolved(
 	})
 }
 
-// runPlansConcurrent runs each resolved plan in its own goroutine and
-// aggregates errors. A failure in one plan does not cancel siblings —
-// we surface every plan's outcome. ctx cancellation (e.g. SIGINT) does
-// propagate to all in-flight plans.
+// runPlansConcurrent runs resolved plans level-by-level according to
+// the cross-deploy resource graph: nodes within a level run in
+// parallel, level boundaries enforce ordering. A failure in one plan
+// does not cancel siblings within the level, but downstream levels
+// inherit the failure (their producers couldn't satisfy them, so they
+// abort). ctx cancellation (e.g. SIGINT) propagates to all in-flight
+// plans. See #275.
 //
-// Concurrency is currently unbounded — see #236 for the rationale and
-// follow-ups for a tunable cap if real configs hit shared-infra limits.
+// Concurrency within a level is unbounded — see #236 for the
+// rationale and follow-ups for a tunable cap if real configs hit
+// shared-infra limits.
 func runPlansConcurrent(
 	ctx context.Context,
 	resolved []spec.ResolvedConfig,
@@ -175,23 +179,22 @@ func runPlansConcurrent(
 		return work(ctx, resolved[0])
 	}
 
-	g, gctx := errgroup.WithContext(ctx)
-	var (
-		mu     sync.Mutex
-		causes []error
-	)
-
-	for _, res := range resolved {
-		g.Go(func() error {
-			if err := work(gctx, res); err != nil {
-				mu.Lock()
-				causes = append(causes, err)
-				mu.Unlock()
-			}
-			return nil
-		})
+	graph, err := buildDeployGraph(resolved)
+	if err != nil {
+		return err
 	}
-	_ = g.Wait()
+
+	var causes []error
+	for _, level := range graph.levels {
+		if len(causes) > 0 {
+			// Upstream level produced failures — skip downstream nodes
+			// rather than racing them into ops that depend on
+			// resources the failed producer was supposed to create.
+			break
+		}
+		levelCauses := runLevel(ctx, level, work)
+		causes = append(causes, levelCauses...)
+	}
 
 	if len(causes) == 1 {
 		return causes[0]
@@ -200,4 +203,28 @@ func runPlansConcurrent(
 		return AbortError{Causes: causes}
 	}
 	return nil
+}
+
+func runLevel(
+	ctx context.Context,
+	level []*deployNode,
+	work func(ctx context.Context, res spec.ResolvedConfig) error,
+) []error {
+	g, gctx := errgroup.WithContext(ctx)
+	var (
+		mu     sync.Mutex
+		causes []error
+	)
+	for _, n := range level {
+		g.Go(func() error {
+			if err := work(gctx, n.res); err != nil {
+				mu.Lock()
+				causes = append(causes, err)
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
+	_ = g.Wait()
+	return causes
 }
