@@ -361,6 +361,40 @@ func (ev *Evaluator) registerUserModules() {
 		}
 		ev.env.set(um.Name, pubMap)
 		ev.modInternalMaps[um.Name] = fullMap
+
+		// Second pass: top-level let-bindings. Each gets wrapped in a
+		// ThunkVal so the cost of evaluation (incl. side effects like
+		// `secrets.from_age` reading the keystore, or any apply-time
+		// builtin fetches) is paid lazily — only when an importer
+		// actually references the binding. Chains like
+		//
+		//   let _age = secrets.from_age(...)
+		//   pub let admin_password = _age.get("...")
+		//
+		// work because the per-module sub-env (child of ev.env) holds
+		// every module-local thunk; `_age` resolves from there when
+		// `admin_password`'s thunk fires. See #269.
+		moduleScope := newEnv(ev.env)
+		for _, d := range um.File.Decls {
+			let, ok := d.(*ast.LetDecl)
+			if !ok {
+				continue
+			}
+			expr := let.Value
+			thunk := &ThunkVal{
+				eval: func() Value {
+					oldEnv := ev.env
+					ev.env = moduleScope
+					defer func() { ev.env = oldEnv }()
+					return ev.evalExpr(expr)
+				},
+			}
+			moduleScope.set(let.Name.Name, thunk)
+			fullMap.Set(let.Name.Name, thunk)
+			if let.Public {
+				pubMap.Set(let.Name.Name, thunk)
+			}
+		}
 	}
 }
 
@@ -898,16 +932,20 @@ func (ev *Evaluator) evalString(s *ast.StringLit) Value {
 }
 
 func (ev *Evaluator) evalSelector(sel *ast.SelectorExpr) Value {
-	x := ev.evalExpr(sel.X)
+	// Force the receiver: when sel.X is an Ident whose env binding is
+	// a ThunkVal (a `pub let` in a user module — see #269), the
+	// selector access has to drive the thunk before peering into a
+	// concrete StructVal/MapVal.
+	x := forceValue(ev.evalExpr(sel.X))
 	name := sel.Sel.Name
 	if sv, ok := x.(*StructVal); ok {
 		if v, exists := sv.Fields[name]; exists {
-			return v
+			return forceValue(v)
 		}
 	}
 	if mv, ok := x.(*MapVal); ok {
 		if v, exists := mv.Get(name); exists {
-			return v
+			return forceValue(v)
 		}
 	}
 	ev.errAt(sel.SrcSpan, check.CodeCannotAccess, "cannot access ."+name)
@@ -923,14 +961,15 @@ func (ev *Evaluator) evalDottedName(dn *ast.DottedName) Value {
 		ev.errAt(dn.Parts[0].SrcSpan, check.CodeUndefined, "undefined: "+dn.Parts[0].Name)
 		return &NoneVal{}
 	}
+	v = forceValue(v)
 	for _, part := range dn.Parts[1:] {
 		if sv, ok := v.(*StructVal); ok {
-			v = sv.Fields[part.Name]
+			v = forceValue(sv.Fields[part.Name])
 			continue
 		}
 		if mv, ok := v.(*MapVal); ok {
 			got, _ := mv.Get(part.Name)
-			v = got
+			v = forceValue(got)
 			continue
 		}
 		ev.errAt(part.SrcSpan, check.CodeCannotAccess, "cannot access ."+part.Name)
@@ -951,7 +990,7 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 	var leadingArgs []Value
 	if call.UFCS {
 		sel := call.Fn.(*ast.SelectorExpr)
-		recv := ev.evalExpr(sel.X)
+		recv := forceValue(ev.evalExpr(sel.X))
 		fn, errMsg := ev.lookupUFCSFunc(call.UFCSModule, sel.Sel.Name)
 		if errMsg != "" {
 			ev.errAt(call.SrcSpan, check.CodeCallError, errMsg)
@@ -972,7 +1011,10 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 	argMap := make(map[string]Value, len(call.Args))
 	positional := leadingArgs
 	for _, a := range call.Args {
-		v := ev.evalExpr(a.Value)
+		// Force at the call boundary — args derived from a thunked
+		// `pub let` (#269) must materialise before reaching builtin
+		// or user-defined receivers that type-assert on Value kind.
+		v := forceValue(ev.evalExpr(a.Value))
 		if a.Name != nil {
 			argMap[a.Name.Name] = v
 		} else {

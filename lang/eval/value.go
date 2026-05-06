@@ -161,6 +161,48 @@ type FuncVal struct {
 func (*FuncVal) valueTag()        {}
 func (v *FuncVal) String() string { return "func " + v.Name }
 
+// ThunkVal is a deferred computation. Used for `pub let` exports of
+// user modules (#269) so importing a module doesn't trigger eager
+// evaluation of every exported binding (and every secret fetch /
+// network call those bindings might do). The thunk is resolved on
+// first access — at the selector / dotted-name lookup site that
+// pulls the value out of the module's exported map.
+type ThunkVal struct {
+	eval   func() Value
+	cached Value
+	forced bool
+}
+
+func (*ThunkVal) valueTag() {}
+func (v *ThunkVal) String() string {
+	if v.forced {
+		return v.cached.String()
+	}
+	return "<thunk>"
+}
+
+// Force evaluates the thunk if it hasn't been already, caches the
+// result, and returns it. Subsequent calls are O(1).
+func (v *ThunkVal) Force() Value {
+	if !v.forced {
+		v.cached = v.eval()
+		v.forced = true
+	}
+	return v.cached
+}
+
+// forceValue collapses a ThunkVal to its computed value; passes other
+// values through unchanged. Call at every site where a value is
+// pulled out of a container that may hold thunks (module pubMap,
+// fullMap, etc.) — keeps thunk semantics from leaking past the
+// access boundary.
+func forceValue(v Value) Value {
+	if t, ok := v.(*ThunkVal); ok {
+		return t.Force()
+	}
+	return v
+}
+
 // RefVal is a cross-step value reference. Produced by std.ref(step, expr)
 // at eval time. The linker converts it to a spec.Ref with a concrete
 // StepID once step linking assigns IDs.
