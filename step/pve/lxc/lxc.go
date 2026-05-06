@@ -125,8 +125,12 @@ type (
 		Weight int    `step:"CPU weight for scheduler" optional:"true"`
 	}
 	LxcDNS struct {
-		Nameserver   string `step:"DNS server IP" optional:"true"`
-		Searchdomain string `step:"DNS search domain" optional:"true"`
+		// PVE writes nameserver as a single space-separated line in
+		// `pct config`. Exposing list[string] on the user side keeps
+		// the implementation detail of the wire format out of the
+		// scampi API. See #285.
+		Nameserver   []string `step:"DNS resolvers" optional:"true"`
+		Searchdomain string   `step:"DNS search domain" optional:"true"`
 	}
 	LxcStartup struct {
 		OnBoot bool `step:"Start on host boot" default:"false"`

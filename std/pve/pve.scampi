@@ -139,9 +139,11 @@ pub type Cpu {
 }
 
 // DNS configuration. If neither nameserver nor searchdomain is set,
-// PVE inherits DNS settings from the host.
+// PVE inherits DNS settings from the host. Nameservers are a list —
+// PVE writes them as a single space-separated line internally, but
+// the API takes resolvers as a list so call sites read declaratively.
 pub type Dns {
-  nameserver:   string?
+  nameserver:   list[string]?
   searchdomain: string?
 }
 

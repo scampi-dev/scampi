@@ -158,7 +158,7 @@ func TestConfigOp_RebootChecks_NoFeaturesWhenNil(t *testing.T) {
 
 func TestConfigOp_RebootChecks_DNS(t *testing.T) {
 	op := &configLxcOp{
-		dns: LxcDNS{Nameserver: "1.1.1.1", Searchdomain: "local"},
+		dns: LxcDNS{Nameserver: []string{"1.1.1.1"}, Searchdomain: "local"},
 	}
 	checks := op.RebootChecks()
 
@@ -196,7 +196,7 @@ func TestConfigOp_RebootChecks_DNS_ProbesResolvConf(t *testing.T) {
 
 	op := &configLxcOp{
 		pveCmd: pveCmd{id: 100},
-		dns:    LxcDNS{Nameserver: "8.8.8.8", Searchdomain: "wan"},
+		dns:    LxcDNS{Nameserver: []string{"8.8.8.8"}, Searchdomain: "wan"},
 	}
 
 	var dnsCheck *rebootCheck
@@ -261,7 +261,7 @@ func TestConfigOp_Execute_NoReboot(t *testing.T) {
 		cpu:       LxcCPU{Cores: 1},
 		memoryMiB: 512,
 		storage:   "local-zfs",
-		dns:       LxcDNS{Nameserver: "8.8.8.8"},
+		dns:       LxcDNS{Nameserver: []string{"8.8.8.8"}},
 	}
 
 	if _, err := op.Execute(context.Background(), nil, cmdr); err != nil {

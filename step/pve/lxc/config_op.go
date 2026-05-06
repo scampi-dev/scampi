@@ -183,11 +183,11 @@ func (op *configLxcOp) configDrift(cfg pctConfig) []spec.DriftDetail {
 			Desired: valueOrNone(op.step.Desc),
 		})
 	}
-	if cfg.Nameserver != op.dns.Nameserver {
+	if desired := strings.Join(op.dns.Nameserver, " "); cfg.Nameserver != desired {
 		drift = append(drift, spec.DriftDetail{
 			Field:   "nameserver",
 			Current: valueOrNone(cfg.Nameserver),
-			Desired: valueOrNone(op.dns.Nameserver),
+			Desired: valueOrNone(desired),
 		})
 	}
 	if cfg.Searchdomain != op.dns.Searchdomain {
@@ -279,7 +279,7 @@ func (op *configLxcOp) RebootChecks() []rebootCheck {
 	// matches what's already in `pct config`.
 	checks = append(checks, rebootCheck{
 		field:   "dns",
-		desired: dnsFingerprint(op.dns.Nameserver) + "|" + dnsFingerprint(op.dns.Searchdomain),
+		desired: dnsFingerprint(strings.Join(op.dns.Nameserver, " ")) + "|" + dnsFingerprint(op.dns.Searchdomain),
 		probe: func(ctx context.Context, cmdr target.Command, id int) string {
 			r, err := cmdr.RunPrivileged(ctx, fmt.Sprintf("pct exec %d -- cat /etc/resolv.conf", id))
 			if err != nil || r.ExitCode != 0 {

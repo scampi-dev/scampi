@@ -584,8 +584,8 @@ func buildCreateCmd(cfg lxcAction) string {
 	if cfg.desc != "" {
 		cmd += " --description " + shellQuote(cfg.desc)
 	}
-	if cfg.dns.Nameserver != "" {
-		cmd += " --nameserver " + shellQuote(cfg.dns.Nameserver)
+	if joined := strings.Join(cfg.dns.Nameserver, " "); joined != "" {
+		cmd += " --nameserver " + shellQuote(joined)
 	}
 	if cfg.dns.Searchdomain != "" {
 		cmd += " --searchdomain " + shellQuote(cfg.dns.Searchdomain)

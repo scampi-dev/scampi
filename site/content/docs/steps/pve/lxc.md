@@ -113,13 +113,14 @@ pve.Cpu {
 
 ```scampi
 pve.Dns {
-  nameserver   = "10.0.0.1"
+  nameserver   = ["10.0.0.1", "1.1.1.1"]
   searchdomain = "lan"
 }
 ```
 
-If neither field is set, the container inherits DNS settings from the
-PVE host.
+`nameserver` is a list. PVE stores them as a single space-separated
+line internally, but the API takes resolvers declaratively. If neither
+field is set, the container inherits DNS settings from the PVE host.
 
 ### `Features` — advanced LXC features
 
