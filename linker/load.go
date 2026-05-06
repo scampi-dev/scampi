@@ -29,13 +29,33 @@ type Analysis struct {
 	Source []byte
 }
 
+// AnalyzeOption configures Analyze.
+type AnalyzeOption func(*analyzeOpts)
+
+type analyzeOpts struct {
+	lenient bool
+}
+
+// WithLenient enables tolerant evaluation: builtins that would
+// otherwise error on missing/empty input from an unset env var (or
+// any other placeholder) relax to silent defaults instead. Suitable
+// for analysis tools (LSP, dry-run check) where inputs may not
+// reflect the real apply-time values. See #264.
+func WithLenient() AnalyzeOption {
+	return func(o *analyzeOpts) { o.lenient = true }
+}
+
 // Analyze runs the full lang pipeline (lex → parse → check → eval →
 // attribute static checks) without performing the final Link step.
 // Returns the analysis result and an error wrapping the first
 // failing phase's diagnostics. Suitable for both the linker
 // (LoadConfig wraps Analyze + Link) and the LSP (which surfaces
 // diagnostics inline as the user types).
-func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis, error) {
+func Analyze(ctx context.Context, cfgPath string, src source.Source, opts ...AnalyzeOption) (*Analysis, error) {
+	var o analyzeOpts
+	for _, f := range opts {
+		f(&o)
+	}
 	data, err := src.ReadFile(ctx, cfgPath)
 	if err != nil {
 		return nil, errs.WrapErrf(err, "read %s", cfgPath)
@@ -97,9 +117,7 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 		return src.ReadFile(ctx, path)
 	}
 	configDir := filepath.Dir(cfgPath)
-	result, evalErrs := eval.Eval(
-		f,
-		data,
+	evalOpts := []eval.Option{
 		eval.WithStubs(std.FS),
 		eval.WithUserModules(userMods),
 		eval.WithSiblingModules(siblingMods),
@@ -107,7 +125,11 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source) (*Analysis,
 		eval.WithBuiltinFunc("secrets.from_age", secretFromAge(configDir, src.LookupEnv, readFile)),
 		eval.WithBuiltinFunc("secrets.from_file", secretFromFile(configDir, readFile)),
 		eval.WithBuiltinFunc("secrets.get", secretGetBuiltin()),
-	)
+	}
+	if o.lenient {
+		evalOpts = append(evalOpts, eval.WithLenient())
+	}
+	result, evalErrs := eval.Eval(f, data, evalOpts...)
 	if len(evalErrs) > 0 {
 		return nil, wrapLangErrors(evalErrs, cfgPath, data)
 	}

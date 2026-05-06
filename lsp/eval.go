@@ -175,7 +175,7 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 
 	// Run the full linker pipeline against the in-memory content.
 	src := newOverlaySource(filePath, data)
-	if _, err := linker.Analyze(ctx, filePath, src); err != nil {
+	if _, err := linker.Analyze(ctx, filePath, src, linker.WithLenient()); err != nil {
 		return analysisErrorToLSPDiagnostics(err, data)
 	}
 	return nil

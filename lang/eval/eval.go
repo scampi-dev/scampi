@@ -62,6 +62,13 @@ type Evaluator struct {
 	// envLookup resolves env vars. Injected by caller.
 	envLookup EnvLookupFunc
 
+	// lenient tells the evaluator to relax certain builtins that
+	// would normally error on missing or unparseable input. Used by
+	// analysis tools (e.g. the LSP) where inputs may be placeholders
+	// rather than the real apply-time values. Apply-time eval must
+	// never set this — runtime input errors are real bugs there.
+	lenient bool
+
 	// builtinFuncs are caller-registered functions dispatched by
 	// qualified name (e.g. "secrets.from_age"). The eval layer
 	// treats them as opaque — all domain logic lives in the caller.
@@ -118,6 +125,17 @@ type Option func(*Evaluator)
 // WithEnv sets the environment variable resolver.
 func WithEnv(fn EnvLookupFunc) Option {
 	return func(e *Evaluator) { e.envLookup = fn }
+}
+
+// WithLenient enables tolerant evaluation: builtins that would
+// normally error on missing or unparseable input return a benign
+// default instead. Used by analysis tools (the LSP, future
+// `scampi check --analyze`, etc.) where some inputs are placeholder
+// values rather than the real apply-time ones. Apply-time eval
+// should never set this — runtime input errors are real bugs there.
+// See #264.
+func WithLenient() Option {
+	return func(e *Evaluator) { e.lenient = true }
 }
 
 // WithBuiltinFunc registers a named function dispatched by qualified
@@ -1093,6 +1111,13 @@ func (ev *Evaluator) callParseInt(positional []Value, kwargs map[string]Value, s
 	s := stringArg(positional, kwargs, "s", 0)
 	n, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
+		if ev.lenient {
+			// Analysis tools (e.g. LSP) may feed placeholder strings
+			// derived from unset env vars. Returning 0 silently
+			// keeps downstream evaluation going without cascade
+			// diagnostics. See #264.
+			return &IntVal{V: 0}
+		}
 		ev.errAt(span, check.CodeCallError, "parse_int: cannot parse "+strconv.Quote(s)+" as int")
 		return &IntVal{V: 0}
 	}

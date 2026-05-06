@@ -49,6 +49,23 @@ func (o *overlaySource) Stat(ctx context.Context, path string) (source.FileMeta,
 	return o.base.Stat(ctx, path)
 }
 
+// LookupEnv overrides the base behaviour: at edit time the editor's
+// process environment doesn't have the apply-time env populated, and
+// scampi's `std.env(NAME)` would fire `EnvVarNotSet` on every
+// reference — turning every env-driven config into a sea of red
+// the moment it's opened.
+//
+// For unset keys we return a non-empty placeholder so the eval
+// treats the var as set: silences `EnvVarNotSet` AND `@std.nonempty`
+// cascades on env-derived strings. parse_int's LSP-mode relaxation
+// (`lang/eval.WithLSPMode`) absorbs the numeric cascade. The price
+// is a slight semantic quirk in LSP eval (e.g. `std.env("X")` is
+// always non-empty / always equal to the placeholder) which is
+// acceptable because the LSP is for editing assistance, not a full
+// apply simulation. See #264.
 func (o *overlaySource) LookupEnv(key string) (string, bool) {
-	return o.base.LookupEnv(key)
+	if v, ok := o.base.LookupEnv(key); ok {
+		return v, true
+	}
+	return "lsp-placeholder", true
 }
