@@ -61,24 +61,3 @@ func (e LinkReadError) EventTemplate() event.Template {
 		Source: &e.Source,
 	}
 }
-
-type NotASymlinkError struct {
-	diagnostic.FatalError
-	Path   string
-	Source spec.SourceSpan
-}
-
-func (e NotASymlinkError) Error() string {
-	return fmt.Sprintf("path %q exists but is not a symlink", e.Path)
-}
-
-func (e NotASymlinkError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeNotASymlink,
-		Text:   `path "{{.Path}}" exists but is not a symlink`,
-		Hint:   `remove or rename the existing file or directory at "{{.Path}}" first`,
-		Help:   "the symlink action will not overwrite existing files or directories for safety",
-		Data:   e,
-		Source: &e.Source,
-	}
-}

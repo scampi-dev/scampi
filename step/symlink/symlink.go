@@ -157,11 +157,16 @@ func (op *ensureSymlinkOp) Check(
 		}
 	}
 
+	// Non-symlink at link path → drift. Remove + symlink in Execute.
+	// Refusing here forced users into `posix.run { ln -sf ... }` for
+	// the common case where a package dropped a stock config and we
+	// want to replace it with a symlink to the real one (#279).
 	if info.Mode()&fs.ModeSymlink == 0 {
-		return spec.CheckUnsatisfied, nil, NotASymlinkError{
-			Path:   op.link,
-			Source: op.DestSpan,
-		}
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "target",
+			Current: describeNonSymlink(info),
+			Desired: relTarget,
+		}}, nil
 	}
 
 	current, err := t.Readlink(ctx, op.link)
@@ -184,6 +189,20 @@ func (op *ensureSymlinkOp) Check(
 	return spec.CheckSatisfied, nil, nil
 }
 
+// describeNonSymlink returns a human-readable label for the entry at
+// the link path when it isn't a symlink — used as the "current" value
+// in drift details.
+func describeNonSymlink(info fs.FileInfo) string {
+	switch {
+	case info.IsDir():
+		return "directory"
+	case info.Mode().IsRegular():
+		return "regular file"
+	default:
+		return info.Mode().String()
+	}
+}
+
 func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
 	t := target.Must[interface {
 		target.Filesystem
@@ -197,21 +216,17 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 
 	info, err := t.Lstat(ctx, op.link)
 	if err == nil {
-		if info.Mode()&fs.ModeSymlink == 0 {
-			// Dest exists but is not a symlink, we won't touch those
-			return spec.Result{}, NotASymlinkError{
-				Path:   op.link,
-				Source: op.DestSpan,
+		// Existing entry. If it's already the symlink we want, done.
+		// Otherwise remove and recreate (regular file, wrong-target
+		// symlink, empty directory). Remove() refuses to recursively
+		// delete a non-empty directory — the filesystem error
+		// surfaces with the dir intact.
+		if info.Mode()&fs.ModeSymlink != 0 {
+			current, _ := t.Readlink(ctx, op.link)
+			if current == relTarget {
+				return spec.Result{Changed: false}, nil
 			}
 		}
-
-		// Dest is a symlink - check if correct
-		current, _ := t.Readlink(ctx, op.link)
-		if current == relTarget {
-			return spec.Result{Changed: false}, nil
-		}
-
-		// Remove existing (symlink with wrong target, or other file type)
 		if err := t.Remove(ctx, op.link); err != nil {
 			if target.IsPermission(err) {
 				return spec.Result{}, sharedop.PermissionDeniedError{

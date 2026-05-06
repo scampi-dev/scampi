@@ -1,10 +1,8 @@
 {
   "target": {
-    "files": {
-      "/tmp/link.txt": "I am a regular file, not a symlink"
+    "symlinks": {
+      "/tmp/link.txt": "/tmp/target.txt"
     }
   },
-  "changed": 0,
-  "error": true,
-  "diagnostics": ["step.symlink.NotASymlink"]
+  "changed": 1
 }
