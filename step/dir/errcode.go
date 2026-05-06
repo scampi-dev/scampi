@@ -5,6 +5,5 @@ package dir
 import "scampi.dev/scampi/errs"
 
 const (
-	CodeNotADirectory    errs.Code = "step.dir.NotADirectory"
 	CodePartialOwnership errs.Code = "step.dir.PartialOwnership"
 )

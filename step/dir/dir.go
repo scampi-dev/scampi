@@ -4,6 +4,7 @@ package dir
 
 import (
 	"context"
+	"io/fs"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/errs"
@@ -161,14 +162,32 @@ func (op *ensureDirOp) Check(
 		return spec.CheckUnsatisfied, nil, err
 	}
 
+	// Non-directory at the desired-dir path → drift. Remove + mkdir
+	// in Execute. Refusing here would force users into `posix.run {
+	// rm -f ... && mkdir ... }` workarounds for the common case
+	// where a package or installer dropped a placeholder file (#280).
 	if !info.IsDir() {
-		return spec.CheckUnsatisfied, nil, NotADirectoryError{
-			Path:   op.path,
-			Source: op.pathSpan,
-		}
+		return spec.CheckUnsatisfied, []spec.DriftDetail{{
+			Field:   "state",
+			Current: describeNonDir(info),
+			Desired: "directory",
+		}}, nil
 	}
 
 	return spec.CheckSatisfied, nil, nil
+}
+
+// describeNonDir labels the entry at the path when it isn't a
+// directory, used as the "current" value in drift output.
+func describeNonDir(info fs.FileInfo) string {
+	switch {
+	case info.Mode()&fs.ModeSymlink != 0:
+		return "symlink"
+	case info.Mode().IsRegular():
+		return "regular file"
+	default:
+		return info.Mode().String()
+	}
 }
 
 func (op *ensureDirOp) Execute(
@@ -183,13 +202,22 @@ func (op *ensureDirOp) Execute(
 		if info.IsDir() {
 			return spec.Result{Changed: false}, nil
 		}
-		return spec.Result{}, NotADirectoryError{
-			Path:   op.path,
-			Source: op.pathSpan,
+		// Existing entry isn't a directory — replace it. Remove()
+		// refuses to recursively delete non-empty directories
+		// (filesystem ENOTEMPTY surfaces cleanly), so the only
+		// silent-data-loss risk is a regular file the user
+		// explicitly told scampi to make a directory at.
+		if err := fsTgt.Remove(ctx, op.path); err != nil {
+			if target.IsPermission(err) {
+				return spec.Result{}, sharedop.PermissionDeniedError{
+					Operation: "remove " + op.path,
+					Source:    op.pathSpan,
+					Err:       err,
+				}
+			}
+			return spec.Result{}, sharedop.DiagnoseTargetError(err)
 		}
-	}
-
-	if !target.IsNotExist(err) {
+	} else if !target.IsNotExist(err) {
 		return spec.Result{}, err
 	}
 

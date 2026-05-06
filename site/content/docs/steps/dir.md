@@ -22,9 +22,14 @@ If `owner` is set, `group` must also be set (and vice versa).
 
 The `dir` step produces up to three ops:
 
-1. **Ensure directory** — creates the directory and parents if missing
+1. **Ensure directory** — creates the directory if missing, or replaces a
+   non-directory entry (regular file, symlink, empty directory) at the path
 2. **Set permissions** — ensures mode matches (depends on #1, only if `perm` set)
 3. **Set ownership** — ensures owner/group match (depends on #1, only if `owner`/`group` set)
+
+Replacing a non-empty directory is refused — the underlying filesystem
+returns `ENOTEMPTY` and the step fails with a clean error rather than
+silently nuking a directory tree.
 
 ## Examples
 
