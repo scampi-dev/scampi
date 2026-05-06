@@ -58,20 +58,30 @@ func parsePctStatus(output string) string {
 	return status
 }
 
-// parseResolvConfNameserver returns the first "nameserver X" value
-// from /etc/resolv.conf output, or empty if none found. Comment lines
-// (leading #) and other directives are ignored.
+// parseResolvConfNameserver returns all "nameserver X" values from
+// /etc/resolv.conf joined as a single space-separated string —
+// matching the shape PVE writes in `pct config` (`nameserver: 1.1.1.1
+// 8.8.8.8`) and the shape `pve.Dns { nameserver = "1.1.1.1 8.8.8.8" }`
+// uses on the scampi side. The reboot op's drift comparison joins on
+// equality of these joined strings, so returning only the first
+// nameserver caused unconditional reboots whenever the user declared
+// more than one (#283).
+//
+// Comment lines (leading #) and other directives are ignored.
 func parseResolvConfNameserver(output string) string {
+	var ns []string
 	for line := range strings.SplitSeq(output, "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "#") {
 			continue
 		}
 		if rest, ok := strings.CutPrefix(line, "nameserver "); ok {
-			return strings.TrimSpace(rest)
+			if v := strings.TrimSpace(rest); v != "" {
+				ns = append(ns, v)
+			}
 		}
 	}
-	return ""
+	return strings.Join(ns, " ")
 }
 
 // parseResolvConfSearchdomain returns the value of the first "search"

@@ -21,9 +21,25 @@ func TestParseResolvConfNameserver(t *testing.T) {
 		{"only comments", "# auto-generated\n# by PVE\n", ""},
 		{"single nameserver", "nameserver 1.1.1.1\n", "1.1.1.1"},
 		{"with search and trailing newline", "search lan\nnameserver 10.0.0.1\n", "10.0.0.1"},
-		{"first wins", "nameserver 1.1.1.1\nnameserver 8.8.8.8\n", "1.1.1.1"},
+		// PVE encodes multiple nameservers as a single space-separated
+		// string in `pct config` (e.g. `nameserver: 1.1.1.1 8.8.8.8`),
+		// and the user-facing scampi config matches that shape:
+		// `pve.Dns { nameserver = "1.1.1.1 8.8.8.8" }`. The probe of
+		// /etc/resolv.conf must produce the same shape so the reboot
+		// op's drift comparison doesn't loop forever (#283).
+		{"multiple nameservers joined", "nameserver 1.1.1.1\nnameserver 8.8.8.8\n", "1.1.1.1 8.8.8.8"},
+		{
+			name:  "three nameservers",
+			input: "nameserver 127.0.0.1\nnameserver 10.10.2.201\nnameserver 10.10.10.10\n",
+			want:  "127.0.0.1 10.10.2.201 10.10.10.10",
+		},
 		{"comment before nameserver", "# header\nnameserver 9.9.9.9\n", "9.9.9.9"},
 		{"no nameserver line", "search lan\noptions edns0\n", ""},
+		{
+			name:  "interleaved with comments and search",
+			input: "search lan\nnameserver 1.1.1.1\n# notes\nnameserver 8.8.8.8\n",
+			want:  "1.1.1.1 8.8.8.8",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
