@@ -624,7 +624,11 @@ func (p *printer) expr(e ast.Expr) {
 }
 
 func (p *printer) stringLit(s *ast.StringLit) {
-	p.write("\"")
+	delim := "\""
+	if s.MultiLine {
+		delim = "`"
+	}
+	p.write(delim)
 	for _, part := range s.Parts {
 		switch part := part.(type) {
 		case *ast.StringText:
@@ -635,7 +639,7 @@ func (p *printer) stringLit(s *ast.StringLit) {
 			p.write("}")
 		}
 	}
-	p.write("\"")
+	p.write(delim)
 }
 
 func (p *printer) listLit(l *ast.ListLit) {

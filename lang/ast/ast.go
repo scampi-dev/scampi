@@ -295,9 +295,16 @@ func (*IntLit) exprNode()          {}
 // StringLit is a string literal. For non-interpolated strings, Parts
 // has one StringText entry. Interpolated strings alternate StringText
 // and embedded Expr parts.
+//
+// Multi-line literals (backtick-delimited) carry MultiLine=true
+// and Indent — the common indent prefix taken from the line
+// containing the closing backtick — so eval can dedent the
+// assembled string.
 type StringLit struct {
-	Parts   []StringPart
-	SrcSpan token.Span
+	Parts     []StringPart
+	MultiLine bool
+	Indent    string
+	SrcSpan   token.Span
 }
 
 func (e *StringLit) Span() token.Span { return e.SrcSpan }

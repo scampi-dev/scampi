@@ -933,11 +933,17 @@ func (ev *Evaluator) evalExpr(e ast.Expr) Value {
 }
 
 func (ev *Evaluator) evalString(s *ast.StringLit) Value {
-	if len(s.Parts) == 1 {
+	// Fast path for the common single-text-segment, non-multi case.
+	if !s.MultiLine && len(s.Parts) == 1 {
 		if t, ok := s.Parts[0].(*ast.StringText); ok {
 			return &StringVal{V: resolveEscapes(t.Raw)}
 		}
 	}
+
+	if s.MultiLine {
+		return &StringVal{V: ev.evalMultiLineString(s)}
+	}
+
 	var buf []byte
 	for _, p := range s.Parts {
 		switch p := p.(type) {
@@ -949,6 +955,99 @@ func (ev *Evaluator) evalString(s *ast.StringLit) Value {
 		}
 	}
 	return &StringVal{V: string(buf)}
+}
+
+// evalMultiLineString assembles a backtick-delimited string with the
+// dedent semantics:
+//
+//   - text segments have escapes resolved (same as regular strings).
+//   - the indent prefix from the closing backtick's line is stripped
+//     from every line of every text segment that begins at a line
+//     boundary. Interpolated values are NOT dedented — they're
+//     inlined verbatim wherever they fall.
+//   - exactly one leading newline immediately after the opening
+//     backtick is consumed (if present), so `\nfoo\n` reads as
+//     "foo\n", not "\nfoo\n".
+//
+// Implementation: dedent operates on each text segment independently,
+// tracking whether the assembled output ended with a newline (so the
+// next segment's first line is also a "line start" eligible for
+// dedent). Interp segments don't reset the line-start tracker — but
+// if the interp produces a string containing a newline, the next text
+// segment's first line is treated as starting a fresh line.
+func (ev *Evaluator) evalMultiLineString(s *ast.StringLit) string {
+	var buf []byte
+
+	indent := s.Indent
+	stripLeadingNL := true
+	atLineStart := true
+
+	for _, p := range s.Parts {
+		switch p := p.(type) {
+		case *ast.StringText:
+			text := resolveMultiEscapes(p.Raw)
+			if stripLeadingNL {
+				stripLeadingNL = false
+				if len(text) > 0 && text[0] == '\n' {
+					text = text[1:]
+				}
+			}
+			text, atLineStart = stripIndent(text, indent, atLineStart)
+			buf = append(buf, text...)
+		case *ast.StringInterp:
+			v := ev.evalExpr(p.Expr)
+			rendered := valueToString(v)
+			buf = append(buf, rendered...)
+			stripLeadingNL = false
+			if len(rendered) > 0 {
+				atLineStart = rendered[len(rendered)-1] == '\n'
+			}
+		}
+	}
+	return string(buf)
+}
+
+// stripIndent removes prefix from every line of s that starts at a
+// line boundary. atLineStart says whether s begins a fresh line.
+// Returns the dedented string and whether s ends at a line start
+// (i.e. ends with '\n').
+//
+// A line that does not start with the full prefix is left as-is —
+// dedent doesn't trim partial matches. This matches Java text-block
+// semantics: the closing-marker indent defines a maximum strip, but
+// shorter-indented lines aren't padded or mangled.
+func stripIndent(s, prefix string, atLineStart bool) (string, bool) {
+	if prefix == "" {
+		end := false
+		if len(s) > 0 {
+			end = s[len(s)-1] == '\n'
+		} else {
+			end = atLineStart
+		}
+		return s, end
+	}
+	out := make([]byte, 0, len(s))
+	i := 0
+	for i < len(s) {
+		if atLineStart {
+			if i+len(prefix) <= len(s) && s[i:i+len(prefix)] == prefix {
+				i += len(prefix)
+			}
+			atLineStart = false
+		}
+		// Copy bytes up to and including the next '\n'.
+		j := i
+		for j < len(s) && s[j] != '\n' {
+			j++
+		}
+		if j < len(s) {
+			j++ // include the '\n'
+			atLineStart = true
+		}
+		out = append(out, s[i:j]...)
+		i = j
+	}
+	return string(out), atLineStart
 }
 
 func (ev *Evaluator) evalSelector(sel *ast.SelectorExpr) Value {
@@ -1807,6 +1906,39 @@ func valueIn(needle Value, haystack Value) bool {
 	return false
 }
 
+// resolveMultiEscapes processes escape sequences for backtick-delimited
+// strings. Only `\\`, “ \` “, and `\$` are recognized — every other
+// `\X` is preserved verbatim (including the backslash). This keeps
+// embedded shell scripts, JSON, and similar formats readable: `\n`
+// inside a regex stays `\n`, `\<newline>` stays as bash line
+// continuation, etc.
+func resolveMultiEscapes(raw string) string {
+	if len(raw) == 0 {
+		return raw
+	}
+	buf := make([]byte, 0, len(raw))
+	for i := 0; i < len(raw); i++ {
+		if raw[i] == '\\' && i+1 < len(raw) {
+			switch raw[i+1] {
+			case '\\':
+				buf = append(buf, '\\')
+				i++
+				continue
+			case '`':
+				buf = append(buf, '`')
+				i++
+				continue
+			case '$':
+				buf = append(buf, '$')
+				i++
+				continue
+			}
+		}
+		buf = append(buf, raw[i])
+	}
+	return string(buf)
+}
+
 func resolveEscapes(raw string) string {
 	if len(raw) == 0 {
 		return raw
@@ -1825,6 +1957,8 @@ func resolveEscapes(raw string) string {
 				buf = append(buf, '\\')
 			case '"':
 				buf = append(buf, '"')
+			case '`':
+				buf = append(buf, '`')
 			case '$':
 				buf = append(buf, '$')
 			case '0':

@@ -23,6 +23,15 @@ const (
 	StringCont // text segment between two interpolations
 	StringEnd  // final text segment of interpolated string
 
+	// Multi-line string variants — same shape as the kinds above but
+	// produced for `...` literals where newlines are literal and no
+	// interior `"` escaping is required. Eval applies common-indent
+	// dedent at the StringLit boundary.
+	StringMulti
+	StringMultiBeg
+	StringMultiCont
+	StringMultiEnd
+
 	// Interpolation markers
 	LInterp // ${
 	RInterp // matching } that closes an interpolation
@@ -91,7 +100,8 @@ type Token struct {
 // identified by their Kind).
 func (k Kind) IsLiteral() bool {
 	switch k {
-	case Ident, Int, String, StringBeg, StringCont, StringEnd:
+	case Ident, Int, String, StringBeg, StringCont, StringEnd,
+		StringMulti, StringMultiBeg, StringMultiCont, StringMultiEnd:
 		return true
 	}
 	return false
@@ -102,7 +112,7 @@ func (k Kind) IsLiteral() bool {
 // Mirrors Go's ASI rules, adapted to scampi.
 func (k Kind) EndsStatement() bool {
 	switch k {
-	case Ident, Int, String, StringEnd,
+	case Ident, Int, String, StringEnd, StringMulti, StringMultiEnd,
 		True, False, None, Self, Return,
 		RBrace, RBrack, RParen:
 		return true

@@ -85,6 +85,152 @@ let prod = a * b
 	_ = r
 }
 
+// Multi-line strings
+// -----------------------------------------------------------------------------
+
+func TestEvalMultiLineString_StripLeadingNewlineAndDedent(t *testing.T) {
+	r := evalSrc(t, `
+module main
+let body = `+"`"+`
+  hello
+  world
+  `+"`"+`
+`)
+	got := mustString(t, r, "body")
+	want := "hello\nworld\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_NoDedentWhenClosingNotOnOwnLine(t *testing.T) {
+	r := evalSrc(t, `
+module main
+let body = `+"`"+`one
+two`+"`"+`
+`)
+	got := mustString(t, r, "body")
+	want := "one\ntwo"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_Interpolation(t *testing.T) {
+	r := evalSrc(t, `
+module main
+let realm = "EXAMPLE.COM"
+let resolv = `+"`"+`
+  search ${realm}
+  nameserver 1.1.1.1
+  `+"`"+`
+`)
+	got := mustString(t, r, "resolv")
+	want := "search EXAMPLE.COM\nnameserver 1.1.1.1\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_LiteralDoubleQuotes(t *testing.T) {
+	r := evalSrc(t, `
+module main
+let json = `+"`"+`{"data": [1, 2, 3]}`+"`"+`
+`)
+	got := mustString(t, r, "json")
+	want := `{"data": [1, 2, 3]}`
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_EscapedBacktickAndDollar(t *testing.T) {
+	// \` becomes literal ` in the content; \${ becomes literal ${.
+	r := evalSrc(t, "module main\nlet s = `tick \\` and dollar \\${ no interp`\n")
+	got := mustString(t, r, "s")
+	want := "tick ` and dollar ${ no interp"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_PreservesBlankLines(t *testing.T) {
+	r := evalSrc(t, `
+module main
+let body = `+"`"+`
+  one
+
+  three
+  `+"`"+`
+`)
+	got := mustString(t, r, "body")
+	want := "one\n\nthree\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_BashLineContinuationLiteral(t *testing.T) {
+	// Backslash followed by anything other than \\, \`, \$ is preserved
+	// verbatim — bash line-continuation `\\\n` stays as `\\\n` in the
+	// resolved string, not a single newline.
+	r := evalSrc(t, `
+module main
+let cmd = `+"`"+`echo a \
+  echo b \
+  echo c`+"`"+`
+`)
+	got := mustString(t, r, "cmd")
+	want := "echo a \\\n  echo b \\\n  echo c"
+	if got != want {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_BackslashNStaysLiteral(t *testing.T) {
+	// In a backtick string, `\n` is two characters, not a newline.
+	// The user gets actual newlines by writing actual newlines.
+	r := evalSrc(t, "module main\nlet s = `regex \\d+ and \\n stay literal`\n")
+	got := mustString(t, r, "s")
+	want := `regex \d+ and \n stay literal`
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestEvalMultiLineString_InterpDoesNotDedent(t *testing.T) {
+	// An interpolated value containing newlines must NOT have the
+	// closing-marker indent stripped from its content lines — only
+	// surrounding text segments dedent.
+	r := evalSrc(t, `
+module main
+let inner = "alpha\n  beta"
+let body = `+"`"+`
+    pre
+    ${inner}
+    post
+    `+"`"+`
+`)
+	got := mustString(t, r, "body")
+	want := "pre\nalpha\n  beta\npost\n"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func mustString(t *testing.T, r *Result, name string) string {
+	t.Helper()
+	v, ok := r.Bindings[name]
+	if !ok {
+		t.Fatalf("binding %q not found", name)
+	}
+	sv, ok := v.(*StringVal)
+	if !ok {
+		t.Fatalf("binding %q is %T, want *StringVal", name, v)
+	}
+	return sv.V
+}
+
 // String interpolation
 // -----------------------------------------------------------------------------
 

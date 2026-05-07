@@ -44,12 +44,16 @@ type Lexer struct {
 	// resumingString is set when RInterp closes an interp frame; the
 	// next Next() call resumes scanning the enclosing string segment.
 	resumingString bool
+	// resumingMulti carries the triple flag of the popped frame so the
+	// resumed scan picks the right scanner.
+	resumingMulti bool
 
 	errs []Error
 }
 
 type interpFrame struct {
-	braces int // unmatched '{' count (starts at 1 for the ${)
+	braces int  // unmatched '{' count (starts at 1 for the ${)
+	multi  bool // enclosing string was multi-line (backtick); resume in multi mode after RInterp
 }
 
 // New returns a lexer reading from src. name is retained for callers
@@ -84,7 +88,9 @@ func (l *Lexer) Next() token.Token {
 	// Resume string segment scanning right after an RInterp closed a frame.
 	if l.resumingString {
 		l.resumingString = false
-		return l.scanStringSegment(false /* fresh */)
+		triple := l.resumingMulti
+		l.resumingMulti = false
+		return l.scanStringSegment(false /* fresh */, triple)
 	}
 
 	// Skip whitespace / comments; emit Semi on ASI-relevant newlines.
@@ -107,7 +113,7 @@ func (l *Lexer) Next() token.Token {
 		return l.scanIdent(start)
 	case isDigit(c):
 		return l.scanNumber(start)
-	case c == '"':
+	case c == '"' || c == '`':
 		return l.enterString()
 	}
 
@@ -323,9 +329,11 @@ func (l *Lexer) scanPunct(start uint32) (token.Token, bool) {
 		case '}':
 			if frame.braces == 1 {
 				// This } closes the interpolation.
+				multi := frame.multi
 				l.pos++
 				l.interp = l.interp[:len(l.interp)-1]
 				l.resumingString = true
+				l.resumingMulti = multi
 				return l.emit(token.RInterp, start, uint32(l.pos)), true
 			}
 			frame.braces--
@@ -425,20 +433,34 @@ func (l *Lexer) scanPunct(start uint32) (token.Token, bool) {
 	return token.Token{}, false
 }
 
-// enterString is called on the opening '"' of a string literal.
+// enterString is called on the opening delimiter of a string
+// literal. The opening byte is `"` for normal single-line strings
+// or “ ` “ for multi-line strings. Multi-line strings allow
+// literal newlines and unescaped `"` and only terminate on a
+// matching closing “ ` “.
 func (l *Lexer) enterString() token.Token {
-	l.pos++ // consume opening "
-	return l.scanStringSegment(true /* fresh */)
+	multi := l.src[l.pos] == '`'
+	l.pos++ // consume opening delimiter
+	return l.scanStringSegment(true /* fresh */, multi)
 }
 
-// scanStringSegment scans text from l.pos up to the next ${ or closing ".
-// If fresh is true, this is the first segment after an opening quote
-// (emits String or StringBeg); otherwise it is a continuation after
-// an RInterp (emits StringCont or StringEnd).
+// scanStringSegment scans text from l.pos up to the next ${ or
+// closing delimiter. If fresh is true, this is the first segment
+// after an opening delimiter (emits String/StringMulti or
+// StringBeg/StringMultiBeg); otherwise it is a continuation after
+// an RInterp (emits StringCont/StringMultiCont or StringEnd/
+// StringMultiEnd).
 //
-// The emitted segment token's Pos/End cover ONLY the text content of
-// the segment (not the surrounding " or ${ markers).
-func (l *Lexer) scanStringSegment(fresh bool) token.Token {
+// In multi-line mode, embedded newlines and unescaped `"` chars
+// are preserved literally; only “ ` “ terminates a segment.
+//
+// The emitted segment token's Pos/End cover ONLY the text content
+// of the segment (not the surrounding delimiter or ${ markers).
+func (l *Lexer) scanStringSegment(fresh, multi bool) token.Token {
+	closer := byte('"')
+	if multi {
+		closer = '`'
+	}
 	start := uint32(l.pos)
 	for l.pos < len(l.src) {
 		c := l.src[l.pos]
@@ -453,7 +475,13 @@ func (l *Lexer) scanStringSegment(fresh bool) token.Token {
 				l.pos++
 				continue
 			}
-			if !isValidEscape(l.src[l.pos+1]) {
+			// In multi-line mode, only `\\`, `` \` ``, `\$` are
+			// recognized escapes. Other `\X` sequences are literal
+			// (preserved as `\X` in the resolved string), so bash
+			// line-continuations, embedded JSON `\n`, and similar
+			// just work. In single-line mode the full escape table
+			// applies.
+			if !multi && !isValidEscape(l.src[l.pos+1]) {
 				l.addErr(
 					ErrInvalidEscape,
 					token.Span{Start: uint32(l.pos), End: uint32(l.pos + 2)},
@@ -468,49 +496,70 @@ func (l *Lexer) scanStringSegment(fresh bool) token.Token {
 				interpStart := uint32(l.pos)
 				l.pos += 2
 				interpEnd := uint32(l.pos)
-				l.interp = append(l.interp, interpFrame{braces: 1})
+				l.interp = append(l.interp, interpFrame{braces: 1, multi: multi})
 				// Queue LInterp for next Next() call.
 				l.pending = token.Token{Kind: token.LInterp, Pos: interpStart, End: interpEnd}
 				l.hasPending = true
 				l.prev = token.LInterp // LInterp doesn't end a statement
-				if fresh {
-					return l.emit(token.StringBeg, start, segEnd)
-				}
-				return l.emit(token.StringCont, start, segEnd)
+				return l.emit(segmentKind(fresh, false /* end */, multi), start, segEnd)
 			}
 			l.pos++
-		case '"':
+		case closer:
 			segEnd := uint32(l.pos)
-			l.pos++ // consume "
-			if fresh {
-				return l.emit(token.String, start, segEnd)
-			}
-			return l.emit(token.StringEnd, start, segEnd)
+			l.pos++ // consume closing delimiter
+			return l.emit(segmentKind(fresh, true, multi), start, segEnd)
 		case '\n':
+			if multi {
+				// Multi-line mode: newlines are literal content.
+				l.pos++
+				continue
+			}
 			// Unterminated single-line string.
 			l.addErr(
 				ErrUnterminatedString,
 				token.Span{Start: start - 1, End: uint32(l.pos)},
 				"unterminated string literal (no closing \")",
 			)
-			if fresh {
-				return l.emit(token.String, start, uint32(l.pos))
-			}
-			return l.emit(token.StringEnd, start, uint32(l.pos))
+			return l.emit(segmentKind(fresh, true, multi), start, uint32(l.pos))
 		default:
 			l.pos++
 		}
 	}
 	// Hit EOF inside string.
+	msg := "unterminated string literal (reached end of file)"
+	if multi {
+		msg = "unterminated multi-line string (reached end of file, no closing `)"
+	}
 	l.addErr(
 		ErrUnterminatedString,
 		token.Span{Start: start - 1, End: uint32(l.pos)},
-		"unterminated string literal (reached end of file)",
+		msg,
 	)
-	if fresh {
-		return l.emit(token.String, start, uint32(l.pos))
+	return l.emit(segmentKind(fresh, true, multi), start, uint32(l.pos))
+}
+
+// segmentKind picks the right token kind for the segment we just
+// finished, based on whether it's the first/last segment of the
+// literal and whether the literal is multi-line.
+func segmentKind(fresh, end, multi bool) token.Kind {
+	switch {
+	case fresh && end && multi:
+		return token.StringMulti
+	case fresh && end:
+		return token.String
+	case fresh && multi:
+		return token.StringMultiBeg
+	case fresh:
+		return token.StringBeg
+	case end && multi:
+		return token.StringMultiEnd
+	case end:
+		return token.StringEnd
+	case multi:
+		return token.StringMultiCont
+	default:
+		return token.StringCont
 	}
-	return l.emit(token.StringEnd, start, uint32(l.pos))
 }
 
 // Character classes
@@ -531,7 +580,7 @@ func isOctDigit(c byte) bool { return c >= '0' && c <= '7' }
 
 func isValidEscape(c byte) bool {
 	switch c {
-	case 'n', 't', 'r', '\\', '"', '$', '0':
+	case 'n', 't', 'r', '\\', '"', '`', '$', '0':
 		return true
 	}
 	return false

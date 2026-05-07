@@ -217,6 +217,84 @@ func TestInvalidEscape(t *testing.T) {
 	}
 }
 
+// Multi-line (backtick) strings
+// -----------------------------------------------------------------------------
+
+func TestMultiLineString_Empty(t *testing.T) {
+	assertTokens(t, "``", []want{
+		{token.StringMulti, ""},
+		{token.Semi, ""},
+	})
+}
+
+func TestMultiLineString_Inline(t *testing.T) {
+	assertTokens(t, "`hello`", []want{
+		{token.StringMulti, "hello"},
+		{token.Semi, ""},
+	})
+}
+
+func TestMultiLineString_LiteralNewlines(t *testing.T) {
+	src := "`line one\nline two\n`"
+	assertTokens(t, src, []want{
+		{token.StringMulti, "line one\nline two\n"},
+		{token.Semi, ""},
+	})
+}
+
+func TestMultiLineString_DoubleQuoteNoEscape(t *testing.T) {
+	// Interior `"` is just a literal — no quoting needed in backtick.
+	src := "`he said \"hi\"`"
+	assertTokens(t, src, []want{
+		{token.StringMulti, `he said "hi"`},
+		{token.Semi, ""},
+	})
+}
+
+func TestMultiLineString_Interpolation(t *testing.T) {
+	src := "`hello ${name}!`"
+	assertTokens(t, src, []want{
+		{token.StringMultiBeg, "hello "},
+		{token.LInterp, "${"},
+		{token.Ident, "name"},
+		{token.RInterp, "}"},
+		{token.StringMultiEnd, "!"},
+		{token.Semi, ""},
+	})
+}
+
+func TestMultiLineString_NestedInterpInsideMulti(t *testing.T) {
+	// Verify that the multi flag is restored after RInterp closes the
+	// interp frame — the second segment still allows newlines.
+	src := "`a${x}\nb`"
+	assertTokens(t, src, []want{
+		{token.StringMultiBeg, "a"},
+		{token.LInterp, "${"},
+		{token.Ident, "x"},
+		{token.RInterp, "}"},
+		{token.StringMultiEnd, "\nb"},
+		{token.Semi, ""},
+	})
+}
+
+func TestMultiLineString_EscapedBacktickAndDollar(t *testing.T) {
+	src := "`literal \\` and \\${ stay literal`"
+	assertTokens(t, src, []want{
+		{token.StringMulti, `literal \` + "`" + ` and \${ stay literal`},
+		{token.Semi, ""},
+	})
+}
+
+func TestMultiLineString_Unterminated(t *testing.T) {
+	_, errs := tokenize(t, "`no end")
+	if len(errs) == 0 {
+		t.Fatal("expected error for unterminated multi-line string")
+	}
+	if errs[0].Kind != ErrUnterminatedString {
+		t.Errorf("got error kind %v, want ErrUnterminatedString", errs[0].Kind)
+	}
+}
+
 // String interpolation
 // -----------------------------------------------------------------------------
 

@@ -314,16 +314,24 @@ func (p *Parser) parsePrimary() ast.Expr {
 			Raw:     raw,
 			SrcSpan: token.Span{Start: tok.Pos, End: tok.End},
 		}
-	case token.String:
+	case token.String, token.StringMulti:
 		p.advance()
+		multi := tok.Kind == token.StringMulti
+		raw := string(p.lex.Source()[tok.Pos:tok.End])
+		indent := ""
+		if multi {
+			indent = closingIndent(p.lex.Source(), tok.End)
+		}
 		return &ast.StringLit{
 			Parts: []ast.StringPart{&ast.StringText{
-				Raw:     string(p.lex.Source()[tok.Pos:tok.End]),
+				Raw:     raw,
 				SrcSpan: token.Span{Start: tok.Pos, End: tok.End},
 			}},
-			SrcSpan: token.Span{Start: tok.Pos, End: tok.End},
+			MultiLine: multi,
+			Indent:    indent,
+			SrcSpan:   token.Span{Start: tok.Pos, End: tok.End},
 		}
-	case token.StringBeg:
+	case token.StringBeg, token.StringMultiBeg:
 		return p.parseInterpString()
 	case token.True:
 		p.advance()
@@ -366,13 +374,16 @@ func (p *Parser) parsePrimary() ast.Expr {
 }
 
 // parseInterpString assembles an interpolated string literal from
-// StringBeg / LInterp / expr / RInterp / StringCont / StringEnd tokens.
+// StringBeg / LInterp / expr / RInterp / StringCont / StringEnd tokens
+// (or their StringMulti* equivalents).
 func (p *Parser) parseInterpString() ast.Expr {
 	start := p.cur.Pos
 	var parts []ast.StringPart
 	end := p.cur.End
 
-	// First segment is a StringBeg.
+	multi := p.cur.Kind == token.StringMultiBeg
+
+	// First segment is a StringBeg / StringMultiBeg.
 	beg := p.advance()
 	parts = append(parts, &ast.StringText{
 		Raw:     string(p.lex.Source()[beg.Pos:beg.End]),
@@ -405,9 +416,9 @@ func (p *Parser) parseInterpString() ast.Expr {
 			})
 		}
 
-		// What follows is either StringCont (more interps) or StringEnd.
+		// What follows is either a continuation (more interps) or end.
 		switch p.cur.Kind {
-		case token.StringCont:
+		case token.StringCont, token.StringMultiCont:
 			t := p.advance()
 			parts = append(parts, &ast.StringText{
 				Raw:     string(p.lex.Source()[t.Pos:t.End]),
@@ -415,7 +426,7 @@ func (p *Parser) parseInterpString() ast.Expr {
 			})
 			// Continue loop: another ${ follows.
 			continue
-		case token.StringEnd:
+		case token.StringEnd, token.StringMultiEnd:
 			t := p.advance()
 			parts = append(parts, &ast.StringText{
 				Raw:     string(p.lex.Source()[t.Pos:t.End]),
@@ -432,10 +443,38 @@ func (p *Parser) parseInterpString() ast.Expr {
 		break
 	}
 
-	return &ast.StringLit{
-		Parts:   parts,
-		SrcSpan: token.Span{Start: start, End: end},
+	indent := ""
+	if multi {
+		indent = closingIndent(p.lex.Source(), end)
 	}
+	return &ast.StringLit{
+		Parts:     parts,
+		MultiLine: multi,
+		Indent:    indent,
+		SrcSpan:   token.Span{Start: start, End: end},
+	}
+}
+
+// closingIndent returns the whitespace prefix of the line containing
+// the closing quote of a triple-quoted string. closeEnd is the byte
+// offset where the segment content ends (i.e. the position of the
+// closing quote in the source). If the line containing the closing
+// quote has any non-whitespace content before it, no indent is
+// returned (the closing is mid-line, dedent does not apply).
+func closingIndent(src []byte, closeEnd uint32) string {
+	// Walk back to the start of the line.
+	i := int(closeEnd)
+	for i > 0 && src[i-1] != '\n' {
+		i--
+	}
+	// From line start to closeEnd: every byte must be whitespace.
+	for j := i; j < int(closeEnd); j++ {
+		c := src[j]
+		if c != ' ' && c != '\t' {
+			return ""
+		}
+	}
+	return string(src[i:closeEnd])
 }
 
 // parseListOrComp parses `[...]` which may be a list literal or a

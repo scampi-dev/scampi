@@ -99,6 +99,38 @@ let admins = ["alice", "bob"]
 Strings support `${}` interpolation. Bindings are immutable — you can't
 reassign a `let`, but you can bind a new name.
 
+### Multi-line strings
+
+Backtick-delimited strings span multiple lines and don't require escaping
+interior `"`. Useful for embedded JSON, config blobs, and anywhere `\n` soup
+hurts to read:
+
+```scampi
+let resolv = `
+  search ${realm}
+  nameserver 127.0.0.1
+  nameserver ${dc.peer}
+  `
+
+let body = `{"data": [{"id": 1, "tags": ["a", "b"]}]}`
+```
+
+Multi-line strings:
+
+- Use the same `${expr}` interpolation as normal strings.
+- Recognize a minimal escape set: `\\`, `` \` ``, `\$`. Every other `\X`
+  stays literal — so embedded shell scripts, regex patterns, and JSON
+  strings just work without double-escaping. `\n` inside backticks is two
+  characters, not a newline; if you want a newline, write a newline.
+- Bash line continuations (`` \ `` followed by a newline) stay literal too —
+  paste shell commands as-is.
+- Strip exactly one leading newline right after the opening backtick — so
+  `` `\nfoo\n` `` reads as `"foo\n"`, not `"\nfoo\n"`.
+- Apply common-indent dedent: the indentation of the line containing the
+  closing backtick defines what gets stripped from every line. If the closing
+  isn't on its own line (e.g. inline `` `one line` ``), no dedent applies.
+- Don't dedent values produced by `${...}` — only the surrounding text.
+
 `let` works for steps too. This is how you reference the same step from
 multiple places (the classic "reload nginx when config changes" pattern):
 
