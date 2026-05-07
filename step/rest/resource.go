@@ -23,9 +23,10 @@ type (
 	}
 
 	resourceAction struct {
-		desc string
-		step spec.StepInstance
-		cfg  *ResourceConfig
+		desc   string
+		step   spec.StepInstance
+		cfg    *ResourceConfig
+		redact []compiledRedact
 	}
 )
 
@@ -97,10 +98,16 @@ func (Resource) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, invalid("rest.resource: bindings require a found request")
 	}
 
+	redact, err := compileRedact(cfg.Query.Redact, step.Source)
+	if err != nil {
+		return nil, err
+	}
+
 	return &resourceAction{
-		desc: cfg.Desc,
-		step: step,
-		cfg:  cfg,
+		desc:   cfg.Desc,
+		step:   step,
+		cfg:    cfg,
+		redact: redact,
 	}, nil
 }
 
@@ -114,6 +121,7 @@ func (a *resourceAction) Ops() []spec.Op {
 		found:    a.cfg.Found,
 		bindings: a.cfg.Bindings,
 		state:    a.cfg.State,
+		redact:   a.redact,
 	}
 	op.SetAction(a)
 	return []spec.Op{op}

@@ -99,6 +99,11 @@ pub decl request(
   body:      Body?
   check:     Check?
   desc:      string?
+  // jq-style paths into the response body whose values are
+  // registered with the redactor — subsequent inspect / drift /
+  // diagnostic output replaces them with ***SECRET***. Use for
+  // GET responses that bundle credentials alongside config.
+  redact:    list[string] = []
   on_change: list[std.Step] = []
   promises:  list[string] = []
   inputs:    list[string] = []

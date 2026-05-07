@@ -13,18 +13,18 @@ shell helper.
 
 ## Fields
 
-| Field       | Type                | Required | Default | Description                                          |
-| ----------- | ------------------- | :------: | ------- | ---------------------------------------------------- |
-| `list`      | string              |    ✓     |         | Shell command listing identifiers, one per line      |
-| `add`       | string?             |          |         | Command to add items; uses an item placeholder       |
-| `remove`    | string?             |          |         | Command to remove items; same placeholder shape      |
-| `desired`   | list\[string]       |          | `[]`    | Identifiers that should be present                   |
-| `init`      | string?             |          |         | Bootstrap command run if `list` exits non-zero       |
-| `env`       | map\[string,string] |          | `{}`    | Env vars passed to every invocation (shell-quoted)   |
-| `desc`      | string?             |          |         | Human-readable description                           |
-| `on_change` | list\[Step]         |          |         | Steps to trigger when add or remove runs             |
-| `promises`  | list\[string]       |          | `[]`    | Cross-deploy resources this step produces            |
-| `inputs`    | list\[string]       |          | `[]`    | Cross-deploy resources this step consumes            |
+| Field       | Type                | Required | Default | Description                                        |
+| ----------- | ------------------- | :------: | ------- | -------------------------------------------------- |
+| `list`      | string              |    ✓     |         | Shell command listing identifiers, one per line    |
+| `add`       | string?             |          |         | Command to add items; uses an item placeholder     |
+| `remove`    | string?             |          |         | Command to remove items; same placeholder shape    |
+| `desired`   | list\[string]       |          | `[]`    | Identifiers that should be present                 |
+| `init`      | string?             |          |         | Bootstrap command run if `list` exits non-zero     |
+| `env`       | map\[string,string] |          | `{}`    | Env vars passed to every invocation (shell-quoted) |
+| `desc`      | string?             |          |         | Human-readable description                         |
+| `on_change` | list\[Step]         |          |         | Steps to trigger when add or remove runs           |
+| `promises`  | list\[string]       |          | `[]`    | Cross-deploy resources this step produces          |
+| `inputs`    | list\[string]       |          | `[]`    | Cross-deploy resources this step consumes          |
 
 At least one of `add` or `remove` must be set. If only `add` is set, scampi
 adds missing items but ignores orphans. If only `remove` is set, scampi removes
@@ -34,11 +34,11 @@ orphans but does not add. Both = full reconciliation.
 
 `add` and `remove` use one of three placeholders:
 
-| Placeholder       | Behavior                                              |
-| ----------------- | ----------------------------------------------------- |
-| `{{ item }}`      | Run the command once per item                         |
-| `{{ items }}`     | Run once with all items, space-separated              |
-| `{{ items_csv }}` | Run once with all items, comma-separated              |
+| Placeholder       | Behavior                                 |
+| ----------------- | ---------------------------------------- |
+| `{{ item }}`      | Run the command once per item            |
+| `{{ items }}`     | Run once with all items, space-separated |
+| `{{ items_csv }}` | Run once with all items, comma-separated |
 
 Pick whichever matches the underlying tool's argument shape. `samba-tool group
 addmembers` takes a comma-separated list, so use `{{ items_csv }}`. A loop-style

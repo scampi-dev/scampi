@@ -8,4 +8,5 @@ const (
 	CodeRequestError       errs.Code = "rest.RequestError"
 	CodeHTTPError          errs.Code = "rest.HTTPError"
 	CodeResourceQueryError errs.Code = "rest.ResourceQueryError"
+	CodeRedactPathError    errs.Code = "rest.RedactPathError"
 )

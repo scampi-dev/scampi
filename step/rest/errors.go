@@ -7,6 +7,7 @@ import (
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/spec"
 )
 
 type RequestError struct {
@@ -53,6 +54,33 @@ func (e HTTPError) EventTemplate() event.Template {
 		Hint: `verify the REST target is reachable and the {{.Method}} on "{{.Path}}" is supported`,
 		Help: "{{.Err}}",
 		Data: e,
+	}
+}
+
+// RedactPathError flags an invalid jq path supplied to a request's
+// `redact` list at plan time.
+type RedactPathError struct {
+	diagnostic.FatalError
+	Path   string
+	Err    error
+	Source spec.SourceSpan
+}
+
+func (e RedactPathError) Error() string {
+	return fmt.Sprintf("invalid redact path %q: %s", e.Path, e.Err)
+}
+
+func (e RedactPathError) Unwrap() error { return e.Err }
+
+func (e RedactPathError) EventTemplate() event.Template {
+	return event.Template{
+		ID:   CodeRedactPathError,
+		Text: `invalid redact path: {{.Path}}`,
+		Hint: `redact paths use jq syntax with an optional leading dot — ` +
+			`e.g. "x_ssh_password", "data.token", or "items[0].secret"`,
+		Help:   "{{.Err}}",
+		Data:   e,
+		Source: &e.Source,
 	}
 }
 

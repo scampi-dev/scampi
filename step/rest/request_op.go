@@ -28,6 +28,7 @@ type requestOp struct {
 	headers map[string]string
 	body    BodyConfig
 	check   CheckConfig
+	redact  []compiledRedact
 }
 
 func (op *requestOp) Check(
@@ -60,6 +61,8 @@ func (op *requestOp) Check(
 			Phase: "check", Method: method, Path: path, Err: err,
 		}
 	}
+
+	registerRedact(ctx, op.redact, resp.Body)
 
 	satisfied, err := op.check.Evaluate(resp.StatusCode, resp.Body)
 	if err != nil {
@@ -114,6 +117,8 @@ func (op *requestOp) Execute(
 			Phase: "execute", Method: op.method, Path: op.path, Err: err,
 		}
 	}
+
+	registerRedact(ctx, op.redact, resp.Body)
 
 	if resp.StatusCode >= 400 {
 		return spec.Result{}, RequestError{

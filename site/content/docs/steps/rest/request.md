@@ -17,15 +17,16 @@ rest.request {
 
 ## Fields
 
-| Field       | Type                  | Required | Description                                    |
-| ----------- | --------------------- | :------: | ---------------------------------------------- |
-| `method`    | string                |    ✓     | HTTP method (GET, POST, PUT, PATCH, DELETE)    |
-| `path`      | string                |    ✓     | Request path (appended to target's `base_url`) |
-| `body`      | `rest.Body?`          |          | Request body — see [below](#body-types)        |
-| `headers`   | map\[string, string]? |          | HTTP headers                                   |
-| `check`     | `rest.Check?`         |          | Check matcher for idempotency                  |
-| `desc`      | string?               |          | Human-readable description                     |
-| `on_change` | list\[Step]           |          | Steps to trigger when this request fires       |
+| Field       | Type                  | Required | Description                                      |
+| ----------- | --------------------- | :------: | ------------------------------------------------ |
+| `method`    | string                |    ✓     | HTTP method (GET, POST, PUT, PATCH, DELETE)      |
+| `path`      | string                |    ✓     | Request path (appended to target's `base_url`)   |
+| `body`      | `rest.Body?`          |          | Request body — see [below](#body-types)          |
+| `headers`   | map\[string, string]? |          | HTTP headers                                     |
+| `check`     | `rest.Check?`         |          | Check matcher for idempotency                    |
+| `redact`    | list\[string]         |          | jq paths into the response — values are redacted |
+| `desc`      | string?               |          | Human-readable description                       |
+| `on_change` | list\[Step]           |          | Steps to trigger when this request fires         |
 
 Explicit `headers` take precedence over any headers set automatically by the
 body type. For example, `headers = {"Content-Type": "application/json;charset=utf-8"}`
@@ -89,3 +90,35 @@ The step produces a single op with check/execute semantics:
 
 Without a check matcher, the step always executes — useful for truly idempotent
 endpoints like PUT with a full body.
+
+## Redacting secrets in responses
+
+Some controllers bundle credentials into the same response shape as the config
+they manage — UniFi's `setting/mgmt` endpoint returns `x_ssh_password` and a
+salted hash alongside fields you actually want to manage. Without help, scampi
+prints those values verbatim in `inspect`, drift output, and `-vv` diagnostics.
+
+The `redact` field takes a list of jq-style paths into the response body.
+Values at those paths are registered with the renderer's secret redactor as
+soon as the response is parsed — every subsequent rendering replaces them with
+`***SECRET***`. The redaction applies to every response from this request
+regardless of HTTP method (check phase, execute phase, all of it).
+
+```scampi
+query = rest.request {
+  method = "GET"
+  path   = "/proxy/network/api/s/default/get/setting/mgmt"
+  check  = rest.jq { expr = ".data[0]" }
+  redact = ["data[0].x_ssh_password", "data[0].x_ssh_sha512passwd"]
+}
+```
+
+Path syntax is jq with an optional leading dot — `x_ssh_password`,
+`data.token`, and `items[0].secret` are all valid. Invalid paths surface as
+plan-time diagnostics, not runtime surprises.
+
+`redact` works on `rest.request`, on the `query` of `rest.resource`, and on the
+`query` of `rest.resource_set`. State-side redaction — marking a key in the
+declared `state` map as a secret — is tracked separately and uses a different
+mechanism (it's about values scampi puts on the wire, not values scampi reads
+back).

@@ -43,6 +43,7 @@ type resourceOp struct {
 	found    *RequestConfig
 	bindings map[string]*JQBinding
 	state    map[string]any
+	redact   []compiledRedact
 
 	// Set during Check, consumed during Execute.
 	queryResult  any
@@ -92,6 +93,8 @@ func (op *resourceOp) Check(
 			Err: errs.WrapErrf(errResourceParse, "%v", err),
 		}
 	}
+
+	applyRedact(ctx, op.redact, body)
 
 	result := extractJQ(jqCheck.Compiled, body)
 

@@ -12,14 +12,16 @@ type (
 	RequestConfig struct {
 		_ struct{} `summary:"Make an HTTP request against a REST target"`
 
-		Desc     string            `step:"Human-readable description" optional:"true"`
-		Method   string            `step:"HTTP method" example:"POST"`
-		Path     string            `step:"Request path" example:"/nginx/proxy-hosts"`
-		Headers  map[string]string `step:"HTTP headers" optional:"true"`
-		Body     BodyConfig        `step:"Request body" optional:"true"`
-		Check    CheckConfig       `step:"Check matcher for idempotency" optional:"true"`
-		Promises []string          `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string          `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc    string            `step:"Human-readable description" optional:"true"`
+		Method  string            `step:"HTTP method" example:"POST"`
+		Path    string            `step:"Request path" example:"/nginx/proxy-hosts"`
+		Headers map[string]string `step:"HTTP headers" optional:"true"`
+		Body    BodyConfig        `step:"Request body" optional:"true"`
+		Check   CheckConfig       `step:"Check matcher for idempotency" optional:"true"`
+		//nolint:revive // line-length: long step tag
+		Redact   []string `step:"jq paths into the response whose values are registered as secrets" optional:"true"`
+		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
+		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
 
 	requestAction struct {
@@ -28,6 +30,7 @@ type (
 		path   string
 		step   spec.StepInstance
 		cfg    *RequestConfig
+		redact []compiledRedact
 	}
 )
 
@@ -44,12 +47,18 @@ func (Request) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, errs.BUG("expected %T got %T", &RequestConfig{}, step.Config)
 	}
 
+	redact, err := compileRedact(cfg.Redact, step.Source)
+	if err != nil {
+		return nil, err
+	}
+
 	return &requestAction{
 		desc:   cfg.Desc,
 		method: cfg.Method,
 		path:   cfg.Path,
 		step:   step,
 		cfg:    cfg,
+		redact: redact,
 	}, nil
 }
 
@@ -63,6 +72,7 @@ func (a *requestAction) Ops() []spec.Op {
 		headers: a.cfg.Headers,
 		body:    a.cfg.Body,
 		check:   a.cfg.Check,
+		redact:  a.redact,
 	}
 	op.SetAction(a)
 	return []spec.Op{op}

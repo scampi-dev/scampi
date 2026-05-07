@@ -33,6 +33,7 @@ type (
 		keyJQ          *JQCheck
 		orphanFilterJQ *JQCheck
 		items          []map[string]any
+		redact         []compiledRedact
 	}
 )
 
@@ -117,6 +118,11 @@ func (ResourceSet) Plan(step spec.StepInstance) (spec.Action, error) {
 		}
 	}
 
+	redact, err := compileRedact(cfg.Query.Redact, step.Source)
+	if err != nil {
+		return nil, err
+	}
+
 	return &resourceSetAction{
 		desc:           cfg.Desc,
 		step:           step,
@@ -124,6 +130,7 @@ func (ResourceSet) Plan(step spec.StepInstance) (spec.Action, error) {
 		keyJQ:          keyJQ,
 		orphanFilterJQ: orphanFilterJQ,
 		items:          items,
+		redact:         redact,
 	}, nil
 }
 
@@ -141,6 +148,7 @@ func (a *resourceSetAction) Ops() []spec.Op {
 		orphan:       a.cfg.Orphan,
 		bindings:     a.cfg.Bindings,
 		orphanState:  a.cfg.OrphanState,
+		redact:       a.redact,
 	}
 	op.SetAction(a)
 	return []spec.Op{op}

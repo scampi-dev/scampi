@@ -49,6 +49,7 @@ type resourceSetOp struct {
 	orphan       *RequestConfig
 	bindings     map[string]*JQBinding
 	orphanState  map[string]any
+	redact       []compiledRedact
 
 	// Set during Check, consumed during Execute.
 	plan        []categorizedItem
@@ -97,6 +98,8 @@ func (op *resourceSetOp) Check(
 			Err: errs.WrapErrf(errResourceParse, "%v", err),
 		}
 	}
+
+	applyRedact(ctx, op.redact, body)
 
 	// Extract the array of remote items via the query's jq check.
 	remoteItems := extractJQAll(jqCheck.Compiled, body)
