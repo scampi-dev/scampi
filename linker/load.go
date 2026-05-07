@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
@@ -135,6 +136,7 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source, opts ...Ana
 		eval.WithBuiltinFunc("secrets.from_file", secretFromFile(configDir, readFile)),
 		eval.WithBuiltinFunc("secrets.get", secretGetBuiltin(o.redactor)),
 		eval.WithBuiltinFunc("std.secret_env", secretEnvBuiltin(src.LookupEnv, o.redactor)),
+		eval.WithBuiltinFunc("std.read_file", stdReadFileBuiltin(configDir, readFile, o.lenient)),
 	}
 	if o.lenient {
 		evalOpts = append(evalOpts, eval.WithLenient())
@@ -382,6 +384,44 @@ func secretEnvBuiltin(envLookup func(string) (string, bool), redactor *secret.Re
 			return &eval.StringVal{V: def}, ""
 		}
 		return nil, "secret env var " + name + " not set and no default given"
+	}
+}
+
+// stdReadFileBuiltin returns a BuiltinFunc for std.read_file(path).
+// Reads a UTF-8 file from the source side, resolved relative to the
+// calling config's directory (matching `posix.source_local`'s
+// resolution). Trims one trailing newline — the typical case is
+// "ssh-key\n" or "config\n" where the literal newline isn't part of
+// the value.
+//
+// Lenient mode (LSP / dry analysis): missing path or unreadable
+// file resolves to a placeholder rather than aborting eval, so the
+// LSP can keep working in a half-finished config. See #295 / #264.
+func stdReadFileBuiltin(
+	configDir string,
+	readFile func(string) ([]byte, error),
+	lenient bool,
+) eval.BuiltinFunc {
+	const placeholder = "scampi-read-file-placeholder"
+	return func(positional []eval.Value, kwargs map[string]eval.Value) (eval.Value, string) {
+		path := stringArg(positional, kwargs, "path")
+		if path == "" {
+			if lenient {
+				return &eval.StringVal{V: placeholder}, ""
+			}
+			return nil, "std.read_file requires a path argument"
+		}
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(configDir, path)
+		}
+		data, err := readFile(path)
+		if err != nil {
+			if lenient {
+				return &eval.StringVal{V: placeholder}, ""
+			}
+			return nil, "std.read_file: reading " + path + ": " + err.Error()
+		}
+		return &eval.StringVal{V: strings.TrimSuffix(string(data), "\n")}, ""
 	}
 }
 

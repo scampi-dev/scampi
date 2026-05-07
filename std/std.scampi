@@ -112,6 +112,21 @@ type @path {
 //   let port = std.env("PORT", default = "8080")
 pub func env(name: string, default: string?) string
 
+// read a UTF-8 file from the source side at link time.
+//
+// path is resolved relative to the calling scampi file's directory
+// (same as posix.source_local). a single trailing newline is
+// trimmed — the common case is "ssh-key\n" / "config\n" where the
+// newline isn't part of the value. for byte-exact reads, use
+// posix.source_local for deploy-time access instead.
+//
+//   let hal_key = std.read_file("keys/hal9000.pub")
+//   pve.lxc { ssh_public_keys = [hal_key], ... }
+//
+// errors if the file is missing or unreadable. in lenient eval
+// (LSP, dry analysis) returns a placeholder string instead.
+pub func read_file(path: string) string
+
 // like env, but registers the resolved value as a secret so it gets
 // redacted in inspect / apply / diagnostic output. use this for env
 // vars holding passwords, tokens, API keys — anywhere a leaked value

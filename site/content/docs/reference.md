@@ -173,6 +173,7 @@ src = posix.source_remote { url = "https://...", checksum = "sha256:abc..." }
 | `std.range(n)`                | `[0, 1, ..., n-1]`                  |
 | `std.parse_int(s)`            | Parse base-10 int from string       |
 | `std.unique(items)`           | Order-preserving dedupe of a list   |
+| `std.read_file(path)`         | Read UTF-8 file at link time        |
 | `std.join(items, sep = " ")`  | Join list of strings with separator |
 | `std.trim_prefix(s, prefix)`  | Strip leading prefix if present     |
 | `std.trim_suffix(s, suffix)`  | Strip trailing suffix if present    |
