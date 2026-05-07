@@ -869,7 +869,13 @@ func (ev *Evaluator) evalExpr(e ast.Expr) Value {
 			ev.errAt(e.SrcSpan, check.CodeUndefined, "undefined: "+e.Name)
 			return &NoneVal{}
 		}
-		return v
+		// Force any ThunkVal (lazy `pub let` from a user module, #269)
+		// at the access boundary, mirroring evalSelector / evalDottedName.
+		// Without this, downstream consumers that switch on Value type
+		// (linker → evalToGo for `any`-typed fields) silently turn
+		// thunked lists into Go nil, breaking rest.resource drift
+		// comparison. See the list-drift bug.
+		return forceValue(v)
 	case *ast.SelectorExpr:
 		return ev.evalSelector(e)
 	case *ast.BlockExpr:

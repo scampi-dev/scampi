@@ -792,6 +792,82 @@ let missing = s["nope"]
 	}
 }
 
+// Regression: bare identifier access to a user-module `pub let`
+// returned the raw ThunkVal without forcing. Downstream consumers
+// (linker → evalToGo → switch on type) didn't recognize ThunkVal
+// and fell through to nil, silently turning list-valued state
+// fields into Go nil. Symptom in the wild: rest.resource drift
+// comparator saw "[..] vs null" and fired PUT every run.
+func TestEvalIdentForcesThunk(t *testing.T) {
+	modSrc := `
+module helpers
+pub let xs = ["a", "b", "c"]
+pub func get_xs() list[string] {
+  return xs
+}
+`
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	ml := lex.New("helpers.scampi", []byte(modSrc))
+	mp := parse.New(ml)
+	mf := mp.Parse()
+	mc := check.New(modules)
+	mc.Check(mf)
+	if errs := mc.Errors(); len(errs) > 0 {
+		t.Fatalf("module check: %v", errs)
+	}
+	modules["helpers"] = mc.FileScope().PublicView()
+
+	consumerSrc := `
+module main
+import "helpers"
+let result = helpers.get_xs()
+`
+	cl := lex.New("test.scampi", []byte(consumerSrc))
+	cp := parse.New(cl)
+	cf := cp.Parse()
+	cc := check.New(modules)
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer check: %v", errs)
+	}
+
+	r, errs := Eval(cf, []byte(consumerSrc),
+		WithStubs(std.FS),
+		WithUserModules([]UserModule{{
+			Name:   "helpers",
+			File:   mf,
+			Source: []byte(modSrc),
+		}}),
+	)
+	if len(errs) > 0 {
+		t.Fatalf("eval errors: %v", errs)
+	}
+
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	// Without the fix, `xs` resolves to a ThunkVal inside get_xs()
+	// and the function returns it as-is. With the fix, the bare
+	// ident lookup forces, so result is the underlying ListVal.
+	list, ok := v.(*ListVal)
+	if !ok {
+		t.Fatalf("result must be ListVal (thunk should be forced at access), got %T", v)
+	}
+	if len(list.Items) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(list.Items))
+	}
+	for i, want := range []string{"a", "b", "c"} {
+		s, ok := list.Items[i].(*StringVal)
+		if !ok || s.V != want {
+			t.Errorf("item[%d] = %v, want %q", i, list.Items[i], want)
+		}
+	}
+}
+
 func TestEvalStructIndexInComprehension(t *testing.T) {
 	r := evalSrc(t, `
 module main
