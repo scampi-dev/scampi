@@ -39,7 +39,7 @@ done < <(find . -name '*.sh' -not -path './vendor/*' -not -path './build/*' -not
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
   check_file "$f" 1
-done < <(find . -name '*.scampi' -not -path './.sandbox/*' -not -path '*/testdata/*')
+done < <(find . -name '*.scampi' -not -path './.sandbox/*' -not -path './.issues/*' -not -path '*/testdata/*')
 
 ok=true
 if [[ ${#missing[@]} -gt 0 ]]; then

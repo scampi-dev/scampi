@@ -395,6 +395,20 @@ func (ev *Evaluator) registerUserModules() {
 				pubMap.Set(let.Name.Name, thunk)
 			}
 		}
+		// Inject every other module symbol (funcs, decls, enums, types)
+		// into moduleScope so thunked `pub let` expressions can resolve
+		// bare references to siblings — e.g.
+		// `pub let default_palette = [Color.red]` needs to see Color
+		// when its thunk fires. Without this, defaults that capture
+		// module-internal names fail with "undefined" at call time.
+		// See the from_skrynet/default_value_scope_test repro.
+		for i, k := range fullMap.Keys {
+			if sk, ok := k.(*StringVal); ok {
+				if _, exists := moduleScope.get(sk.V); !exists {
+					moduleScope.set(sk.V, fullMap.Values[i])
+				}
+			}
+		}
 	}
 }
 

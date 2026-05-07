@@ -868,6 +868,129 @@ let result = helpers.get_xs()
 	}
 }
 
+// Probe: does Color resolve INSIDE a func body (not as default)?
+// If this passes but the default-eval test fails, the bug is in
+// the default-eval scope specifically, not module exposure.
+func TestEvalUserModuleEnumInBody(t *testing.T) {
+	modSrc := `
+module paint
+pub enum Color { red, green, blue }
+pub func get_red() string {
+  return "${Color.red}"
+}
+`
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	ml := lex.New("paint.scampi", []byte(modSrc))
+	mp := parse.New(ml)
+	mf := mp.Parse()
+	mc := check.New(modules)
+	mc.Check(mf)
+	if errs := mc.Errors(); len(errs) > 0 {
+		t.Fatalf("module check: %v", errs)
+	}
+	modules["paint"] = mc.FileScope().PublicView()
+
+	consumerSrc := `
+module main
+import "paint"
+let result = paint.get_red()
+`
+	cl := lex.New("test.scampi", []byte(consumerSrc))
+	cp := parse.New(cl)
+	cf := cp.Parse()
+	cc := check.New(modules)
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer check: %v", errs)
+	}
+
+	r, errs := Eval(
+		cf,
+		[]byte(consumerSrc),
+		WithStubs(std.FS),
+		WithUserModules([]UserModule{{Name: "paint", File: mf, Source: []byte(modSrc)}}),
+	)
+	if len(errs) > 0 {
+		t.Fatalf("eval errors: %v", errs)
+	}
+	v, ok := r.Bindings["result"].(*StringVal)
+	if !ok {
+		t.Fatalf("expected StringVal, got %T", r.Bindings["result"])
+	}
+	if v.V != "red" {
+		t.Errorf("expected 'red', got %q", v.V)
+	}
+}
+
+// Regression: parameter defaults that reference module-private names
+// (enums, helpers, pub lets) must evaluate in the *defining* module's
+// scope, not the caller's. Otherwise users have to re-import every
+// internal name a default touches, defeating encapsulation.
+func TestEvalDefaultEvalsInDefiningModuleScope(t *testing.T) {
+	modSrc := `
+module paint
+pub enum Color { red, green, blue }
+pub let default_palette = [Color.red, Color.green]
+pub func make_palette(palette: list[Color] = default_palette) list[Color] {
+  return palette
+}
+`
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	ml := lex.New("paint.scampi", []byte(modSrc))
+	mp := parse.New(ml)
+	mf := mp.Parse()
+	mc := check.New(modules)
+	mc.Check(mf)
+	if errs := mc.Errors(); len(errs) > 0 {
+		t.Fatalf("module check: %v", errs)
+	}
+	modules["paint"] = mc.FileScope().PublicView()
+
+	consumerSrc := `
+module main
+import "paint"
+let result = paint.make_palette()
+`
+	cl := lex.New("test.scampi", []byte(consumerSrc))
+	cp := parse.New(cl)
+	cf := cp.Parse()
+	cc := check.New(modules)
+	cc.Check(cf)
+	if errs := cc.Errors(); len(errs) > 0 {
+		t.Fatalf("consumer check: %v", errs)
+	}
+
+	r, errs := Eval(cf, []byte(consumerSrc),
+		WithStubs(std.FS),
+		WithUserModules([]UserModule{{
+			Name:   "paint",
+			File:   mf,
+			Source: []byte(modSrc),
+		}}),
+	)
+	if len(errs) > 0 {
+		t.Fatalf("eval errors: %v", errs)
+	}
+
+	v, ok := r.Bindings["result"]
+	if !ok {
+		t.Fatal("result binding missing")
+	}
+	list, ok := v.(*ListVal)
+	if !ok {
+		t.Fatalf("result must be ListVal, got %T (%v)", v, v)
+	}
+	if len(list.Items) != 2 {
+		t.Fatalf("expected 2 items (default palette), got %d: %v", len(list.Items), list.Items)
+	}
+}
+
 func TestEvalStructIndexInComprehension(t *testing.T) {
 	r := evalSrc(t, `
 module main
