@@ -150,10 +150,14 @@ func (s *shellSession) run(ctx context.Context, cmd string) (target.CommandResul
 	tmp := fmt.Sprintf("%s/.sc-%s-%d", s.tmpDir, s.nonce, seq)
 	sentinel := fmt.Sprintf("__SC_END_%s_%d__", s.nonce, seq)
 
-	// Single-line wrapper so we write one chunk to the shell's
-	// stdin and read until our sentinel. POSIX-portable.
+	// Wrapper around the user command. Newlines surrounding the
+	// brace group make this safe for both single-line and multi-
+	// line user commands: a trailing newline inside cmd would
+	// otherwise produce `<NL>; }` which bash rejects as a syntax
+	// error near `;`. With explicit newlines around `{` / `}` the
+	// shape parses regardless of cmd's trailing whitespace.
 	wrapper := fmt.Sprintf(
-		"{ %s; } 2>%s; __SC_RC=$?; __SC_EB=$(wc -c <%s 2>/dev/null | tr -d ' '); "+
+		"{\n%s\n} 2>%s; __SC_RC=$?; __SC_EB=$(wc -c <%s 2>/dev/null | tr -d ' '); "+
 			"printf '%%s:%%d:%%d\\n' '%s' \"$__SC_RC\" \"${__SC_EB:-0}\"; "+
 			"cat %s 2>/dev/null; rm -f %s\n",
 		cmd, tmp, tmp, sentinel, tmp, tmp,

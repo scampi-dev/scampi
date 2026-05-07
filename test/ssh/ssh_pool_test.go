@@ -77,6 +77,55 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 	}
 }
 
+// TestSSH_RunCommand_MultiLine is the acceptance test for the
+// multi-line command bug discovered while testing #297 backtick
+// strings. A user command with a literal trailing newline used to
+// produce a `<NL>; }` sequence in the persistent-shell wrapper that
+// bash rejects as a syntax error, causing the framed sentinel to
+// never be written and the read loop to panic on EOF.
+func TestSSH_RunCommand_MultiLine(t *testing.T) {
+	env, cleanup := harness.SetupSSHTestEnv(t)
+	defer cleanup()
+
+	tgt := harness.ConnectSSH(t, env)
+	defer tgt.Close()
+
+	cases := []struct {
+		name string
+		cmd  string
+	}{
+		{
+			name: "trailing-newline",
+			cmd:  "echo hello\n",
+		},
+		{
+			name: "embedded-pipeline",
+			cmd:  "echo a |\n  cat |\n  cat\n",
+		},
+		{
+			name: "multi-statement-and-and",
+			cmd:  "echo first\necho second && echo third\n",
+		},
+		{
+			name: "set-pipefail-prefix",
+			// Repro from .issues/from_skrynet/posix-run-pipefail-ssh-panic.md
+			cmd: "set -o pipefail; echo hello | grep -q hello",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := tgt.RunCommand(context.Background(), tc.cmd)
+			if err != nil {
+				t.Fatalf("RunCommand: %v", err)
+			}
+			if res.ExitCode != 0 {
+				t.Errorf("exit %d, stderr=%q", res.ExitCode, res.Stderr)
+			}
+		})
+	}
+}
+
 // TestSSH_RetryHandlesContention is the acceptance test for the
 // retry-with-backoff resilience: scheduling far more parallel ops
 // than what the server allows concurrently must still complete
