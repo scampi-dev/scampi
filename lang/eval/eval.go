@@ -1157,6 +1157,39 @@ func (ev *Evaluator) callRange(positional []Value, kwargs map[string]Value) Valu
 	return &ListVal{Items: items}
 }
 
+// callUnique implements std.unique: order-preserving dedupe of a list.
+// Equality is structural via valuesEqual (handles primitives + enum
+// variants which are encoded as StringVal). Linear scan over a small
+// out slice — lists in scampi configs are typically <100 items.
+// See #292.
+func (ev *Evaluator) callUnique(positional []Value, kwargs map[string]Value) Value {
+	var items []Value
+	if len(positional) > 0 {
+		if l, ok := positional[0].(*ListVal); ok {
+			items = l.Items
+		}
+	}
+	if v, ok := kwargs["items"]; ok {
+		if l, ok := v.(*ListVal); ok {
+			items = l.Items
+		}
+	}
+	out := make([]Value, 0, len(items))
+	for _, it := range items {
+		dup := false
+		for _, prev := range out {
+			if valuesEqual(prev, it) {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			out = append(out, it)
+		}
+	}
+	return &ListVal{Items: out}
+}
+
 func (ev *Evaluator) callTrimPrefix(positional []Value, kwargs map[string]Value) Value {
 	s := stringArg(positional, kwargs, "s", 0)
 	prefix := stringArg(positional, kwargs, "prefix", 1)
@@ -1291,6 +1324,8 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 			return ev.callEnv(positional, kwargs, callSpan)
 		case "range":
 			return ev.callRange(positional, kwargs)
+		case "unique":
+			return ev.callUnique(positional, kwargs)
 		case "ref":
 			return ev.callRef(positional, kwargs)
 		case "trim_prefix":

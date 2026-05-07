@@ -189,6 +189,20 @@ pub func trim_suffix(s: string, suffix: string) string
 // errors if the string isn't a valid integer.
 pub func parse_int(s: string) int
 
+// dedupe a list, preserving the order of first occurrence.
+//
+// Equality is structural for primitives (string, int, bool) and
+// matches enum variants by their underlying value. Useful for
+// defensive dedupe in modules that pass a user-provided list to
+// a backend that doesn't dedupe its input (e.g.
+// `unifi.threat_management.categories`, where duplicates corrupt
+// the controller's rule list).
+//
+//   std.unique(["a", "b", "a", "c"])             // ["a", "b", "c"]
+//   std.unique([1, 2, 1, 3])                     // [1, 2, 3]
+//   std.unique([Color.red, Color.red, Color.green])  // [Color.red, Color.green]
+pub func unique(items: list[any]) list[any]
+
 // Deploy configuration
 // -----------------------------------------------------------------------------
 

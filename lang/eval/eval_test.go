@@ -868,6 +868,85 @@ let result = helpers.get_xs()
 	}
 }
 
+func TestEvalUnique(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		want []string
+	}{
+		{
+			name: "strings",
+			src:  `let result = std.unique(["a", "b", "a", "c", "b", "a"])`,
+			want: []string{"a", "b", "c"},
+		},
+		{
+			name: "ints",
+			src:  `let result = std.unique([1, 2, 1, 3, 2, 1])`,
+			want: []string{"1", "2", "3"},
+		},
+		{
+			name: "empty",
+			src:  `let result = std.unique([])`,
+			want: nil,
+		},
+		{
+			name: "preserves first-occurrence order",
+			src:  `let result = std.unique(["c", "a", "b", "a", "c"])`,
+			want: []string{"c", "a", "b"},
+		},
+		{
+			name: "no duplicates passes through",
+			src:  `let result = std.unique(["x", "y", "z"])`,
+			want: []string{"x", "y", "z"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := evalSrc(t, "module main\nimport \"std\"\n"+tc.src)
+			v, ok := r.Bindings["result"].(*ListVal)
+			if !ok {
+				t.Fatalf("expected ListVal, got %T", r.Bindings["result"])
+			}
+			if len(v.Items) != len(tc.want) {
+				t.Fatalf("len = %d, want %d (items=%v)", len(v.Items), len(tc.want), v.Items)
+			}
+			for i, want := range tc.want {
+				switch got := v.Items[i].(type) {
+				case *StringVal:
+					if got.V != want {
+						t.Errorf("item[%d] = %q, want %q", i, got.V, want)
+					}
+				case *IntVal:
+					if intStr(got.V) != want {
+						t.Errorf("item[%d] = %d, want %s", i, got.V, want)
+					}
+				default:
+					t.Errorf("item[%d] unexpected type %T", i, got)
+				}
+			}
+		})
+	}
+}
+
+func intStr(n int64) string {
+	if n == 0 {
+		return "0"
+	}
+	neg := n < 0
+	if neg {
+		n = -n
+	}
+	out := ""
+	for n > 0 {
+		out = string(rune('0'+(n%10))) + out
+		n /= 10
+	}
+	if neg {
+		out = "-" + out
+	}
+	return out
+}
+
 // Probe: does Color resolve INSIDE a func body (not as default)?
 // If this passes but the default-eval test fails, the bug is in
 // the default-eval scope specifically, not module exposure.
