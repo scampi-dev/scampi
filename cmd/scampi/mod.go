@@ -356,10 +356,10 @@ func modUpdateCmd() *cli.Command {
 			}
 
 			src := source.LocalPosixSource{}
-			modPath, _ := parseModArg(moduleArg)
+			modPath, version := parseModArg(moduleArg)
 			cacheDir := mod.DefaultCacheDir()
 
-			resolved, _, err := mod.Add(ctx, src, modPath, "", dir, cacheDir)
+			resolved, _, err := mod.Add(ctx, src, modPath, version, dir, cacheDir)
 			if err != nil {
 				emitModDiagnostic(em, err)
 				return handleEngineError("mod update", engine.AbortError{Causes: []error{err}})
