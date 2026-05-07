@@ -257,3 +257,29 @@ pub decl run(
   promises:  list[string] = []
   inputs:    list[string] = []
 ) std.Step
+
+// run_set: shell-driven set reconciliation. The shell-equivalent of
+// rest.resource_set — declare a list/add/remove triple over a CLI
+// tool that exposes set membership, give a desired identifier list,
+// and the engine reconciles the diff.
+//
+// Templating in `add` / `remove`: one of
+//   {{ item }}      — runs the command once per item
+//   {{ items }}     — runs once with all items, space-separated
+//   {{ items_csv }} — runs once with all items, comma-separated
+pub decl run_set(
+  @std.nonempty
+  list:      string
+  add:       string?
+  remove:    string?
+  desired:   list[string] = []
+  init:      string?
+  desc:      string?
+  // Environment variables set on every invocation (list, add,
+  // remove, init). Values are shell-quoted; use std.secret_env
+  // for secrets.
+  env:       map[string, string] = {}
+  on_change: list[std.Step] = []
+  promises:  list[string] = []
+  inputs:    list[string] = []
+) std.Step

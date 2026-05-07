@@ -18,6 +18,7 @@ import (
 	"scampi.dev/scampi/step/pve/lxc"
 	steprest "scampi.dev/scampi/step/rest"
 	"scampi.dev/scampi/step/run"
+	"scampi.dev/scampi/step/runset"
 	"scampi.dev/scampi/step/service"
 	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/step/symlink"
@@ -51,6 +52,7 @@ func NewRegistry() *Registry {
 		steprest.ResourceSet{},
 		lxc.LXC{},
 		run.Run{},
+		runset.RunSet{},
 		service.Service{},
 		sysctl.Sysctl{},
 		symlink.Symlink{},
