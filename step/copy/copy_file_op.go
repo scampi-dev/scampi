@@ -30,8 +30,20 @@ type copyFileOp struct {
 	backup bool
 }
 
-func (op *copyFileOp) getContent(ctx context.Context, src source.Source) ([]byte, error) {
-	data, err := src.ReadFile(ctx, op.src)
+func (op *copyFileOp) getContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error) {
+	var (
+		data []byte
+		err  error
+	)
+	if op.srcRef.Kind == spec.SourceTarget {
+		// Read from the target itself (#286). Composes with everything
+		// that already takes posix.Source — same drift / perm /
+		// ownership management, just a different read side.
+		fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
+		data, err = fsTgt.ReadFile(ctx, op.src)
+	} else {
+		data, err = src.ReadFile(ctx, op.src)
+	}
 	if err != nil {
 		return nil, CopySourceMissingError{
 			Path:   op.src,
@@ -39,7 +51,6 @@ func (op *copyFileOp) getContent(ctx context.Context, src source.Source) ([]byte
 			Source: op.SrcSpan,
 		}
 	}
-
 	return data, nil
 }
 
@@ -50,7 +61,7 @@ func (op *copyFileOp) Check(
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 
-	srcData, err := op.getContent(ctx, src)
+	srcData, err := op.getContent(ctx, src, tgt)
 	if err != nil {
 		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "content"); ok {
 			return result, drift, nil
@@ -96,7 +107,7 @@ func (op *copyFileOp) Check(
 func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
 	fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 
-	srcData, err := op.getContent(ctx, src)
+	srcData, err := op.getContent(ctx, src, tgt)
 	if err != nil {
 		return spec.Result{}, err
 	}
@@ -141,8 +152,8 @@ func (op *copyFileOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-func (op *copyFileOp) DesiredContent(ctx context.Context, src source.Source) ([]byte, error) {
-	return op.getContent(ctx, src)
+func (op *copyFileOp) DesiredContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error) {
+	return op.getContent(ctx, src, tgt)
 }
 
 func (op *copyFileOp) CurrentContent(ctx context.Context, _ source.Source, tgt target.Target) ([]byte, error) {

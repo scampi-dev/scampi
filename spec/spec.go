@@ -194,9 +194,12 @@ type (
 		Timeout() time.Duration
 	}
 	// Diffable is an optional interface that ops producing file content
-	// can implement to support `scampi inspect --diff`.
+	// can implement to support `scampi inspect --diff`. Both methods
+	// take src and tgt: most ops only need src, but posix.copy with
+	// a `source_target { ... }` resolver reads desired content from
+	// the target itself (#286).
 	Diffable interface {
-		DesiredContent(ctx context.Context, src source.Source) ([]byte, error)
+		DesiredContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error)
 		CurrentContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error)
 		DestPath() string
 	}

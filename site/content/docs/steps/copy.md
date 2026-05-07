@@ -19,7 +19,7 @@ Copy files or inline content to the target with owner and permission management.
 
 ## Source resolvers
 
-The `src` field accepts a `posix.Source` from one of three resolvers:
+The `src` field accepts a `posix.Source` from one of four resolvers:
 
 - **`posix.source_local { path = "./path" }`** — reads a file from the local
   machine relative to the scampi file
@@ -27,6 +27,10 @@ The `src` field accepts a `posix.Source` from one of three resolvers:
   content
 - **`posix.source_remote { url = "https://...", checksum = "sha256:..." }`** —
   downloads via HTTP/HTTPS, with optional checksum verification
+- **`posix.source_target { path = "/abs/path" }`** — reads from the target
+  itself, useful when a previous step generated the file and you want to
+  install it elsewhere with managed perms / owner. Symlink covers most
+  cases; use this when you need two independent copies.
 
 See [Concepts → Sources]({{< relref "../concepts#sources" >}}) for the design
 rationale.

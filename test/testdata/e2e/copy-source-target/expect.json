@@ -1,0 +1,13 @@
+{
+  "target": {
+    "files": {
+      "/etc/.placeholder": "",
+      "/etc/krb5.conf": "[libdefaults]\n  default_realm = SKRYNET.LAN\n",
+      "/var/lib/samba/private/krb5.conf": "[libdefaults]\n  default_realm = SKRYNET.LAN\n"
+    },
+    "perms": {
+      "/etc/krb5.conf": "0644"
+    }
+  },
+  "changed": 2
+}

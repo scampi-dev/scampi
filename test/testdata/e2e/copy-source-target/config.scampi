@@ -1,0 +1,18 @@
+module main
+
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "test", targets = [host]) {
+  posix.copy {
+    desc  = "install krb5.conf from samba's authoritative copy"
+    src   = posix.source_target { path = "/var/lib/samba/private/krb5.conf" }
+    dest  = "/etc/krb5.conf"
+    perm  = "0644"
+    owner = "root"
+    group = "root"
+  }
+}

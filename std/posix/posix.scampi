@@ -28,6 +28,11 @@ pub enum FirewallProto { tcp, udp }
 pub decl source_local(path: string) Source
 pub decl source_inline(content: string) Source
 pub decl source_remote(url: string, checksum: string?) Source
+// source_target reads from a path on the target itself — useful when
+// a previous step on the same target produced a file you want to
+// install elsewhere with managed perms / owner. Symlink covers most
+// cases; use this when you need two independent copies.
+pub decl source_target(@std.path(absolute=true) path: string) Source
 
 pub decl pkg_system() PkgSource
 pub decl pkg_apt_repo(

@@ -52,6 +52,11 @@ func ConvertSourceRef(typeName string, fields map[string]eval.Value, ctx spec.Co
 				ref.Path = filepath.Join(cacheDir, "remote-"+hash)
 			}
 		}
+	case "source_target":
+		ref.Kind = spec.SourceTarget
+		if p, ok := fields["path"].(*eval.StringVal); ok {
+			ref.Path = p.V
+		}
 	}
 	return ref, nil
 }

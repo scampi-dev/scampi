@@ -1,0 +1,10 @@
+{
+  "files": {
+    "/var/lib/samba/private/krb5.conf": "[libdefaults]\n  default_realm = SKRYNET.LAN\n",
+    "/etc/.placeholder": ""
+  },
+  "modes": {
+    "/var/lib/samba/private/krb5.conf": "0600",
+    "/etc/.placeholder": "0644"
+  }
+}

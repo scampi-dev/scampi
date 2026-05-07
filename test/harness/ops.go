@@ -191,7 +191,7 @@ type InspectableFakeOp struct {
 	Dest    string
 }
 
-func (o *InspectableFakeOp) DesiredContent(_ context.Context, _ source.Source) ([]byte, error) {
+func (o *InspectableFakeOp) DesiredContent(_ context.Context, _ source.Source, _ target.Target) ([]byte, error) {
 	return o.Desired, nil
 }
 

@@ -167,7 +167,7 @@ func (e *Engine) InspectDiffFile(ctx context.Context, destPath string) (*Inspect
 
 	dop := found[0]
 
-	desired, err := dop.diff.DesiredContent(ctx, dop.src)
+	desired, err := dop.diff.DesiredContent(ctx, dop.src, dop.tgt)
 	if err != nil {
 		return nil, err
 	}

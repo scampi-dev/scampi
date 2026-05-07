@@ -46,7 +46,7 @@ func (op *renderTemplateOp) Check(
 		return spec.CheckUnsatisfied, nil, err
 	}
 
-	tmplContent, err := op.getTemplateContent(ctx, src)
+	tmplContent, err := op.getTemplateContent(ctx, src, tgt)
 	if err != nil {
 		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "content"); ok {
 			return result, drift, nil
@@ -110,7 +110,7 @@ func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt 
 		return spec.Result{}, err
 	}
 
-	tmplContent, err := op.getTemplateContent(ctx, src)
+	tmplContent, err := op.getTemplateContent(ctx, src, tgt)
 	if err != nil {
 		return spec.Result{}, err
 	}
@@ -172,13 +172,13 @@ func (op *renderTemplateOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-func (op *renderTemplateOp) DesiredContent(ctx context.Context, src source.Source) ([]byte, error) {
+func (op *renderTemplateOp) DesiredContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error) {
 	data, err := mergeData(op.data, src)
 	if err != nil {
 		return nil, err
 	}
 
-	tmplContent, err := op.getTemplateContent(ctx, src)
+	tmplContent, err := op.getTemplateContent(ctx, src, tgt)
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +205,25 @@ func (op *renderTemplateOp) DestPath() string {
 	return op.dest
 }
 
-func (op *renderTemplateOp) getTemplateContent(ctx context.Context, src source.Source) ([]byte, error) {
-	data, err := src.ReadFile(ctx, op.src)
+func (op *renderTemplateOp) getTemplateContent(
+	ctx context.Context,
+	src source.Source,
+	tgt target.Target,
+) ([]byte, error) {
+	var (
+		data []byte
+		err  error
+	)
+	if op.srcRef.Kind == spec.SourceTarget {
+		// Read from the target itself (#286). Same payoff as
+		// posix.copy + source_target — the template can pull its
+		// source from a file produced by an earlier step on the
+		// same target.
+		fsTgt := target.Must[target.Filesystem](renderTemplateID, tgt)
+		data, err = fsTgt.ReadFile(ctx, op.src)
+	} else {
+		data, err = src.ReadFile(ctx, op.src)
+	}
 	if err != nil {
 		return nil, TemplateSourceMissingError{
 			Path:   op.src,
@@ -214,7 +231,6 @@ func (op *renderTemplateOp) getTemplateContent(ctx context.Context, src source.S
 			Source: op.SrcSpan,
 		}
 	}
-
 	return data, nil
 }
 
