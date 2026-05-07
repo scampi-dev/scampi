@@ -28,6 +28,7 @@ func (d *nopDisplayer) EmitOpLifecycle(event.OpEvent)         {}
 func (d *nopDisplayer) EmitIndexAll(event.IndexAllEvent)      {}
 func (d *nopDisplayer) EmitIndexStep(event.IndexStepEvent)    {}
 func (d *nopDisplayer) EmitInspect(event.InspectEvent)        {}
+func (d *nopDisplayer) EmitGraph(event.GraphEvent)            {}
 func (d *nopDisplayer) EmitLegend()                           {}
 func (d *nopDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	d.diagnostics = append(d.diagnostics, e)

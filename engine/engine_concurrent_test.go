@@ -15,7 +15,7 @@ import (
 
 func TestRunPlansConcurrent_Empty(t *testing.T) {
 	calls := 0
-	err := runPlansConcurrent(t.Context(), nil, func(_ context.Context, _ spec.ResolvedConfig) error {
+	err := runPlansConcurrent(t.Context(), nil, nil, func(_ context.Context, _ spec.ResolvedConfig) error {
 		calls++
 		return nil
 	})
@@ -30,7 +30,7 @@ func TestRunPlansConcurrent_Empty(t *testing.T) {
 func TestRunPlansConcurrent_Single(t *testing.T) {
 	resolved := []spec.ResolvedConfig{{DeployName: "a"}}
 	var ran atomic.Int32
-	err := runPlansConcurrent(t.Context(), resolved, func(_ context.Context, _ spec.ResolvedConfig) error {
+	err := runPlansConcurrent(t.Context(), nil, resolved, func(_ context.Context, _ spec.ResolvedConfig) error {
 		ran.Add(1)
 		return nil
 	})
@@ -55,7 +55,7 @@ func TestRunPlansConcurrent_RunsInParallel(t *testing.T) {
 	var inFlight atomic.Int32
 	allArrived := make(chan struct{})
 
-	err := runPlansConcurrent(t.Context(), resolved, func(_ context.Context, _ spec.ResolvedConfig) error {
+	err := runPlansConcurrent(t.Context(), nil, resolved, func(_ context.Context, _ spec.ResolvedConfig) error {
 		if inFlight.Add(1) == n {
 			close(allArrived)
 		}
@@ -84,7 +84,7 @@ func TestRunPlansConcurrent_AggregatesErrors(t *testing.T) {
 		{DeployName: "c"},
 	}
 
-	err := runPlansConcurrent(t.Context(), resolved, func(_ context.Context, res spec.ResolvedConfig) error {
+	err := runPlansConcurrent(t.Context(), nil, resolved, func(_ context.Context, res spec.ResolvedConfig) error {
 		switch res.DeployName {
 		case "a":
 			return errA
@@ -117,7 +117,7 @@ func TestRunPlansConcurrent_SingleErrorUnwrapped(t *testing.T) {
 		{DeployName: "b"},
 	}
 
-	err := runPlansConcurrent(t.Context(), resolved, func(_ context.Context, res spec.ResolvedConfig) error {
+	err := runPlansConcurrent(t.Context(), nil, resolved, func(_ context.Context, res spec.ResolvedConfig) error {
 		if res.DeployName == "b" {
 			return target
 		}
@@ -140,7 +140,7 @@ func TestRunPlansConcurrent_SiblingsRunDespiteFailure(t *testing.T) {
 		mu     sync.Mutex
 		ranAll = map[string]bool{}
 	)
-	_ = runPlansConcurrent(t.Context(), resolved, func(_ context.Context, res spec.ResolvedConfig) error {
+	_ = runPlansConcurrent(t.Context(), nil, resolved, func(_ context.Context, res spec.ResolvedConfig) error {
 		mu.Lock()
 		ranAll[res.DeployName] = true
 		mu.Unlock()
@@ -170,7 +170,7 @@ func TestRunPlansConcurrent_CtxCancellationPropagates(t *testing.T) {
 	}()
 
 	var observedCancel atomic.Bool
-	_ = runPlansConcurrent(ctx, resolved, func(ctx context.Context, _ spec.ResolvedConfig) error {
+	_ = runPlansConcurrent(ctx, nil, resolved, func(ctx context.Context, _ spec.ResolvedConfig) error {
 		select {
 		case <-ctx.Done():
 			observedCancel.Store(true)

@@ -195,6 +195,7 @@ func (r *recordingDisplayer) EmitIndexStep(e event.IndexStepEvent) {
 	r.indexStep = append(r.indexStep, e)
 }
 func (r *recordingDisplayer) EmitInspect(e event.InspectEvent) { r.inspect = append(r.inspect, e) }
+func (r *recordingDisplayer) EmitGraph(_ event.GraphEvent)     {}
 func (r *recordingDisplayer) EmitLegend()                      {}
 func (r *recordingDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	r.engine = append(r.engine, e)

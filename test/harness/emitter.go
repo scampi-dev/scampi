@@ -100,6 +100,8 @@ func (r *RecordingDisplayer) EmitIndexStep(e event.IndexStepEvent) {
 
 func (r *RecordingDisplayer) EmitInspect(_ event.InspectEvent) {}
 
+func (r *RecordingDisplayer) EmitGraph(_ event.GraphEvent) {}
+
 func (r *RecordingDisplayer) EmitLegend() {}
 
 func (r *RecordingDisplayer) Interrupt() {}
@@ -180,3 +182,4 @@ func (NoopEmitter) EmitOpDiagnostic(event.OpDiagnostic)         {}
 func (NoopEmitter) EmitIndexAll(event.IndexAllEvent)            {}
 func (NoopEmitter) EmitIndexStep(event.IndexStepEvent)          {}
 func (NoopEmitter) EmitInspect(event.InspectEvent)              {}
+func (NoopEmitter) EmitGraph(event.GraphEvent)                  {}

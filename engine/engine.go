@@ -113,7 +113,7 @@ func forEachResolvedOffline(
 	}
 
 	allCaps := capabilityTarget{caps: capability.All}
-	return runPlansConcurrent(ctx, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
+	return runPlansConcurrent(ctx, em, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
 		e, err := NewWithTarget(ctx, src, res, em, allCaps)
 		if err != nil {
 			return err
@@ -148,7 +148,7 @@ func forEachResolved(
 		return err
 	}
 
-	return runPlansConcurrent(ctx, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
+	return runPlansConcurrent(ctx, em, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
 		e, err := New(ctx, src, res, em)
 		if err != nil {
 			return err
@@ -172,6 +172,7 @@ func forEachResolved(
 // shared-infra limits.
 func runPlansConcurrent(
 	ctx context.Context,
+	em diagnostic.Emitter,
 	resolved []spec.ResolvedConfig,
 	work func(ctx context.Context, res spec.ResolvedConfig) error,
 ) error {
@@ -183,6 +184,7 @@ func runPlansConcurrent(
 	if err != nil {
 		return err
 	}
+	emitGraphSummary(em, graph)
 
 	var causes []error
 	for _, level := range graph.levels {

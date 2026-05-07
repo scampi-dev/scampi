@@ -61,6 +61,7 @@ type (
 		EmitIndexAll(e event.IndexAllEvent)
 		EmitIndexStep(e event.IndexStepEvent)
 		EmitInspect(e event.InspectEvent)
+		EmitGraph(e event.GraphEvent)
 
 		EmitEngineDiagnostic(e event.EngineDiagnostic)
 		EmitPlanDiagnostic(e event.PlanDiagnostic)

@@ -82,6 +82,38 @@ type IndexStepEvent struct {
 	Chattiness Chattiness
 }
 
+// GraphEvent surfaces the cross-deploy resource graph topology
+// before any plan starts. Emitted once per scampi run when the
+// graph is non-trivial (more than one level OR any explicit dep);
+// suppressed for the single-deploy / all-roots case where there's
+// nothing structural to show. See #276.
+type GraphEvent struct {
+	Time       time.Time
+	Detail     GraphDetail
+	Severity   signal.Severity
+	Chattiness Chattiness
+}
+
+type GraphDetail struct {
+	Levels []GraphLevel
+}
+
+type GraphLevel struct {
+	Index int
+	Nodes []GraphNode
+}
+
+type GraphNode struct {
+	DeployName string
+	TargetName string
+	// After lists the deploy names this node waits on (empty for roots).
+	After []string
+	// Needs lists the resource names that drove the dep edges
+	// (e.g. "lxc:1000", "label:realm:skrynet.lan"). Empty for roots
+	// or for nodes whose only deps were external inputs.
+	Needs []string
+}
+
 type InspectEvent struct {
 	Time       time.Time
 	Detail     InspectDetail
