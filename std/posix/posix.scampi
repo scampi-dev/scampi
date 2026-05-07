@@ -241,6 +241,10 @@ pub decl run(
   check:     string?
   always:    bool? = false
   desc:      string?
+  // Environment variables set on the apply and check invocations.
+  // Values are shell-quoted automatically; use std.secret_env to
+  // pass secrets without leaking into logs.
+  env:       map[string, string] = {}
   on_change: list[std.Step] = []
   // Cross-deploy ordering: this step produces / consumes named
   // resources visible to other deploy blocks. Matching is exact

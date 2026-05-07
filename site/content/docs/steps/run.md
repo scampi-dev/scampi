@@ -7,15 +7,20 @@ when no built-in step type fits your needs.
 
 ## Fields
 
-| Field       | Type          | Required | Default | Description                                        |
-| ----------- | ------------- | :------: | ------- | -------------------------------------------------- |
-| `apply`     | string        |    ✓     |         | Shell command to execute (`@std.nonempty`)         |
-| `check`     | string?       |          |         | Shell command that exits 0 if apply is unnecessary |
-| `always`    | bool?         |          | `false` | Always run apply, skip check                       |
-| `desc`      | string?       |          |         | Human-readable description                         |
-| `on_change` | list\[Step]   |          |         | Steps to trigger when apply runs                   |
-| `promises`  | list\[string] |          | `[]`    | Cross-deploy resources this step produces          |
-| `inputs`    | list\[string] |          | `[]`    | Cross-deploy resources this step consumes          |
+| Field       | Type                | Required | Default | Description                                        |
+| ----------- | ------------------- | :------: | ------- | -------------------------------------------------- |
+| `apply`     | string              |    ✓     |         | Shell command to execute (`@std.nonempty`)         |
+| `check`     | string?             |          |         | Shell command that exits 0 if apply is unnecessary |
+| `always`    | bool?               |          | `false` | Always run apply, skip check                       |
+| `env`       | map\[string,string] |          | `{}`    | Env vars passed to apply and check (shell-quoted)  |
+| `desc`      | string?             |          |         | Human-readable description                         |
+| `on_change` | list\[Step]         |          |         | Steps to trigger when apply runs                   |
+| `promises`  | list\[string]       |          | `[]`    | Cross-deploy resources this step produces          |
+| `inputs`    | list\[string]       |          | `[]`    | Cross-deploy resources this step consumes          |
+
+Use `env` for any value with whitespace, quotes, or shell metacharacters
+— scampi shell-quotes each value automatically. Combine with
+`std.secret_env` to pass secrets without leaking into logs.
 
 Provide either `check` or `always` (or neither — but at least one of them is recommended for idempotency).
 

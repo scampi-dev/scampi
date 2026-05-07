@@ -5,6 +5,8 @@ package run
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/source"
@@ -20,6 +22,41 @@ type runOp struct {
 	apply  string
 	check  string
 	always bool
+	env    map[string]string
+}
+
+// envPrefix builds a deterministic `KEY1='v1' KEY2='v2' ` prefix for
+// the env map. Values are shell-quoted so spaces / quotes / shell
+// metacharacters pass through unmolested. Keys are sorted so the
+// generated command is stable across runs (debuggable, diffable).
+//
+// Empty map → empty prefix (no overhead for the zero-env case).
+func envPrefix(env map[string]string) string {
+	if len(env) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(env))
+	for k := range env {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var b strings.Builder
+	for _, k := range keys {
+		b.WriteString(k)
+		b.WriteByte('=')
+		b.WriteString(target.ShellQuote(env[k]))
+		b.WriteByte(' ')
+	}
+	return b.String()
+}
+
+// withEnv prepends the env prefix to cmd. Returns cmd unchanged when
+// env is empty so existing call sites stay byte-identical.
+func (op *runOp) withEnv(cmd string) string {
+	if prefix := envPrefix(op.env); prefix != "" {
+		return prefix + cmd
+	}
+	return cmd
 }
 
 func (op *runOp) Check(
@@ -32,7 +69,7 @@ func (op *runOp) Check(
 	}
 
 	cmdr := target.Must[target.Command](runID, tgt)
-	result, err := cmdr.RunCommand(ctx, op.check)
+	result, err := cmdr.RunCommand(ctx, op.withEnv(op.check))
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, err
 	}
@@ -59,7 +96,7 @@ func (op *runOp) Execute(
 ) (spec.Result, error) {
 	cmdr := target.Must[target.Command](runID, tgt)
 
-	result, err := cmdr.RunCommand(ctx, op.apply)
+	result, err := cmdr.RunCommand(ctx, op.withEnv(op.apply))
 	if err != nil {
 		return spec.Result{}, ApplyError{
 			Cmd:    op.apply,
@@ -79,7 +116,7 @@ func (op *runOp) Execute(
 
 	// Re-run check after apply to verify convergence
 	if op.check != "" {
-		verify, err := cmdr.RunCommand(ctx, op.check)
+		verify, err := cmdr.RunCommand(ctx, op.withEnv(op.check))
 		if err != nil {
 			return spec.Result{}, PostApplyCheckError{
 				CheckCmd: op.check,
