@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+// Fixtures live as pairs in testdata/:
+//   <name>.scampi           — input to scampi fmt
+//   <name>.expected.scampi  — golden output
+
 func TestGoldenFiles(t *testing.T) {
 	entries, err := os.ReadDir("testdata")
 	if err != nil {
@@ -16,17 +20,17 @@ func TestGoldenFiles(t *testing.T) {
 	}
 
 	for _, e := range entries {
-		if !strings.HasSuffix(e.Name(), ".input") {
+		name := e.Name()
+		if !strings.HasSuffix(name, ".scampi") || strings.HasSuffix(name, ".expected.scampi") {
 			continue
 		}
-		base := strings.TrimSuffix(e.Name(), ".input")
+		base := strings.TrimSuffix(name, ".scampi")
 		t.Run(base, func(t *testing.T) {
-			input, err := os.ReadFile(filepath.Join("testdata", base+".input"))
+			input, err := os.ReadFile(filepath.Join("testdata", base+".scampi"))
 			if err != nil {
 				t.Fatal(err)
 			}
-			goldenPath := filepath.Join("testdata", base+".expected")
-			golden, err := os.ReadFile(goldenPath)
+			golden, err := os.ReadFile(filepath.Join("testdata", base+".expected.scampi"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -50,10 +54,10 @@ func TestIdempotent(t *testing.T) {
 	}
 
 	for _, e := range entries {
-		if !strings.HasSuffix(e.Name(), ".expected") {
+		if !strings.HasSuffix(e.Name(), ".expected.scampi") {
 			continue
 		}
-		base := strings.TrimSuffix(e.Name(), ".expected")
+		base := strings.TrimSuffix(e.Name(), ".expected.scampi")
 		t.Run(base, func(t *testing.T) {
 			golden, err := os.ReadFile(filepath.Join("testdata", e.Name()))
 			if err != nil {
