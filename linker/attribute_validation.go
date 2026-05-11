@@ -11,8 +11,8 @@ import (
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/lang/ast"
+	"scampi.dev/scampi/perm"
 	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/sharedop/fileop"
 )
 
 // This file collects the small validation-style attribute behaviours
@@ -89,7 +89,7 @@ func (NonEmptyAttribute) StaticCheck(ctx StaticCheckContext) {
 
 // FileModeAttribute validates that the annotated string parameter is
 // a recognised file permission literal. Delegates parsing to
-// fileop.ParsePerm so the static check accepts the same formats as
+// perm.ParsePerm so the static check accepts the same formats as
 // the runtime check (octal, ls-style, posix style). The error
 // rendering pulls Hint and Help from the attribute type's doc
 // comment in std/std.scampi — single source of truth.
@@ -100,7 +100,7 @@ func (FileModeAttribute) StaticCheck(ctx StaticCheckContext) {
 	if !ok {
 		return
 	}
-	if _, err := fileop.ParsePerm(v, ctx.UseSpan); err != nil {
+	if _, err := perm.ParsePerm(v, ctx.UseSpan); err != nil {
 		ctx.Linker.Emit(newAttrDocError(ctx, fmt.Sprintf("invalid file permission %q", v)))
 	}
 }

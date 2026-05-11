@@ -8,6 +8,7 @@ import (
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/perm"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/sharedop"
@@ -103,7 +104,7 @@ func (a *dirAction) Ops() []spec.Op {
 	ops := []spec.Op{dir}
 
 	if cfg.Perm != "" {
-		mode, _ := fileop.ParsePerm(cfg.Perm, a.step.Fields["perm"].Value)
+		mode, _ := perm.ParsePerm(cfg.Perm, a.step.Fields["perm"].Value)
 		chmod := &fileop.EnsureModeOp{
 			BaseOp: sharedop.BaseOp{
 				DestSpan: a.step.Fields["path"].Value,

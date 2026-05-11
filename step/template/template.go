@@ -6,6 +6,7 @@ import (
 	"io/fs"
 
 	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/perm"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/step/sharedop/fileop"
@@ -65,7 +66,7 @@ func (t Template) Plan(step spec.StepInstance) (spec.Action, error) {
 	// are validated at link time by stub attributes (@std.path,
 	// @std.filemode, @std.pattern). Perm parsing here remains
 	// because the runtime needs the parsed fs.FileMode value.
-	mode, err := fileop.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
+	mode, err := perm.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 	if err != nil {
 		return nil, err
 	}

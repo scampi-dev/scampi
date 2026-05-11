@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package fileop
+// Package perm parses file permission literals in octal, ls-style, or
+// POSIX format and returns the corresponding fs.FileMode.
+package perm
 
 import (
 	"fmt"
@@ -11,8 +13,11 @@ import (
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
 )
+
+const CodeInvalidPermission errs.Code = "step.InvalidPermission"
 
 type InvalidPermissionError struct {
 	diagnostic.FatalError

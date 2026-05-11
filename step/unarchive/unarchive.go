@@ -6,6 +6,7 @@ import (
 	"io/fs"
 
 	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/perm"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/step/sharedop"
 	"scampi.dev/scampi/step/sharedop/fileop"
@@ -86,7 +87,7 @@ func (u Unarchive) Plan(step spec.StepInstance) (spec.Action, error) {
 	var mode fs.FileMode
 	if cfg.Perm != "" {
 		var err error
-		mode, err = fileop.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
+		mode, err = perm.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 		if err != nil {
 			return nil, err
 		}
