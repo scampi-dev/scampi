@@ -16,7 +16,7 @@ import (
 )
 
 // Data-driven LSP test runner. Fixtures live under
-// `lsp/testdata/lsp/<request>/<name>.scampi` with a sibling
+// `lsp/testdata/<request>/<name>.scampi` with a sibling
 // `<name>.json` describing the expected response.
 //
 // Each .scampi file may contain a single ‸ marker showing where
@@ -93,7 +93,7 @@ type syntheticDiagnostic struct {
 }
 
 func TestLSPFixtures(t *testing.T) {
-	root := "testdata/lsp"
+	root := "testdata"
 	if _, err := os.Stat(root); os.IsNotExist(err) {
 		t.Skip("no LSP fixtures yet")
 	}

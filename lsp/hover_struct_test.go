@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 // Most hover-on-user-type tests migrated to fixtures:
-//   testdata/lsp/hover/user_type_fields (covers fields + defaults)
+//   testdata/hover/user_type_fields (covers fields + defaults)
 
 package lsp
 
