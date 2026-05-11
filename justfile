@@ -45,6 +45,10 @@ scampi *args:
 scampls *args:
   go run ./cmd/scampls {{args}}
 
+[doc("Serve markdown files in a browser (default: .sandbox/ on :7080)")]
+mdserve *args:
+  go run ./bin/mdserve {{args}}
+
 [doc("Run tests (just test --list for subcommands)")]
 mod test
 

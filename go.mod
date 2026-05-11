@@ -20,6 +20,7 @@ require (
 	github.com/pkg/sftp v1.13.10
 	github.com/ulikunitz/xz v0.5.15
 	github.com/urfave/cli/v3 v3.7.0
+	github.com/yuin/goldmark v1.4.13
 	go.lsp.dev/jsonrpc2 v0.10.0
 	go.lsp.dev/protocol v0.12.0
 	go.lsp.dev/uri v0.3.0
