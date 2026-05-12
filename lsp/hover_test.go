@@ -104,7 +104,8 @@ func TestHoverOnDottedFunc(t *testing.T) {
 func TestHoverUserDefinedFunc(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 func proxy_host(domain: string, forward_host: string, forward_port: int = 443) string {
   return ""
@@ -118,7 +119,7 @@ proxy_host(domain = "test")
 	result, err := s.Hover(context.Background(), &protocol.HoverParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 6, Character: 5},
+			Position:     protocol.Position{Line: 7, Character: 5},
 		},
 	})
 	if err != nil {
@@ -182,13 +183,14 @@ let x = pve.Console.xtermjs
 func TestHover_UserType_NoFieldsOpaque(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Opaque
 `
 	s.docs.Open(docURI, text, 1)
 
-	result := hoverAt(t, s, docURI, 2, 7)
+	result := hoverAt(t, s, docURI, 3, 7)
 	if result == nil {
 		t.Fatal("expected hover for opaque type")
 	}
@@ -198,7 +200,8 @@ type Opaque
 func TestHover_UserFunc(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 func greet(name: string, loud: bool = false) string {
   return "hi"
@@ -208,14 +211,15 @@ greet(name = "world")
 `
 	s.docs.Open(docURI, text, 1)
 
-	result := hoverAt(t, s, docURI, 6, 3)
+	result := hoverAt(t, s, docURI, 7, 3)
 	requireHoverContains(t, result, "greet", "name", "loud")
 }
 
 func TestHover_LetBindingStructType(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Box {
   label: string
@@ -225,14 +229,15 @@ let b = Box { label = "x" }
 `
 	s.docs.Open(docURI, text, 1)
 
-	result := hoverAt(t, s, docURI, 6, 5)
+	result := hoverAt(t, s, docURI, 7, 5)
 	requireHoverContains(t, result, "b", "Box")
 }
 
 func TestHover_ForLoopVar(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Item {
   id: int
@@ -249,7 +254,7 @@ func use() string {
 `
 	s.docs.Open(docURI, text, 1)
 
-	result := hoverAt(t, s, docURI, 10, 14)
+	result := hoverAt(t, s, docURI, 11, 14)
 	if result != nil {
 		requireHoverContains(t, result, "item")
 	}
@@ -267,7 +272,8 @@ func TestHover_StdlibType(t *testing.T) {
 func TestHover_KwargInsideStructLitWithNewlines(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `posix.copy {
+	text := `
+posix.copy {
   src = posix.source_local { path = "./f" }
   dest = "/etc/foo"
   owner = "root"
@@ -275,14 +281,15 @@ func TestHover_KwargInsideStructLitWithNewlines(t *testing.T) {
 `
 	s.docs.Open(docURI, text, 1)
 
-	result := hoverAt(t, s, docURI, 3, 4)
+	result := hoverAt(t, s, docURI, 4, 4)
 	requireHoverContains(t, result, "owner")
 }
 
 func TestHoverUserDefinedTypeAtDecl(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Server {
   name: string
@@ -294,7 +301,7 @@ type Server {
 	result, err := s.Hover(context.Background(), &protocol.HoverParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 2, Character: 7},
+			Position:     protocol.Position{Line: 3, Character: 7},
 		},
 	})
 	if err != nil {

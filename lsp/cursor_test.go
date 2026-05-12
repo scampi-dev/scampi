@@ -198,14 +198,15 @@ func TestOffsetFromPosition_Normal(t *testing.T) {
 }
 
 func TestCursor_NestedBraces_InnerStructLit(t *testing.T) {
-	text := `outer {
+	text := `
+outer {
   inner {
     field =
   }
 }
 `
 
-	cur := AnalyzeCursor(text, 2, 12)
+	cur := AnalyzeCursor(text, 3, 12)
 	if !cur.InCall {
 		t.Fatal("should be InCall")
 	}
@@ -218,13 +219,14 @@ func TestCursor_NestedBraces_InnerStructLit(t *testing.T) {
 }
 
 func TestCursor_NestedBraces_OuterAfterInnerClosed(t *testing.T) {
-	text := `outer {
+	text := `
+outer {
   inner { a = 1 }
 
 }
 `
 
-	cur := AnalyzeCursor(text, 2, 2)
+	cur := AnalyzeCursor(text, 3, 2)
 	if !cur.InCall {
 		t.Fatal("should be InCall")
 	}
@@ -235,11 +237,12 @@ func TestCursor_NestedBraces_OuterAfterInnerClosed(t *testing.T) {
 
 func TestCursor_ForLoopBrace_IsNotStructLit(t *testing.T) {
 
-	text := `for x in items {
+	text := `
+for x in items {
 
 }
 `
-	cur := AnalyzeCursor(text, 1, 2)
+	cur := AnalyzeCursor(text, 2, 2)
 
 	if cur.InCall && cur.FuncName == "items" {
 
@@ -248,11 +251,12 @@ func TestCursor_ForLoopBrace_IsNotStructLit(t *testing.T) {
 }
 
 func TestCursor_FuncBody_IsNotStructLit(t *testing.T) {
-	text := `func foo(x: int) string {
+	text := `
+func foo(x: int) string {
 
 }
 `
-	cur := AnalyzeCursor(text, 1, 2)
+	cur := AnalyzeCursor(text, 2, 2)
 
 	if cur.InCall {
 		t.Error("func body should NOT be InCall")
@@ -261,18 +265,20 @@ func TestCursor_FuncBody_IsNotStructLit(t *testing.T) {
 
 func TestCursor_DeployBody(t *testing.T) {
 
-	text := `std.deploy(name = "x", targets = [t]) {
+	text := `
+std.deploy(name = "x", targets = [t]) {
 
 }
 `
-	cur := AnalyzeCursor(text, 1, 2)
+	cur := AnalyzeCursor(text, 2, 2)
 	if cur.InCall {
 		t.Error("deploy body should NOT be InCall (it's a block fill)")
 	}
 }
 
 func TestCursor_StructLitInsideDeployBody(t *testing.T) {
-	text := `std.deploy(name = "x", targets = [t]) {
+	text := `
+std.deploy(name = "x", targets = [t]) {
   posix.copy {
     src = posix.source_inline { content = "hi" }
 
@@ -280,7 +286,7 @@ func TestCursor_StructLitInsideDeployBody(t *testing.T) {
 }
 `
 
-	cur := AnalyzeCursor(text, 3, 4)
+	cur := AnalyzeCursor(text, 4, 4)
 	if !cur.InCall {
 		t.Fatal("should be InCall inside struct literal")
 	}
@@ -290,7 +296,8 @@ func TestCursor_StructLitInsideDeployBody(t *testing.T) {
 }
 
 func TestCursor_StructLitInsideForInsideDeploy(t *testing.T) {
-	text := `std.deploy(name = "x", targets = [t]) {
+	text := `
+std.deploy(name = "x", targets = [t]) {
   for item in list {
     posix.dir {
       path = "/tmp"
@@ -299,7 +306,7 @@ func TestCursor_StructLitInsideForInsideDeploy(t *testing.T) {
   }
 }
 `
-	cur := AnalyzeCursor(text, 4, 6)
+	cur := AnalyzeCursor(text, 5, 6)
 	if !cur.InCall {
 		t.Fatal("should be InCall")
 	}

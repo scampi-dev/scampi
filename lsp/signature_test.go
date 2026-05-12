@@ -83,7 +83,8 @@ func TestSignatureHelpOutsideCall(t *testing.T) {
 func TestSignatureHelpUserDefinedFunc(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 func proxy_host(domain: string, forward_host: string, forward_port: int = 443) string {
   return ""
@@ -96,7 +97,7 @@ proxy_host()
 	result, err := s.SignatureHelp(context.Background(), &protocol.SignatureHelpParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 6, Character: 11},
+			Position:     protocol.Position{Line: 7, Character: 11},
 		},
 	})
 	if err != nil {
@@ -164,7 +165,8 @@ func TestSignature_StructLitBraces(t *testing.T) {
 func TestSignature_UserFunc(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 func greet(name: string, loud: bool = false) string {
   return "hi"
@@ -174,7 +176,7 @@ greet(
 `
 	s.docs.Open(docURI, text, 1)
 
-	result := signatureAt(t, s, docURI, 6, 6)
+	result := signatureAt(t, s, docURI, 7, 6)
 	if result == nil {
 		t.Fatal("expected signature help for user func")
 	}

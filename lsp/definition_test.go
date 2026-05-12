@@ -126,7 +126,8 @@ func definitionAt(t *testing.T, s *Server, docURI protocol.DocumentURI, line, co
 func TestDefinition_FuncDecl(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 func add(a: int, b: int) int {
   return a + b
@@ -136,19 +137,20 @@ let r = add(1, 2)
 `
 	s.docs.Open(docURI, text, 1)
 
-	locs := definitionAt(t, s, docURI, 6, 9)
+	locs := definitionAt(t, s, docURI, 7, 9)
 	if len(locs) == 0 {
 		t.Fatal("expected definition location for 'add'")
 	}
-	if locs[0].Range.Start.Line != 2 {
-		t.Errorf("definition line = %d, want 2", locs[0].Range.Start.Line)
+	if locs[0].Range.Start.Line != 3 {
+		t.Errorf("definition line = %d, want 3", locs[0].Range.Start.Line)
 	}
 }
 
 func TestDefinition_TypeDecl(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Server {
   name: string
@@ -159,12 +161,12 @@ let s = Server { name = "web" }
 	s.docs.Open(docURI, text, 1)
 
 	// Goto def on "Server" in the struct literal.
-	locs := definitionAt(t, s, docURI, 6, 10)
+	locs := definitionAt(t, s, docURI, 7, 10)
 	if len(locs) == 0 {
 		t.Fatal("expected definition location for 'Server'")
 	}
-	if locs[0].Range.Start.Line != 2 {
-		t.Errorf("definition line = %d, want 2", locs[0].Range.Start.Line)
+	if locs[0].Range.Start.Line != 3 {
+		t.Errorf("definition line = %d, want 3", locs[0].Range.Start.Line)
 	}
 }
 

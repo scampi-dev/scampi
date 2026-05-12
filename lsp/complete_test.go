@@ -269,7 +269,8 @@ func proxy_host(domain: string, forward_host: string, forward_port: int = 443) s
 	mainPath := filepath.Join(dir, "main.scampi")
 	docURI := protocol.DocumentURI(uri.File(mainPath))
 	// User-defined function in same file
-	text := `module main
+	text := `
+module main
 
 func proxy_host(domain: string, forward_host: string, forward_port: int = 443) string {
   return ""
@@ -315,7 +316,8 @@ func TestCompletionTopLevelIncludesUserDecls(t *testing.T) {
 
 	s := testServer()
 	docURI := protocol.DocumentURI(uri.File(mainPath))
-	text := `module main
+	text := `
+module main
 
 type X {
   name: string
@@ -335,7 +337,7 @@ func bb() string {
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 11, Character: 3},
+			Position:     protocol.Position{Line: 12, Character: 3},
 		},
 	})
 	if err != nil {
@@ -363,7 +365,8 @@ func TestCompletionUFCS(t *testing.T) {
 
 	s := testServer()
 	docURI := protocol.DocumentURI(uri.File(mainPath))
-	text := `module main
+	text := `
+module main
 
 func double(n: int) int {
   return n + n
@@ -388,7 +391,7 @@ n.
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 15, Character: 2},
+			Position:     protocol.Position{Line: 16, Character: 2},
 		},
 	})
 	if err != nil {
@@ -417,7 +420,8 @@ func TestCompletion_UserType_InList_NewLine(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
 
-	text := `module main
+	text := `
+module main
 
 type Container {
   id:       int
@@ -433,7 +437,7 @@ let items = [
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 10, 4)
+	items := completionAt(t, s, docURI, 11, 4)
 	if len(items) == 0 {
 		t.Fatal("expected field completions on new line inside user type in list")
 	}
@@ -443,7 +447,8 @@ let items = [
 func TestCompletion_UserType_InList_PartialFields(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Server {
   name: string
@@ -459,7 +464,7 @@ let servers = [
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 10, 25)
+	items := completionAt(t, s, docURI, 11, 25)
 	if len(items) == 0 {
 		t.Fatal("expected completions")
 	}
@@ -519,7 +524,8 @@ func rejectLabels(t *testing.T, items []protocol.CompletionItem, reject ...strin
 func TestCompletion_UserType_InListAfterExisting(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Item {
   id:   int
@@ -534,7 +540,7 @@ let items = [
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 10, 16)
+	items := completionAt(t, s, docURI, 11, 16)
 	if len(items) == 0 {
 		t.Fatal("expected field completions")
 	}
@@ -545,7 +551,8 @@ let items = [
 func TestCompletion_UserType_InNestedCall(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 import "std"
 import "std/ssh"
 import "std/posix"
@@ -566,7 +573,7 @@ std.deploy(name = "d", targets = [t]) {
 `
 
 	s.docs.Open(docURI, text, 1)
-	items := completionAt(t, s, docURI, 15, 4)
+	items := completionAt(t, s, docURI, 16, 4)
 	if len(items) == 0 {
 		t.Fatal("expected completions inside deploy body")
 	}
@@ -575,7 +582,8 @@ std.deploy(name = "d", targets = [t]) {
 func TestCompletion_UserType_InForLoop(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Box {
   label: string
@@ -599,7 +607,7 @@ func use() string {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 17, 18)
+	items := completionAt(t, s, docURI, 18, 18)
 	if len(items) == 0 {
 		t.Fatal("expected field completions for user type in for loop body")
 	}
@@ -609,7 +617,8 @@ func use() string {
 func TestCompletion_UserType_WithDefaults(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Entry {
   key:   string
@@ -621,7 +630,7 @@ let e = Entry {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 8, 16)
+	items := completionAt(t, s, docURI, 9, 16)
 	if len(items) == 0 {
 		t.Fatal("expected completions")
 	}
@@ -631,7 +640,8 @@ let e = Entry {
 func TestCompletion_DotAccess_LetBindingPrefix(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Server {
   name: string
@@ -644,7 +654,7 @@ let n = srv.na
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 9, 14)
+	items := completionAt(t, s, docURI, 10, 14)
 	if len(items) == 0 {
 		t.Fatal("expected filtered struct field completions")
 	}
@@ -655,14 +665,15 @@ let n = srv.na
 func TestCompletion_DotAccess_NoFieldsOnNonStruct(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 let x = "hello"
 let y = x.
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 3, 10)
+	items := completionAt(t, s, docURI, 4, 10)
 
 	for _, item := range items {
 		if item.Kind == protocol.CompletionItemKindField {
@@ -674,7 +685,8 @@ let y = x.
 func TestCompletion_DotAccess_InsideListLiteral(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Cfg {
   host: string
@@ -686,7 +698,7 @@ let items = [c.
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 8, 15)
+	items := completionAt(t, s, docURI, 9, 15)
 	if len(items) == 0 {
 		t.Fatal("expected struct field completions inside list literal")
 	}
@@ -696,7 +708,8 @@ let items = [c.
 func TestCompletion_DotAccess_FuncParam(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Rec {
   a: int
@@ -710,7 +723,7 @@ func process(r: Rec) string {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 8, 12)
+	items := completionAt(t, s, docURI, 9, 12)
 	if len(items) == 0 {
 		t.Fatal("expected struct field completions for func param")
 	}
@@ -720,7 +733,8 @@ func process(r: Rec) string {
 func TestCompletion_KwargsExclusion_MixedCommasNewlines(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `posix.copy {
+	text := `
+posix.copy {
   src = posix.source_local { path = "./f" },
   dest = "/etc/foo"
   owner = "root"
@@ -729,7 +743,7 @@ func TestCompletion_KwargsExclusion_MixedCommasNewlines(t *testing.T) {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 4, 2)
+	items := completionAt(t, s, docURI, 5, 2)
 	if len(items) == 0 {
 		t.Fatal("expected completions")
 	}
@@ -753,7 +767,8 @@ func TestCompletion_KwargsExclusion_CursorAtStart(t *testing.T) {
 func TestCompletion_KwargsExclusion_AllPresent(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `posix.dir {
+	text := `
+posix.dir {
   path = "/tmp/test"
   state = "present"
   owner = "root"
@@ -764,7 +779,7 @@ func TestCompletion_KwargsExclusion_AllPresent(t *testing.T) {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 6, 2)
+	items := completionAt(t, s, docURI, 7, 2)
 
 	rejectLabels(t, items, "path", "state", "owner", "group", "mode")
 }
@@ -772,7 +787,8 @@ func TestCompletion_KwargsExclusion_AllPresent(t *testing.T) {
 func TestCompletion_RealWorld_PVEForLoop(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 import "std"
 import "std/ssh"
 import "std/pve"
@@ -810,7 +826,7 @@ std.deploy(name = "pve", targets = [midgard]) {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 31, 6)
+	items := completionAt(t, s, docURI, 32, 6)
 	if len(items) == 0 {
 		t.Fatal("expected completions inside pve.lxc")
 	}
@@ -841,7 +857,8 @@ std.deploy(name = "pve", targets = [midgard]) {
 func TestCompletion_DeployBody_TopLevel(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 import "std"
 import "std/ssh"
 import "std/posix"
@@ -854,7 +871,7 @@ std.deploy(name = "d", targets = [t]) {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 8, 5)
+	items := completionAt(t, s, docURI, 9, 5)
 	if len(items) == 0 {
 		t.Fatal("expected completions inside deploy body")
 	}
@@ -949,7 +966,8 @@ func TestCompletion_NoDocs(t *testing.T) {
 func TestCompletion_UserFunc_InTopLevel(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 func proxy_host(domain: string) string {
   return ""
@@ -959,14 +977,15 @@ pro
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 6, 3)
+	items := completionAt(t, s, docURI, 7, 3)
 	requireLabels(t, items, "proxy_host")
 }
 
 func TestCompletion_UserLet_InTopLevel(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 let my_config = "test"
 
@@ -974,14 +993,15 @@ my
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 4, 2)
+	items := completionAt(t, s, docURI, 5, 2)
 	requireLabels(t, items, "my_config")
 }
 
 func TestCompletion_UserType_InTopLevel(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type MyConfig {
   name: string
@@ -991,14 +1011,15 @@ My
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 6, 2)
+	items := completionAt(t, s, docURI, 7, 2)
 	requireLabels(t, items, "MyConfig")
 }
 
 func TestCompletion_NestedStructLit_InnerKwargs(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `posix.copy {
+	text := `
+posix.copy {
   src = posix.source_local {
 
   }
@@ -1006,7 +1027,7 @@ func TestCompletion_NestedStructLit_InnerKwargs(t *testing.T) {
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 2, 4)
+	items := completionAt(t, s, docURI, 3, 4)
 	if len(items) == 0 {
 		t.Fatal("expected kwargs for source_local")
 	}
@@ -1016,14 +1037,15 @@ func TestCompletion_NestedStructLit_InnerKwargs(t *testing.T) {
 func TestCompletion_NestedStructLit_OuterKwargs(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `posix.copy {
+	text := `
+posix.copy {
   src = posix.source_local { path = "./f" }
 
 }
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 2, 2)
+	items := completionAt(t, s, docURI, 3, 2)
 	if len(items) == 0 {
 		t.Fatal("expected kwargs for posix.copy")
 	}
@@ -1034,7 +1056,8 @@ func TestCompletion_NestedStructLit_OuterKwargs(t *testing.T) {
 func TestCompletion_UFCS_InFuncBody(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 import "std/posix"
 
 type MyTarget {
@@ -1050,7 +1073,7 @@ let x = tgt.
 `
 	s.docs.Open(docURI, text, 1)
 
-	items := completionAt(t, s, docURI, 12, 13)
+	items := completionAt(t, s, docURI, 13, 13)
 	if len(items) == 0 {
 		t.Fatal("expected completions for tgt.")
 	}
@@ -1381,7 +1404,8 @@ func TestCompletion_KeywordsOffered(t *testing.T) {
 func TestCompletionStructFieldForLoopVar(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Item {
   id:   int
@@ -1404,7 +1428,7 @@ func use(items: list[Item]) string {
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 13, Character: 17},
+			Position:     protocol.Position{Line: 14, Character: 17},
 		},
 	})
 	if err != nil {
@@ -1429,7 +1453,8 @@ func use(items: list[Item]) string {
 func TestCompletionStructFieldKind(t *testing.T) {
 	s := testServer()
 	docURI := protocol.DocumentURI("file:///test.scampi")
-	text := `module main
+	text := `
+module main
 
 type Box {
   label: string
@@ -1443,7 +1468,7 @@ let l = b.
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 7, Character: 10},
+			Position:     protocol.Position{Line: 8, Character: 10},
 		},
 	})
 	if err != nil {
@@ -1470,7 +1495,8 @@ func TestCompletionUFCSNestedScope(t *testing.T) {
 
 	s := testServer()
 	docURI := protocol.DocumentURI(uri.File(mainPath))
-	text := `module main
+	text := `
+module main
 
 type X {
   name: string
@@ -1494,7 +1520,7 @@ func bb() string {
 	result, err := s.Completion(context.Background(), &protocol.CompletionParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 16, Character: 4},
+			Position:     protocol.Position{Line: 17, Character: 4},
 		},
 	})
 	if err != nil {

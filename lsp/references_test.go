@@ -220,7 +220,8 @@ func TestReferencesAttrTypeFromDef(t *testing.T) {
 	//   - the def site itself
 	//   - every Attribute reference using `@secretkey` in this file
 	s := testServer()
-	text := `module main
+	text := `
+module main
 type @secretkey {}
 
 func secret(@secretkey name: string) string
@@ -234,7 +235,7 @@ let v = secret("foo")
 	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 1, Character: 7},
+			Position:     protocol.Position{Line: 2, Character: 7},
 		},
 	})
 	if err != nil {
@@ -252,7 +253,8 @@ func TestReferencesAttrTypeFromUse(t *testing.T) {
 	// Cursor on `@secretkey` use should also find both the def and
 	// the use itself.
 	s := testServer()
-	text := `module main
+	text := `
+module main
 type @secretkey {}
 
 func secret(@secretkey name: string) string
@@ -264,7 +266,7 @@ func secret(@secretkey name: string) string
 	locs, err := s.References(context.Background(), &protocol.ReferenceParams{
 		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
 			TextDocument: protocol.TextDocumentIdentifier{URI: docURI},
-			Position:     protocol.Position{Line: 3, Character: 16},
+			Position:     protocol.Position{Line: 4, Character: 16},
 		},
 	})
 	if err != nil {
