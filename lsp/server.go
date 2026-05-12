@@ -346,57 +346,6 @@ func (s *Server) SetTrace(context.Context, *protocol.SetTraceParams) error { ret
 func (s *Server) CodeAction(ctx context.Context, params *protocol.CodeActionParams) ([]protocol.CodeAction, error) {
 	return s.codeAction(ctx, params)
 }
-func (s *Server) CodeLens(_ context.Context, params *protocol.CodeLensParams) ([]protocol.CodeLens, error) {
-	doc, ok := s.docs.Get(params.TextDocument.URI)
-	if !ok {
-		return nil, nil
-	}
-
-	filePath := uriToPath(params.TextDocument.URI)
-	f, _ := Parse(filePath, []byte(doc.Content))
-	if f == nil {
-		return nil, nil
-	}
-
-	data := []byte(doc.Content)
-	var lenses []protocol.CodeLens
-
-	for _, d := range f.Decls {
-		name, span := declNameAndSpan(d)
-		if name == "" {
-			continue
-		}
-		refs := findIdents(f, filePath, data, name)
-		// Subtract 1 for the definition itself.
-		count := len(refs) - 1
-		if count < 0 {
-			count = 0
-		}
-		label := fmt.Sprintf("%d references", count)
-		if count == 1 {
-			label = "1 reference"
-		}
-		r := tokenSpanToRange(data, span)
-		lenses = append(lenses, protocol.CodeLens{
-			Range: r,
-			Command: &protocol.Command{
-				Title:   label,
-				Command: "editor.action.showReferences",
-				Arguments: []any{
-					params.TextDocument.URI,
-					r.Start,
-					refs,
-				},
-			},
-		})
-	}
-
-	s.log.Printf("codeLens: %s → %d lenses", filePath, len(lenses))
-	return lenses, nil
-}
-func (s *Server) CodeLensResolve(context.Context, *protocol.CodeLens) (*protocol.CodeLens, error) {
-	return nil, nil
-}
 func (s *Server) CompletionResolve(
 	_ context.Context,
 	item *protocol.CompletionItem,
@@ -455,58 +404,6 @@ func (s *Server) ColorPresentation(
 	return []protocol.ColorPresentation{{
 		Label: hexFromColor(params.Color),
 	}}, nil
-}
-func (s *Server) DocumentHighlight(
-	_ context.Context,
-	params *protocol.DocumentHighlightParams,
-) ([]protocol.DocumentHighlight, error) {
-	doc, ok := s.docs.Get(params.TextDocument.URI)
-	if !ok {
-		return nil, nil
-	}
-
-	word := wordAtOffset(doc.Content, offsetFromPosition(
-		doc.Content,
-		params.Position.Line,
-		params.Position.Character,
-	))
-	if word == "" {
-		return nil, nil
-	}
-
-	filePath := uriToPath(params.TextDocument.URI)
-	f, _ := Parse(filePath, []byte(doc.Content))
-	if f == nil {
-		return nil, nil
-	}
-
-	data := []byte(doc.Content)
-	var locs []protocol.Location
-	if strings.Contains(word, ".") {
-		locs = findDottedRefs(f, filePath, data, word)
-	} else {
-		locs = findIdents(f, filePath, data, word)
-	}
-
-	// Find definition to mark it as Write, all others as Read.
-	defSpan := findDefinition(f, word)
-
-	var highlights []protocol.DocumentHighlight
-	for _, loc := range locs {
-		kind := protocol.DocumentHighlightKindRead
-		if defSpan != nil {
-			r := tokenSpanToRange(data, *defSpan)
-			if r.Start == loc.Range.Start {
-				kind = protocol.DocumentHighlightKindWrite
-			}
-		}
-		highlights = append(highlights, protocol.DocumentHighlight{
-			Range: loc.Range,
-			Kind:  kind,
-		})
-	}
-	s.log.Printf("documentHighlight: %s %q → %d highlights", filePath, word, len(highlights))
-	return highlights, nil
 }
 func (s *Server) DocumentLink(context.Context, *protocol.DocumentLinkParams) ([]protocol.DocumentLink, error) {
 	return nil, nil
@@ -602,7 +499,6 @@ func (s *Server) WillCreateFiles(
 func (s *Server) DidCreateFiles(context.Context, *protocol.CreateFilesParams) error { return nil }
 func (s *Server) DidRenameFiles(context.Context, *protocol.RenameFilesParams) error { return nil }
 func (s *Server) DidDeleteFiles(context.Context, *protocol.DeleteFilesParams) error { return nil }
-func (s *Server) CodeLensRefresh(context.Context) error                             { return nil }
 func (s *Server) SemanticTokensRefresh(context.Context) error                       { return nil }
 func (s *Server) WillRenameFiles(
 	context.Context,
