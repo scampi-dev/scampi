@@ -34,6 +34,17 @@ labels: <Kind/X>, <Impact/Y>, <Priority/Z>[, milestone: <id>]
 
 5. **Tone / project conventions**. No corporate-speak. No "I'd be happy to". No emojis unless the original had them. Don't second-guess wording — only fix the mechanical issues above.
 
+6. **Triage — Kind / Impact / Priority sanity check**. Given what the cited code actually does and how it's used:
+   - **Kind**: does the fix shape match (`Bug` = something broken, `Feature` = new surface, `Enhancement` = improving existing surface, `Optimization` = perf/cleanup/refactor without behavior change, `Testing` = test-only, `Documentation` = docs-only)?
+   - **Impact**: cross-reference the cited symbol with `gopls go_symbol_references` or grep. Many internal callers ≠ low impact. A user-facing API that one demo uses ≠ high impact. Reasonable defaults: 1-2 internal call sites → Low; broad internal use OR single user-facing entry point → Medium; foundational/security/data-loss → High.
+   - **Priority**: a real-user-visible bug or risk → at least Medium. A theoretical issue or far-future cleanup → Low. Active blocker → High. Don't over-promote; "would be nice" is Low.
+
+   If the proposed labels seem clearly off:
+   - **Off by one step** (e.g. Impact/Low → Medium): apply the fix, log it in stdout summary (`relabeled Impact/Low → Impact/Medium because <reason>`).
+   - **Multiple steps off OR Kind mismatch**: write a sidecar `${EVAL_PATH}.failed.txt` proposing the revised labels and reasoning; leave the file in place for human review. Don't silently rewrite Kind.
+
+   When labels match: nothing to do. Don't editorialise.
+
 ## Outcomes
 
 - **All checks pass**: `mv "$EVAL_PATH" .issues/pusher-inbox/$(basename "$EVAL_PATH")`. Output one short line on stdout describing what was checked.
