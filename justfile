@@ -85,6 +85,9 @@ mod site
 [doc("Codeberg repo management")]
 mod cb 'codeberg.just'
 
+[doc("Issue pipeline (eval + push loops; just issues --list for subcommands)")]
+mod issues
+
 [doc("Install external build/lint dependencies")]
 setup:
   #!/usr/bin/env bash
