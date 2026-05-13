@@ -7,6 +7,5 @@
       "/etc/sudoers.d/hal9000": "0440"
     }
   },
-  "changed": 3,
-  "memOnly": true
+  "changed": 3
 }

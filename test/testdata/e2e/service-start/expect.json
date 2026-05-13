@@ -8,6 +8,5 @@
       "nginx": true
     }
   },
-  "changed": 2,
-  "memOnly": true
+  "changed": 2
 }

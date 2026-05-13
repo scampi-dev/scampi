@@ -4,6 +4,7 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["step.sysctl.WriteFailed"],
-  "memOnly": true
+  "diagnostics": [
+    "step.sysctl.WriteFailed"
+  ]
 }

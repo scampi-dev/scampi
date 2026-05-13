@@ -93,9 +93,6 @@ type E2EExpect struct {
 
 	// Diagnostics lists expected diagnostic template IDs (optional).
 	Diagnostics []string `json:"diagnostics,omitempty"`
-
-	// MemOnly skips non-mem drivers (for scenarios that require simulated state).
-	MemOnly bool `json:"memOnly,omitempty"`
 }
 
 func TestE2E(t *testing.T) {
@@ -105,9 +102,6 @@ func TestE2E(t *testing.T) {
 	if err != nil {
 		t.Skip("../testdata/e2e directory not found")
 	}
-
-	// Get all available drivers
-	drivers := AllDrivers(t)
 
 	for _, e := range entries {
 		if !e.IsDir() {
@@ -123,15 +117,13 @@ func TestE2E(t *testing.T) {
 			continue
 		}
 
-		for _, driver := range drivers {
-			t.Run(name+"/"+driver.Name(), func(t *testing.T) {
-				runE2EScenarioWithDriver(t, scenarioDir, "config.scampi", driver)
-			})
-		}
+		t.Run(name, func(t *testing.T) {
+			runE2EScenario(t, scenarioDir, "config.scampi")
+		})
 	}
 }
 
-func runE2EScenarioWithDriver(t *testing.T, dir string, cfgFilename string, driver E2EDriver) {
+func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 	cfgPath := filepath.Join(dir, cfgFilename)
 	sourcePath := filepath.Join(dir, "source.json")
 	targetPath := filepath.Join(dir, "target.json")
@@ -154,13 +146,8 @@ func runE2EScenarioWithDriver(t *testing.T, dir string, cfgFilename string, driv
 	// Load expected outcomes
 	expect := loadE2EExpect(t, expectPath)
 
-	if expect.MemOnly && driver.Name() != "mem" {
-		t.Skip("scenario requires simulated state (memOnly)")
-	}
-
-	// Setup driver with initial target state
-	tgt, ti, cleanup := driver.Setup(t, tgtFiles)
-	defer cleanup()
+	// Seed in-memory target with the scenario's initial state.
+	tgt, ti := setupMemTarget(t, tgtFiles)
 
 	// Build MemSource with config + source files
 	src := source.NewMemSource()
@@ -221,8 +208,8 @@ func runE2EScenarioWithDriver(t *testing.T, dir string, cfgFilename string, driv
 		t.Fatalf("expected success, got error: %v\n%s", err, rec)
 	}
 
-	// Verify target state using driver
-	driver.Verify(t, expect.Target)
+	// Verify target state.
+	verifyMemTarget(t, tgt, expect.Target)
 
 	// Assert changed count
 	gotChanged := rec.CountChangedOps()

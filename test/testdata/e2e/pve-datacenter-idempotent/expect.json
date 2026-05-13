@@ -4,6 +4,5 @@
       "/etc/pve/datacenter.cfg": "console: xtermjs\nkeyboard: en-us\n"
     }
   },
-  "changed": 0,
-  "memOnly": true
+  "changed": 0
 }

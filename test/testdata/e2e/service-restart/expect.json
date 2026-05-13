@@ -11,6 +11,5 @@
       "nginx": 1
     }
   },
-  "changed": 1,
-  "memOnly": true
+  "changed": 1
 }

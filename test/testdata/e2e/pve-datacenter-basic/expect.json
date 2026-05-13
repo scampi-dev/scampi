@@ -7,6 +7,5 @@
       "/etc/pve/datacenter.cfg": "0640"
     }
   },
-  "changed": 1,
-  "memOnly": true
+  "changed": 1
 }

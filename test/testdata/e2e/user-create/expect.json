@@ -5,10 +5,12 @@
       "hal9000": {
         "shell": "/bin/bash",
         "home": "/home/hal9000",
-        "groups": ["sudo", "docker"]
+        "groups": [
+          "sudo",
+          "docker"
+        ]
       }
     }
   },
-  "changed": 1,
-  "memOnly": true
+  "changed": 1
 }

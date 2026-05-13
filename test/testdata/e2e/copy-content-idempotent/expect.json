@@ -4,6 +4,5 @@
       "/etc/sudoers.d/hal9000": "hal9000 ALL=(ALL) NOPASSWD:ALL\n"
     }
   },
-  "changed": 0,
-  "memOnly": true
+  "changed": 0
 }

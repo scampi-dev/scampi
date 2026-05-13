@@ -5,7 +5,10 @@
       "/home/hal9000": true
     },
     "owners": {
-      "/home/hal9000": {"user": "hal9000", "group": "hal9000"}
+      "/home/hal9000": {
+        "user": "hal9000",
+        "group": "hal9000"
+      }
     },
     "users": {
       "hal9000": {
@@ -14,6 +17,5 @@
       }
     }
   },
-  "changed": 1,
-  "memOnly": true
+  "changed": 1
 }

@@ -4,6 +4,7 @@
   },
   "changed": 0,
   "error": true,
-  "diagnostics": ["step.run.ApplyFailed"],
-  "memOnly": true
+  "diagnostics": [
+    "step.run.ApplyFailed"
+  ]
 }
