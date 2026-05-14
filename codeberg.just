@@ -83,6 +83,12 @@ set-milestone issue_number milestone_id:
     "{{codeberg_api}}" "{{codeberg_repo}}" \
     "{{issue_number}}" "{{milestone_id}}"
 
+[doc("Close a milestone")]
+close-milestone milestone_id:
+  ./scripts/codeberg-close-milestone.sh \
+    "{{codeberg_api}}" "{{codeberg_repo}}" \
+    "{{milestone_id}}"
+
 # Releases
 # ##############################################################################
 
