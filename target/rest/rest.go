@@ -12,6 +12,7 @@ import (
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/secret"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
@@ -33,7 +34,7 @@ func (REST) NewConfig() any {
 		TLS:  SecureTLSConfig{},
 	}
 }
-func (REST) Create(_ context.Context, _ source.Source, tgt spec.TargetInstance) (target.Target, error) {
+func (REST) Create(ctx context.Context, _ source.Source, tgt spec.TargetInstance) (target.Target, error) {
 	cfg, ok := tgt.Config.(*Config)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &Config{}, cfg)
@@ -47,6 +48,15 @@ func (REST) Create(_ context.Context, _ source.Source, tgt spec.TargetInstance) 
 	if bearer, ok := cfg.Auth.(BearerAuthConfig); ok {
 		bearer.TokenEndpoint = cfg.BaseURL + bearer.TokenEndpoint
 		cfg.Auth = bearer
+
+		// Defense in depth (#312): register both identity and secret
+		// with the on-context redactor so any stray interpolation into
+		// diagnostics — or a response body that echoes credentials —
+		// gets scrubbed before reaching the user.
+		if red := secret.FromContext(ctx); red != nil {
+			red.Add(bearer.Identity)
+			red.Add(bearer.Secret)
+		}
 	}
 
 	rt := &RESTTarget{config: cfg}

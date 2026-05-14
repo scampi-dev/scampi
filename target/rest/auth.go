@@ -5,7 +5,6 @@ package rest
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
 	"sync"
 
@@ -209,8 +208,10 @@ func (t *bearerTransport) ensureToken(origReq *http.Request) error {
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return errs.WrapErrf(errTokenFetch, "status %d: %s", resp.StatusCode, string(respBody))
+		// Body intentionally omitted — some token servers echo the
+		// submitted credentials back into 4xx bodies (#312). Status
+		// and endpoint URL is enough to debug.
+		return errs.WrapErrf(errTokenFetch, "status %d from %s", resp.StatusCode, t.tokenEndpoint)
 	}
 
 	var result map[string]any
