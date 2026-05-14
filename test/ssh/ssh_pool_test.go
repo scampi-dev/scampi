@@ -206,8 +206,21 @@ func TestSSH_RunCommand_ContextCancellation(t *testing.T) {
 	for range maxSessions {
 		<-saturating
 	}
-	// Give the sleeping ops a moment to actually grab their slots.
-	time.Sleep(100 * time.Millisecond)
+	// `saturating` fires before each goroutine calls RunCommand. Slot
+	// acquisition happens inside RunCommand, so we have to wait for
+	// the pool's semaphore to fill. Poll instead of fixed-sleep —
+	// fast on local, robust on slow CI. We watch SessionsAcquired
+	// (semaphore tokens held) rather than SessionsInFlight because
+	// the ssh server's MaxStartups may keep some opens in retry,
+	// which still holds a semaphore slot but isn't yet open.
+	deadline := time.Now().Add(2 * time.Second)
+	for tgt.Stats().SessionsAcquired < int64(maxSessions) {
+		if time.Now().After(deadline) {
+			t.Fatalf("pool did not saturate within 2s (acquired=%d, want %d)",
+				tgt.Stats().SessionsAcquired, maxSessions)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 
 	// This call should block on slot acquire, then return ctx.Err()
 	// when ctx is cancelled — not hang or panic.

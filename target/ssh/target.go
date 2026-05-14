@@ -75,6 +75,8 @@ type SSHStats struct {
 	DialCount            int64
 	MaxSessions          int64
 	SessionsOpened       int64
+	SessionsInFlight     int64 // open + currently checked out
+	SessionsAcquired     int64 // semaphore tokens held (includes retry-to-open waiters)
 	SessionsPeakInFlight int64
 	SessionRetries       int64
 	CommandsRun          int64
@@ -97,6 +99,8 @@ func (t *SSHTarget) Stats() SSHStats {
 		DialCount:            t.dialCount.Load(),
 		MaxSessions:          int64(t.pool.capacity),
 		SessionsOpened:       t.pool.sessionsOpened.Load(),
+		SessionsInFlight:     t.pool.sessionsInFlight.Load(),
+		SessionsAcquired:     int64(len(t.pool.sem)),
 		SessionsPeakInFlight: t.pool.sessionsPeakSeen.Load(),
 		SessionRetries:       t.pool.sessionRetries.Load(),
 		CommandsRun:          t.pool.commandsRun.Load(),
