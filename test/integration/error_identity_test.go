@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"scampi.dev/scampi/engine"
@@ -15,12 +16,30 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
+// assertEnginePanic verifies the engine raised a BUG panic wrapping origMsg.
+// Bare `recover() == nil` checks let unrelated panics (nil derefs, etc.) pass
+// the test silently — this asserts on the panic value's shape and content.
+// Caller invokes via `defer func() { assertEnginePanic(t, recover(), msg) }()`.
+func assertEnginePanic(t *testing.T, r any, origMsg string) {
+	t.Helper()
+	if r == nil {
+		t.Fatalf("expected panic, got none")
+	}
+	err, ok := r.(error)
+	if !ok {
+		t.Fatalf("expected panic value to be error, got %T: %v", r, r)
+	}
+	msg := err.Error()
+	if !strings.HasPrefix(msg, "BUG:") {
+		t.Fatalf("expected BUG panic, got: %v", err)
+	}
+	if !strings.Contains(msg, origMsg) {
+		t.Fatalf("expected panic to wrap %q, got: %v", origMsg, err)
+	}
+}
+
 func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatalf("expected panic for raw check error")
-		}
-	}()
+	defer func() { assertEnginePanic(t, recover(), "random check error") }()
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
@@ -62,11 +81,7 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 }
 
 func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatalf("expected panic for raw exec error")
-		}
-	}()
+	defer func() { assertEnginePanic(t, recover(), "random exec error") }()
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
