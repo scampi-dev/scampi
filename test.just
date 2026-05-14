@@ -93,7 +93,7 @@ bench save_as='' count='10' benchtime='100ms':
     }
   }}
 
-[doc("Show test coverage by package — instruments the whole module so cross-package tests are credited (filter: grep pattern)")]
+[doc("Show test coverage by package — runs the full suite (incl. containers) with -coverpkg, filters generated/main files, summary sorted by coverage ascending (filter: grep pattern)")]
 coverage filter='':
   #!/usr/bin/env bash
   set -euo pipefail
@@ -101,7 +101,11 @@ coverage filter='':
   if [[ -n "{{filter}}" ]]; then
     pkglist=$(echo "$pkglist" | grep "{{filter}}")
   fi
-  go test -coverpkg=./... -coverprofile=coverage.out $pkglist >/dev/null
+  SCAMPI_TEST_CONTAINERS=1 go test -coverpkg=./... -coverprofile=coverage.raw.out $pkglist >/dev/null
+  # Drop generated stringer files and bare CLI entrypoints — noise in
+  # the HTML view, and skews per-package numbers. The mode: header
+  # doesn't match the pattern and survives.
+  grep -v -E '(_string\.go|cmd/scampi/main\.go|cmd/scampls/main\.go):' coverage.raw.out > coverage.out
   printf "%-50s %8s\n" "PACKAGE" "COVERAGE"
   printf "%-50s %8s\n" "-------" "--------"
   go tool cover -func=coverage.out \
@@ -116,11 +120,11 @@ coverage filter='':
         END {
           for (p in sum) printf "%-50s %7.1f%%\n", p, sum[p]/n[p]
         }' \
-    | sort
+    | sort -k2 -n
   echo
   go tool cover -func=coverage.out | tail -1
 
-[doc("Per-function coverage from coverage.out (filter: grep pattern; run `just test coverage` first)")]
+[doc("Per-function coverage from coverage.out, sorted by coverage ascending (filter: grep pattern; run `just test coverage` first)")]
 coverage-func filter='':
   #!/usr/bin/env bash
   set -euo pipefail
@@ -129,9 +133,10 @@ coverage-func filter='':
     exit 1
   fi
   if [[ -n "{{filter}}" ]]; then
-    go tool cover -func=coverage.out | grep "{{filter}}"
+    go tool cover -func=coverage.out | grep "{{filter}}" | sort -k3 -n
   else
-    go tool cover -func=coverage.out
+    go tool cover -func=coverage.out | grep -v '^total:' | sort -k3 -n
+    go tool cover -func=coverage.out | grep '^total:'
   fi
 
 [doc("Open HTML coverage report from coverage.out (run `just test coverage` first)")]
