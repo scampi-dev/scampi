@@ -209,6 +209,50 @@ func TestResolveDeps_BranchLosesToRelease(t *testing.T) {
 	}
 }
 
+// Regression test for #331. The project pins foo@v1.2.0 directly; a
+// transitive dep declares it needs foo@v1.3.0. MVS must NOT silently
+// upgrade the direct pin — the user explicitly set v1.2.0. Return a
+// typed DirectPinConflictError so the conflict surfaces.
+func TestResolveDeps_DirectPin_TransitiveBumpRefused(t *testing.T) {
+	src := source.NewMemSource()
+	ctx := context.Background()
+	cacheDir := "/cache"
+
+	// Project requires (direct):
+	//   a v1.0.0
+	//   foo v1.2.0   ← direct pin
+	// a@v1.0.0 requires foo v1.3.0 (transitive bump attempt)
+	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
+		modContent("codeberg.org/user/a", "codeberg.org/user/foo v1.3.0")
+	src.Files["/cache/codeberg.org/user/foo@v1.2.0/scampi.mod"] =
+		modContent("codeberg.org/user/foo")
+	src.Files["/cache/codeberg.org/user/foo@v1.3.0/scampi.mod"] =
+		modContent("codeberg.org/user/foo")
+
+	direct := []Dependency{
+		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
+		{Path: "codeberg.org/user/foo", Version: "v1.2.0"},
+	}
+
+	_, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
+	if err == nil {
+		t.Fatal("expected DirectPinConflictError, got nil")
+	}
+	var conflict *DirectPinConflictError
+	if !errors.As(err, &conflict) {
+		t.Fatalf("expected *DirectPinConflictError, got %T: %v", err, err)
+	}
+	if conflict.ModPath != "codeberg.org/user/foo" {
+		t.Errorf("ModPath = %q, want codeberg.org/user/foo", conflict.ModPath)
+	}
+	if conflict.DirectVersion != "v1.2.0" {
+		t.Errorf("DirectVersion = %q, want v1.2.0", conflict.DirectVersion)
+	}
+	if conflict.TransitiveVersion != "v1.3.0" {
+		t.Errorf("TransitiveVersion = %q, want v1.3.0", conflict.TransitiveVersion)
+	}
+}
+
 func TestResolveDeps_Cycle(t *testing.T) {
 	src := source.NewMemSource()
 	ctx := context.Background()

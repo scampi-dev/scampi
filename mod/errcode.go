@@ -24,4 +24,5 @@ const (
 	CodeNoStableVersion errs.Code = "mod.NoStableVersion"
 	CodeCycleError      errs.Code = "mod.CycleError"
 	CodeSumMismatch     errs.Code = "mod.SumMismatch"
+	CodeDirectPin       errs.Code = "mod.DirectPinConflict"
 )

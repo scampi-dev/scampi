@@ -71,20 +71,32 @@ func ResolveDeps(
 		}
 		visited[key] = true
 
-		m, err := readModFromCache(ctx, src, dep, cacheDir)
+		depMod, err := readModFromCache(ctx, src, dep, cacheDir)
 		if err != nil {
 			return nil, err
 		}
-		if m == nil {
+		if depMod == nil {
 			continue
 		}
 
-		for _, req := range m.Require {
+		for _, req := range depMod.Require {
 			if req.IsLocal() {
 				continue
 			}
 			prev, ok := selected[req.Path]
 			if !ok || semver.Compare(req.Version, prev) > 0 {
+				// Direct pin conflict (#331): if the project pins this
+				// path directly, refuse to silently upgrade. Force the
+				// user to make the decision explicit.
+				if ok && directPaths[req.Path] {
+					return nil, &DirectPinConflictError{
+						ModPath:           req.Path,
+						DirectVersion:     prev,
+						TransitiveVersion: req.Version,
+						DemandedBy:        dep.Path,
+						Source:            directDepSpanByPath(m, req.Path),
+					}
+				}
 				selected[req.Path] = req.Version
 			}
 			queue = append(queue, Dependency{Path: req.Path, Version: req.Version})
@@ -249,6 +261,21 @@ func buildCycleChain(parent map[string]string, from, to string) []string {
 	slices.Reverse(chain)
 	chain = append(chain, to)
 	return chain
+}
+
+// directDepSpanByPath returns the source span for the require entry in m
+// whose Path matches. Used when an error needs to point at the project's
+// scampi.mod entry that participated in the conflict, given only the path.
+func directDepSpanByPath(m *Module, path string) spec.SourceSpan {
+	if m == nil {
+		return spec.SourceSpan{}
+	}
+	for i := range m.Require {
+		if m.Require[i].Path == path {
+			return m.DepSpan(&m.Require[i])
+		}
+	}
+	return spec.SourceSpan{}
 }
 
 func countLocal(deps []Dependency) int {

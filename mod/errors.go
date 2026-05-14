@@ -424,3 +424,37 @@ func (e *SumMismatchError) EventTemplate() event.Template {
 		Source: &e.Source,
 	}
 }
+
+// DirectPinConflictError
+// -----------------------------------------------------------------------------
+
+// DirectPinConflictError is raised when a transitive dependency requires a
+// higher version of a module than the project directly pins. MVS would
+// silently upgrade the pin; this error makes the conflict explicit so the
+// user can either bump the direct require or fix the transitive demand.
+type DirectPinConflictError struct {
+	diagnostic.FatalError
+	ModPath           string
+	DirectVersion     string
+	TransitiveVersion string
+	DemandedBy        string // the dependency whose transitive require triggered the conflict
+	Source            spec.SourceSpan
+}
+
+func (e *DirectPinConflictError) Error() string {
+	return fmt.Sprintf(
+		"%s pinned to %s but %s requires %s",
+		e.ModPath, e.DirectVersion, e.DemandedBy, e.TransitiveVersion,
+	)
+}
+
+func (e *DirectPinConflictError) EventTemplate() event.Template {
+	return event.Template{
+		ID:   CodeDirectPin,
+		Text: "{{.ModPath}} pinned to {{.DirectVersion}} but {{.DemandedBy}} requires {{.TransitiveVersion}}",
+		Hint: "bump the direct require in scampi.mod, " +
+			"or use an older {{.DemandedBy}} that doesn't demand the upgrade",
+		Data:   e,
+		Source: &e.Source,
+	}
+}
