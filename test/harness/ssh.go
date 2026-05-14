@@ -164,10 +164,27 @@ func WaitForSSHOrErr(host string, port int, timeout time.Duration) error {
 }
 
 func SetupKnownHostsOrErr(host string, port int) (string, error) {
-	cmd := exec.Command("ssh-keyscan", "-p", fmt.Sprintf("%d", port), host)
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to scan host key: %w", err)
+	// ssh-keyscan can race with sshd startup: a TCP port may be open
+	// (per WaitForSSHOrErr) before sshd is fully ready to negotiate.
+	// Retry a few times with backoff so slow CI runners don't flake.
+	const attempts = 5
+	var output []byte
+	var lastErr error
+	for i := range attempts {
+		cmd := exec.Command("ssh-keyscan", "-p", fmt.Sprintf("%d", port), host)
+		out, err := cmd.Output()
+		if err == nil && len(out) > 0 {
+			output = out
+			lastErr = nil
+			break
+		}
+		lastErr = err
+		if i < attempts-1 {
+			time.Sleep(time.Second)
+		}
+	}
+	if lastErr != nil || len(output) == 0 {
+		return "", fmt.Errorf("ssh-keyscan failed after %d attempts: %w", attempts, lastErr)
 	}
 
 	f, err := os.CreateTemp("", "known_hosts")
