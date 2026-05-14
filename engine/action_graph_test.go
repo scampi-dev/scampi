@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"slices"
 	"testing"
 
 	"scampi.dev/scampi/spec"
@@ -77,11 +78,8 @@ func TestBuildActionGraph_NoDependencies(t *testing.T) {
 		t.Fatalf("expected 2 nodes, got %d", len(nodes))
 	}
 
-	// Neither should have dependencies
 	for _, n := range nodes {
-		if len(n.requires) != 0 {
-			t.Errorf("action %s should have no dependencies, got %d", n.action.Desc(), len(n.requires))
-		}
+		noDeps(t, n, n.action.Desc())
 	}
 }
 
@@ -94,14 +92,10 @@ func TestBuildActionGraph_PathDependency(t *testing.T) {
 
 	nodes := buildActionGraph(actions)
 
-	if len(nodes[1].requires) != 1 {
-		t.Fatalf("B should have 1 dependency, got %d", len(nodes[1].requires))
-	}
+	requiresExactly(t, nodes[1], "B", nodes[0])
 
-	if nodes[1].requires[0] != nodes[0] {
-		t.Error("B should depend on A")
-	}
-
+	// requiredBy is the reverse edge; one direct probe keeps coverage that the
+	// graph is bidirectional without growing another helper for a single use.
 	if len(nodes[0].requiredBy) != 1 || nodes[0].requiredBy[0] != nodes[1] {
 		t.Error("A should be required by B")
 	}
@@ -117,15 +111,8 @@ func TestBuildActionGraph_NonPatherSequential(t *testing.T) {
 
 	nodes := buildActionGraph(actions)
 
-	// A: no deps (first action)
-	if len(nodes[0].requires) != 0 {
-		t.Error("A should have no dependencies")
-	}
-
-	// B: depends on A
+	noDeps(t, nodes[0], "A")
 	requiresExactly(t, nodes[1], "B", nodes[0])
-
-	// C: depends on B (transitively on A via B→A chain)
 	requiresExactly(t, nodes[2], "C", nodes[1])
 }
 
@@ -141,21 +128,18 @@ func TestBuildActionGraph_NonPatherBarrier(t *testing.T) {
 
 	nodes := buildActionGraph(actions)
 
-	// P1: no deps
-	if len(nodes[0].requires) != 0 {
-		t.Error("P1 should have no dependencies")
-	}
-
-	// N1: depends on P1 (fan-in from Pathers before this barrier)
+	noDeps(t, nodes[0], "P1")
+	// N1: fan-in from Pathers before this barrier
 	requiresExactly(t, nodes[1], "N1", nodes[0])
-
-	// P2: depends on N1 (fan-out from preceding barrier)
+	// P2: fan-out from preceding barrier
 	requiresExactly(t, nodes[2], "P2", nodes[1])
-
-	// N2: depends on N1 (chain) and P2 (fan-in); P1 reached transitively via N1
+	// N2: chain through N1, fan-in via P2; P1 reached transitively
 	requiresExactly(t, nodes[3], "N2", nodes[1], nodes[2])
 }
 
+// requiresExactly and noDeps are the only places that read actionNode.requires.
+// Keep dependency assertions routed through these helpers so any future rename
+// of the unexported field touches one spot, not every test.
 func requiresExactly(t *testing.T, n *actionNode, name string, expected ...*actionNode) {
 	t.Helper()
 	if len(n.requires) != len(expected) {
@@ -163,16 +147,16 @@ func requiresExactly(t *testing.T, n *actionNode, name string, expected ...*acti
 		return
 	}
 	for _, e := range expected {
-		found := false
-		for _, r := range n.requires {
-			if r == e {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !slices.Contains(n.requires, e) {
 			t.Errorf("%s: missing expected dependency on %s", name, e.action.Desc())
 		}
+	}
+}
+
+func noDeps(t *testing.T, n *actionNode, name string) {
+	t.Helper()
+	if len(n.requires) != 0 {
+		t.Errorf("%s: expected no dependencies, got %d", name, len(n.requires))
 	}
 }
 
@@ -186,20 +170,9 @@ func TestBuildActionGraph_ChainedDependencies(t *testing.T) {
 
 	nodes := buildActionGraph(actions)
 
-	// A: no deps
-	if len(nodes[0].requires) != 0 {
-		t.Error("A should have no dependencies")
-	}
-
-	// B: depends on A
-	if len(nodes[1].requires) != 1 || nodes[1].requires[0] != nodes[0] {
-		t.Error("B should depend on A")
-	}
-
-	// C: depends on B
-	if len(nodes[2].requires) != 1 || nodes[2].requires[0] != nodes[1] {
-		t.Error("C should depend on B")
-	}
+	noDeps(t, nodes[0], "A")
+	requiresExactly(t, nodes[1], "B", nodes[0])
+	requiresExactly(t, nodes[2], "C", nodes[1])
 }
 
 func TestBuildActionGraph_ParentDirDependency(t *testing.T) {
@@ -248,9 +221,7 @@ func TestBuildActionGraph_CrossKindIndependent(t *testing.T) {
 	}
 
 	nodes := buildActionGraph(actions)
-	if len(nodes[1].requires) != 0 {
-		t.Errorf("B should not depend on A (different resource kinds), got %d deps", len(nodes[1].requires))
-	}
+	noDeps(t, nodes[1], "B")
 }
 
 func TestBuildActionGraph_UserPromiserNotBarrier(t *testing.T) {
@@ -266,20 +237,9 @@ func TestBuildActionGraph_UserPromiserNotBarrier(t *testing.T) {
 
 	nodes := buildActionGraph(actions)
 
-	// P1: no deps
-	if len(nodes[0].requires) != 0 {
-		t.Error("P1 should have no dependencies")
-	}
-
-	// user: no deps (no resource overlap with P1)
-	if len(nodes[1].requires) != 0 {
-		t.Error("user should have no dependencies")
-	}
-
-	// P2: no deps (no resource overlap with P1 or user)
-	if len(nodes[2].requires) != 0 {
-		t.Error("P2 should have no dependencies")
-	}
+	noDeps(t, nodes[0], "P1")
+	noDeps(t, nodes[1], "user")
+	noDeps(t, nodes[2], "P2")
 }
 
 func TestBuildActionGraph_MixedResourceChain(t *testing.T) {
@@ -308,9 +268,7 @@ func TestBuildActionGraph_ContainerResource_DistinctIDsParallel(t *testing.T) {
 	nodes := buildActionGraph(actions)
 
 	for _, n := range nodes {
-		if len(n.requires) != 0 {
-			t.Errorf("%s: expected no dependencies, got %d", n.action.Desc(), len(n.requires))
-		}
+		noDeps(t, n, n.action.Desc())
 	}
 }
 
@@ -326,9 +284,7 @@ func TestBuildActionGraph_ContainerResource_NotABarrier(t *testing.T) {
 	nodes := buildActionGraph(actions)
 
 	for _, n := range nodes {
-		if len(n.requires) != 0 {
-			t.Errorf("%s: expected no dependencies, got %d", n.action.Desc(), len(n.requires))
-		}
+		noDeps(t, n, n.action.Desc())
 	}
 }
 
@@ -341,9 +297,7 @@ func TestBuildActionGraph_ParentDirDoesNotApplyToNonPaths(t *testing.T) {
 	}
 
 	nodes := buildActionGraph(actions)
-	if len(nodes[1].requires) != 0 {
-		t.Errorf("B should not depend on A (prefix matching is path-only), got %d deps", len(nodes[1].requires))
-	}
+	noDeps(t, nodes[1], "B")
 }
 
 func TestInitActionPending(t *testing.T) {
