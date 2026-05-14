@@ -380,47 +380,6 @@ std.deploy(name = "test", targets = [tgt]) {
 	}
 }
 
-// createModuleRepo creates a bare git repo tagged at v1.0.0 containing an
-// _index.scampi that exports a simple function.  Returns the bare repo path.
-func createModuleRepo(t *testing.T) string {
-	t.Helper()
-	work := t.TempDir()
-	bare := filepath.Join(t.TempDir(), "mod.git")
-
-	runGit := func(dir string, args ...string) {
-		t.Helper()
-		cmd := exec.Command("git", args...)
-		cmd.Dir = dir
-		cmd.Env = append(os.Environ(),
-			"GIT_AUTHOR_NAME=test",
-			"GIT_AUTHOR_EMAIL=test@test",
-			"GIT_COMMITTER_NAME=test",
-			"GIT_COMMITTER_EMAIL=test@test",
-		)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("git %v: %s: %v", args, out, err)
-		}
-	}
-
-	runGit(work, "init")
-	runGit(work, "checkout", "-b", "main")
-	if err := os.WriteFile(filepath.Join(work, "_index.scampi"), []byte(`
-module greetings
-
-pub func greet(name: string) string {
-  return "hello, " + name
-}
-`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	runGit(work, "add", ".")
-	runGit(work, "commit", "-m", "initial")
-	runGit(work, "tag", "v1.0.0")
-	runGit(work, "clone", "--bare", work, bare)
-	return bare
-}
-
 // createEmptyRepo creates a bare git repo tagged at v1.0.0 with no .scampi files.
 func createEmptyRepo(t *testing.T) string {
 	t.Helper()
@@ -465,9 +424,6 @@ func createEmptyRepo(t *testing.T) string {
 func TestModuleAdd_ThenLoad(t *testing.T) {
 	const modPath = "codeberg.org/test/greetings"
 	const version = "v1.0.0"
-
-	repoPath := createModuleRepo(t)
-	_ = repoPath // bare repo created; cache pre-seeded below
 
 	projDir := t.TempDir()
 	cacheParent := t.TempDir()
@@ -544,7 +500,10 @@ std.deploy(name = "add-load-test", targets = [host]) {
 }
 
 // TestModuleAdd_NotAModule verifies that adding a repo with no .scampi files
-// fails with NotAModuleError.
+// fails with NotAModuleError. This is the one mod_test scenario that actually
+// shells out to `git` (via createEmptyRepo + the mod.Add clone). Other module
+// tests pre-seed the cache to skip the real fetch path; the actual git-clone
+// path is covered separately by TestFetch_* in mod/fetch_test.go.
 func TestModuleAdd_NotAModule(t *testing.T) {
 	repoPath := createEmptyRepo(t)
 
