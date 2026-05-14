@@ -1379,7 +1379,6 @@ std.deploy(name = "test", targets = [api]) {
 // -----------------------------------------------------------------------------
 
 func TestRef_CreatesWithResolvedValue(t *testing.T) {
-	t.Skip("ref() not yet implemented in scampi")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		// Cert queries and creation.
@@ -1437,7 +1436,7 @@ std.deploy(name = "test", targets = [api]) {
       check = rest.jq { expr = ".[] | select(.domain == \"app.example.com\")" }
     }
     missing = rest.request { method = "POST", path = "/hosts" }
-    state = {"domain": "app.example.com", "cert_id": ref(cert, ".id")}
+    state = {"domain": "app.example.com", "cert_id": std.ref(cert, ".id")}
   }
 }
 `, srv.URL)
@@ -1452,7 +1451,6 @@ std.deploy(name = "test", targets = [api]) {
 }
 
 func TestRef_ResolvesFromQueryResult(t *testing.T) {
-	t.Skip("ref() not yet implemented in scampi")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == "GET" && r.URL.Path == "/certs":
@@ -1493,7 +1491,7 @@ std.deploy(name = "test", targets = [api]) {
       check = rest.jq { expr = ".[] | select(.domain == \"app.example.com\")" }
     }
     missing = rest.request { method = "POST", path = "/hosts" }
-    state = {"domain": "app.example.com", "cert_id": ref(cert, ".id")}
+    state = {"domain": "app.example.com", "cert_id": std.ref(cert, ".id")}
   }
 }
 `, srv.URL)
@@ -1508,12 +1506,18 @@ std.deploy(name = "test", targets = [api]) {
 }
 
 func TestRef_InvalidJQExpr(t *testing.T) {
-	cfgStr := `
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer srv.Close()
+
+	cfgStr := fmt.Sprintf(`
 module main
 import "std"
 import "std/rest"
 
-let api = rest.target { name = "api", base_url = "http://localhost/api" }
+let api = rest.target { name = "api", base_url = %q }
 
 let cert = rest.resource {
   query = rest.request {
@@ -1534,25 +1538,18 @@ std.deploy(name = "test", targets = [api]) {
       check = rest.jq { expr = ".[] | select(.domain == \"x\")" }
     }
     missing = rest.request { method = "POST", path = "/hosts" }
-    state = {"cert_id": ref(cert, "[invalid jq")}
+    state = {"cert_id": std.ref(cert, "[invalid jq")}
   }
 }
-`
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte(cfgStr)
+`, srv.URL)
 
-	rec := &harness.RecordingDisplayer{}
-	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
-
-	_, err := engine.LoadConfig(context.Background(), em, "/config.scampi", store, src)
+	_, err := applyREST(t, cfgStr, srv.URL)
 	if err == nil {
 		t.Fatal("expected error for invalid jq expression in ref()")
 	}
 }
 
 func TestRef_UpdatesWithResolvedValue(t *testing.T) {
-	t.Skip("ref() not yet implemented in scampi")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == "GET" && r.URL.Path == "/certs":
@@ -1605,7 +1602,7 @@ std.deploy(name = "test", targets = [api]) {
     missing = rest.request { method = "POST", path = "/hosts" }
     found = rest.request { method = "PUT", path = "/hosts/{id}" }
     bindings = {"id": rest.jq { expr = ".id" }}
-    state = {"domain": "app.example.com", "cert_id": ref(cert, ".id"), "port": 80}
+    state = {"domain": "app.example.com", "cert_id": std.ref(cert, ".id"), "port": 80}
   }
 }
 `, srv.URL)
@@ -1655,7 +1652,7 @@ std.deploy(name = "test", targets = [api]) {
       check = rest.jq { expr = ".[] | select(.domain == \"x\")" }
     }
     missing = rest.request { method = "POST", path = "/hosts" }
-    state = {"domain": "x", "cert_id": ref(cert, ".id")}
+    state = {"domain": "x", "cert_id": std.ref(cert, ".id")}
   }
 }
 `, srv.URL)
@@ -1682,7 +1679,7 @@ std.deploy(name = "test", targets = [api]) {
       check = rest.jq { expr = ".[] | select(.domain == \"x\")" }
     }
     missing = rest.request { method = "POST", path = "/hosts" }
-    state = {"cert_id": ref("not-a-step", ".id")}
+    state = {"cert_id": std.ref("not-a-step", ".id")}
   }
 }
 `
@@ -1700,7 +1697,6 @@ std.deploy(name = "test", targets = [api]) {
 }
 
 func TestRef_ConfigLoads(t *testing.T) {
-	t.Skip("ref() not yet implemented in scampi")
 	cfgStr := `
 module main
 import "std"
@@ -1727,7 +1723,7 @@ std.deploy(name = "test", targets = [api]) {
       check = rest.jq { expr = ".[] | select(.domain == \"x\")" }
     }
     missing = rest.request { method = "POST", path = "/hosts" }
-    state = {"domain": "x", "cert_id": ref(cert, ".id")}
+    state = {"domain": "x", "cert_id": std.ref(cert, ".id")}
   }
 }
 `
