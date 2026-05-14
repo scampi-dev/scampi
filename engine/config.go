@@ -10,6 +10,7 @@ import (
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/linker"
+	"scampi.dev/scampi/mod"
 	"scampi.dev/scampi/secret"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
@@ -44,6 +45,15 @@ func LoadConfig(
 		opts = append(opts, linker.WithRedactor(r))
 	}
 
+	// Apply-time scampi.sum pre-flight (#310). If the project has a
+	// scampi.mod, verify every required module's cache dir against
+	// the hash recorded in scampi.sum *before* the linker reads any
+	// module source. A mismatch means the cache was tampered or a
+	// previous fetch never completed — either way, refuse to run.
+	if err := verifyModuleSums(ctx, cfgPath, src, em); err != nil {
+		return spec.Config{}, AbortError{Causes: []error{err}}
+	}
+
 	reg := NewRegistry()
 	cfg, err := linker.LoadConfig(ctx, cfgPath, src, reg, opts...)
 	if err != nil {
@@ -64,6 +74,62 @@ func LoadConfig(
 	}
 
 	return cfg, nil
+}
+
+// verifyModuleSums walks up from cfgPath to find scampi.mod, parses it,
+// and runs mod.VerifyAll against the default cache. Returns nil if
+// there's no scampi.mod (raw .scampi without modules), or if every
+// require entry's cache matches scampi.sum. Mismatches are routed
+// through the diagnostic emitter so the user sees the same message
+// `scampi mod verify` would produce.
+func verifyModuleSums(
+	ctx context.Context,
+	cfgPath string,
+	src source.Source,
+	em diagnostic.Emitter,
+) error {
+	modFile := findModFileUp(ctx, src, cfgPath)
+	if modFile == "" {
+		return nil
+	}
+	data, err := src.ReadFile(ctx, modFile)
+	if err != nil {
+		return nil // no scampi.mod readable here; treat as no-module project
+	}
+	m, err := mod.Parse(modFile, data)
+	if err != nil {
+		return nil // parse errors surface via the lang pipeline; not our concern
+	}
+	if err := mod.VerifyAll(ctx, src, m, mod.DefaultCacheDir()); err != nil {
+		_, emitted := emitEngineDiagnostic(em, cfgPath, err)
+		if !emitted {
+			em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(
+				cfgPath,
+				&LoadConfigError{Cause: err, Source: spec.SourceSpan{Filename: cfgPath}},
+			))
+		}
+		return err
+	}
+	return nil
+}
+
+// findModFileUp walks up from cfgPath looking for a scampi.mod file
+// via the source interface (engine forbids direct os imports).
+// Mirrors linker.findModFile (unexported there) — duplicated to keep
+// the engine→linker dep one-way.
+func findModFileUp(ctx context.Context, src source.Source, cfgPath string) string {
+	dir := filepath.Dir(cfgPath)
+	for {
+		candidate := filepath.Join(dir, "scampi.mod")
+		if meta, err := src.Stat(ctx, candidate); err == nil && meta.Exists {
+			return candidate
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
 }
 
 // ResolveMultiple produces ResolvedConfigs for all matching (deploy, target)

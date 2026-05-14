@@ -136,6 +136,37 @@ func WriteSum(ctx context.Context, src source.Source, path string, sums map[stri
 	return nil
 }
 
+// VerifyAll reads scampi.sum (located next to m.Filename), then walks
+// m.Require and verifies each non-local entry's cache directory against
+// the recorded hash. Returns the first SumMismatchError encountered, or
+// nil if every entry verifies (or has no recorded hash, which is treated
+// as "not yet recorded" rather than an error — that's a fresh-fetch
+// path, not tampering).
+//
+// This is the apply-time pre-flight contract (#310). It mirrors
+// `scampi mod verify` (cmd/scampi/mod.go) so the manual command and
+// every other code path enforce the same check.
+func VerifyAll(ctx context.Context, src source.Source, m *Module, cacheDir string) error {
+	if m == nil {
+		return nil
+	}
+	sumFile := filepath.Join(filepath.Dir(m.Filename), "scampi.sum")
+	sums, err := ReadSum(ctx, src, sumFile)
+	if err != nil {
+		return err
+	}
+	for _, dep := range m.Require {
+		if dep.IsLocal() {
+			continue
+		}
+		modDir := filepath.Join(cacheDir, dep.Path+"@"+dep.Version)
+		if err := VerifyModule(m, dep, modDir, sums); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // VerifyModule checks whether dep's hash in modDir matches what's recorded in sums.
 // If dep is not yet in sums, nil is returned (new module, not yet recorded).
 //

@@ -62,6 +62,95 @@ func errContains(err error, substrings ...string) bool {
 	return true
 }
 
+// Regression test for #310. The cache for an already-fetched module is
+// tampered post-fetch; scampi.sum still carries the original hash. apply
+// (LoadConfig) must refuse to execute and surface a SumMismatchError
+// pointing at the require entry — mirroring what `scampi mod verify`
+// would catch manually, but automatically and on every apply.
+func TestApply_SumMismatch_AbortsBeforeRun(t *testing.T) {
+	const (
+		modPath    = "codeberg.org/scampi-modules/helpers"
+		modVersion = "v1.0.0"
+	)
+
+	_, modDir := setupModCache(t, modPath, modVersion)
+	writeFile(t, modDir, "_index.scampi", `module helpers
+
+pub func greeting() string {
+  return "hello from module"
+}
+`)
+
+	// Snapshot the legitimate hash before tampering.
+	originalHash, err := mod.ComputeHash(modDir)
+	if err != nil {
+		t.Fatalf("ComputeHash: %v", err)
+	}
+
+	projDir := t.TempDir()
+	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
+
+require (
+    `+modPath+` `+modVersion+`
+)
+`)
+	writeFile(t, projDir, "scampi.sum", modPath+" "+modVersion+" "+originalHash+"\n")
+
+	// Now tamper the cached module after scampi.sum was committed.
+	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`module helpers
+
+pub func greeting() string {
+  return "POISONED"
+}
+`), 0o644); err != nil {
+		t.Fatalf("tamper write: %v", err)
+	}
+
+	cfgFile := writeFile(t, projDir, "config.scampi", `module main
+
+import "std"
+import "std/local"
+import "`+modPath+`"
+
+let host = local.target { name = "localhost" }
+
+std.deploy(name = "test", targets = [host]) {
+}
+`)
+
+	ctx := context.Background()
+	store := diagnostic.NewSourceStore()
+	rec := &harness.RecordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+
+	_, err = engine.LoadConfig(ctx, em, cfgFile, store, source.LocalPosixSource{})
+	if err == nil {
+		t.Fatal("expected error from tampered cache, got nil")
+	}
+
+	// LoadConfig wraps in AbortError; the SumMismatchError lives in
+	// Causes. AbortError doesn't implement Unwrap() []error yet — out
+	// of scope for #310.
+	var sme *mod.SumMismatchError
+	var abort engine.AbortError
+	if errors.As(err, &abort) {
+		for _, c := range abort.Causes {
+			if errors.As(c, &sme) {
+				break
+			}
+		}
+	}
+	if sme == nil {
+		t.Fatalf("expected *mod.SumMismatchError in Causes, got %T: %v", err, err)
+	}
+	if sme.ModPath != modPath {
+		t.Errorf("SumMismatchError.ModPath = %q, want %q", sme.ModPath, modPath)
+	}
+	if sme.Version != modVersion {
+		t.Errorf("SumMismatchError.Version = %q, want %q", sme.Version, modVersion)
+	}
+}
+
 // TestModuleLoad_Basic verifies that a config can import a function from a
 // cached module and use it, producing a valid deploy block.
 func TestModuleLoad_Basic(t *testing.T) {
