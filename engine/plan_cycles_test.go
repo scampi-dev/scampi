@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+// Scope: cross-cutting tests for cycle detection inside the planning
+// pipeline (full LoadConfig + Plan flow, not unit-level graph code).
+// Exercises: plan.go (Plan, planSteps), action_graph.go (graph build
+// from before+after links), and the surfacing of cycles as
+// engine.CycleError to callers. Tests use real scampi configs that
+// declare cyclic before/after relations.
+
 package engine
 
 import (

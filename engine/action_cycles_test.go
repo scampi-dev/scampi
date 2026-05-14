@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+// Scope: cross-cutting tests for action-level cycle detection.
+// Exercises: action_graph.go (actionNode + requires), cycles.go
+// (detectCycles, dedupCycles, ptrKey). Asserts that a planned action
+// DAG with introduced cycles is rejected with an error whose payload
+// names every node along the cycle in order.
+
 package engine
 
 import (
