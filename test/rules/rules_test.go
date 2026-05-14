@@ -24,7 +24,7 @@ type capabilityRule struct {
 }
 
 func TestImportCapabilities(t *testing.T) {
-	root := "../.."
+	root := repoRoot(t)
 
 	// ---- hard global bans (no exceptions) ----
 	globallyForbidden := []string{
@@ -439,7 +439,7 @@ func TestImportCapabilities(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestFuncSignatureStyle(t *testing.T) {
-	root := "../.."
+	root := repoRoot(t)
 
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -604,7 +604,7 @@ func checkFieldList(
 // -----------------------------------------------------------------------------
 
 func TestMarkdownTableAlignment(t *testing.T) {
-	root := "../.."
+	root := repoRoot(t)
 
 	isTableRow := func(line string) bool {
 		return len(line) >= 3 && line[0] == '|' && line[len(line)-1] == '|'
@@ -746,7 +746,7 @@ func TestMarkdownTableAlignment(t *testing.T) {
 // op/step code before reaching the engine.
 
 func TestBareErrorBan(t *testing.T) {
-	root := "../.."
+	root := repoRoot(t)
 
 	// Always banned — use typed errors or errs.BUG instead.
 	hardBanned := []string{
@@ -903,7 +903,7 @@ func hasRationaleAboveBlock(file *ast.File, fset *token.FileSet, callLine int) b
 // pulling in the rest of scampi, and so it could later be extracted
 // cleanly.
 func TestLangPackageIsolation(t *testing.T) {
-	root := "../.."
+	root := repoRoot(t)
 	const modulePrefix = "scampi.dev/scampi/"
 	const langPrefix = modulePrefix + "lang/"
 

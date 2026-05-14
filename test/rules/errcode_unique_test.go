@@ -17,7 +17,7 @@ import (
 func TestDiagnosticCodeUniqueness(t *testing.T) {
 	cfg := &packages.Config{
 		Mode: packages.NeedTypes | packages.NeedName,
-		Dir:  "../..",
+		Dir:  repoRoot(t),
 	}
 	pkgs, err := packages.Load(cfg, "scampi.dev/scampi/...")
 	if err != nil {
