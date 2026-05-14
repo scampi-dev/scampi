@@ -2,15 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.InvalidDuration",
+      "id": "lang.ModuleMemberUndef",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 6,
-        "start_col": 68,
-        "end_line": 6,
-        "end_col": 73
+        "start_line": 14,
+        "start_col": 29,
+        "end_line": 14,
+        "end_col": 40
       }
     }
   ]

@@ -2,15 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.EnvError",
+      "id": "lang.TooFewArgs",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 1,
-        "start_col": 10,
-        "end_line": 1,
-        "end_col": 10
+        "start_line": 5,
+        "start_col": 11,
+        "end_line": 5,
+        "end_col": 20
       }
     }
   ]

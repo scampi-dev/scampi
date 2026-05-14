@@ -1,6 +1,0 @@
-module main
-
-import "std"
-import "std/rest"
-
-let api = rest.target { name = "", base_url = "http://localhost/api" }

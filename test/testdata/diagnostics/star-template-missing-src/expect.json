@@ -2,15 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.EvalError",
+      "id": "lang.MissingField",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 3,
-        "start_col": 13,
-        "end_line": 3,
-        "end_col": 13
+        "start_line": 10,
+        "start_col": 3,
+        "end_line": 10,
+        "end_col": 86
       }
     }
   ]

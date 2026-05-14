@@ -2,15 +2,19 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.RemoteChecksumError",
-      "scope": "ScopeEngine",
+      "id": "step.download.Error",
+      "scope": "ScopeAction",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 3,
-        "start_col": 69,
-        "end_line": 3,
-        "end_col": 76
+        "start_line": 11,
+        "start_col": 13,
+        "end_line": 11,
+        "end_col": 96
+      },
+      "step": {
+        "index": 0,
+        "kind": "copy"
       }
     }
   ]

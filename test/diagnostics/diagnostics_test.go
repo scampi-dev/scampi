@@ -1,10 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+// Scope: cross-package data-driven regression suite over a catalog of
+// scampi configs (test/testdata/diagnostics/<scenario>/). Each fixture
+// has a config.scampi + expect.json (or expect-<format>.json); the
+// harness loads, plans, applies against a MemTarget, and asserts the
+// recorded diagnostics match.
+//
+// Exercises: the full lang → engine → diagnostic pipeline. Anchors
+// diagnostic IDs, severities, source spans, and scopes against regressions.
+//
+// Snapshot regen: set SCAMPI_UPDATE_DIAGNOSTICS=1 to rewrite every
+// expect.json from the recording. Use after intentional changes to
+// error IDs, scopes, or source spans; review the diff before committing.
+
 package diagnostics
 
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -16,7 +30,6 @@ import (
 )
 
 func TestDiagnostics(t *testing.T) {
-	t.Skip("diagnostic expectations need updating for scampi error types and source spans")
 	root := harness.AbsPath("../testdata/diagnostics")
 
 	entries := harness.ReadDirOrDie(root)
@@ -49,8 +62,6 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 	if _, err := harness.ReadFileSafe(expectPath); err != nil {
 		expectPath = filepath.Join(dir, "expect.json")
 	}
-
-	expect := harness.LoadExpected(t, expectPath)
 
 	src := source.LocalPosixSource{}
 	tgt := target.NewMemTarget()
@@ -85,9 +96,17 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 
 	err := apply()
 
+	var abort engine.AbortError
+	abortOccurred := errors.As(err, &abort)
+
+	if os.Getenv("SCAMPI_UPDATE_DIAGNOSTICS") == "1" {
+		harness.WriteSnapshot(t, expectPath, abortOccurred, rec, cfgPath)
+		return
+	}
+
+	expect := harness.LoadExpected(t, expectPath)
 	if expect.Abort {
-		var abort engine.AbortError
-		if !errors.As(err, &abort) {
+		if !abortOccurred {
 			t.Fatalf("expected AbortError, got %v", err)
 		}
 	} else if err != nil {
@@ -100,6 +119,4 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 		}
 	}()
 	harness.AssertDiagnostics(t, rec, expect.Diagnostics, cfgPath)
-
-	// AssertTargetUntouched(t, recTgt)
 }

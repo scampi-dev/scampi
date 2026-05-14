@@ -2,15 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.DuplicateTarget",
+      "id": "lang.DuplicateLet",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 2,
-        "start_col": 19,
-        "end_line": 2,
-        "end_col": 24
+        "start_line": 8,
+        "start_col": 1,
+        "end_line": 9,
+        "end_col": 1
       }
     }
   ]

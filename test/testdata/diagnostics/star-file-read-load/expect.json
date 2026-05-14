@@ -2,15 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.FileRead",
+      "id": "lang.UnknownModule",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 1,
+        "start_line": 3,
         "start_col": 1,
-        "end_line": 1,
-        "end_col": 1
+        "end_line": 3,
+        "end_col": 49
       }
     }
   ]

@@ -2,19 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "step.InvalidPermission",
-      "scope": "ScopePlan",
+      "id": "linker.AttributeViolation",
+      "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 11,
-        "start_col": 18,
-        "end_line": 11,
-        "end_col": 23
-      },
-      "step": {
-        "index": 0,
-        "kind": "copy"
+        "start_line": 14,
+        "start_col": 14,
+        "end_line": 14,
+        "end_col": 17
       }
     }
   ]

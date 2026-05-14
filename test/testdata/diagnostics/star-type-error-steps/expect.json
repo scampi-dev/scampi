@@ -1,17 +1,4 @@
 {
-  "abort": true,
-  "diagnostics": [
-    {
-      "id": "star.TypeError",
-      "scope": "ScopeEngine",
-      "severity": "Error",
-      "kind": "DiagnosticRaised",
-      "source": {
-        "start_line": 2,
-        "start_col": 7,
-        "end_line": 2,
-        "end_col": 7
-      }
-    }
-  ]
+  "abort": false,
+  "diagnostics": []
 }

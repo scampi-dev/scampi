@@ -2,19 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "step.pkg.InvalidState",
-      "scope": "ScopePlan",
+      "id": "lang.FieldTypeMismatch",
+      "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 3,
-        "start_col": 33,
-        "end_line": 3,
-        "end_col": 40
-      },
-      "step": {
-        "index": 0,
-        "kind": "pkg"
+        "start_line": 10,
+        "start_col": 35,
+        "end_line": 10,
+        "end_col": 49
       }
     }
   ]

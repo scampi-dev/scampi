@@ -19,9 +19,9 @@ type ExpectedDiagnostics struct {
 
 type ExpectedDiagnostic struct {
 	ID       string `json:"id"`
-	Kind     string `json:"kind"`
 	Scope    string `json:"scope"`
 	Severity string `json:"severity"`
+	Kind     string `json:"kind"`
 
 	Source *ExpectedSource `json:"source,omitempty"`
 	Step   *ExpectedStep   `json:"step,omitempty"`
@@ -141,6 +141,50 @@ func collectDiagnostics(rec *RecordingDisplayer) []collectedDiagnostic {
 	}
 
 	return collected
+}
+
+// WriteSnapshot serializes the actual diagnostics from rec into the
+// ExpectedDiagnostics JSON shape and writes it to path. Used when
+// regenerating fixtures (SCAMPI_UPDATE_DIAGNOSTICS=1) after intentional
+// changes to error IDs, scopes, or source spans.
+func WriteSnapshot(t *testing.T, path string, abort bool, rec *RecordingDisplayer, cfgPath string) {
+	t.Helper()
+
+	actual := collectDiagnostics(rec)
+	out := ExpectedDiagnostics{
+		Abort:       abort,
+		Diagnostics: make([]ExpectedDiagnostic, 0, len(actual)),
+	}
+	for _, d := range actual {
+		exp := ExpectedDiagnostic{
+			ID:       string(d.template.ID),
+			Kind:     "DiagnosticRaised",
+			Scope:    d.scope,
+			Severity: d.severity,
+		}
+		if d.template.Source != nil && d.template.Source.Filename == cfgPath {
+			s := d.template.Source
+			exp.Source = &ExpectedSource{
+				StartLine: s.StartLine,
+				StartCol:  s.StartCol,
+				EndLine:   s.EndLine,
+				EndCol:    s.EndCol,
+			}
+		}
+		if d.step != nil {
+			exp.Step = &ExpectedStep{
+				Index: d.step.StepIndex,
+				Kind:  d.step.StepKind,
+			}
+		}
+		out.Diagnostics = append(out.Diagnostics, exp)
+	}
+
+	data, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	WriteOrDie(path, append(data, '\n'), 0o644)
 }
 
 // AssertDiagnostics compares recorded diagnostics against expected ones.

@@ -2,15 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.TypeError",
+      "id": "lang.ArgTypeMismatch",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 2,
-        "start_col": 7,
-        "end_line": 2,
-        "end_col": 7
+        "start_line": 9,
+        "start_col": 37,
+        "end_line": 9,
+        "end_col": 41
       }
     }
   ]

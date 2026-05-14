@@ -2,15 +2,15 @@
   "abort": true,
   "diagnostics": [
     {
-      "id": "star.TypeError",
+      "id": "lang.FieldTypeMismatch",
       "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
-        "start_line": 1,
-        "start_col": 63,
-        "end_line": 1,
-        "end_col": 74
+        "start_line": 7,
+        "start_col": 74,
+        "end_line": 7,
+        "end_col": 91
       }
     }
   ]
