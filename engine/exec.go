@@ -482,9 +482,18 @@ func (e *Engine) runCheckAction(
 	var err error
 	if checkErr != nil {
 		impact, consumed := emitActionDiagnostic(e.em, idx, act.Kind(), act.Desc(), checkErr)
-		if impact.ShouldAbort() {
+		switch {
+		case impact.ShouldAbort():
 			err = AbortError{Causes: []error{checkErr}}
-		} else if !consumed {
+		case consumed:
+			// Diagnostic emitted but didn't request a hard abort; ops
+			// nonetheless landed in OpAborted state. Surface a non-nil
+			// error so downstream actions don't run against a broken
+			// upstream (#330).
+			err = ActionAbortedError{Cause: checkErr}
+		default:
+			// Raw error that never went through the diagnostic pipeline —
+			// pass through so panicIfNotAbortError raises a BUG panic.
 			err = checkErr
 		}
 	}
@@ -665,10 +674,18 @@ func (e *Engine) runAction(ctx context.Context, idx int, act spec.Action, hookID
 
 	if err != nil {
 		impact, consumed := emitActionDiagnostic(e.em, idx, act.Kind(), act.Desc(), err)
-		if impact.ShouldAbort() {
+		switch {
+		case impact.ShouldAbort():
 			err = AbortError{Causes: []error{err}}
-		} else if consumed {
-			err = nil
+		case consumed:
+			// Diagnostic emitted but didn't request a hard abort; ops
+			// nonetheless landed in OpAborted state. Surface a non-nil
+			// error so downstream actions don't run against a broken
+			// upstream (#330).
+			err = ActionAbortedError{Cause: err}
+		default:
+			// Raw error that never went through the diagnostic pipeline —
+			// pass through so panicIfNotAbortError raises a BUG panic.
 		}
 	}
 

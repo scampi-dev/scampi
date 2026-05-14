@@ -24,6 +24,25 @@ func (AbortError) Error() string {
 	return "execution aborted"
 }
 
+// ActionAbortedError signals that an action returned with one or more ops in
+// model.OpAborted state when the originating diagnostic's impact didn't
+// request a hard abort. The scheduler treats this as a real failure so
+// downstream actions don't run against a broken upstream. The user-visible
+// diagnostic has already been emitted; this error only carries propagation
+// state — Unwrap exposes the original cause for errors.As callers.
+type ActionAbortedError struct {
+	Cause error
+}
+
+func (e ActionAbortedError) Error() string {
+	if e.Cause == nil {
+		return "action aborted"
+	}
+	return "action aborted: " + e.Cause.Error()
+}
+
+func (e ActionAbortedError) Unwrap() error { return e.Cause }
+
 // LoadConfigError is the fallback diagnostic emitted when the linker
 // returns a non-diagnostic error (e.g. raw file-read failure). It
 // guarantees the user sees *something* in the render pipeline rather
@@ -97,6 +116,10 @@ func panicIfNotAbortError(err error) error {
 	var abort AbortError
 	if errors.As(err, &abort) {
 		return abort
+	}
+	var aborted ActionAbortedError
+	if errors.As(err, &aborted) {
+		return aborted
 	}
 	if errors.Is(err, context.Canceled) {
 		return CancelledError{}
