@@ -4,6 +4,7 @@ package diagnostic
 
 import (
 	"reflect"
+	"sync"
 
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/signal"
@@ -23,6 +24,7 @@ type (
 	policyEmitter struct {
 		pol  Policy
 		out  Displayer
+		mu   sync.Mutex // guards seen — diagnostics emit from op/plan goroutines (#329)
 		seen seenDiags
 	}
 	// seenDiags records the per-method set of templates already
@@ -46,11 +48,14 @@ func NewEmitter(policy Policy, displayer Displayer) Emitter {
 
 // shouldEmit returns true if tmpl is novel for this slot. When dedup
 // is enabled and an equal template was previously recorded, returns
-// false. Records on success.
+// false. Records on success. Safe for concurrent callers — the emit
+// pipeline is hit from op pool, plan workers, and engine goroutines.
 func (p *policyEmitter) shouldEmit(slot *[]event.Template, tmpl event.Template) bool {
 	if !p.pol.DedupDiagnostics {
 		return true
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	for _, prior := range *slot {
 		if reflect.DeepEqual(prior, tmpl) {
 			return false

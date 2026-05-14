@@ -3,6 +3,7 @@
 package diagnostic
 
 import (
+	"sync"
 	"testing"
 
 	"scampi.dev/scampi/diagnostic/event"
@@ -120,6 +121,44 @@ func TestPolicyEmitter_LifecycleNotDeduped(t *testing.T) {
 	}
 }
 
+// TestPolicyEmitter_ConcurrentDedup_Race is the regression test for #329.
+// Engine/plan/action/op diagnostics are emitted from concurrent goroutines
+// (op pool, plan workers); the dedup slice must tolerate that. Run with
+// `-race` — without the mutex this test trips the detector on the slice
+// append inside shouldEmit.
+func TestPolicyEmitter_ConcurrentDedup_Race(t *testing.T) {
+	rec := &concurrentDisplayer{}
+	em := NewEmitter(Policy{DedupDiagnostics: true}, rec)
+
+	const (
+		workers     = 16
+		perWorker   = 100
+		templateIDs = 8
+	)
+
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for w := range workers {
+		go func() {
+			defer wg.Done()
+			for i := range perWorker {
+				id := errs.Code("R") + errs.Code(rune('0'+byte((w*perWorker+i)%templateIDs)))
+				em.EmitEngineDiagnostic(event.EngineDiagnostic{
+					Detail:   event.DiagnosticDetail{Template: event.Template{ID: id, Text: "x"}},
+					Severity: signal.Error,
+				})
+			}
+		}()
+	}
+	wg.Wait()
+
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	if got := len(rec.engine); got == 0 || got > templateIDs {
+		t.Errorf("expected 1..%d emissions after dedup, got %d", templateIDs, got)
+	}
+}
+
 func TestPolicyEmitter_PerMethodIsolation(t *testing.T) {
 	rec := &recordingDisplayer{}
 	em := NewEmitter(Policy{DedupDiagnostics: true}, rec)
@@ -211,3 +250,32 @@ func (r *recordingDisplayer) EmitOpDiagnostic(e event.OpDiagnostic) {
 }
 func (r *recordingDisplayer) Interrupt() {}
 func (r *recordingDisplayer) Close()     {}
+
+// concurrentDisplayer is the recording variant used by the race test.
+// Its only job is to keep its own slice append off the contended path —
+// what we're testing is policyEmitter's seen-slice safety, not the
+// displayer's.
+type concurrentDisplayer struct {
+	mu     sync.Mutex
+	engine []event.EngineDiagnostic
+}
+
+func (c *concurrentDisplayer) EmitEngineLifecycle(event.EngineEvent) {}
+func (c *concurrentDisplayer) EmitPlanLifecycle(event.PlanEvent)     {}
+func (c *concurrentDisplayer) EmitActionLifecycle(event.ActionEvent) {}
+func (c *concurrentDisplayer) EmitOpLifecycle(event.OpEvent)         {}
+func (c *concurrentDisplayer) EmitIndexAll(event.IndexAllEvent)      {}
+func (c *concurrentDisplayer) EmitIndexStep(event.IndexStepEvent)    {}
+func (c *concurrentDisplayer) EmitInspect(event.InspectEvent)        {}
+func (c *concurrentDisplayer) EmitGraph(event.GraphEvent)            {}
+func (c *concurrentDisplayer) EmitLegend()                           {}
+func (c *concurrentDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.engine = append(c.engine, e)
+}
+func (c *concurrentDisplayer) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
+func (c *concurrentDisplayer) EmitActionDiagnostic(event.ActionDiagnostic) {}
+func (c *concurrentDisplayer) EmitOpDiagnostic(event.OpDiagnostic)         {}
+func (c *concurrentDisplayer) Interrupt()                                  {}
+func (c *concurrentDisplayer) Close()                                      {}
