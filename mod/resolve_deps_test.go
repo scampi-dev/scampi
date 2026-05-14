@@ -122,6 +122,93 @@ func TestResolveDeps_Diamond(t *testing.T) {
 	}
 }
 
+// Regression test for #332: diamond where one path pins B@v1.0.0-rc1
+// and another pins B@v1.0.0. MVS must pick v1.0.0 because rc1 is a
+// pre-release of the same version. Previously these compared equal
+// (the suffix was stripped) so first-seen won non-deterministically.
+func TestResolveDeps_PreReleaseLosesToRelease(t *testing.T) {
+	src := source.NewMemSource()
+	ctx := context.Background()
+	cacheDir := "/cache"
+
+	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
+		modContent("codeberg.org/user/a",
+			"codeberg.org/user/c v1.0.0",
+			"codeberg.org/user/b v1.0.0-rc1",
+		)
+	src.Files["/cache/codeberg.org/user/c@v1.0.0/scampi.mod"] =
+		modContent("codeberg.org/user/c", "codeberg.org/user/b v1.0.0")
+	src.Files["/cache/codeberg.org/user/b@v1.0.0-rc1/scampi.mod"] =
+		modContent("codeberg.org/user/b")
+	src.Files["/cache/codeberg.org/user/b@v1.0.0/scampi.mod"] =
+		modContent("codeberg.org/user/b")
+
+	direct := []Dependency{{Path: "codeberg.org/user/a", Version: "v1.0.0"}}
+
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
+	if err != nil {
+		t.Fatalf("ResolveDeps: %v", err)
+	}
+
+	var b *Dependency
+	for i := range got {
+		if got[i].Path == "codeberg.org/user/b" {
+			b = &got[i]
+			break
+		}
+	}
+	if b == nil {
+		t.Fatal("B not found")
+	}
+	if b.Version != "v1.0.0" {
+		t.Errorf("B = %s, want v1.0.0 (pre-release must lose)", b.Version)
+	}
+}
+
+// Regression test for #332: a branch-named requirement like "main"
+// must lose MVS selection to any real semver release. Previously
+// parseSemverParts returned [0,0,0] for non-semver strings, so a
+// branch coincidentally compared above pre-release-less zero
+// versions and below any v0.0.1+ — fragile and undocumented.
+func TestResolveDeps_BranchLosesToRelease(t *testing.T) {
+	src := source.NewMemSource()
+	ctx := context.Background()
+	cacheDir := "/cache"
+
+	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
+		modContent("codeberg.org/user/a",
+			"codeberg.org/user/c v1.0.0",
+			"codeberg.org/user/b main",
+		)
+	src.Files["/cache/codeberg.org/user/c@v1.0.0/scampi.mod"] =
+		modContent("codeberg.org/user/c", "codeberg.org/user/b v1.0.0")
+	src.Files["/cache/codeberg.org/user/b@main/scampi.mod"] =
+		modContent("codeberg.org/user/b")
+	src.Files["/cache/codeberg.org/user/b@v1.0.0/scampi.mod"] =
+		modContent("codeberg.org/user/b")
+
+	direct := []Dependency{{Path: "codeberg.org/user/a", Version: "v1.0.0"}}
+
+	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
+	if err != nil {
+		t.Fatalf("ResolveDeps: %v", err)
+	}
+
+	var b *Dependency
+	for i := range got {
+		if got[i].Path == "codeberg.org/user/b" {
+			b = &got[i]
+			break
+		}
+	}
+	if b == nil {
+		t.Fatal("B not found")
+	}
+	if b.Version != "v1.0.0" {
+		t.Errorf("B = %s, want v1.0.0 (real release must beat branch)", b.Version)
+	}
+}
+
 func TestResolveDeps_Cycle(t *testing.T) {
 	src := source.NewMemSource()
 	ctx := context.Background()

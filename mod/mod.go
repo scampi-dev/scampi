@@ -81,34 +81,6 @@ func isModulePath(p string) bool {
 	return rest != ""
 }
 
-func isSemver(v string) bool {
-	if !strings.HasPrefix(v, "v") {
-		return false
-	}
-	rest := v[1:]
-
-	// Strip optional pre-release suffix (e.g. -alpha.1)
-	if idx := strings.IndexByte(rest, '-'); idx >= 0 {
-		rest = rest[:idx]
-	}
-
-	parts := strings.Split(rest, ".")
-	if len(parts) != 3 {
-		return false
-	}
-	for _, p := range parts {
-		if p == "" {
-			return false
-		}
-		for _, c := range p {
-			if !unicode.IsDigit(c) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 // Parse
 // -----------------------------------------------------------------------------
 

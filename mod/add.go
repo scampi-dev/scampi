@@ -8,8 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
+
+	"golang.org/x/mod/semver"
 
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
@@ -264,12 +265,11 @@ func ParseLatestStable(output string) string {
 		if !ok {
 			continue
 		}
-		if !isSemver(tag) {
+		if !semver.IsValid(tag) {
 			continue
 		}
-		// Stable = no pre-release suffix
-		rest := tag[1:] // strip 'v'
-		if strings.ContainsRune(rest, '-') {
+		// Stable = no pre-release suffix (build metadata is fine).
+		if semver.Prerelease(tag) != "" {
 			continue
 		}
 		stable = append(stable, tag)
@@ -279,38 +279,6 @@ func ParseLatestStable(output string) string {
 		return ""
 	}
 
-	slices.SortFunc(stable, compareSemver)
+	slices.SortFunc(stable, semver.Compare)
 	return stable[len(stable)-1]
-}
-
-// compareSemver compares two semver strings for use with slices.SortFunc.
-// Returns negative if a < b, zero if equal, positive if a > b.
-func compareSemver(a, b string) int {
-	pa := parseSemverParts(a)
-	pb := parseSemverParts(b)
-	for i := range pa {
-		if pa[i] != pb[i] {
-			return pa[i] - pb[i]
-		}
-	}
-	return 0
-}
-
-// parseSemverParts extracts [major, minor, patch] from a semver string like "v1.2.3".
-func parseSemverParts(v string) [3]int {
-	rest := strings.TrimPrefix(v, "v")
-	// Strip pre-release suffix
-	if idx := strings.IndexByte(rest, '-'); idx >= 0 {
-		rest = rest[:idx]
-	}
-	parts := strings.SplitN(rest, ".", 3)
-	var out [3]int
-	for i, p := range parts {
-		if i >= 3 {
-			break
-		}
-		n, _ := strconv.Atoi(p)
-		out[i] = n
-	}
-	return out
 }

@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strings"
 
+	"golang.org/x/mod/semver"
+
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 )
@@ -82,7 +84,7 @@ func ResolveDeps(
 				continue
 			}
 			prev, ok := selected[req.Path]
-			if !ok || compareSemver(req.Version, prev) > 0 {
+			if !ok || semver.Compare(req.Version, prev) > 0 {
 				selected[req.Path] = req.Version
 			}
 			queue = append(queue, Dependency{Path: req.Path, Version: req.Version})

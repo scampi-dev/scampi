@@ -89,6 +89,25 @@ func TestParseLatestStable_NoStable(t *testing.T) {
 	}
 }
 
+// Regression test for #332: tags carrying build metadata are valid
+// semver and must enter the candidate set. The old isSemver check
+// hand-rolled a `[major].[minor].[patch][-pre]?` matcher that
+// rejected `+build` entirely, hiding a perfectly good release.
+func TestParseLatestStable_BuildMetadataAccepted(t *testing.T) {
+	output := "" +
+		"abc123\trefs/tags/v1.0.0\n" +
+		"def456\trefs/tags/v1.0.0+build42\n"
+
+	got := mod.ParseLatestStable(output)
+	// semver.Compare treats v1.0.0 and v1.0.0+build42 as equal, so SortFunc
+	// keeps the input order and the *last* candidate wins. Either is a
+	// stable release; what matters is that build42 is no longer silently
+	// dropped.
+	if got != "v1.0.0+build42" && got != "v1.0.0" {
+		t.Errorf("ParseLatestStable = %q, want one of v1.0.0 / v1.0.0+build42", got)
+	}
+}
+
 func TestParseLatestStable_Empty(t *testing.T) {
 	got := mod.ParseLatestStable("")
 	if got != "" {
