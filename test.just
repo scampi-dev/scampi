@@ -93,7 +93,7 @@ bench save_as='' count='10' benchtime='100ms':
     }
   }}
 
-[doc("Show test coverage by package (filter: grep pattern)")]
+[doc("Show test coverage by package — instruments the whole module so cross-package tests are credited (filter: grep pattern)")]
 coverage filter='':
   #!/usr/bin/env bash
   set -euo pipefail
@@ -101,16 +101,48 @@ coverage filter='':
   if [[ -n "{{filter}}" ]]; then
     pkglist=$(echo "$pkglist" | grep "{{filter}}")
   fi
+  go test -coverpkg=./... -coverprofile=coverage.out $pkglist >/dev/null
   printf "%-50s %8s\n" "PACKAGE" "COVERAGE"
   printf "%-50s %8s\n" "-------" "--------"
-  echo "$pkglist" | xargs go test -cover 2>&1 \
-    | grep -E '^ok|^\?' \
-    | while read -r line; do
-        pkg=$(echo "$line" | awk '{print $2}' | sed 's|scampi.dev/scampi/||')
-        cov=$(echo "$line" | grep -o '[0-9.]*% of' | grep -o '[0-9.]*%' || echo "-")
-        if echo "$line" | grep -q '^\?'; then cov="no test"; fi
-        printf "%-50s %8s\n" "$pkg" "$cov"
-      done
+  go tool cover -func=coverage.out \
+    | grep -v '^total:' \
+    | sed -E 's|/[^/]+\.go:[0-9]+:.*[[:space:]]([0-9.]+%)$| \1|' \
+    | awk '
+        {
+          pkg=$1; sub("scampi.dev/scampi/", "", pkg)
+          pct=$2; sub("%", "", pct)
+          sum[pkg] += pct; n[pkg]++
+        }
+        END {
+          for (p in sum) printf "%-50s %7.1f%%\n", p, sum[p]/n[p]
+        }' \
+    | sort
+  echo
+  go tool cover -func=coverage.out | tail -1
+
+[doc("Per-function coverage from coverage.out (filter: grep pattern; run `just test coverage` first)")]
+coverage-func filter='':
+  #!/usr/bin/env bash
+  set -euo pipefail
+  if [[ ! -f coverage.out ]]; then
+    echo "coverage.out not found — run 'just test coverage' first" >&2
+    exit 1
+  fi
+  if [[ -n "{{filter}}" ]]; then
+    go tool cover -func=coverage.out | grep "{{filter}}"
+  else
+    go tool cover -func=coverage.out
+  fi
+
+[doc("Open HTML coverage report from coverage.out (run `just test coverage` first)")]
+coverage-html:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  if [[ ! -f coverage.out ]]; then
+    echo "coverage.out not found — run 'just test coverage' first" >&2
+    exit 1
+  fi
+  go tool cover -html=coverage.out
 
 [doc("Compare the latest 2 existing benchmarks with suffix")]
 benchcomp suffix:
