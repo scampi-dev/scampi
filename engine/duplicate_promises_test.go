@@ -126,12 +126,12 @@ func TestDetectDuplicatePromises_AllResourceKinds(t *testing.T) {
 	cases := []struct {
 		name     string
 		promises []spec.Resource
-		wantHint string
+		wantKind spec.ResourceKind
 	}{
-		{"container", containers("pve://m/100"), "VMIDs are unique per cluster"},
-		{"path", paths("/foo"), "two steps cannot manage the same path"},
-		{"user", users("alice"), "merge into a single posix.user"},
-		{"group", groups("staff"), "merge into a single posix.group"},
+		{"container", containers("pve://m/100"), spec.ResourceContainer},
+		{"path", paths("/foo"), spec.ResourcePath},
+		{"user", users("alice"), spec.ResourceUser},
+		{"group", groups("staff"), spec.ResourceGroup},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -156,18 +156,9 @@ func TestDetectDuplicatePromises_AllResourceKinds(t *testing.T) {
 					}
 				}
 			}
-			if !contains(dup.HintText, tc.wantHint) {
-				t.Errorf("HintText = %q, want substring %q", dup.HintText, tc.wantHint)
+			if dup.Resource.Kind != tc.wantKind {
+				t.Errorf("Resource.Kind = %v, want %v", dup.Resource.Kind, tc.wantKind)
 			}
 		})
 	}
-}
-
-func contains(haystack, needle string) bool {
-	for i := 0; i+len(needle) <= len(haystack); i++ {
-		if haystack[i:i+len(needle)] == needle {
-			return true
-		}
-	}
-	return false
 }
