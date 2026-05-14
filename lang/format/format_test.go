@@ -10,8 +10,8 @@ import (
 )
 
 // Fixtures live as pairs in testdata/:
-//   <name>.scampi           — input to scampi fmt
-//   <name>.expected.scampi  — golden output
+//   <name>.scampi.unformatted  — input to scampi fmt (ext keeps `scampi fmt ./...` from rewriting it)
+//   <name>.expected.scampi     — golden output
 
 func TestGoldenFiles(t *testing.T) {
 	entries, err := os.ReadDir("testdata")
@@ -21,12 +21,12 @@ func TestGoldenFiles(t *testing.T) {
 
 	for _, e := range entries {
 		name := e.Name()
-		if !strings.HasSuffix(name, ".scampi") || strings.HasSuffix(name, ".expected.scampi") {
+		if !strings.HasSuffix(name, ".scampi.unformatted") {
 			continue
 		}
-		base := strings.TrimSuffix(name, ".scampi")
+		base := strings.TrimSuffix(name, ".scampi.unformatted")
 		t.Run(base, func(t *testing.T) {
-			input, err := os.ReadFile(filepath.Join("testdata", base+".scampi"))
+			input, err := os.ReadFile(filepath.Join("testdata", base+".scampi.unformatted"))
 			if err != nil {
 				t.Fatal(err)
 			}
