@@ -67,6 +67,13 @@ type (
 		EmitPlanDiagnostic(e event.PlanDiagnostic)
 		EmitActionDiagnostic(e event.ActionDiagnostic)
 		EmitOpDiagnostic(e event.OpDiagnostic)
+
+		// New diagnostic surface - see doc/design/diagnostics.md.
+		// Producers should migrate to these methods; the four
+		// Emit*Diagnostic methods above will be removed in phase 6.
+		EmitDiagnostic(e event.Diagnostic)
+		EmitChange(e event.Change)
+		EmitProgress(e event.Progress)
 	}
 	Diagnostic interface {
 		EventTemplate() event.Template
@@ -291,7 +298,7 @@ func PlanProduced(plan spec.Plan, actionDeps ActionDeps) event.PlanEvent {
 	// -----------------------------------------------------------------------------
 	var allOps []spec.Op
 	opIndex := make(map[spec.Op]int)
-	actionOpBase := make(map[int]int) // action index → first op index
+	actionOpBase := make(map[int]int) // action index -> first op index
 	for i, act := range plan.Unit.Actions {
 		actionOpBase[i] = len(allOps)
 		for _, op := range act.Ops() {
@@ -672,5 +679,36 @@ func RaiseOpDiagnostic(stepIdx int, stepKind, stepDesc, displayID string, d Diag
 		},
 		Severity:   d.Severity(),
 		Chattiness: event.Subtle,
+	}
+}
+
+// New diagnostic surface - see doc/design/diagnostics.md.
+// -----------------------------------------------------------------------------
+
+// Raise constructs an event.Diagnostic from a Diagnostic value. Replaces
+// the four scope-specific Raise*Diagnostic helpers above; scope is no
+// longer an axis. Producers wanting to stamp a Cause should either set
+// the field on the returned event or wrap the emitter via WithCause.
+func Raise(d Diagnostic) event.Diagnostic {
+	return event.Diagnostic{
+		Time:     time.Now(),
+		Severity: severityToV2(d.Severity()),
+		Template: d.EventTemplate(),
+	}
+}
+
+// severityToV2 maps the legacy six-level signal.Severity onto the
+// three-level event.Severity. Debug/Info/Notice collapse to Info,
+// Warning maps directly, Error/Fatal collapse to Error. The abort
+// distinction that Fatal used to carry lives on Diagnostic.Impact and
+// is unaffected by this mapping.
+func severityToV2(s signal.Severity) event.Severity {
+	switch s {
+	case signal.Warning:
+		return event.SeverityWarning
+	case signal.Error, signal.Fatal:
+		return event.SeverityError
+	default:
+		return event.SeverityInfo
 	}
 }

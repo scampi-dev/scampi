@@ -147,3 +147,21 @@ func (p *policyEmitter) EmitOpDiagnostic(ev event.OpDiagnostic) {
 	}
 	p.out.EmitOpDiagnostic(ev)
 }
+
+// New diagnostic surface - see doc/design/diagnostics.md.
+// -----------------------------------------------------------------------------
+// These methods are wired through but inert in phase 1 - the CLI
+// renderer is rebuilt in phase 3. Until then producers emitting via
+// the v2 methods are visible to test displayers but not to the user.
+
+func (p *policyEmitter) EmitDiagnostic(ev event.Diagnostic) {
+	p.out.EmitDiagnostic(ev)
+}
+
+func (p *policyEmitter) EmitChange(ev event.Change) {
+	p.out.EmitChange(ev)
+}
+
+func (p *policyEmitter) EmitProgress(ev event.Progress) {
+	p.out.EmitProgress(ev)
+}

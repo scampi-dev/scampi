@@ -248,8 +248,11 @@ func (r *recordingDisplayer) EmitActionDiagnostic(e event.ActionDiagnostic) {
 func (r *recordingDisplayer) EmitOpDiagnostic(e event.OpDiagnostic) {
 	r.op = append(r.op, e)
 }
-func (r *recordingDisplayer) Interrupt() {}
-func (r *recordingDisplayer) Close()     {}
+func (r *recordingDisplayer) EmitDiagnostic(event.Diagnostic) {}
+func (r *recordingDisplayer) EmitChange(event.Change)         {}
+func (r *recordingDisplayer) EmitProgress(event.Progress)     {}
+func (r *recordingDisplayer) Interrupt()                      {}
+func (r *recordingDisplayer) Close()                          {}
 
 // concurrentDisplayer is the recording variant used by the race test.
 // Its only job is to keep its own slice append off the contended path —
@@ -277,5 +280,8 @@ func (c *concurrentDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 func (c *concurrentDisplayer) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
 func (c *concurrentDisplayer) EmitActionDiagnostic(event.ActionDiagnostic) {}
 func (c *concurrentDisplayer) EmitOpDiagnostic(event.OpDiagnostic)         {}
+func (c *concurrentDisplayer) EmitDiagnostic(event.Diagnostic)             {}
+func (c *concurrentDisplayer) EmitChange(event.Change)                     {}
+func (c *concurrentDisplayer) EmitProgress(event.Progress)                 {}
 func (c *concurrentDisplayer) Interrupt()                                  {}
 func (c *concurrentDisplayer) Close()                                      {}

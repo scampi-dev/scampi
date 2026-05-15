@@ -36,6 +36,9 @@ func (d *nopDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 func (d *nopDisplayer) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
 func (d *nopDisplayer) EmitActionDiagnostic(event.ActionDiagnostic) {}
 func (d *nopDisplayer) EmitOpDiagnostic(event.OpDiagnostic)         {}
+func (d *nopDisplayer) EmitDiagnostic(event.Diagnostic)             {}
+func (d *nopDisplayer) EmitChange(event.Change)                     {}
+func (d *nopDisplayer) EmitProgress(event.Progress)                 {}
 func (d *nopDisplayer) Interrupt()                                  {}
 func (d *nopDisplayer) Close()                                      {}
 

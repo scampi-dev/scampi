@@ -925,6 +925,14 @@ func (c *cli) EmitOpDiagnostic(e event.OpDiagnostic) {
 	)
 }
 
+// New diagnostic surface - see doc/design/diagnostics.md.
+// -----------------------------------------------------------------------------
+// Stubs only in phase 1; the CLI renderer is rebuilt in phase 3.
+
+func (c *cli) EmitDiagnostic(event.Diagnostic) {}
+func (c *cli) EmitChange(event.Change)         {}
+func (c *cli) EmitProgress(event.Progress)     {}
+
 func stepScope(s event.StepDetail) string {
 	if s.StepIndex < 0 {
 		if s.StepDesc != "" {

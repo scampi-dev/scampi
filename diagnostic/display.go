@@ -27,6 +27,11 @@ type Displayer interface {
 	EmitActionDiagnostic(e event.ActionDiagnostic)
 	EmitOpDiagnostic(e event.OpDiagnostic)
 
+	// New diagnostic surface - see doc/design/diagnostics.md.
+	EmitDiagnostic(e event.Diagnostic)
+	EmitChange(e event.Change)
+	EmitProgress(e event.Progress)
+
 	Interrupt()
 	Close()
 }

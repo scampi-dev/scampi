@@ -22,6 +22,9 @@ type (
 	ActionDiagnostics  []event.ActionDiagnostic
 	OpDiagnostics      []event.OpDiagnostic
 	IndexStepEvents    []event.IndexStepEvent
+	Diagnostics        []event.Diagnostic
+	Changes            []event.Change
+	ProgressEvents     []event.Progress
 	RecordingDisplayer struct {
 		mu                sync.Mutex
 		EngineEvents      EngineEvents
@@ -34,6 +37,9 @@ type (
 		OpDiagnostics     OpDiagnostics
 		IndexAllEvents    IndexAllEvents
 		IndexStepEvents   IndexStepEvents
+		Diagnostics       Diagnostics
+		Changes           Changes
+		ProgressEvents    ProgressEvents
 	}
 	NoopEmitter struct{}
 )
@@ -101,6 +107,24 @@ func (r *RecordingDisplayer) EmitIndexStep(e event.IndexStepEvent) {
 func (r *RecordingDisplayer) EmitInspect(_ event.InspectEvent) {}
 
 func (r *RecordingDisplayer) EmitGraph(_ event.GraphEvent) {}
+
+func (r *RecordingDisplayer) EmitDiagnostic(e event.Diagnostic) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.Diagnostics = append(r.Diagnostics, e)
+}
+
+func (r *RecordingDisplayer) EmitChange(e event.Change) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.Changes = append(r.Changes, e)
+}
+
+func (r *RecordingDisplayer) EmitProgress(e event.Progress) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.ProgressEvents = append(r.ProgressEvents, e)
+}
 
 func (r *RecordingDisplayer) EmitLegend() {}
 
@@ -170,6 +194,9 @@ func (e EngineDiagnostics) String() string { return MarshalSection("ENGINE DIAGN
 func (e PlanDiagnostics) String() string   { return MarshalSection("PLAN DIAGNOSTICS", e) }
 func (e ActionDiagnostics) String() string { return MarshalSection("ACTION DIAGNOSTICS", e) }
 func (e OpDiagnostics) String() string     { return MarshalSection("OP DIAGNOSTICS", e) }
+func (e Diagnostics) String() string       { return MarshalSection("DIAGNOSTICS", e) }
+func (e Changes) String() string           { return MarshalSection("CHANGES", e) }
+func (e ProgressEvents) String() string    { return MarshalSection("PROGRESS", e) }
 
 func (NoopEmitter) EmitEngineLifecycle(event.EngineEvent)       {}
 func (NoopEmitter) EmitPlanLifecycle(event.PlanEvent)           {}
@@ -183,3 +210,6 @@ func (NoopEmitter) EmitIndexAll(event.IndexAllEvent)            {}
 func (NoopEmitter) EmitIndexStep(event.IndexStepEvent)          {}
 func (NoopEmitter) EmitInspect(event.InspectEvent)              {}
 func (NoopEmitter) EmitGraph(event.GraphEvent)                  {}
+func (NoopEmitter) EmitDiagnostic(event.Diagnostic)             {}
+func (NoopEmitter) EmitChange(event.Change)                     {}
+func (NoopEmitter) EmitProgress(event.Progress)                 {}

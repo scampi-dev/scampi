@@ -5,6 +5,9 @@
 //go:generate stringer -type=ActionKind
 //go:generate stringer -type=OpKind
 //go:generate stringer -type=Chattiness
+//go:generate stringer -type=Severity
+//go:generate stringer -type=CauseKind
+//go:generate stringer -type=ChangePhase
 package event
 
 import (
@@ -238,3 +241,88 @@ func (f Field) TemplateData() any    { return f.data }
 func (t Template) TextField() Field { return Field{string(t.ID) + ".Text", t.Text, t.Data} }
 func (t Template) HintField() Field { return Field{string(t.ID) + ".Hint", t.Hint, t.Data} }
 func (t Template) HelpField() Field { return Field{string(t.ID) + ".Help", t.Help, t.Data} }
+
+// New diagnostic surface
+// =============================================================================
+// These types replace the per-scope {Engine,Plan,Action,Op}{Event,Diagnostic}
+// envelopes above. They are introduced additively during the rework; the old
+// types stay in place until the final phase, at which point the surface
+// above this banner is deleted. See doc/design/diagnostics.md.
+
+// Severity collapses signal.Severity (6 levels) to the 3 levels users
+// actually need. The old enum stays alive until phase 6 because the
+// surviving lifecycle events still reference it.
+type Severity uint8
+
+const (
+	SeverityInfo Severity = iota
+	SeverityWarning
+	SeverityError
+)
+
+// CauseKind identifies what triggered an event. Most events have no
+// notable trigger (CauseNone); hooks are the first thing that does.
+// Grow this enum as new triggers appear (deferred resource arrival,
+// scheduled re-eval, retry context, ...).
+type CauseKind uint8
+
+const (
+	CauseNone CauseKind = iota
+	CauseHook
+)
+
+// Cause is the optional "what triggered this event" tag. Value type:
+// the zero value (Cause{}) means "no notable trigger" and avoids
+// allocating for the common case.
+type Cause struct {
+	Kind CauseKind
+	Ref  string // hook ID for CauseHook; empty otherwise
+}
+
+// Diagnostic is the unified diagnostic event. It replaces the four
+// scope-specific envelope types (EngineDiagnostic, PlanDiagnostic,
+// ActionDiagnostic, OpDiagnostic). Source location lives on
+// Template.Source; there is no separate scope axis.
+type Diagnostic struct {
+	Time     time.Time
+	Severity Severity
+	Template Template
+	Cause    Cause
+}
+
+// ChangePhase distinguishes a would-change (check-only or pre-execute)
+// from a did-change (post-execute). Same shape both phases.
+type ChangePhase uint8
+
+const (
+	ChangePlanned ChangePhase = iota
+	ChangeExecuted
+)
+
+// StepRef identifies the step a Change belongs to. The fields mirror
+// the existing StepDetail but live here so phase 6 can delete
+// StepDetail cleanly.
+type StepRef struct {
+	Index int
+	Kind  string
+	Desc  string
+}
+
+// Change is a planned or executed mutation reported by an op. Emitted
+// live as drift is detected (check) or as the mutation happens (apply).
+type Change struct {
+	Time      time.Time
+	Phase     ChangePhase
+	Step      StepRef
+	DisplayID string
+	Drift     spec.DriftDetail
+	Cause     Cause
+}
+
+// Progress is a status update - "currently doing X". Latest-wins on
+// TTY (the consumer overwrites a status line); appended one line at a
+// time on non-TTY. No severity, no cause: too ephemeral to bother.
+type Progress struct {
+	Time time.Time
+	Text string
+}
