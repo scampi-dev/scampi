@@ -927,11 +927,77 @@ func (c *cli) EmitOpDiagnostic(e event.OpDiagnostic) {
 
 // New diagnostic surface - see doc/design/diagnostics.md.
 // -----------------------------------------------------------------------------
-// Stubs only in phase 1; the CLI renderer is rebuilt in phase 3.
 
-func (c *cli) EmitDiagnostic(event.Diagnostic) {}
-func (c *cli) EmitChange(event.Change)         {}
-func (c *cli) EmitProgress(event.Progress)     {}
+func (c *cli) EmitDiagnostic(e event.Diagnostic) {
+	scope := ""
+	if e.Cause.Kind == event.CauseHook && e.Cause.Ref != "" {
+		scope = fmt.Sprintf(" in hook '%s'", e.Cause.Ref)
+	}
+	c.renderDiagnostic(eventSeverityToSignal(e.Severity), "", scope, e.Template)
+}
+
+func (c *cli) EmitChange(e event.Change) {
+	var verb string
+	var col ansi.ANSI
+	switch e.Phase {
+	case event.ChangePlanned:
+		verb = "would change"
+		col = colOpCheckUnsatisfied
+	case event.ChangeExecuted:
+		verb = "changed"
+		col = colOpExecChanged
+	default:
+		return
+	}
+	stepID := stepIDFromRef(e.Step)
+	prefix := fmt.Sprintf("[%s]", stepID)
+	if e.DisplayID != "" {
+		prefix = fmt.Sprintf("[%s] '%s'", stepID, e.DisplayID)
+	}
+	if e.Drift.Field == "" {
+		c.commitRenderEvents([]renderEvent{{
+			stream: streamOut,
+			line:   c.formatter.fmtfMsg(col, "%s%s %s", prefix, glyphR(c.glyphs.exec), verb),
+		}})
+		return
+	}
+	c.commitRenderEvents([]renderEvent{{
+		stream: streamOut,
+		line: c.formatter.fmtfMsg(col, "%s %s %s: %s -> %s",
+			prefix, verb, e.Drift.Field, e.Drift.Current, e.Drift.Desired),
+	}})
+}
+
+func (c *cli) EmitProgress(e event.Progress) {
+	c.commitRenderEvents([]renderEvent{{
+		stream: streamOut,
+		line:   c.formatter.fmtfMsg(colEngineStarted, "[~] %s", e.Text),
+	}})
+}
+
+// eventSeverityToSignal maps the v2 three-level Severity onto the legacy
+// signal.Severity expected by renderDiagnostic. Phase 6 will narrow
+// signal.Severity to match.
+func eventSeverityToSignal(s event.Severity) signal.Severity {
+	switch s {
+	case event.SeverityWarning:
+		return signal.Warning
+	case event.SeverityError:
+		return signal.Error
+	default:
+		return signal.Info
+	}
+}
+
+// stepIDFromRef returns a step display tag built from the StepRef
+// fields. Mirrors the formatting used by lifecycle renderers.
+func stepIDFromRef(s event.StepRef) string {
+	tag := fmt.Sprintf("%d", s.Index)
+	if s.Kind != "" {
+		tag += "|" + s.Kind
+	}
+	return tag
+}
 
 func stepScope(s event.StepDetail) string {
 	if s.StepIndex < 0 {
