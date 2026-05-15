@@ -5,12 +5,10 @@ package engine
 import (
 	"context"
 	"io/fs"
-	"time"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/errs"
-	"scampi.dev/scampi/model"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
@@ -28,20 +26,12 @@ func Plan(
 }
 
 func (e *Engine) Plan(ctx context.Context) error {
-	start := time.Now()
-	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
-
-	plan, actionDeps, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+	plan, _, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return err
 	}
 	e.storeSourcePaths(ctx, plan)
-
-	e.em.EmitPlanLifecycle(diagnostic.PlanProduced(plan, actionDeps))
-
-	e.em.EmitEngineLifecycle(diagnostic.EngineFinished(model.ExecutionReport{}, 0, time.Since(start), err, false))
-
-	return err
+	return nil
 }
 
 // hookPlan holds planned hook actions and the mapping from action index
@@ -56,9 +46,7 @@ func plan(
 	em diagnostic.Emitter,
 	tgtCaps capability.Capability,
 ) (spec.Plan, diagnostic.ActionDeps, *hookPlan, error) {
-	start := time.Now()
 	unitID := spec.UnitID(cfg.DeployName)
-	em.EmitPlanLifecycle(diagnostic.PlanStarted(unitID))
 
 	actions, actionSteps, onChange, causes, impacts := planSteps(cfg.Steps, em, tgtCaps)
 	hookActions, hookCauses, hookImpacts := planHooks(cfg.Hooks, em, tgtCaps)
@@ -73,13 +61,6 @@ func plan(
 		},
 	}
 	hp := &hookPlan{actions: hookActions, onChange: onChange}
-
-	em.EmitPlanLifecycle(diagnostic.PlanFinished(
-		p.Unit.ID,
-		len(p.Unit.Actions),
-		len(causes),
-		time.Since(start),
-	))
 
 	for _, impact := range impacts {
 		if impact.ShouldAbort() {
@@ -153,7 +134,6 @@ func planSteps(
 		actionIdx := len(actions)
 		actions = append(actions, act)
 		actionSteps = append(actionSteps, i)
-		em.EmitPlanLifecycle(diagnostic.StepPlanned(i, act.Desc(), step.Type.Kind()))
 
 		if len(step.OnChange) > 0 {
 			onChange[actionIdx] = step.OnChange

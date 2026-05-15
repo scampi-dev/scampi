@@ -4,8 +4,6 @@ package engine
 
 import (
 	"context"
-	"errors"
-	"time"
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/model"
@@ -40,9 +38,6 @@ func (e *Engine) Check(ctx context.Context) error { return e.converge(ctx, true)
 func (e *Engine) Apply(ctx context.Context) error { return e.converge(ctx, false) }
 
 func (e *Engine) converge(ctx context.Context, checkOnly bool) error {
-	start := time.Now()
-	e.em.EmitEngineLifecycle(diagnostic.EngineStarted())
-
 	p, _, hp, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
 		return err
@@ -57,10 +52,6 @@ func (e *Engine) converge(ctx context.Context, checkOnly bool) error {
 		rep, err = e.ExecutePlan(ctx, p)
 	}
 	if err != nil {
-		var cancelled CancelledError
-		if errors.As(err, &cancelled) {
-			e.em.EmitEngineLifecycle(diagnostic.EngineCancelled(rep, time.Since(start)))
-		}
 		return err
 	}
 
@@ -68,10 +59,7 @@ func (e *Engine) converge(ctx context.Context, checkOnly bool) error {
 	if err != nil {
 		return err
 	}
-	hooksFired := len(hookRep.Actions)
 	rep.Actions = append(rep.Actions, hookRep.Actions...)
-
-	e.em.EmitEngineLifecycle(diagnostic.EngineFinished(rep, hooksFired, time.Since(start), err, checkOnly))
 
 	return nil
 }
