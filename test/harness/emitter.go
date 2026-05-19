@@ -8,6 +8,7 @@ import (
 	"io"
 	"sync"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/signal"
 )
@@ -33,6 +34,10 @@ type (
 	// NoopEmitter discards every event. Implements diagnostic.Emitter.
 	NoopEmitter struct{}
 )
+
+func (r *RecordingDisplayer) Raise(err diagnostic.Raisable) {
+	r.Emit(err.Diagnostic())
+}
 
 func (r *RecordingDisplayer) Emit(e event.Event) {
 	r.mu.Lock()
@@ -121,6 +126,7 @@ func (e Changes) String() string        { return MarshalSection("CHANGES", e) }
 func (e ProgressEvents) String() string { return MarshalSection("PROGRESS", e) }
 
 func (NoopEmitter) Emit(event.Event)                {}
+func (NoopEmitter) Raise(diagnostic.Raisable)       {}
 func (NoopEmitter) EmitDiagnostic(event.Diagnostic) {}
 func (NoopEmitter) EmitChange(event.Change)         {}
 func (NoopEmitter) EmitProgress(event.Progress)     {}

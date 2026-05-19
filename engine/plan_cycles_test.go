@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/capability"
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
@@ -28,6 +29,7 @@ import (
 type noopEmitter struct{}
 
 func (noopEmitter) Emit(event.Event)                {}
+func (noopEmitter) Raise(diagnostic.Raisable)       {}
 func (noopEmitter) EmitDiagnostic(event.Diagnostic) {}
 func (noopEmitter) EmitChange(event.Change)         {}
 func (noopEmitter) EmitProgress(event.Progress)     {}

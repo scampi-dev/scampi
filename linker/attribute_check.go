@@ -268,10 +268,10 @@ func bindCallArgs(call *ast.CallExpr, ft *check.FuncType) map[int]ast.Expr {
 // during the static check pass; the caller wraps them into a single
 // diagnostic.Diagnostics for return through the standard pipeline.
 type linkContext struct {
-	diags diagnostic.Diagnostics
+	diags diagnostic.Raisables
 }
 
-func (lc *linkContext) Emit(d diagnostic.Diagnostic) {
+func (lc *linkContext) Emit(d diagnostic.Raisable) {
 	lc.diags = append(lc.diags, d)
 }
 

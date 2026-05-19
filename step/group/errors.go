@@ -5,14 +5,12 @@ package group
 import (
 	"fmt"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
 
 // GroupCreateError is emitted when creating a group fails.
 type GroupCreateError struct {
-	diagnostic.FatalError
 	Name   string
 	Err    error
 	Source spec.SourceSpan
@@ -24,20 +22,22 @@ func (e GroupCreateError) Error() string {
 
 func (e GroupCreateError) Unwrap() error { return e.Err }
 
-func (e GroupCreateError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeCreateFailed,
-		Text:   `failed to create group "{{.Name}}"`,
-		Hint:   `verify "{{.Name}}" is a valid group name and no conflicting group exists on the target`,
-		Help:   `{{.Err}}`,
-		Data:   e,
-		Source: &e.Source,
+func (e GroupCreateError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeCreateFailed,
+			Text:   `failed to create group "{{.Name}}"`,
+			Hint:   `verify "{{.Name}}" is a valid group name and no conflicting group exists on the target`,
+			Help:   `{{.Err}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 // GroupDeleteError is emitted when deleting a group fails.
 type GroupDeleteError struct {
-	diagnostic.FatalError
 	Name   string
 	Err    error
 	Source spec.SourceSpan
@@ -49,14 +49,17 @@ func (e GroupDeleteError) Error() string {
 
 func (e GroupDeleteError) Unwrap() error { return e.Err }
 
-func (e GroupDeleteError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeDeleteFailed,
-		Text: `failed to delete group "{{.Name}}"`,
-		Hint: `confirm no users have "{{.Name}}" as their primary group ` +
-			`(getent passwd | awk -F: '$4 == "<gid>"')`,
-		Help:   `{{.Err}}`,
-		Data:   e,
-		Source: &e.Source,
+func (e GroupDeleteError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeDeleteFailed,
+			Text: `failed to delete group "{{.Name}}"`,
+			Hint: `confirm no users have "{{.Name}}" as their primary group ` +
+				`(getent passwd | awk -F: '$4 == "<gid>"')`,
+			Help:   `{{.Err}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }

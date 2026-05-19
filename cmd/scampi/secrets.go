@@ -30,17 +30,18 @@ const envSecretsFile = "SCAMPI_SECRETS_FILE"
 // -----------------------------------------------------------------------------
 
 type secretsInfo struct {
-	diagnostic.Info
 	Detail string
 }
 
 func (e *secretsInfo) Error() string { return e.Detail }
 
-func (e *secretsInfo) EventTemplate() event.Template {
-	return event.Template{
-		ID:   errs.Code("secrets.Info"),
-		Text: "{{.Detail}}",
-		Data: e,
+func (e *secretsInfo) Diagnostic() event.Event {
+	return event.Info{
+		Template: event.Template{
+			ID:   errs.Code("secrets.Info"),
+			Text: "{{.Detail}}",
+			Data: e,
+		},
 	}
 }
 
@@ -48,9 +49,7 @@ func (e *secretsInfo) EventTemplate() event.Template {
 // -----------------------------------------------------------------------------
 
 func emitSecretsInfo(em diagnostic.Emitter, detail string) {
-	em.EmitDiagnostic(diagnostic.Raise(&secretsInfo{
-		Detail: detail,
-	}))
+	em.Raise(&secretsInfo{Detail: detail})
 }
 
 func secretsEmitter(ctx context.Context) (diagnostic.Emitter, func()) {

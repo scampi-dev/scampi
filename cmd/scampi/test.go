@@ -132,10 +132,10 @@ func walkTestFiles(root string) ([]string, error) {
 	return files, err
 }
 
-func emitTestDiag(em diagnostic.Emitter, d diagnostic.Diagnostic) {
-	em.EmitDiagnostic(diagnostic.Raise(d))
+func emitTestDiag(em diagnostic.Emitter, r diagnostic.Raisable) {
+	em.Raise(r)
 }
 
-func emitTestInfo(em diagnostic.Emitter, _ string, d diagnostic.Diagnostic) {
-	em.EmitDiagnostic(diagnostic.Raise(d))
+func emitTestInfo(em diagnostic.Emitter, _ string, r diagnostic.Raisable) {
+	em.Raise(r)
 }

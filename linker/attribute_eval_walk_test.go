@@ -35,7 +35,7 @@ std.deploy(name = "main", targets = [host]) {
 	if err == nil {
 		t.Fatal("expected eval-walker to emit @max violation for let-bound port=70000")
 	}
-	var diags diagnostic.Diagnostics
+	var diags diagnostic.Raisables
 	assertDiagnosticsFor(t, err, "port", &diags)
 }
 
@@ -82,7 +82,7 @@ std.deploy(name = "main", targets = [host]) {
 	if err == nil {
 		t.Fatal("expected eval-walker to emit @max violation for port=70000")
 	}
-	var diags diagnostic.Diagnostics
+	var diags diagnostic.Raisables
 	assertDiagnosticsFor(t, err, "port", &diags)
 }
 
@@ -149,11 +149,11 @@ func evalForAttrTest(t *testing.T, src string) (*check.Scope, map[string]*check.
 
 // assertDiagnosticsFor unwraps an attribute walker error and confirms
 // at least one diagnostic mentions the named param.
-func assertDiagnosticsFor(t *testing.T, err error, paramName string, out *diagnostic.Diagnostics) {
+func assertDiagnosticsFor(t *testing.T, err error, paramName string, out *diagnostic.Raisables) {
 	t.Helper()
-	diags, ok := err.(diagnostic.Diagnostics)
+	diags, ok := err.(diagnostic.Raisables)
 	if !ok {
-		t.Fatalf("expected diagnostic.Diagnostics, got %T: %v", err, err)
+		t.Fatalf("expected diagnostic.Raisables, got %T: %v", err, err)
 	}
 	*out = diags
 	for _, d := range diags {

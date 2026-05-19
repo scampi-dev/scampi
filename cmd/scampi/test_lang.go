@@ -63,12 +63,11 @@ func runLangTestFile(
 		}
 		failed++
 		for _, m := range mismatches {
-			em.EmitDiagnostic(diagnostic.Raise(&testkit.TestFail{
+			em.Raise(&testkit.TestFail{
 				Description: entry.Name + ": " + m.Key,
 				Expected:    m.Matcher,
 				Actual:      m.Reason,
-			},
-			))
+			})
 		}
 	}
 
@@ -83,12 +82,11 @@ func runLangTestFile(
 		}
 		failed++
 		for _, m := range mismatches {
-			em.EmitDiagnostic(diagnostic.Raise(&testkit.TestFail{
+			em.Raise(&testkit.TestFail{
 				Description: entry.Name + ": " + m.Key,
 				Expected:    m.Matcher,
 				Actual:      m.Reason,
-			},
-			))
+			})
 		}
 	}
 

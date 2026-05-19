@@ -9,7 +9,6 @@ import (
 
 	"github.com/itchyny/gojq"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
@@ -122,7 +121,6 @@ type refResolvable interface {
 // -----------------------------------------------------------------------------
 
 type RefError struct {
-	diagnostic.FatalError
 	Expr   string
 	Detail string
 	Source *spec.SourceSpan
@@ -132,12 +130,15 @@ func (e RefError) Error() string {
 	return fmt.Sprintf("ref(%s): %s", e.Expr, e.Detail)
 }
 
-func (e RefError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeRefError,
-		Text:   "ref({{.Expr}}) failed",
-		Hint:   "{{.Detail}}",
-		Data:   e,
-		Source: e.Source,
+func (e RefError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeRefError,
+			Text:   "ref({{.Expr}}) failed",
+			Hint:   "{{.Detail}}",
+			Data:   e,
+			Source: e.Source,
+		},
 	}
 }

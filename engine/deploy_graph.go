@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
@@ -219,7 +218,6 @@ func deployNamesOf(ns []*deployNode) []string {
 // they produce the same resource. Ambiguous ordering would let either
 // run first, so this is fatal at link time.
 type MultipleProducersError struct {
-	diagnostic.FatalError
 	Resource spec.Resource
 	Deploys  []string
 }
@@ -232,13 +230,16 @@ func (e MultipleProducersError) Error() string {
 	)
 }
 
-func (e MultipleProducersError) EventTemplate() event.Template {
-	return event.Template{
-		ID: CodeMultipleProducers,
-		Text: `resource {{.Resource}} has multiple producers: ` +
-			`{{range $i, $d := .Deploys}}{{if $i}}, {{end}}{{$d}}{{end}}`,
-		Hint: "ensure only one deploy block creates this resource",
-		Data: e,
+func (e MultipleProducersError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID: CodeMultipleProducers,
+			Text: `resource {{.Resource}} has multiple producers: ` +
+				`{{range $i, $d := .Deploys}}{{if $i}}, {{end}}{{$d}}{{end}}`,
+			Hint: "ensure only one deploy block creates this resource",
+			Data: e,
+		},
 	}
 }
 
@@ -246,7 +247,6 @@ func (e MultipleProducersError) EventTemplate() event.Template {
 // through their resource graph (A consumes a resource produced by B,
 // and B consumes one produced by A).
 type DeployCycleError struct {
-	diagnostic.FatalError
 	Deploys []string
 }
 
@@ -254,13 +254,16 @@ func (e DeployCycleError) Error() string {
 	return fmt.Sprintf("deploy block cycle: %s", strings.Join(e.Deploys, " -> "))
 }
 
-func (e DeployCycleError) EventTemplate() event.Template {
-	return event.Template{
-		ID: CodeDeployCycle,
-		Text: `circular dependency between deploy blocks: ` +
-			`{{range $i, $d := .Deploys}}{{if $i}} -> {{end}}{{$d}}{{end}}`,
-		Hint: "break the cycle by splitting or merging deploy blocks",
-		Data: e,
+func (e DeployCycleError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID: CodeDeployCycle,
+			Text: `circular dependency between deploy blocks: ` +
+				`{{range $i, $d := .Deploys}}{{if $i}} -> {{end}}{{$d}}{{end}}`,
+			Hint: "break the cycle by splitting or merging deploy blocks",
+			Data: e,
+		},
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/target"
 )
 
@@ -19,12 +20,12 @@ func TestDiagnoseTargetError_EscalationFailed(t *testing.T) {
 
 	wrapped := DiagnoseTargetError(orig)
 
-	var d diagnostic.Diagnostic
-	if !errors.As(wrapped, &d) {
+	var r diagnostic.Raisable
+	if !errors.As(wrapped, &r) {
 		t.Fatalf("expected diagnostic, got %T", wrapped)
 	}
-	if d.Impact() != diagnostic.ImpactAbort {
-		t.Fatalf("expected ImpactAbort, got %v", d.Impact())
+	if ev, ok := r.Diagnostic().(event.Error); !ok || ev.Impact != event.ImpactAbort {
+		t.Fatalf("expected ImpactAbort, got %v", r.Diagnostic())
 	}
 
 	var efe EscalationFailedError
@@ -41,8 +42,8 @@ func TestDiagnoseTargetError_EscalationMissing(t *testing.T) {
 
 	wrapped := DiagnoseTargetError(orig)
 
-	var d diagnostic.Diagnostic
-	if !errors.As(wrapped, &d) {
+	var r diagnostic.Raisable
+	if !errors.As(wrapped, &r) {
 		t.Fatalf("expected diagnostic, got %T", wrapped)
 	}
 
@@ -63,8 +64,8 @@ func TestDiagnoseTargetError_StagingError(t *testing.T) {
 
 	wrapped := DiagnoseTargetError(orig)
 
-	var d diagnostic.Diagnostic
-	if !errors.As(wrapped, &d) {
+	var r diagnostic.Raisable
+	if !errors.As(wrapped, &r) {
 		t.Fatalf("expected diagnostic, got %T", wrapped)
 	}
 
@@ -93,8 +94,8 @@ func TestEscalationErrors_StableEventIDs(t *testing.T) {
 		Tool: "sudo", Op: "chmod", Path: "/etc/foo", ExitCode: 1,
 	}}
 
-	mTmpl := missing.EventTemplate()
-	fTmpl := failed.EventTemplate()
+	mTmpl := missing.Diagnostic().(event.Error).Template
+	fTmpl := failed.Diagnostic().(event.Error).Template
 
 	if mTmpl.ID != "target.EscalationMissing" {
 		t.Fatalf("expected ID %q, got %q", "target.EscalationMissing", mTmpl.ID)

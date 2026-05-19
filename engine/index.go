@@ -34,12 +34,8 @@ func IndexStep(_ context.Context, stepKind string, em diagnostic.Emitter) (spec.
 	reg := NewRegistry()
 	_, ok := reg.StepType(stepKind)
 	if !ok {
-		emitIndexDiagnostic(em, UnknownIndexKindError{Kind: stepKind})
+		em.Emit(UnknownIndexKindError{Kind: stepKind}.Diagnostic())
 		return spec.StepDoc{}, AbortError{}
 	}
 	return loadStepDoc(reg, stepKind), nil
-}
-
-func emitIndexDiagnostic(em diagnostic.Emitter, d diagnostic.Diagnostic) {
-	em.EmitDiagnostic(diagnostic.Raise(d))
 }

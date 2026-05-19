@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
 
@@ -50,7 +51,7 @@ func TestParsePerm_InvalidPermissions(t *testing.T) {
 				t.Fatalf("expected InvalidPermissionError, got %T", err)
 			}
 
-			tmpl := ipe.Diagnostic().Template
+			tmpl := ipe.Diagnostic().(event.Error).Template
 
 			text := strings.ToLower(tmpl.Text)
 			if !strings.Contains(text, "permission") {

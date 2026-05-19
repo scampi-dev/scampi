@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"scampi.dev/scampi/capability"
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
@@ -303,7 +302,6 @@ func newHash(algo spec.ChecksumAlgo) hash.Hash {
 // -----------------------------------------------------------------------------
 
 type DownloadError struct {
-	diagnostic.FatalError
 	URL    string
 	Detail string
 	Source spec.SourceSpan
@@ -313,18 +311,20 @@ func (e DownloadError) Error() string {
 	return fmt.Sprintf("download %q: %s", e.URL, e.Detail)
 }
 
-func (e DownloadError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeDownloadError,
-		Text:   `download "{{.URL}}": {{.Detail}}`,
-		Hint:   "check that the URL is reachable and correct",
-		Data:   e,
-		Source: &e.Source,
+func (e DownloadError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeDownloadError,
+			Text:   `download "{{.URL}}": {{.Detail}}`,
+			Hint:   "check that the URL is reachable and correct",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 type ChecksumMismatchError struct {
-	diagnostic.FatalError
 	URL      string
 	Expected string
 	Got      string
@@ -335,13 +335,17 @@ func (e ChecksumMismatchError) Error() string {
 	return fmt.Sprintf("download %q: checksum mismatch: expected %s, got %s", e.URL, e.Expected, e.Got)
 }
 
-func (e ChecksumMismatchError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeChecksumMismatch,
-		Text:   `download "{{.URL}}": checksum mismatch`,
-		Hint:   "expected {{.Expected}}, got {{.Got}}",
-		Help:   "the downloaded content does not match the declared checksum — verify the URL serves the expected file",
-		Data:   e,
-		Source: &e.Source,
+func (e ChecksumMismatchError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeChecksumMismatch,
+			Text: `download "{{.URL}}": checksum mismatch`,
+			Hint: "expected {{.Expected}}, got {{.Got}}",
+			Help: "the downloaded content does not match the declared checksum — " +
+				"verify the URL serves the expected file",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }

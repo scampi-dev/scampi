@@ -19,10 +19,14 @@ import (
 // would be printed to the terminal.
 type nopDisplayer struct {
 	diagnostics []event.Diagnostic
+	events      []event.Event
 }
 
-func (d *nopDisplayer) EmitLegend()      {}
-func (d *nopDisplayer) Emit(event.Event) {}
+func (d *nopDisplayer) EmitLegend() {}
+func (d *nopDisplayer) Emit(e event.Event) {
+	d.events = append(d.events, e)
+}
+func (d *nopDisplayer) Raise(r diagnostic.Raisable) { d.Emit(r.Diagnostic()) }
 func (d *nopDisplayer) EmitDiagnostic(e event.Diagnostic) {
 	d.diagnostics = append(d.diagnostics, e)
 }
@@ -215,7 +219,7 @@ std.deploy(name = "fail", targets = [mock]) {
 	if passed != 0 || failed != 1 {
 		t.Errorf("want 0 passed / 1 failed, got %d/%d", passed, failed)
 	}
-	if len(displ.diagnostics) == 0 {
+	if len(displ.events) == 0 {
 		t.Errorf("expected at least one TestFail diagnostic")
 	}
 }

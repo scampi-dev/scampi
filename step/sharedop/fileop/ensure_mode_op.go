@@ -8,7 +8,6 @@ import (
 	"io/fs"
 
 	"scampi.dev/scampi/capability"
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
@@ -192,7 +191,6 @@ func (op *EnsureModeOp) OpDescription() spec.OpDescription {
 }
 
 type modeReadError struct {
-	diagnostic.FatalError
 	Path   string
 	Source spec.SourceSpan
 	Err    error
@@ -206,12 +204,15 @@ func (e modeReadError) Unwrap() error {
 	return e.Err
 }
 
-func (e modeReadError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeModeRead,
-		Text:   `cannot read mode of "{{.Path}}"`,
-		Hint:   "check file permissions and ensure the path is accessible",
-		Data:   e,
-		Source: &e.Source,
+func (e modeReadError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeModeRead,
+			Text:   `cannot read mode of "{{.Path}}"`,
+			Hint:   "check file permissions and ensure the path is accessible",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }

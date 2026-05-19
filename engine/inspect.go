@@ -214,7 +214,6 @@ type diffableOp struct {
 // -----------------------------------------------------------------------------
 
 type noDiffableOpsError struct {
-	diagnostic.FatalError
 	CfgPath string
 	Filter  string
 }
@@ -223,17 +222,19 @@ func (e noDiffableOpsError) Error() string {
 	return fmt.Sprintf("no diffable ops matching %q", e.Filter)
 }
 
-func (e noDiffableOpsError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeNoDiffableOps,
-		Text: `no diffable ops matching "{{.Filter}}"`,
-		Hint: "use scampi inspect <config> --diff to list available paths",
-		Data: e,
+func (e noDiffableOpsError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeNoDiffableOps,
+			Text: `no diffable ops matching "{{.Filter}}"`,
+			Hint: "use scampi inspect <config> --diff to list available paths",
+			Data: e,
+		},
 	}
 }
 
 type multipleDiffableOpsError struct {
-	diagnostic.FatalError
 	CfgPath string
 	Count   int
 	Paths   []string
@@ -243,11 +244,14 @@ func (e multipleDiffableOpsError) Error() string {
 	return fmt.Sprintf("found %d diffable ops, expected exactly one", e.Count)
 }
 
-func (e multipleDiffableOpsError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeMultipleDiffableOps,
-		Text: `found {{.Count}} diffable ops — narrow your filter`,
-		Hint: "destinations:\n{{range .Paths}}  {{.}}\n{{end}}",
-		Data: e,
+func (e multipleDiffableOpsError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeMultipleDiffableOps,
+			Text: `found {{.Count}} diffable ops — narrow your filter`,
+			Hint: "destinations:\n{{range .Paths}}  {{.}}\n{{end}}",
+			Data: e,
+		},
 	}
 }

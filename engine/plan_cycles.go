@@ -12,7 +12,6 @@ import (
 )
 
 type CyclicDependencyError struct {
-	diagnostic.FatalError
 	Cycle []spec.Op
 }
 
@@ -34,17 +33,20 @@ func (e CyclicDependencyError) Error() string {
 	return "cyclic dependency: " + strings.Join(ids, " -> ")
 }
 
-func (e CyclicDependencyError) EventTemplate() event.Template {
+func (e CyclicDependencyError) Diagnostic() event.Event {
 	ids := make([]string, 0, len(e.Cycle))
 	for _, op := range e.Cycle {
 		ids = append(ids, opID(op))
 	}
 
-	return event.Template{
-		ID:   CodeCyclicDependency,
-		Text: "cyclic dependency detected",
-		Hint: `{{join " -> " .}}`,
-		Data: ids,
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeCyclicDependency,
+			Text: "cyclic dependency detected",
+			Hint: `{{join " -> " .}}`,
+			Data: ids,
+		},
 	}
 }
 
@@ -64,7 +66,7 @@ func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
 		for _, cycle := range cycles {
 			cd := CyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
-			em.EmitDiagnostic(diagnostic.Raise(cd))
+			em.Emit(cd.Diagnostic())
 		}
 
 		return err
@@ -75,7 +77,6 @@ func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
 
 // ActionCyclicDependencyError represents a cycle in the action dependency graph.
 type ActionCyclicDependencyError struct {
-	diagnostic.FatalError
 	Cycle []spec.Action
 }
 
@@ -94,17 +95,20 @@ func (e ActionCyclicDependencyError) Error() string {
 	return "cyclic action dependency: " + strings.Join(ids, " -> ")
 }
 
-func (e ActionCyclicDependencyError) EventTemplate() event.Template {
+func (e ActionCyclicDependencyError) Diagnostic() event.Event {
 	ids := make([]string, 0, len(e.Cycle))
 	for _, act := range e.Cycle {
 		ids = append(ids, actionID(act))
 	}
 
-	return event.Template{
-		ID:   CodeActionCyclicDep,
-		Text: "cyclic action dependency detected",
-		Hint: `{{join " -> " .}}`,
-		Data: ids,
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeActionCyclicDep,
+			Text: "cyclic action dependency detected",
+			Hint: `{{join " -> " .}}`,
+			Data: ids,
+		},
 	}
 }
 
@@ -129,7 +133,7 @@ func detectHookCycles(em diagnostic.Emitter, hooks map[string][]spec.StepInstanc
 		cycle := cycles[0]
 		source := findCycleEdgeSource(hooks, cycle)
 		err := HookCycleError{Chain: cycle, Source: source}
-		em.EmitDiagnostic(diagnostic.Raise(err))
+		em.Emit(err.Diagnostic())
 		return AbortError{Causes: []error{err}}
 	}
 
@@ -173,7 +177,7 @@ func DetectActionCycles(em diagnostic.Emitter, nodes []*actionNode) error {
 			cd := ActionCyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
 
-			em.EmitDiagnostic(diagnostic.Raise(cd))
+			em.Emit(cd.Diagnostic())
 		}
 
 		return err

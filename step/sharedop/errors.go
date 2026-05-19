@@ -6,14 +6,12 @@ import (
 	"errors"
 	"fmt"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
 type UnknownUserError struct {
-	diagnostic.FatalError
 	User   string
 	Source spec.SourceSpan
 	Err    error
@@ -27,13 +25,16 @@ func (e UnknownUserError) Unwrap() error {
 	return e.Err
 }
 
-func (e UnknownUserError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeUnknownUser,
-		Text:   `unknown user "{{.User}}"`,
-		Hint:   `create user "{{.User}}" with useradd or adduser before setting file owner`,
-		Data:   e,
-		Source: &e.Source,
+func (e UnknownUserError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownUser,
+			Text:   `unknown user "{{.User}}"`,
+			Hint:   `create user "{{.User}}" with useradd or adduser before setting file owner`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
@@ -42,7 +43,6 @@ func (e UnknownUserError) DeferredResource() spec.Resource {
 }
 
 type UnknownGroupError struct {
-	diagnostic.FatalError
 	Group  string
 	Source spec.SourceSpan
 	Err    error
@@ -56,13 +56,16 @@ func (e UnknownGroupError) Unwrap() error {
 	return e.Err
 }
 
-func (e UnknownGroupError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeUnknownGroup,
-		Text:   `unknown group "{{.Group}}"`,
-		Hint:   `create group "{{.Group}}" with groupadd or addgroup before setting file owner`,
-		Data:   e,
-		Source: &e.Source,
+func (e UnknownGroupError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownGroup,
+			Text:   `unknown group "{{.Group}}"`,
+			Hint:   `create group "{{.Group}}" with groupadd or addgroup before setting file owner`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
@@ -71,7 +74,6 @@ func (e UnknownGroupError) DeferredResource() spec.Resource {
 }
 
 type PermissionDeniedError struct {
-	diagnostic.FatalError
 	Operation string
 	Source    spec.SourceSpan
 	Err       error
@@ -85,59 +87,68 @@ func (e PermissionDeniedError) Unwrap() error {
 	return e.Err
 }
 
-func (e PermissionDeniedError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodePermissionDenied,
-		Text:   `permission denied for operation "{{.Operation}}"`,
-		Hint:   "run as root, or configure passwordless sudo/doas for the target user",
-		Data:   e,
-		Source: &e.Source,
+func (e PermissionDeniedError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodePermissionDenied,
+			Text:   `permission denied for operation "{{.Operation}}"`,
+			Hint:   "run as root, or configure passwordless sudo/doas for the target user",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 // EscalationFailedError wraps a target.EscalationError with diagnostic metadata.
 type EscalationFailedError struct {
-	diagnostic.FatalError
 	target.EscalationError
 }
 
-func (e EscalationFailedError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeEscalationFailed,
-		Text: `{{.Tool}} {{.Op}} {{.Path}}: exit {{.ExitCode}}`,
-		Hint: "the target user may lack passwordless sudo/doas",
-		Help: "{{.Stderr}}",
-		Data: e.EscalationError,
+func (e EscalationFailedError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeEscalationFailed,
+			Text: `{{.Tool}} {{.Op}} {{.Path}}: exit {{.ExitCode}}`,
+			Hint: "the target user may lack passwordless sudo/doas",
+			Help: "{{.Stderr}}",
+			Data: e.EscalationError,
+		},
 	}
 }
 
 // EscalationMissingError wraps a target.NoEscalationError with diagnostic metadata.
 type EscalationMissingError struct {
-	diagnostic.FatalError
 	target.NoEscalationError
 }
 
-func (e EscalationMissingError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeEscalationMissing,
-		Text: `{{.Op}} {{.Path}}: no escalation tool found`,
-		Hint: "install sudo or doas on the target, or run as root",
-		Data: e.NoEscalationError,
+func (e EscalationMissingError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeEscalationMissing,
+			Text: `{{.Op}} {{.Path}}: no escalation tool found`,
+			Hint: "install sudo or doas on the target, or run as root",
+			Data: e.NoEscalationError,
+		},
 	}
 }
 
 // StagingFailedError wraps a target.StagingError with diagnostic metadata.
 type StagingFailedError struct {
-	diagnostic.FatalError
 	target.StagingError
 }
 
-func (e StagingFailedError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeStagingFailed,
-		Text: `failed to stage temp file for "{{.Path}}"`,
-		Hint: "ensure /tmp is writable on the target",
-		Data: e.StagingError,
+func (e StagingFailedError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeStagingFailed,
+			Text: `failed to stage temp file for "{{.Path}}"`,
+			Hint: "ensure /tmp is writable on the target",
+			Data: e.StagingError,
+		},
 	}
 }
 

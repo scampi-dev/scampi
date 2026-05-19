@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/perm"
@@ -330,7 +329,6 @@ func splitDoc(doc string) (hint, help string) {
 // message; the rest is data-driven by the doc comment so stub
 // authors maintain the UX in one place.
 type attrDocError struct {
-	diagnostic.FatalError
 	Param   string
 	Attr    string
 	Message string
@@ -343,19 +341,22 @@ func (e *attrDocError) Error() string {
 	return e.Message
 }
 
-func (e *attrDocError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeAttributeViolation,
-		Text:   "{{.Message}}",
-		Hint:   "{{.Hint}}",
-		Help:   "{{.Help}}",
-		Source: e.Src,
-		Data: attrDocErrorData{
-			Param:   e.Param,
-			Attr:    e.Attr,
-			Message: e.Message,
-			Hint:    e.Hint,
-			Help:    e.Help,
+func (e *attrDocError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeAttributeViolation,
+			Text:   "{{.Message}}",
+			Hint:   "{{.Hint}}",
+			Help:   "{{.Help}}",
+			Source: e.Src,
+			Data: attrDocErrorData{
+				Param:   e.Param,
+				Attr:    e.Attr,
+				Message: e.Message,
+				Hint:    e.Hint,
+				Help:    e.Help,
+			},
 		},
 	}
 }
@@ -371,7 +372,6 @@ type attrDocErrorData struct {
 // attrDeprecationWarning is a non-fatal diagnostic for `@deprecated`
 // usage. Severity is Warning so the engine doesn't abort.
 type attrDeprecationWarning struct {
-	diagnostic.Warning
 	Param   string
 	Attr    string
 	Message string
@@ -385,14 +385,16 @@ func (e *attrDeprecationWarning) Error() string {
 	return fmt.Sprintf("%s is deprecated", e.Param)
 }
 
-func (e *attrDeprecationWarning) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeAttributeDeprecated,
-		Text:   "{{.Param}} is deprecated{{if .Message}}: {{.Message}}{{end}}",
-		Source: e.Src,
-		Data: attrDeprecationData{
-			Param:   e.Param,
-			Message: e.Message,
+func (e *attrDeprecationWarning) Diagnostic() event.Event {
+	return event.Warning{
+		Template: event.Template{
+			ID:     CodeAttributeDeprecated,
+			Text:   "{{.Param}} is deprecated{{if .Message}}: {{.Message}}{{end}}",
+			Source: e.Src,
+			Data: attrDeprecationData{
+				Param:   e.Param,
+				Message: e.Message,
+			},
 		},
 	}
 }

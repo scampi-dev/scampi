@@ -66,7 +66,6 @@ func detectDuplicatePromises(
 
 // DuplicateResourceError fires when two actions promise the same Resource.
 type DuplicateResourceError struct {
-	diagnostic.FatalError
 	Resource     spec.Resource
 	KindLabel    string // human label for Resource.Kind (e.g. "container", "path")
 	HintText     string // pre-computed hint (depends on Resource.Kind)
@@ -86,14 +85,17 @@ func (e DuplicateResourceError) Error() string {
 	)
 }
 
-func (e DuplicateResourceError) EventTemplate() event.Template {
-	return event.Template{
-		ID: CodeDuplicateResource,
-		Text: `duplicate {{.KindLabel}} "{{.Resource.Name}}"` +
-			` — already declared by {{.OtherKind}} at {{.OtherLocText}}`,
-		Hint:   `{{.HintText}}`,
-		Data:   e,
-		Source: &e.Source,
+func (e DuplicateResourceError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID: CodeDuplicateResource,
+			Text: `duplicate {{.KindLabel}} "{{.Resource.Name}}"` +
+				` — already declared by {{.OtherKind}} at {{.OtherLocText}}`,
+			Hint:   `{{.HintText}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 

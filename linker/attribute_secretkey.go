@@ -3,7 +3,6 @@
 package linker
 
 import (
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/spec"
@@ -83,7 +82,6 @@ type secretKeyLookupData struct {
 // secretKeyNotFoundError is the diagnostic emitted when a literal
 // secret key is not present in the configured backend.
 type secretKeyNotFoundError struct {
-	diagnostic.FatalError
 	Key string
 	Src *spec.SourceSpan
 }
@@ -92,20 +90,22 @@ func (e *secretKeyNotFoundError) Error() string {
 	return "secret key not found: " + e.Key
 }
 
-func (e *secretKeyNotFoundError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeSecretKeyNotFound,
-		Text:   `secret key {{printf "%q" .Key}} not found in backend`,
-		Hint:   "check secrets.from_age/from_file path or add the key to your secrets file",
-		Source: e.Src,
-		Data:   secretKeyNotFoundData{Key: e.Key},
+func (e *secretKeyNotFoundError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeSecretKeyNotFound,
+			Text:   `secret key {{printf "%q" .Key}} not found in backend`,
+			Hint:   "check secrets.from_age/from_file path or add the key to your secrets file",
+			Source: e.Src,
+			Data:   secretKeyNotFoundData{Key: e.Key},
+		},
 	}
 }
 
 // secretKeyLookupError is the diagnostic emitted when the secrets
 // backend itself errors during a lookup (e.g. decryption failure).
 type secretKeyLookupError struct {
-	diagnostic.FatalError
 	Key string
 	Err error
 	Src *spec.SourceSpan
@@ -115,14 +115,17 @@ func (e *secretKeyLookupError) Error() string {
 	return "secret key lookup failed for " + e.Key + ": " + e.Err.Error()
 }
 
-func (e *secretKeyLookupError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeSecretKeyLookupFailed,
-		Text:   `secret key {{printf "%q" .Key}} lookup failed: {{.Err}}`,
-		Source: e.Src,
-		Data: secretKeyLookupData{
-			Key: e.Key,
-			Err: e.Err.Error(),
+func (e *secretKeyLookupError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeSecretKeyLookupFailed,
+			Text:   `secret key {{printf "%q" .Key}} lookup failed: {{.Err}}`,
+			Source: e.Src,
+			Data: secretKeyLookupData{
+				Key: e.Key,
+				Err: e.Err.Error(),
+			},
 		},
 	}
 }

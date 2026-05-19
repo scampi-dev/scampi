@@ -90,43 +90,46 @@ var errBadSpec = errs.New("invalid spec")
 
 // GenWarning is a non-fatal diagnostic emitted during code generation.
 type GenWarning struct {
-	diagnostic.Warning
 	Detail string
 }
 
-func (w *GenWarning) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeWarning,
-		Text: "{{.Detail}}",
-		Data: w,
+func (w *GenWarning) Error() string { return w.Detail }
+
+func (w *GenWarning) Diagnostic() event.Event {
+	return event.Warning{
+		Template: event.Template{
+			ID:   CodeWarning,
+			Text: "{{.Detail}}",
+			Data: w,
+		},
 	}
 }
 
 // GenError is a fatal diagnostic emitted when code generation fails.
 type GenError struct {
-	diagnostic.FatalError
 	Detail string
 }
 
 func (e *GenError) Error() string { return e.Detail }
 
-func (e *GenError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeError,
-		Text: "{{.Detail}}",
-		Data: e,
+func (e *GenError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeError,
+			Text: "{{.Detail}}",
+			Data: e,
+		},
 	}
 }
 
 func emitWarning(em diagnostic.Emitter, format string, args ...any) {
-	em.EmitDiagnostic(diagnostic.Raise(&GenWarning{
-		Detail: fmt.Sprintf(format, args...),
-	}))
+	em.Raise(&GenWarning{Detail: fmt.Sprintf(format, args...)})
 }
 
 func emitAndAbort(em diagnostic.Emitter, err error) error {
 	diag := &GenError{Detail: err.Error()}
-	em.EmitDiagnostic(diagnostic.Raise(diag))
+	em.Raise(diag)
 	return engine.AbortError{Causes: []error{diag}}
 }
 

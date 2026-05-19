@@ -35,6 +35,10 @@ func (w *causeEmitter) stamp(c event.Cause) event.Cause {
 	return w.cause
 }
 
+func (w *causeEmitter) Raise(err Raisable) {
+	w.Emit(err.Diagnostic())
+}
+
 func (w *causeEmitter) Emit(e event.Event) {
 	switch v := e.(type) {
 	case event.Error:

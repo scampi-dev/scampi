@@ -497,15 +497,13 @@ func modCleanCmd() *cli.Command {
 // -----------------------------------------------------------------------------
 
 func emitModDiagnostic(em diagnostic.Emitter, err error) {
-	if d, ok := err.(diagnostic.Diagnostic); ok {
-		em.EmitDiagnostic(diagnostic.Raise(d))
+	if r, ok := err.(diagnostic.Raisable); ok {
+		em.Raise(r)
 	}
 }
 
 func emitModInfo(em diagnostic.Emitter, detail string) {
-	em.EmitDiagnostic(diagnostic.Raise(&mod.ModInfo{
-		Detail: detail,
-	}))
+	em.Raise(&mod.ModInfo{Detail: detail})
 }
 
 func parseModArg(s string) (string, string) {

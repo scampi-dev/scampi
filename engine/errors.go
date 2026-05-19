@@ -48,7 +48,6 @@ func (e ActionAbortedError) Unwrap() error { return e.Cause }
 // guarantees the user sees *something* in the render pipeline rather
 // than a silent abort.
 type LoadConfigError struct {
-	diagnostic.FatalError
 	Cause  error
 	Source spec.SourceSpan
 }
@@ -60,15 +59,18 @@ func (e *LoadConfigError) Error() string {
 	return "failed to load config: " + e.Cause.Error()
 }
 
-func (e *LoadConfigError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeLoadConfigError,
-		Text: "{{.Message}}",
-		Hint: "check the config file path and any imported modules",
-		Data: loadConfigErrorData{
-			Message: e.Error(),
+func (e *LoadConfigError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeLoadConfigError,
+			Text: "{{.Message}}",
+			Hint: "check the config file path and any imported modules",
+			Data: loadConfigErrorData{
+				Message: e.Error(),
+			},
+			Source: &e.Source,
 		},
-		Source: &e.Source,
 	}
 }
 
@@ -85,7 +87,6 @@ func (CancelledError) Error() string {
 }
 
 type CapabilityMismatchError struct {
-	diagnostic.FatalError
 	StepIndex    int
 	StepKind     string
 	RequiredCaps capability.Capability
@@ -101,14 +102,17 @@ func (e CapabilityMismatchError) Error() string {
 	)
 }
 
-func (e CapabilityMismatchError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeCapabilityMismatch,
-		Text:   `step "{{.StepKind}}" requires capabilities not provided by target`,
-		Hint:   "use a different target or remove incompatible steps",
-		Help:   "missing:  {{.MissingCaps}}\nrequired: {{.RequiredCaps}}\nprovided: {{.ProvidedCaps}}",
-		Data:   e,
-		Source: &e.Source,
+func (e CapabilityMismatchError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeCapabilityMismatch,
+			Text:   `step "{{.StepKind}}" requires capabilities not provided by target`,
+			Hint:   "use a different target or remove incompatible steps",
+			Help:   "missing:  {{.MissingCaps}}\nrequired: {{.RequiredCaps}}\nprovided: {{.ProvidedCaps}}",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
@@ -134,6 +138,13 @@ func panicIfNotAbortError(err error) error {
 	panic(wrap)
 }
 
+// aborts reports whether ev requests execution abort. Only event.Error
+// carries Impact; Warning/Info are advisories that never stop the run.
+func aborts(ev event.Event) bool {
+	e, ok := ev.(event.Error)
+	return ok && e.Impact == event.ImpactAbort
+}
+
 // emitScopedDiagnostic extracts diagnostic(s) from err and emits them.
 // Returns the max impact and whether any diagnostic was emitted.
 func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, bool) {
@@ -141,11 +152,24 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 		return 0, false
 	}
 
+	var rs diagnostic.Raisables
+	if errors.As(err, &rs) {
+		impact := diagnostic.ImpactNone
+		for _, r := range rs {
+			ev := r.Diagnostic()
+			em.Emit(ev)
+			if aborts(ev) {
+				impact = diagnostic.ImpactAbort
+			}
+		}
+		return impact, true
+	}
+
 	var re diagnostic.Raisable
 	if errors.As(err, &re) {
 		ev := re.Diagnostic()
 		em.Emit(ev)
-		if ev.Impact == event.ImpactAbort {
+		if aborts(ev) {
 			return diagnostic.ImpactAbort, true
 		}
 		return diagnostic.ImpactNone, true
@@ -155,7 +179,7 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 	if errors.As(err, &ds) {
 		impact := diagnostic.ImpactNone
 		for _, d := range ds {
-			em.EmitDiagnostic(diagnostic.Raise(d))
+			em.EmitDiagnostic(diagnostic.RaiseLegacy(d))
 			if d.Impact() > impact {
 				impact = d.Impact()
 			}
@@ -168,7 +192,7 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 		return 0, false
 	}
 
-	em.EmitDiagnostic(diagnostic.Raise(d))
+	em.EmitDiagnostic(diagnostic.RaiseLegacy(d))
 	return d.Impact(), true
 }
 
@@ -197,7 +221,6 @@ func emitOpDiagnostic(em diagnostic.Emitter, _ int, _, _, _ string, err error) (
 // -----------------------------------------------------------------------------
 
 type UnknownIndexKindError struct {
-	diagnostic.FatalError
 	Kind string
 }
 
@@ -205,12 +228,15 @@ func (e UnknownIndexKindError) Error() string {
 	return fmt.Sprintf("unknown step kind %q", e.Kind)
 }
 
-func (e UnknownIndexKindError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeUnknownIndexKind,
-		Text: `unknown step kind "{{.Kind}}"`,
-		Hint: "use 'scampi index' to list available step types",
-		Data: e,
+func (e UnknownIndexKindError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeUnknownIndexKind,
+			Text: `unknown step kind "{{.Kind}}"`,
+			Hint: "use 'scampi index' to list available step types",
+			Data: e,
+		},
 	}
 }
 
@@ -218,7 +244,6 @@ func (e UnknownIndexKindError) EventTemplate() event.Template {
 // -----------------------------------------------------------------------------
 
 type UnknownDeployBlockError struct {
-	diagnostic.FatalError
 	Name   string
 	Source spec.SourceSpan
 }
@@ -227,18 +252,20 @@ func (e UnknownDeployBlockError) Error() string {
 	return fmt.Sprintf("unknown deploy block %q", e.Name)
 }
 
-func (e UnknownDeployBlockError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeUnknownDeployBlock,
-		Text:   `unknown deploy block "{{.Name}}"`,
-		Hint:   "check that the deploy block name is spelled correctly",
-		Data:   e,
-		Source: &e.Source,
+func (e UnknownDeployBlockError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownDeployBlock,
+			Text:   `unknown deploy block "{{.Name}}"`,
+			Hint:   "check that the deploy block name is spelled correctly",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 type NoDeployBlocksError struct {
-	diagnostic.FatalError
 	Source spec.SourceSpan
 }
 
@@ -246,18 +273,20 @@ func (NoDeployBlocksError) Error() string {
 	return "no deploy blocks defined"
 }
 
-func (e NoDeployBlocksError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeNoDeployBlocks,
-		Text:   "no deploy blocks defined",
-		Hint:   "add at least one deploy block to the configuration",
-		Data:   e,
-		Source: &e.Source,
+func (e NoDeployBlocksError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeNoDeployBlocks,
+			Text:   "no deploy blocks defined",
+			Hint:   "add at least one deploy block to the configuration",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 type NoTargetsInDeployError struct {
-	diagnostic.FatalError
 	Deploy string
 	Source spec.SourceSpan
 }
@@ -266,18 +295,20 @@ func (e NoTargetsInDeployError) Error() string {
 	return fmt.Sprintf("deploy block %q has no targets", e.Deploy)
 }
 
-func (e NoTargetsInDeployError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeNoTargetsInDeploy,
-		Text:   `deploy block "{{.Deploy}}" has no targets`,
-		Hint:   "add at least one target to the deploy block's targets list",
-		Data:   e,
-		Source: &e.Source,
+func (e NoTargetsInDeployError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeNoTargetsInDeploy,
+			Text:   `deploy block "{{.Deploy}}" has no targets`,
+			Hint:   "add at least one target to the deploy block's targets list",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 type UnknownTargetError struct {
-	diagnostic.FatalError
 	Name   string
 	Deploy string
 	Source spec.SourceSpan
@@ -287,18 +318,20 @@ func (e UnknownTargetError) Error() string {
 	return fmt.Sprintf("unknown target %q referenced in deploy block %q", e.Name, e.Deploy)
 }
 
-func (e UnknownTargetError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeUnknownTarget,
-		Text:   `unknown target "{{.Name}}" referenced in deploy block "{{.Deploy}}"`,
-		Hint:   "check that the target is defined in the targets map",
-		Data:   e,
-		Source: &e.Source,
+func (e UnknownTargetError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownTarget,
+			Text:   `unknown target "{{.Name}}" referenced in deploy block "{{.Deploy}}"`,
+			Hint:   "check that the target is defined in the targets map",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 type TargetNotInDeployError struct {
-	diagnostic.FatalError
 	Target string
 	Deploy string
 	Source spec.SourceSpan
@@ -308,13 +341,16 @@ func (e TargetNotInDeployError) Error() string {
 	return fmt.Sprintf("target %q is not in deploy block %q's target list", e.Target, e.Deploy)
 }
 
-func (e TargetNotInDeployError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeTargetNotInDeploy,
-		Text:   `target "{{.Target}}" is not in deploy block "{{.Deploy}}"'s target list`,
-		Hint:   "add the target to the deploy block's targets list or select a different target",
-		Data:   e,
-		Source: &e.Source,
+func (e TargetNotInDeployError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeTargetNotInDeploy,
+			Text:   `target "{{.Target}}" is not in deploy block "{{.Deploy}}"'s target list`,
+			Hint:   "add the target to the deploy block's targets list or select a different target",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
@@ -322,7 +358,6 @@ func (e TargetNotInDeployError) EventTemplate() event.Template {
 // -----------------------------------------------------------------------------
 
 type UnknownHookError struct {
-	diagnostic.FatalError
 	HookID   string
 	StepKind string
 	StepDesc string
@@ -333,18 +368,20 @@ func (e UnknownHookError) Error() string {
 	return fmt.Sprintf("on_change references unknown hook %q", e.HookID)
 }
 
-func (e UnknownHookError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeUnknownHook,
-		Text:   `on_change references unknown hook "{{.HookID}}"`,
-		Hint:   `add hooks = {"{{.HookID}}": service(name="...", state="restarted")} to the deploy block`,
-		Data:   e,
-		Source: &e.Source,
+func (e UnknownHookError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownHook,
+			Text:   `on_change references unknown hook "{{.HookID}}"`,
+			Hint:   `add hooks = {"{{.HookID}}": service(name="...", state="restarted")} to the deploy block`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 type HookCycleError struct {
-	diagnostic.FatalError
 	Chain  []string
 	Source spec.SourceSpan
 }
@@ -353,12 +390,15 @@ func (e HookCycleError) Error() string {
 	return fmt.Sprintf("hook cycle detected: %s", strings.Join(e.Chain, " -> "))
 }
 
-func (e HookCycleError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeHookCycle,
-		Text:   "hook cycle detected",
-		Hint:   `{{join " -> " .Chain}}`,
-		Data:   e,
-		Source: &e.Source,
+func (e HookCycleError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeHookCycle,
+			Text:   "hook cycle detected",
+			Hint:   `{{join " -> " .Chain}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }

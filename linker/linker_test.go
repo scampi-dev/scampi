@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/eval"
@@ -130,18 +131,18 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 		t.Fatal("expected error for broken syntax")
 	}
 
-	// May be single Diagnostic or Diagnostics slice.
-	var d diagnostic.Diagnostic
-	var ds diagnostic.Diagnostics
-	if errors.As(err, &ds) {
-		if len(ds) == 0 {
+	// May be a single Raisable or a Raisables slice.
+	var r diagnostic.Raisable
+	var rs diagnostic.Raisables
+	if errors.As(err, &rs) {
+		if len(rs) == 0 {
 			t.Fatal("expected at least one diagnostic")
 		}
-		d = ds[0]
-	} else if !errors.As(err, &d) {
-		t.Fatalf("expected diagnostic.Diagnostic, got %T: %v", err, err)
+		r = rs[0]
+	} else if !errors.As(err, &r) {
+		t.Fatalf("expected diagnostic.Raisable, got %T: %v", err, err)
 	}
-	tmpl := d.EventTemplate()
+	tmpl := r.Diagnostic().(event.Error).Template
 	if tmpl.Source == nil {
 		t.Fatal("diagnostic should have source span")
 	}
@@ -170,11 +171,11 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatal("expected error for secret() without backend")
 	}
 
-	var d diagnostic.Diagnostic
-	if !errors.As(err, &d) {
-		t.Fatalf("expected diagnostic.Diagnostic, got %T: %v", err, err)
+	var r diagnostic.Raisable
+	if !errors.As(err, &r) {
+		t.Fatalf("expected diagnostic.Raisable, got %T: %v", err, err)
 	}
-	tmpl := d.EventTemplate()
+	tmpl := r.Diagnostic().(event.Error).Template
 	if tmpl.Source == nil {
 		t.Fatal("diagnostic should have source span")
 	}

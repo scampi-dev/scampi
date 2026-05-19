@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
@@ -14,7 +13,6 @@ import (
 
 // VerifyError is returned when a verify command exits non-zero.
 type VerifyError struct {
-	diagnostic.FatalError
 	Cmd      string
 	Dest     string
 	ExitCode int
@@ -26,14 +24,17 @@ func (e *VerifyError) Error() string {
 	return fmt.Sprintf("verify %q failed (exit %d): %s", e.Cmd, e.ExitCode, e.Stderr)
 }
 
-func (e *VerifyError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeVerifyFailed,
-		Text:   `verify command failed (exit {{.ExitCode}}): {{.Cmd}}`,
-		Hint:   `the content did not pass validation — {{.Dest}} was not modified`,
-		Help:   "{{.Stderr}}",
-		Data:   e,
-		Source: &e.Source,
+func (e *VerifyError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeVerifyFailed,
+			Text:   `verify command failed (exit {{.ExitCode}}): {{.Cmd}}`,
+			Hint:   `the content did not pass validation — {{.Dest}} was not modified`,
+			Help:   "{{.Stderr}}",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
@@ -47,7 +48,6 @@ func (e *VerifyError) EventTemplate() event.Template {
 // so the message can show the user *which* malformation they hit
 // (zero placeholders vs three placeholders are different mistakes).
 type VerifyPlaceholderError struct {
-	diagnostic.FatalError
 	Cmd    string
 	Count  int
 	Source spec.SourceSpan
@@ -61,19 +61,21 @@ func (e *VerifyPlaceholderError) Error() string {
 	)
 }
 
-func (e *VerifyPlaceholderError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeVerifyPlaceholderErr,
-		Text: `verify command must contain exactly one %s placeholder, got {{.Count}}: {{.Cmd}}`,
-		Hint: "rewrite the verify command so the temp file path appears exactly once as %s",
-		Data: e,
+func (e *VerifyPlaceholderError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeVerifyPlaceholderErr,
+			Text: `verify command must contain exactly one %s placeholder, got {{.Count}}: {{.Cmd}}`,
+			Hint: "rewrite the verify command so the temp file path appears exactly once as %s",
+			Data: e,
+		},
 	}
 }
 
 // VerifyIOError is returned when verify infrastructure (temp dirs, temp files,
 // running the verify command) fails due to I/O errors.
 type VerifyIOError struct {
-	diagnostic.FatalError
 	Op     string
 	Err    error
 	Advice string
@@ -85,13 +87,16 @@ func (e VerifyIOError) Error() string {
 
 func (e VerifyIOError) Unwrap() error { return e.Err }
 
-func (e VerifyIOError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeVerifyIOError,
-		Text: "verify failed: {{.Op}}",
-		Hint: "{{.Advice}}",
-		Help: "{{.Err}}",
-		Data: e,
+func (e VerifyIOError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeVerifyIOError,
+			Text: "verify failed: {{.Op}}",
+			Hint: "{{.Advice}}",
+			Help: "{{.Err}}",
+			Data: e,
+		},
 	}
 }
 

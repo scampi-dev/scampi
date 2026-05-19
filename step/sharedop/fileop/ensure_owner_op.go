@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"scampi.dev/scampi/capability"
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/source"
@@ -240,7 +239,6 @@ func (op *EnsureOwnerOp) OpDescription() spec.OpDescription {
 }
 
 type ownerReadError struct {
-	diagnostic.FatalError
 	Path   string
 	Source spec.SourceSpan
 	Err    error
@@ -254,12 +252,15 @@ func (e ownerReadError) Unwrap() error {
 	return e.Err
 }
 
-func (e ownerReadError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeOwnerRead,
-		Text:   `cannot read ownership of "{{.Path}}"`,
-		Hint:   "check file permissions and ensure the path is accessible",
-		Data:   e,
-		Source: &e.Source,
+func (e ownerReadError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeOwnerRead,
+			Text:   `cannot read ownership of "{{.Path}}"`,
+			Hint:   "check file permissions and ensure the path is accessible",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }

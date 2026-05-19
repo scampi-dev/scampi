@@ -40,6 +40,10 @@ func (r *recEmitter) Emit(e event.Event) {
 	r.events = append(r.events, e)
 }
 
+func (r *recEmitter) Raise(err diagnostic.Raisable) {
+	r.Emit(err.Diagnostic())
+}
+
 func (r *recEmitter) EmitDiagnostic(e event.Diagnostic) {
 	r.diagnostics = append(r.diagnostics, e)
 }
@@ -161,6 +165,6 @@ type stubRaisable struct {
 }
 
 func (s stubRaisable) Error() string { return "stub raisable" }
-func (s stubRaisable) Diagnostic() event.Error {
+func (s stubRaisable) Diagnostic() event.Event {
 	return event.Error{Impact: s.impact, Template: s.tmpl}
 }

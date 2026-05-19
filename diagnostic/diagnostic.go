@@ -52,8 +52,14 @@ type Deferrable interface {
 type (
 	Emitter interface {
 		// Emit accepts any event.Event - the sealed union of Error,
-		// Warning, Info, Change, Progress.
+		// Warning, Info, Change, Progress. Use Emit when the event
+		// has already been constructed.
 		Emit(event.Event)
+		// Raise emits the event produced by a Raisable error. The
+		// helper resolves err.Diagnostic() and forwards it through
+		// Emit, so call sites stay close to the error site instead
+		// of constructing the event by hand.
+		Raise(err Raisable)
 		EmitDiagnostic(e event.Diagnostic)
 		EmitChange(e event.Change)
 		EmitProgress(e event.Progress)
@@ -109,22 +115,37 @@ type ActionDeps [][]int
 // Diagnostics
 // -----------------------------------------------------------------------------
 
-// Raise constructs an event.Diagnostic from a Diagnostic value.
-// Producers wanting to stamp a Cause should either set the field on
-// the returned event or wrap the emitter via WithCause.
-func Raise(d Diagnostic) event.Diagnostic {
+// Raisable is implemented by errors that map directly onto a
+// renderable event (event.Error, event.Warning, or event.Info).
+// Emitter.Raise routes Raisable errors through Emit; the engine
+// type-switches on the returned concrete type to decide whether the
+// diagnostic aborts execution (only event.Error carries Impact).
+type Raisable interface {
+	error
+	Diagnostic() event.Event
+}
+
+// Raisables aggregates multiple Raisable errors into a single error
+// value. Producers that run many checks in a batch return a Raisables
+// so each entry surfaces individually through emitScopedDiagnostic.
+type Raisables []Raisable
+
+func (rs Raisables) Error() string {
+	msgs := make([]string, len(rs))
+	for i, r := range rs {
+		msgs[i] = r.Error()
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// RaiseLegacy bridges the old Diagnostic interface (with
+// EventTemplate/Severity methods) to event.Diagnostic. It exists only
+// for as long as the Diagnostic interface does; once every producer
+// implements Raisable, this and the Diagnostic interface go away.
+func RaiseLegacy(d Diagnostic) event.Diagnostic {
 	return event.Diagnostic{
 		Time:     time.Now(),
 		Severity: d.Severity(),
 		Template: d.EventTemplate(),
 	}
-}
-
-// Raisable is implemented by errors that map directly onto a renderable
-// event.Error. The engine routes Raisable errors through em.Emit and
-// reads .Impact off the returned struct to decide whether execution
-// aborts.
-type Raisable interface {
-	error
-	Diagnostic() event.Error
 }

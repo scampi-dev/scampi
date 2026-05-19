@@ -5,13 +5,11 @@ package rest
 import (
 	"fmt"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
 
 type RequestError struct {
-	diagnostic.FatalError
 	Method string
 	Path   string
 	Status int
@@ -22,19 +20,21 @@ func (e RequestError) Error() string {
 	return fmt.Sprintf("%s %s: status %d: %s", e.Method, e.Path, e.Status, e.Body)
 }
 
-func (e RequestError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeRequestError,
-		Text: "{{.Method}} {{.Path}}: status {{.Status}}",
-		Hint: `the {{.Method}} returned status {{.Status}} — verify the request body ` +
-			`and that the endpoint accepts {{.Method}}`,
-		Help: "{{.Body}}",
-		Data: e,
+func (e RequestError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeRequestError,
+			Text: "{{.Method}} {{.Path}}: status {{.Status}}",
+			Hint: `the {{.Method}} returned status {{.Status}} — verify the request body ` +
+				`and that the endpoint accepts {{.Method}}`,
+			Help: "{{.Body}}",
+			Data: e,
+		},
 	}
 }
 
 type HTTPError struct {
-	diagnostic.FatalError
 	Phase  string // "check" or "execute"
 	Method string
 	Path   string
@@ -47,20 +47,22 @@ func (e HTTPError) Error() string {
 
 func (e HTTPError) Unwrap() error { return e.Err }
 
-func (e HTTPError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeHTTPError,
-		Text: "{{.Phase}} {{.Method}} {{.Path}} failed",
-		Hint: `verify the REST target is reachable and the {{.Method}} on "{{.Path}}" is supported`,
-		Help: "{{.Err}}",
-		Data: e,
+func (e HTTPError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeHTTPError,
+			Text: "{{.Phase}} {{.Method}} {{.Path}} failed",
+			Hint: `verify the REST target is reachable and the {{.Method}} on "{{.Path}}" is supported`,
+			Help: "{{.Err}}",
+			Data: e,
+		},
 	}
 }
 
 // RedactPathError flags an invalid jq path supplied to a request's
 // `redact` list at plan time.
 type RedactPathError struct {
-	diagnostic.FatalError
 	Path   string
 	Err    error
 	Source spec.SourceSpan
@@ -72,15 +74,18 @@ func (e RedactPathError) Error() string {
 
 func (e RedactPathError) Unwrap() error { return e.Err }
 
-func (e RedactPathError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeRedactPathError,
-		Text: `invalid redact path: {{.Path}}`,
-		Hint: `redact paths use jq syntax with an optional leading dot — ` +
-			`e.g. "x_ssh_password", "data.token", or "items[0].secret"`,
-		Help:   "{{.Err}}",
-		Data:   e,
-		Source: &e.Source,
+func (e RedactPathError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeRedactPathError,
+			Text: `invalid redact path: {{.Path}}`,
+			Hint: `redact paths use jq syntax with an optional leading dot — ` +
+				`e.g. "x_ssh_password", "data.token", or "items[0].secret"`,
+			Help:   "{{.Err}}",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
@@ -88,7 +93,6 @@ func (e RedactPathError) EventTemplate() event.Template {
 // -----------------------------------------------------------------------------
 
 type ResourceQueryError struct {
-	diagnostic.FatalError
 	Method string
 	Path   string
 	Err    error
@@ -100,12 +104,15 @@ func (e ResourceQueryError) Error() string {
 
 func (e ResourceQueryError) Unwrap() error { return e.Err }
 
-func (e ResourceQueryError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeResourceQueryError,
-		Text: "resource query {{.Method}} {{.Path}} failed",
-		Hint: `verify the REST target is reachable and that "{{.Path}}" is a queryable resource endpoint`,
-		Help: "{{.Err}}",
-		Data: e,
+func (e ResourceQueryError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeResourceQueryError,
+			Text: "resource query {{.Method}} {{.Path}} failed",
+			Hint: `verify the REST target is reachable and that "{{.Path}}" is a queryable resource endpoint`,
+			Help: "{{.Err}}",
+			Data: e,
+		},
 	}
 }

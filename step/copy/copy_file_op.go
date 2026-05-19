@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"scampi.dev/scampi/capability"
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/source"
@@ -200,7 +199,6 @@ func (op *copyFileOp) Inspect() []spec.InspectField {
 // -----------------------------------------------------------------------------
 
 type CopySourceMissingError struct {
-	diagnostic.FatalError
 	Path   string
 	Source spec.SourceSpan
 	Err    error
@@ -210,19 +208,21 @@ func (e CopySourceMissingError) Error() string {
 	return fmt.Sprintf("source file %q does not exist", e.Path)
 }
 
-func (e CopySourceMissingError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeSourceMissing,
-		Text:   `source file "{{.Path}}" does not exist`,
-		Hint:   "ensure the source file exists and is readable",
-		Help:   "the copy action cannot proceed without a readable source file",
-		Data:   e,
-		Source: &e.Source,
+func (e CopySourceMissingError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeSourceMissing,
+			Text:   `source file "{{.Path}}" does not exist`,
+			Hint:   "ensure the source file exists and is readable",
+			Help:   "the copy action cannot proceed without a readable source file",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 type CopyDestDirMissingError struct {
-	diagnostic.FatalError
 	Path   string
 	Source spec.SourceSpan
 	Err    error
@@ -232,14 +232,17 @@ func (e CopyDestDirMissingError) Error() string {
 	return fmt.Sprintf("destination directory %q does not exist", e.Path)
 }
 
-func (e CopyDestDirMissingError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeDestDirMissing,
-		Text:   `destination directory "{{.Path}}" does not exist`,
-		Hint:   "create the destination directory before running this action",
-		Help:   "the copy action does not create directories automatically",
-		Data:   e,
-		Source: &e.Source,
+func (e CopyDestDirMissingError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeDestDirMissing,
+			Text:   `destination directory "{{.Path}}" does not exist`,
+			Hint:   "create the destination directory before running this action",
+			Help:   "the copy action does not create directories automatically",
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 

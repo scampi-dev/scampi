@@ -28,7 +28,7 @@ func (e InvalidPermissionError) Error() string {
 	return fmt.Sprintf("invalid permission %q", e.Value)
 }
 
-func (e InvalidPermissionError) Diagnostic() event.Error {
+func (e InvalidPermissionError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{

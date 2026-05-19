@@ -19,7 +19,6 @@ type langDiagData struct {
 // langDiagnostic wraps a plain lang pipeline error as a
 // diagnostic.Diagnostic so the engine can render it properly.
 type langDiagnostic struct {
-	diagnostic.FatalError
 	code errs.Code
 	msg  string
 	hint string
@@ -28,7 +27,7 @@ type langDiagnostic struct {
 
 func (d *langDiagnostic) Error() string { return d.msg }
 
-func (d *langDiagnostic) EventTemplate() event.Template {
+func (d *langDiagnostic) Diagnostic() event.Event {
 	t := event.Template{
 		ID:     d.code,
 		Text:   "{{.Msg}}",
@@ -38,7 +37,7 @@ func (d *langDiagnostic) EventTemplate() event.Template {
 	if d.hint != "" {
 		t.Hint = "{{.Hint}}"
 	}
-	return t
+	return event.Error{Impact: event.ImpactAbort, Template: t}
 }
 
 // wrapLangError converts a plain error from the lang pipeline into
@@ -49,7 +48,7 @@ func wrapLangErrors[T error](errs []T, cfgPath string, source []byte) error {
 	if len(errs) == 1 {
 		return wrapLangError(errs[0], cfgPath, source)
 	}
-	var diags diagnostic.Diagnostics
+	var diags diagnostic.Raisables
 	for _, e := range errs {
 		diags = append(diags, wrapLangError(e, cfgPath, source).(*langDiagnostic))
 	}
@@ -107,7 +106,7 @@ func prependBrokenSiblings(err error, broken []brokenSibling) error {
 	}
 	// Deduplicate by path (both loaders may report the same file).
 	seen := map[string]bool{}
-	var diags diagnostic.Diagnostics
+	var diags diagnostic.Raisables
 	for _, b := range broken {
 		if seen[b.path] {
 			continue
@@ -121,13 +120,13 @@ func prependBrokenSiblings(err error, broken []brokenSibling) error {
 		})
 	}
 	// Append original error(s) after the broken-sibling diagnostics.
-	var origDiags diagnostic.Diagnostics
+	var origDiags diagnostic.Raisables
 	if errors.As(err, &origDiags) {
 		diags = append(diags, origDiags...)
 	} else {
-		var d diagnostic.Diagnostic
-		if errors.As(err, &d) {
-			diags = append(diags, d)
+		var r diagnostic.Raisable
+		if errors.As(err, &r) {
+			diags = append(diags, r)
 		}
 	}
 	return diags

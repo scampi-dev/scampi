@@ -104,8 +104,9 @@ type StaticCheckContext struct {
 // StaticCheck hook. It exposes a diagnostic emitter without
 // requiring the attribute to import the entire linker package.
 type LinkContext interface {
-	// Emit records a diagnostic with the standard pipeline.
-	Emit(d diagnostic.Diagnostic)
+	// Emit records a diagnostic for batched delivery. Diagnostics are
+	// flushed together once the static check completes.
+	Emit(d diagnostic.Raisable)
 }
 
 // AttributeRegistry holds the AttributeBehaviour for every attribute

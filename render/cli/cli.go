@@ -670,6 +670,11 @@ func (c *CLI) EmitProgress(e event.Progress) {
 	}})
 }
 
+// Raise emits the event produced by err.
+func (c *CLI) Raise(err diagnostic.Raisable) {
+	c.Emit(err.Diagnostic())
+}
+
 // Emit dispatches by concrete event type to the per-kind helpers.
 func (c *CLI) Emit(e event.Event) {
 	switch v := e.(type) {

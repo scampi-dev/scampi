@@ -5,14 +5,12 @@ package user
 import (
 	"fmt"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
 )
 
 // UserCreateError is emitted when creating a user fails.
 type UserCreateError struct {
-	diagnostic.FatalError
 	Name   string
 	Err    error
 	Source spec.SourceSpan
@@ -24,20 +22,22 @@ func (e UserCreateError) Error() string {
 
 func (e UserCreateError) Unwrap() error { return e.Err }
 
-func (e UserCreateError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeCreateFailed,
-		Text:   `failed to create user "{{.Name}}"`,
-		Hint:   `verify "{{.Name}}" is a valid username and no conflicting user/uid already exists`,
-		Help:   `{{.Err}}`,
-		Data:   e,
-		Source: &e.Source,
+func (e UserCreateError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeCreateFailed,
+			Text:   `failed to create user "{{.Name}}"`,
+			Hint:   `verify "{{.Name}}" is a valid username and no conflicting user/uid already exists`,
+			Help:   `{{.Err}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 // UserModifyError is emitted when modifying a user fails.
 type UserModifyError struct {
-	diagnostic.FatalError
 	Name   string
 	Err    error
 	Source spec.SourceSpan
@@ -49,20 +49,22 @@ func (e UserModifyError) Error() string {
 
 func (e UserModifyError) Unwrap() error { return e.Err }
 
-func (e UserModifyError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeModifyFailed,
-		Text:   `failed to modify user "{{.Name}}"`,
-		Hint:   `confirm user "{{.Name}}" exists on the target and the requested groups/shell/home are valid`,
-		Help:   `{{.Err}}`,
-		Data:   e,
-		Source: &e.Source,
+func (e UserModifyError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeModifyFailed,
+			Text:   `failed to modify user "{{.Name}}"`,
+			Hint:   `confirm user "{{.Name}}" exists on the target and the requested groups/shell/home are valid`,
+			Help:   `{{.Err}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 
 // UserDeleteError is emitted when deleting a user fails.
 type UserDeleteError struct {
-	diagnostic.FatalError
 	Name   string
 	Err    error
 	Source spec.SourceSpan
@@ -74,13 +76,16 @@ func (e UserDeleteError) Error() string {
 
 func (e UserDeleteError) Unwrap() error { return e.Err }
 
-func (e UserDeleteError) EventTemplate() event.Template {
-	return event.Template{
-		ID:     CodeDeleteFailed,
-		Text:   `failed to delete user "{{.Name}}"`,
-		Hint:   `confirm no running processes belong to "{{.Name}}"; run: ps -u {{.Name}}`,
-		Help:   `{{.Err}}`,
-		Data:   e,
-		Source: &e.Source,
+func (e UserDeleteError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeDeleteFailed,
+			Text:   `failed to delete user "{{.Name}}"`,
+			Hint:   `confirm no running processes belong to "{{.Name}}"; run: ps -u {{.Name}}`,
+			Help:   `{{.Err}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }

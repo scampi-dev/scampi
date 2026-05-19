@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/mod"
 	"scampi.dev/scampi/source"
 )
@@ -297,15 +298,15 @@ func TestParse_DiagnosticInterface(t *testing.T) {
 	if !errors.As(err, &pe) {
 		t.Fatalf("expected ParseError, got %T", err)
 	}
-	tmpl := pe.EventTemplate()
+	tmpl := pe.Diagnostic().(event.Error).Template
 	if tmpl.ID != "mod.ParseError" {
-		t.Errorf("EventTemplate().ID = %q, want %q", tmpl.ID, "mod.ParseError")
+		t.Errorf("Template.ID = %q, want %q", tmpl.ID, "mod.ParseError")
 	}
 	if tmpl.Source == nil {
-		t.Error("EventTemplate().Source is nil")
+		t.Error("Template.Source is nil")
 	}
 	if tmpl.Hint == "" {
-		t.Error("EventTemplate().Hint is empty")
+		t.Error("Template.Hint is empty")
 	}
 }
 

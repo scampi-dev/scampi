@@ -62,11 +62,10 @@ func LoadConfig(
 			// Error didn't carry a diagnostic (e.g. raw file-read
 			// failure). Wrap it in a generic LoadConfigError so the
 			// user sees something instead of a silent abort.
-			em.EmitDiagnostic(diagnostic.Raise(&LoadConfigError{
+			em.Emit((&LoadConfigError{
 				Cause:  err,
 				Source: spec.SourceSpan{Filename: cfgPath},
-			},
-			))
+			}).Diagnostic())
 		}
 		return spec.Config{}, AbortError{Causes: []error{err}}
 	}
@@ -101,10 +100,10 @@ func verifyModuleSums(
 	if err := mod.VerifyAll(ctx, src, m, mod.DefaultCacheDir()); err != nil {
 		_, emitted := emitEngineDiagnostic(em, cfgPath, err)
 		if !emitted {
-			em.EmitDiagnostic(diagnostic.Raise(&LoadConfigError{
+			em.Emit((&LoadConfigError{
 				Cause:  err,
 				Source: spec.SourceSpan{Filename: cfgPath},
-			}))
+			}).Diagnostic())
 		}
 		return err
 	}
