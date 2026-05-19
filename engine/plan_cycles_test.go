@@ -28,11 +28,8 @@ import (
 
 type noopEmitter struct{}
 
-func (noopEmitter) Emit(event.Event)                {}
-func (noopEmitter) Raise(diagnostic.Raisable)       {}
-func (noopEmitter) EmitDiagnostic(event.Diagnostic) {}
-func (noopEmitter) EmitChange(event.Change)         {}
-func (noopEmitter) EmitProgress(event.Progress)     {}
+func (noopEmitter) Emit(event.Event)          {}
+func (noopEmitter) Raise(diagnostic.Raisable) {}
 
 // mockOp
 // -----------------------------------------------------------------------------

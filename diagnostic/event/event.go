@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"scampi.dev/scampi/errs"
-	"scampi.dev/scampi/signal"
 	"scampi.dev/scampi/spec"
 )
 
@@ -75,18 +74,6 @@ const (
 type Cause struct {
 	Kind CauseKind
 	Ref  string // hook ID for CauseHook; empty otherwise
-}
-
-// Diagnostic
-// -----------------------------------------------------------------------------
-
-// Diagnostic is the unified diagnostic event. Source location lives on
-// Template.Source; there is no separate scope axis.
-type Diagnostic struct {
-	Time     time.Time
-	Severity signal.Severity
-	Template Template
-	Cause    Cause
 }
 
 // Event is the sealed union of everything Emit accepts: the

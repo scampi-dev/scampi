@@ -18,8 +18,7 @@ import (
 // the structured (passed, failed, err) return values, not what
 // would be printed to the terminal.
 type nopDisplayer struct {
-	diagnostics []event.Diagnostic
-	events      []event.Event
+	events []event.Event
 }
 
 func (d *nopDisplayer) EmitLegend() {}
@@ -88,14 +87,14 @@ std.deploy(name = "smoke", targets = [mock]) {
 		source.LocalPosixSource{},
 	)
 	if err != nil {
-		for _, d := range displ.diagnostics {
+		for _, d := range displ.events {
 			t.Logf("diag: %+v", d)
 		}
 		t.Fatalf("runLangTestFile: %v", err)
 	}
 	if passed != 1 || failed != 0 {
 		t.Errorf("want 1 passed / 0 failed, got %d/%d (diags=%d)",
-			passed, failed, len(displ.diagnostics))
+			passed, failed, len(displ.events))
 	}
 }
 
@@ -160,7 +159,7 @@ std.deploy(name = "smoke", targets = [mock]) {
 		source.LocalPosixSource{},
 	)
 	if err != nil {
-		for _, d := range displ.diagnostics {
+		for _, d := range displ.events {
 			t.Logf("diag: %+v", d)
 		}
 		t.Fatalf("runLangTestFile: %v", err)
