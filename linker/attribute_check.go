@@ -266,7 +266,7 @@ func bindCallArgs(call *ast.CallExpr, ft *check.FuncType) map[int]ast.Expr {
 // linkContext is the linker-side LinkContext implementation passed
 // to AttributeBehaviour.StaticCheck. It collects diagnostics emitted
 // during the static check pass; the caller wraps them into a single
-// diagnostic.Diagnostics for return through the standard pipeline.
+// diagnostic.Raisables for return through the standard pipeline.
 type linkContext struct {
 	diags diagnostic.Raisables
 }

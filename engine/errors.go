@@ -178,8 +178,8 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 	return 0, false
 }
 
-// The scope parameters on these helpers are unused - event.Diagnostic
-// does not track scope. The signatures persist to keep call sites
+// The scope parameters on these helpers are unused - diagnostic events
+// do not carry a scope axis. The signatures persist to keep call sites
 // stable; they can collapse to a single helper once the callers are
 // touched for unrelated reasons.
 

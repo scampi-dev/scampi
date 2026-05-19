@@ -40,10 +40,10 @@ func (d *langDiagnostic) Diagnostic() event.Event {
 	return event.Error{Impact: event.ImpactAbort, Template: t}
 }
 
-// wrapLangError converts a plain error from the lang pipeline into
-// a diagnostic.Diagnostic the engine can render.
-// wrapLangErrors wraps multiple lang errors as a diagnostic.Diagnostics
-// slice so the engine emits all of them, not just the first.
+// wrapLangError converts a plain error from the lang pipeline into a
+// Raisable the engine can render. wrapLangErrors wraps multiple lang
+// errors as a Raisables slice so the engine emits all of them, not
+// just the first.
 func wrapLangErrors[T error](errs []T, cfgPath string, source []byte) error {
 	if len(errs) == 1 {
 		return wrapLangError(errs[0], cfgPath, source)

@@ -191,9 +191,9 @@ func AssertDiagnostics(
 			t.Fatalf("[%d] unexpected kind in test data: %q (should always be DiagnosticRaised)", i, exp.Kind)
 		}
 
-		// exp.Scope is not asserted; event.Diagnostic carries no
-		// scope axis. Source spans on the template locate the
-		// diagnostic instead.
+		// exp.Scope is not asserted; diagnostic events carry no scope
+		// axis. Source spans on the template locate the diagnostic
+		// instead.
 
 		tmpl := got.template
 
