@@ -5,6 +5,7 @@ package linker
 import (
 	"strings"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/lang/token"
@@ -28,17 +29,18 @@ import (
 // expected during the Step 3/4 transition) collapse to one user-
 // visible message per content key.
 func runAttributeEvalChecks(
+	em diagnostic.Emitter,
 	result *eval.Result,
 	source []byte,
 	cfgPath string,
 	fileScope *check.Scope,
 	modules map[string]*check.Scope,
 	registry *AttributeRegistry,
-) error {
+) bool {
 	if registry == nil || result == nil {
-		return nil
+		return false
 	}
-	ctx := &linkContext{}
+	ctx := &linkContext{em: em}
 	eval.WalkResult(result, func(v eval.Value) bool {
 		sv, ok := v.(*eval.StructVal)
 		if !ok {
@@ -51,10 +53,7 @@ func runAttributeEvalChecks(
 		dispatchEvalAttributes(ctx, sv, dt, registry, source, cfgPath)
 		return true
 	})
-	if len(ctx.diags) == 0 {
-		return nil
-	}
-	return ctx.diags
+	return ctx.raised
 }
 
 // lookupDeclTypeForStructVal resolves a StructVal's DeclType via its

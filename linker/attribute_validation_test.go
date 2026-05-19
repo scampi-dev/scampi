@@ -5,6 +5,7 @@ package linker
 import (
 	"testing"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/token"
 	"scampi.dev/scampi/spec"
@@ -22,7 +23,7 @@ import (
 
 func newAttrCtx(name, paramName string, arg ast.Expr, args map[string]any) StaticCheckContext {
 	return StaticCheckContext{
-		Linker:    &linkContext{},
+		Linker:    &linkContext{em: &diagnostic.Capture{}},
 		AttrName:  name,
 		AttrArgs:  args,
 		ParamName: paramName,
@@ -35,7 +36,7 @@ func newAttrCtx(name, paramName string, arg ast.Expr, args map[string]any) Stati
 // ParamArg, exercising the eval-walk dispatch path.
 func newResolvedCtx(name, paramName string, resolved any, args map[string]any) StaticCheckContext {
 	return StaticCheckContext{
-		Linker:    &linkContext{},
+		Linker:    &linkContext{em: &diagnostic.Capture{}},
 		AttrName:  name,
 		AttrArgs:  args,
 		ParamName: paramName,
@@ -45,7 +46,8 @@ func newResolvedCtx(name, paramName string, resolved any, args map[string]any) S
 }
 
 func diags(ctx StaticCheckContext) int {
-	return len(ctx.Linker.(*linkContext).diags)
+	lc := ctx.Linker.(*linkContext)
+	return len(lc.em.(*diagnostic.Capture).Events)
 }
 
 // listLitExpr builds a list literal AST node from a slice of items.

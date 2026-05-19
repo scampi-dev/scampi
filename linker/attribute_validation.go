@@ -71,7 +71,7 @@ type NonEmptyAttribute struct{}
 func (NonEmptyAttribute) StaticCheck(ctx StaticCheckContext) {
 	if v, ok := literalString(ctx); ok {
 		if v == "" {
-			ctx.Linker.Emit(newAttrDocError(
+			ctx.Linker.Raise(newAttrDocError(
 				ctx,
 				fmt.Sprintf("%s must not be empty", ctx.ParamName),
 			))
@@ -79,7 +79,7 @@ func (NonEmptyAttribute) StaticCheck(ctx StaticCheckContext) {
 		return
 	}
 	if n, ok := literalList(ctx); ok && n == 0 {
-		ctx.Linker.Emit(newAttrDocError(
+		ctx.Linker.Raise(newAttrDocError(
 			ctx,
 			fmt.Sprintf("%s must not be empty", ctx.ParamName),
 		))
@@ -100,7 +100,7 @@ func (FileModeAttribute) StaticCheck(ctx StaticCheckContext) {
 		return
 	}
 	if _, err := perm.ParsePerm(v, ctx.UseSpan); err != nil {
-		ctx.Linker.Emit(newAttrDocError(ctx, fmt.Sprintf("invalid file permission %q", v)))
+		ctx.Linker.Raise(newAttrDocError(ctx, fmt.Sprintf("invalid file permission %q", v)))
 	}
 }
 
@@ -119,7 +119,7 @@ func (SizeAttribute) StaticCheck(ctx StaticCheckContext) {
 		return
 	}
 	if !sizeRegex.MatchString(v) {
-		ctx.Linker.Emit(newAttrDocError(ctx, fmt.Sprintf("invalid size %q", v)))
+		ctx.Linker.Raise(newAttrDocError(ctx, fmt.Sprintf("invalid size %q", v)))
 	}
 }
 
@@ -142,14 +142,14 @@ func (PatternAttribute) StaticCheck(ctx StaticCheckContext) {
 	if err != nil {
 		// Bad regex on the attribute itself — surface as a fatal so
 		// stub authors notice.
-		ctx.Linker.Emit(newAttrDocError(
+		ctx.Linker.Raise(newAttrDocError(
 			ctx,
 			fmt.Sprintf("invalid pattern %q on attribute: %s", rawRegex, err),
 		))
 		return
 	}
 	if !re.MatchString(v) {
-		ctx.Linker.Emit(newAttrDocError(
+		ctx.Linker.Raise(newAttrDocError(
 			ctx,
 			fmt.Sprintf("%q does not match pattern %s", v, rawRegex),
 		))
@@ -182,7 +182,7 @@ func (OneOfAttribute) StaticCheck(ctx StaticCheckContext) {
 			want = append(want, fmt.Sprintf("%q", s))
 		}
 	}
-	ctx.Linker.Emit(newAttrDocError(
+	ctx.Linker.Raise(newAttrDocError(
 		ctx,
 		fmt.Sprintf("%q is not allowed; must be one of: %s", v, strings.Join(want, ", ")),
 	))
@@ -194,7 +194,7 @@ type DeprecatedAttribute struct{}
 
 func (DeprecatedAttribute) StaticCheck(ctx StaticCheckContext) {
 	msg, _ := ctx.AttrArgs["message"].(string)
-	ctx.Linker.Emit(&attrDeprecationWarning{
+	ctx.Linker.Raise(&attrDeprecationWarning{
 		Param:   ctx.ParamName,
 		Attr:    ctx.AttrName,
 		Message: msg,
@@ -238,7 +238,7 @@ func (MinAttribute) StaticCheck(ctx StaticCheckContext) {
 	}
 	bound, _ := ctx.AttrArgs["value"].(int64)
 	if v < bound {
-		ctx.Linker.Emit(newAttrDocError(
+		ctx.Linker.Raise(newAttrDocError(
 			ctx,
 			fmt.Sprintf("%s = %d is below minimum %d", ctx.ParamName, v, bound),
 		))
@@ -256,7 +256,7 @@ func (MaxAttribute) StaticCheck(ctx StaticCheckContext) {
 	}
 	bound, _ := ctx.AttrArgs["value"].(int64)
 	if v > bound {
-		ctx.Linker.Emit(newAttrDocError(
+		ctx.Linker.Raise(newAttrDocError(
 			ctx,
 			fmt.Sprintf("%s = %d exceeds maximum %d", ctx.ParamName, v, bound),
 		))
@@ -276,16 +276,16 @@ func (PathAttribute) StaticCheck(ctx StaticCheckContext) {
 		return
 	}
 	if v == "" {
-		ctx.Linker.Emit(newAttrDocError(ctx, "path must not be empty"))
+		ctx.Linker.Raise(newAttrDocError(ctx, "path must not be empty"))
 		return
 	}
 	if strings.ContainsRune(v, 0) {
-		ctx.Linker.Emit(newAttrDocError(ctx, "path must not contain NUL bytes"))
+		ctx.Linker.Raise(newAttrDocError(ctx, "path must not contain NUL bytes"))
 		return
 	}
 	absolute, _ := ctx.AttrArgs["absolute"].(bool)
 	if absolute && !strings.HasPrefix(v, "/") {
-		ctx.Linker.Emit(newAttrDocError(
+		ctx.Linker.Raise(newAttrDocError(
 			ctx,
 			fmt.Sprintf("%q must be an absolute path (start with \"/\")", v),
 		))

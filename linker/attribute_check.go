@@ -27,6 +27,7 @@ import (
 // behaviours that need a literal (like @secretkey) bail early on
 // their own.
 func runAttributeStaticChecks(
+	em diagnostic.Emitter,
 	f *ast.File,
 	source []byte,
 	cfgPath string,
@@ -34,11 +35,11 @@ func runAttributeStaticChecks(
 	modules map[string]*check.Scope,
 	registry *AttributeRegistry,
 	result *eval.Result,
-) error {
+) bool {
 	if registry == nil {
-		return nil
+		return false
 	}
-	ctx := &linkContext{}
+	ctx := &linkContext{em: em}
 	visitor := &attributeCheckVisitor{
 		ctx:       ctx,
 		registry:  registry,
@@ -49,10 +50,7 @@ func runAttributeStaticChecks(
 		result:    result,
 	}
 	ast.Walk(f, visitor.enter, nil)
-	if len(ctx.diags) == 0 {
-		return nil
-	}
-	return ctx.diags
+	return ctx.raised
 }
 
 // attributeCheckVisitor walks the AST and dispatches attribute
@@ -263,16 +261,18 @@ func bindCallArgs(call *ast.CallExpr, ft *check.FuncType) map[int]ast.Expr {
 	return out
 }
 
-// linkContext is the linker-side LinkContext implementation passed
-// to AttributeBehaviour.StaticCheck. It collects diagnostics emitted
-// during the static check pass; the caller wraps them into a single
-// diagnostic.Raisables for return through the standard pipeline.
+// linkContext is the linker-side LinkContext implementation passed to
+// AttributeBehaviour.StaticCheck. It forwards diagnostics to the
+// emitter immediately and tracks whether any diagnostic was raised so
+// the static-check pass can signal abort to its caller.
 type linkContext struct {
-	diags diagnostic.Raisables
+	em     diagnostic.Emitter
+	raised bool
 }
 
-func (lc *linkContext) Emit(d diagnostic.Raisable) {
-	lc.diags = append(lc.diags, d)
+func (lc *linkContext) Raise(d diagnostic.Raisable) {
+	lc.raised = true
+	lc.em.Raise(d)
 }
 
 func nodeSourceSpan(node ast.Node, source []byte, cfgPath string) spec.SourceSpan {

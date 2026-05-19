@@ -126,29 +126,50 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 	src.Files["/config.scampi"] = []byte("module main\n@@@ garbage\n")
 	reg := engine.NewRegistry()
 
-	_, err := linker.LoadConfig(context.Background(), "/config.scampi", src, reg)
+	capture := &diagnostic.Capture{}
+	_, err := linker.LoadConfig(context.Background(), capture, "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for broken syntax")
 	}
 
-	// May be a single Raisable or a Raisables slice.
-	var r diagnostic.Raisable
-	var rs diagnostic.Raisables
-	if errors.As(err, &rs) {
-		if len(rs) == 0 {
-			t.Fatal("expected at least one diagnostic")
-		}
-		r = rs[0]
-	} else if !errors.As(err, &r) {
-		t.Fatalf("expected diagnostic.Raisable, got %T: %v", err, err)
-	}
-	tmpl := r.Diagnostic().(event.Error).Template
+	tmpl := firstDiagnosticTemplate(t, capture, err)
 	if tmpl.Source == nil {
 		t.Fatal("diagnostic should have source span")
 	}
 	if tmpl.Source.StartLine == 0 {
 		t.Error("diagnostic source span should have non-zero line")
 	}
+}
+
+// firstDiagnosticTemplate returns the template of the first diagnostic
+// raised through capture, falling back to extraction from the error chain
+// for the lex/parse/check/eval paths that still batch errors as
+// Raisable(s) instead of raising them directly.
+func firstDiagnosticTemplate(t *testing.T, capture *diagnostic.Capture, err error) event.Template {
+	t.Helper()
+	for _, ev := range capture.Events {
+		switch v := ev.(type) {
+		case event.Error:
+			return v.Template
+		case event.Warning:
+			return v.Template
+		case event.Info:
+			return v.Template
+		}
+	}
+	var rs diagnostic.Raisables
+	if errors.As(err, &rs) {
+		if len(rs) == 0 {
+			t.Fatal("expected at least one diagnostic in Raisables")
+		}
+		return rs[0].Diagnostic().(event.Error).Template
+	}
+	var r diagnostic.Raisable
+	if errors.As(err, &r) {
+		return r.Diagnostic().(event.Error).Template
+	}
+	t.Fatalf("no diagnostic raised through cap and error chain has no Raisable: %v", err)
+	return event.Template{}
 }
 
 func TestLoadConfig_SecretErrorDiagnostic(t *testing.T) {
@@ -166,16 +187,13 @@ std.deploy(name = "test", targets = [host]) {
 `)
 	reg := engine.NewRegistry()
 
-	_, err := linker.LoadConfig(context.Background(), "/config.scampi", src, reg)
+	capture := &diagnostic.Capture{}
+	_, err := linker.LoadConfig(context.Background(), capture, "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for secret() without backend")
 	}
 
-	var r diagnostic.Raisable
-	if !errors.As(err, &r) {
-		t.Fatalf("expected diagnostic.Raisable, got %T: %v", err, err)
-	}
-	tmpl := r.Diagnostic().(event.Error).Template
+	tmpl := firstDiagnosticTemplate(t, capture, err)
 	if tmpl.Source == nil {
 		t.Fatal("diagnostic should have source span")
 	}

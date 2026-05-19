@@ -6,6 +6,9 @@ import (
 	"errors"
 	"testing"
 
+	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/token"
 	"scampi.dev/scampi/secret"
@@ -38,13 +41,19 @@ func newSecretCtx(backend *stubBackend, arg ast.Expr) StaticCheckContext {
 		b = backend
 	}
 	return StaticCheckContext{
-		Linker:          &linkContext{},
+		Linker:          &linkContext{em: &diagnostic.Capture{}},
 		ResolverBackend: b,
 		AttrName:        "secrets.@secretkey",
 		ParamName:       "key",
 		ParamArg:        arg,
 		UseSpan:         spec.SourceSpan{},
 	}
+}
+
+// capturedEvents reads back the events buffered by a linkContext set up
+// via newSecretCtx (or any other helper that wraps a Capture).
+func capturedEvents(ctx StaticCheckContext) []event.Event {
+	return ctx.Linker.(*linkContext).em.(*diagnostic.Capture).Events
 }
 
 func TestSecretKeyAttribute_LiteralFound(t *testing.T) {
@@ -55,9 +64,9 @@ func TestSecretKeyAttribute_LiteralFound(t *testing.T) {
 	ctx := newSecretCtx(backend, stringLitExpr("db.password"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
-	lc := ctx.Linker.(*linkContext)
-	if len(lc.diags) != 0 {
-		t.Errorf("expected no diagnostics for known key, got %d: %v", len(lc.diags), lc.diags)
+	evs := capturedEvents(ctx)
+	if len(evs) != 0 {
+		t.Errorf("expected no diagnostics for known key, got %d: %v", len(evs), evs)
 	}
 }
 
@@ -69,13 +78,11 @@ func TestSecretKeyAttribute_LiteralNotFound(t *testing.T) {
 	ctx := newSecretCtx(backend, stringLitExpr("totally.unknown"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
-	lc := ctx.Linker.(*linkContext)
-	if len(lc.diags) != 1 {
-		t.Fatalf("expected 1 diagnostic for unknown key, got %d", len(lc.diags))
+	evs := capturedEvents(ctx)
+	if len(evs) != 1 {
+		t.Fatalf("expected 1 diagnostic for unknown key, got %d", len(evs))
 	}
-	if _, ok := lc.diags[0].(*secretKeyNotFoundError); !ok {
-		t.Errorf("expected *secretKeyNotFoundError, got %T", lc.diags[0])
-	}
+	assertEventID(t, evs[0], CodeSecretKeyNotFound)
 }
 
 func TestSecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
@@ -86,9 +93,8 @@ func TestSecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
 	ctx := newSecretCtx(backend, arg)
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
-	lc := ctx.Linker.(*linkContext)
-	if len(lc.diags) != 0 {
-		t.Errorf("expected no diagnostics for computed arg, got %d", len(lc.diags))
+	if evs := capturedEvents(ctx); len(evs) != 0 {
+		t.Errorf("expected no diagnostics for computed arg, got %d", len(evs))
 	}
 }
 
@@ -98,9 +104,8 @@ func TestSecretKeyAttribute_NoBackendSkipped(t *testing.T) {
 	ctx := newSecretCtx(nil, stringLitExpr("any.key"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
-	lc := ctx.Linker.(*linkContext)
-	if len(lc.diags) != 0 {
-		t.Errorf("expected no diagnostics with nil backend, got %d", len(lc.diags))
+	if evs := capturedEvents(ctx); len(evs) != 0 {
+		t.Errorf("expected no diagnostics with nil backend, got %d", len(evs))
 	}
 }
 
@@ -109,12 +114,21 @@ func TestSecretKeyAttribute_LookupError(t *testing.T) {
 	ctx := newSecretCtx(backend, stringLitExpr("db.password"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
-	lc := ctx.Linker.(*linkContext)
-	if len(lc.diags) != 1 {
-		t.Fatalf("expected 1 diagnostic for backend error, got %d", len(lc.diags))
+	evs := capturedEvents(ctx)
+	if len(evs) != 1 {
+		t.Fatalf("expected 1 diagnostic for backend error, got %d", len(evs))
 	}
-	if _, ok := lc.diags[0].(*secretKeyLookupError); !ok {
-		t.Errorf("expected *secretKeyLookupError, got %T", lc.diags[0])
+	assertEventID(t, evs[0], CodeSecretKeyLookupFailed)
+}
+
+func assertEventID(t *testing.T, ev event.Event, want errs.Code) {
+	t.Helper()
+	ee, ok := ev.(event.Error)
+	if !ok {
+		t.Fatalf("expected event.Error, got %T", ev)
+	}
+	if ee.Template.ID != want {
+		t.Errorf("expected event ID %q, got %q", want, ee.Template.ID)
 	}
 }
 

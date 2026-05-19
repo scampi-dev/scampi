@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/lang/lex"
@@ -31,12 +32,20 @@ std.deploy(name = "main", targets = [host]) {
 }
 `
 	fileScope, modules, result := evalForAttrTest(t, src)
-	err := runAttributeEvalChecks(result, []byte(src), "test.scampi", fileScope, modules, DefaultAttributes())
-	if err == nil {
+	capture := &diagnostic.Capture{}
+	raised := runAttributeEvalChecks(
+		capture,
+		result,
+		[]byte(src),
+		"test.scampi",
+		fileScope,
+		modules,
+		DefaultAttributes(),
+	)
+	if !raised {
 		t.Fatal("expected eval-walker to emit @max violation for let-bound port=70000")
 	}
-	var diags diagnostic.Raisables
-	assertDiagnosticsFor(t, err, "port", &diags)
+	assertDiagnosticForParam(t, capture.Events, "port")
 }
 
 // TestEvalWalk_LetBoundValidPasses proves the walker emits nothing
@@ -56,9 +65,18 @@ std.deploy(name = "main", targets = [host]) {
 }
 `
 	fileScope, modules, result := evalForAttrTest(t, src)
-	err := runAttributeEvalChecks(result, []byte(src), "test.scampi", fileScope, modules, DefaultAttributes())
-	if err != nil {
-		t.Fatalf("expected no diagnostics for let-bound port=22, got: %v", err)
+	capture := &diagnostic.Capture{}
+	raised := runAttributeEvalChecks(
+		capture,
+		result,
+		[]byte(src),
+		"test.scampi",
+		fileScope,
+		modules,
+		DefaultAttributes(),
+	)
+	if raised {
+		t.Fatalf("expected no diagnostics for let-bound port=22, got: %v", capture.Events)
 	}
 }
 
@@ -78,12 +96,20 @@ std.deploy(name = "main", targets = [host]) {
 }
 `
 	fileScope, modules, result := evalForAttrTest(t, src)
-	err := runAttributeEvalChecks(result, []byte(src), "test.scampi", fileScope, modules, DefaultAttributes())
-	if err == nil {
+	capture := &diagnostic.Capture{}
+	raised := runAttributeEvalChecks(
+		capture,
+		result,
+		[]byte(src),
+		"test.scampi",
+		fileScope,
+		modules,
+		DefaultAttributes(),
+	)
+	if !raised {
 		t.Fatal("expected eval-walker to emit @max violation for port=70000")
 	}
-	var diags diagnostic.Raisables
-	assertDiagnosticsFor(t, err, "port", &diags)
+	assertDiagnosticForParam(t, capture.Events, "port")
 }
 
 // TestEvalWalk_SkipsCrossStepRef proves the walker silently skips
@@ -110,10 +136,11 @@ func TestEvalWalk_SkipsCrossStepRef(t *testing.T) {
 		QualName: "fake_decl",
 		Fields:   map[string]eval.Value{"port": &eval.RefVal{}},
 	}
-	ctx := &linkContext{}
+	capture := &diagnostic.Capture{}
+	ctx := &linkContext{em: capture}
 	dispatchEvalAttributes(ctx, sv, dt, DefaultAttributes(), nil, "test.scampi")
-	if len(ctx.diags) != 0 {
-		t.Errorf("expected no diagnostics for RefVal, got %d", len(ctx.diags))
+	if len(capture.Events) != 0 {
+		t.Errorf("expected no diagnostics for RefVal, got %d", len(capture.Events))
 	}
 }
 
@@ -147,19 +174,20 @@ func evalForAttrTest(t *testing.T, src string) (*check.Scope, map[string]*check.
 	return c.FileScope(), modules, r
 }
 
-// assertDiagnosticsFor unwraps an attribute walker error and confirms
-// at least one diagnostic mentions the named param.
-func assertDiagnosticsFor(t *testing.T, err error, paramName string, out *diagnostic.Raisables) {
+// assertDiagnosticForParam scans captured events for a diagnostic
+// mentioning the named param. Useful when the walker emits multiple
+// diagnostics and the test only cares that one of them targets the
+// expected parameter.
+func assertDiagnosticForParam(t *testing.T, events []event.Event, paramName string) {
 	t.Helper()
-	diags, ok := err.(diagnostic.Raisables)
-	if !ok {
-		t.Fatalf("expected diagnostic.Raisables, got %T: %v", err, err)
-	}
-	*out = diags
-	for _, d := range diags {
-		if dErr, ok := d.(*attrDocError); ok && dErr.Param == paramName {
+	for _, ev := range events {
+		ee, ok := ev.(event.Error)
+		if !ok {
+			continue
+		}
+		if data, ok := ee.Template.Data.(attrDocErrorData); ok && data.Param == paramName {
 			return
 		}
 	}
-	t.Errorf("no diagnostic mentions param %q; got %d diagnostics", paramName, len(diags))
+	t.Errorf("no diagnostic mentions param %q; got %d events", paramName, len(events))
 }

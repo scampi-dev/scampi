@@ -29,7 +29,7 @@ func runLangTestFile(
 	tests := testkit.NewTestRegistry()
 	reg := testkit.NewEngineRegistry(engine.NewRegistry(), tests)
 
-	cfg, err := linker.LoadConfig(ctx, testPath, src, reg)
+	cfg, err := linker.LoadConfig(ctx, em, testPath, src, reg)
 	if err != nil {
 		return 0, 0, err
 	}

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/check"
@@ -19,6 +20,13 @@ import (
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/std"
 )
+
+// ErrAttributeViolation signals that an attribute static check raised
+// one or more diagnostics through the emitter. The diagnostics have
+// already been delivered; callers use this only to short-circuit the
+// pipeline. Diagnostic content is on the events, not on the error.
+// bare-error: sentinel; content lives on the emitted events.
+var ErrAttributeViolation = errs.New("attribute violation")
 
 // Analysis is the result of Analyze: the parsed AST, the eval result,
 // and the original file bytes. Callers needing only diagnostics can
@@ -61,7 +69,13 @@ func WithRedactor(r *secret.Redactor) AnalyzeOption {
 // failing phase's diagnostics. Suitable for both the linker
 // (LoadConfig wraps Analyze + Link) and the LSP (which surfaces
 // diagnostics inline as the user types).
-func Analyze(ctx context.Context, cfgPath string, src source.Source, opts ...AnalyzeOption) (*Analysis, error) {
+func Analyze(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	src source.Source,
+	opts ...AnalyzeOption,
+) (*Analysis, error) {
 	var o analyzeOpts
 	for _, f := range opts {
 		f(&o)
@@ -156,7 +170,8 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source, opts ...Ana
 	// dedup'd downstream at the diagnostic.policyEmitter boundary.
 	registry := DefaultAttributes()
 	fileScope := c.FileScope()
-	if attrErr := runAttributeStaticChecks(
+	raisedStatic := runAttributeStaticChecks(
+		em,
 		f,
 		data,
 		cfgPath,
@@ -164,18 +179,18 @@ func Analyze(ctx context.Context, cfgPath string, src source.Source, opts ...Ana
 		modules,
 		registry,
 		result,
-	); attrErr != nil {
-		return nil, attrErr
-	}
-	if attrErr := runAttributeEvalChecks(
+	)
+	raisedEval := runAttributeEvalChecks(
+		em,
 		result,
 		data,
 		cfgPath,
 		fileScope,
 		modules,
 		registry,
-	); attrErr != nil {
-		return nil, attrErr
+	)
+	if raisedStatic || raisedEval {
+		return nil, ErrAttributeViolation
 	}
 
 	return &Analysis{
@@ -227,12 +242,13 @@ func LoadModule(
 // ready for the engine.
 func LoadConfig(
 	ctx context.Context,
+	em diagnostic.Emitter,
 	cfgPath string,
 	src source.Source,
 	reg Registry,
 	opts ...AnalyzeOption,
 ) (spec.Config, error) {
-	a, err := Analyze(ctx, cfgPath, src, opts...)
+	a, err := Analyze(ctx, em, cfgPath, src, opts...)
 	if err != nil {
 		return spec.Config{}, err
 	}

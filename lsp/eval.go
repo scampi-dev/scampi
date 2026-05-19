@@ -174,39 +174,49 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 		return nil
 	}
 
-	// Run the full linker pipeline against the in-memory content.
+	// Run the full linker pipeline against the in-memory content. The
+	// linker raises diagnostics through cap; on a non-diagnostic
+	// failure (e.g. wrapped lang errors that haven't been wired into
+	// the emitter pipeline yet) we still need to surface something.
 	src := newOverlaySource(filePath, data)
-	if _, err := linker.Analyze(ctx, filePath, src, linker.WithLenient()); err != nil {
-		return analysisErrorToLSPDiagnostics(err, data)
+	capture := &diagnostic.Capture{}
+	_, err := linker.Analyze(ctx, capture, filePath, src, linker.WithLenient())
+	out := make([]protocol.Diagnostic, 0, len(capture.Events))
+	for _, ev := range capture.Events {
+		out = append(out, eventToLSP(ev, data))
 	}
-	return nil
+	if err != nil && !errors.Is(err, linker.ErrAttributeViolation) {
+		// Try to extract Raisable(s) from the error chain for the
+		// remaining batched paths (lex/parse/check/eval).
+		var rs diagnostic.Raisables
+		if errors.As(err, &rs) {
+			for _, r := range rs {
+				out = append(out, diagnosticToLSP(r, data))
+			}
+		} else {
+			var r diagnostic.Raisable
+			if errors.As(err, &r) {
+				out = append(out, diagnosticToLSP(r, data))
+			} else {
+				out = append(out, protocol.Diagnostic{
+					Range:    protocol.Range{},
+					Severity: protocol.DiagnosticSeverityError,
+					Source:   diagSourceLSP,
+					Message:  err.Error(),
+				})
+			}
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
-// analysisErrorToLSPDiagnostics flattens the error returned by
-// linker.Analyze into a slice of LSP diagnostics. linker.Analyze
-// returns either a single Raisable or a Raisables slice; both shapes
-// are handled.
-func analysisErrorToLSPDiagnostics(err error, src []byte) []protocol.Diagnostic {
-	var rs diagnostic.Raisables
-	if errors.As(err, &rs) {
-		out := make([]protocol.Diagnostic, 0, len(rs))
-		for _, r := range rs {
-			out = append(out, diagnosticToLSP(r, src))
-		}
-		return out
-	}
-	var r diagnostic.Raisable
-	if errors.As(err, &r) {
-		return []protocol.Diagnostic{diagnosticToLSP(r, src)}
-	}
-	// Non-diagnostic error (e.g. file not found): emit a placeholder
-	// diagnostic at file head so the user sees something.
-	return []protocol.Diagnostic{{
-		Range:    protocol.Range{},
-		Severity: protocol.DiagnosticSeverityError,
-		Source:   diagSourceLSP,
-		Message:  err.Error(),
-	}}
+// eventToLSP renders an event.Event into LSP diagnostic shape.
+func eventToLSP(ev event.Event, src []byte) protocol.Diagnostic {
+	tmpl := templateOf(ev)
+	return lspDiagFromTemplate(tmpl, src, "")
 }
 
 // templateOf extracts the Template from any diagnostic-shaped event.
@@ -228,8 +238,13 @@ func templateOf(ev event.Event) event.Template {
 // when no span is present the diagnostic is anchored at file head so
 // the user still sees the message.
 func diagnosticToLSP(r diagnostic.Raisable, src []byte) protocol.Diagnostic {
-	tmpl := templateOf(r.Diagnostic())
-	msg := r.Error()
+	return lspDiagFromTemplate(templateOf(r.Diagnostic()), src, r.Error())
+}
+
+func lspDiagFromTemplate(tmpl event.Template, src []byte, msg string) protocol.Diagnostic {
+	if msg == "" {
+		msg = tmpl.Text
+	}
 	// Render Hint/Help against tmpl.Data — the raw fields are Go
 	// template strings (e.g. `{{.Hint}}`) that would otherwise leak
 	// verbatim into the LSP message. Both get a labelled prefix so

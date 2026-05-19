@@ -4,6 +4,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"slices"
 
@@ -55,17 +56,22 @@ func LoadConfig(
 	}
 
 	reg := NewRegistry()
-	cfg, err := linker.LoadConfig(ctx, cfgPath, src, reg, opts...)
+	cfg, err := linker.LoadConfig(ctx, em, cfgPath, src, reg, opts...)
 	if err != nil {
-		_, emitted := emitEngineDiagnostic(em, cfgPath, err)
-		if !emitted {
-			// Error didn't carry a diagnostic (e.g. raw file-read
-			// failure). Wrap it in a generic LoadConfigError so the
-			// user sees something instead of a silent abort.
-			em.Raise(&LoadConfigError{
-				Cause:  err,
-				Source: spec.SourceSpan{Filename: cfgPath},
-			})
+		// linker.ErrAttributeViolation means the diagnostics have
+		// already been raised through em; nothing more to do besides
+		// surface the abort to the caller.
+		if !errors.Is(err, linker.ErrAttributeViolation) {
+			_, emitted := emitEngineDiagnostic(em, cfgPath, err)
+			if !emitted {
+				// Error didn't carry a diagnostic (e.g. raw file-read
+				// failure). Wrap it in a generic LoadConfigError so
+				// the user sees something instead of a silent abort.
+				em.Raise(&LoadConfigError{
+					Cause:  err,
+					Source: spec.SourceSpan{Filename: cfgPath},
+				})
+			}
 		}
 		return spec.Config{}, AbortError{Causes: []error{err}}
 	}

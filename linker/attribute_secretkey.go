@@ -34,7 +34,7 @@ func (SecretKeyAttribute) StaticCheck(ctx StaticCheckContext) {
 	}
 	_, found, err := backend.Lookup(literal)
 	if err != nil {
-		ctx.Linker.Emit(&secretKeyLookupError{
+		ctx.Linker.Raise(&secretKeyLookupError{
 			Key: literal,
 			Err: err,
 			Src: &ctx.UseSpan,
@@ -42,7 +42,7 @@ func (SecretKeyAttribute) StaticCheck(ctx StaticCheckContext) {
 		return
 	}
 	if !found {
-		ctx.Linker.Emit(&secretKeyNotFoundError{
+		ctx.Linker.Raise(&secretKeyNotFoundError{
 			Key: literal,
 			Src: &ctx.UseSpan,
 		})
