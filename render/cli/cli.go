@@ -83,22 +83,6 @@ func New(opts Options, store *diagnostic.SourceStore) *CLI {
 	}
 }
 
-func (c *CLI) shouldRender(chatty event.Chattiness) bool {
-	v := c.opts.Verbosity
-	switch chatty {
-	case event.Yappy:
-		return v >= signal.VVV
-	case event.Chatty:
-		return v >= signal.VV
-	case event.Normal:
-		return v >= signal.V
-	case event.Reserved, event.Subtle:
-		return true
-	default:
-		return true
-	}
-}
-
 func (c *CLI) commitRenderEvents(events []renderEvent) {
 	for i := range events {
 		// Redact at the central choke point so every line — diagnostic,
@@ -636,43 +620,6 @@ func (c *CLI) Close() {
 	c.render.close()
 }
 
-func (c *CLI) EmitEngineDiagnostic(e event.EngineDiagnostic) {
-	if !c.shouldRender(e.Chattiness) {
-		return
-	}
-	context := ""
-	if e.CfgPath != "" {
-		context = fmt.Sprintf(` in file %q`, e.CfgPath)
-	}
-	c.renderDiagnostic(e.Severity, "engine", context, e.Detail.Template)
-}
-
-func (c *CLI) EmitPlanDiagnostic(e event.PlanDiagnostic) {
-	if !c.shouldRender(e.Chattiness) {
-		return
-	}
-	c.renderDiagnostic(e.Severity, "plan", stepScope(e.Step), e.Detail.Template)
-}
-
-func (c *CLI) EmitActionDiagnostic(e event.ActionDiagnostic) {
-	if !c.shouldRender(e.Chattiness) {
-		return
-	}
-	c.renderDiagnostic(e.Severity, "action", stepScope(e.Step), e.Detail.Template)
-}
-
-func (c *CLI) EmitOpDiagnostic(e event.OpDiagnostic) {
-	if !c.shouldRender(e.Chattiness) {
-		return
-	}
-	c.renderDiagnostic(
-		e.Severity,
-		"op",
-		fmt.Sprintf(` in op '%s' of%s`, e.DisplayID, stepScope(e.Step)),
-		e.Detail.Template,
-	)
-}
-
 // New diagnostic surface - see doc/design/diagnostics.md.
 // -----------------------------------------------------------------------------
 
@@ -681,7 +628,7 @@ func (c *CLI) EmitDiagnostic(e event.Diagnostic) {
 	if e.Cause.Kind == event.CauseHook && e.Cause.Ref != "" {
 		scope = fmt.Sprintf(" in hook '%s'", e.Cause.Ref)
 	}
-	c.renderDiagnostic(eventSeverityToSignal(e.Severity), "", scope, e.Template)
+	c.renderDiagnostic(e.Severity, "", scope, e.Template)
 }
 
 func (c *CLI) EmitChange(e event.Change) {
@@ -723,20 +670,6 @@ func (c *CLI) EmitProgress(e event.Progress) {
 	}})
 }
 
-// eventSeverityToSignal maps the v2 three-level Severity onto the legacy
-// signal.Severity expected by renderDiagnostic. Phase 6 will narrow
-// signal.Severity to match.
-func eventSeverityToSignal(s event.Severity) signal.Severity {
-	switch s {
-	case event.SeverityWarning:
-		return signal.Warning
-	case event.SeverityError:
-		return signal.Error
-	default:
-		return signal.Info
-	}
-}
-
 // stepIDFromRef returns a step display tag built from the StepRef
 // fields. Mirrors the formatting used by lifecycle renderers.
 func stepIDFromRef(s event.StepRef) string {
@@ -747,40 +680,15 @@ func stepIDFromRef(s event.StepRef) string {
 	return tag
 }
 
-func stepScope(s event.StepDetail) string {
-	if s.StepIndex < 0 {
-		if s.StepDesc != "" {
-			return fmt.Sprintf(` in %s '%s'`, s.StepKind, s.StepDesc)
-		}
-		return ""
-	}
-	tag := fmt.Sprintf("%d", s.StepIndex)
-	if s.StepKind != "" {
-		tag += "|" + s.StepKind
-	}
-	if s.StepDesc != "" {
-		return fmt.Sprintf(` in step [%s] '%s'`, tag, s.StepDesc)
-	}
-	return fmt.Sprintf(` in step [%s]`, tag)
-}
-
 func (c *CLI) renderDiagnostic(sev signal.Severity, scope, msg string, tmpl event.Template) {
 	var glyph, suffix string
 	var col ansi.ANSI
 
 	switch sev {
-	case signal.Debug:
-		glyph = c.glyphs.bullet
-		col = colDiagDebug
-		suffix = "debug"
 	case signal.Info:
 		glyph = c.glyphs.hint
 		col = colDiagInfo
 		suffix = "info"
-	case signal.Notice:
-		glyph = c.glyphs.ok
-		col = colDiagNotice
-		suffix = "notice"
 	case signal.Warning:
 		glyph = c.glyphs.warn
 		col = colDiagWarning
@@ -789,10 +697,6 @@ func (c *CLI) renderDiagnostic(sev signal.Severity, scope, msg string, tmpl even
 		glyph = c.glyphs.err
 		col = colDiagError
 		suffix = "error"
-	case signal.Fatal:
-		glyph = c.glyphs.fatal
-		col = colDiagFatal
-		suffix = "fatal"
 	default:
 		panic(errs.BUG("unhandled diagnostic severity %d", sev))
 	}

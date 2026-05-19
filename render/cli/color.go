@@ -32,12 +32,9 @@ var (
 
 	colSpinner = ansi.Cyan().Dim()
 
-	colDiagDebug   = ansi.BrightBlack().Dim()
 	colDiagInfo    = ansi.Blue()
-	colDiagNotice  = ansi.Cyan()
 	colDiagWarning = ansi.Yellow()
 	colDiagError   = ansi.Red()
-	colDiagFatal   = ansi.BrightRed().Bold()
 	colDiagHelp    = ansi.Cyan()
 
 	colSourceGutter = ansi.BrightBlack()

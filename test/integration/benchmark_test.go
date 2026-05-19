@@ -91,7 +91,7 @@ func BenchmarkDiagnosticEmission(b *testing.B) {
 	diag := *harness.NewFakeDiagnostic(signal.Error, diagnostic.ImpactAbort, nil)
 
 	for b.Loop() {
-		em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(0, "copy", "bench", diag))
+		em.EmitDiagnostic(diagnostic.Raise(diag))
 	}
 }
 

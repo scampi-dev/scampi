@@ -71,7 +71,6 @@ Falls back to plain diff(1).`,
 			}
 
 			pol := cliPolicy(opts)
-			pol.SuppressPlan = isDiff && diffPath == "" && !interactive
 
 			store := diagnostic.NewSourceStore()
 

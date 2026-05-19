@@ -51,15 +51,3 @@ func (w *causeEmitter) EmitChange(e event.Change) {
 func (w *causeEmitter) EmitProgress(e event.Progress) {
 	w.inner.EmitProgress(e)
 }
-
-// Legacy diagnostic envelopes pass through untouched. They have no
-// Cause field; this wrapper is a no-op for them. They die with phase 5.
-
-func (w *causeEmitter) EmitEngineDiagnostic(e event.EngineDiagnostic) {
-	w.inner.EmitEngineDiagnostic(e)
-}
-func (w *causeEmitter) EmitPlanDiagnostic(e event.PlanDiagnostic) { w.inner.EmitPlanDiagnostic(e) }
-func (w *causeEmitter) EmitActionDiagnostic(e event.ActionDiagnostic) {
-	w.inner.EmitActionDiagnostic(e)
-}
-func (w *causeEmitter) EmitOpDiagnostic(e event.OpDiagnostic) { w.inner.EmitOpDiagnostic(e) }

@@ -12,11 +12,6 @@ import "scampi.dev/scampi/diagnostic/event"
 type Displayer interface {
 	EmitLegend()
 
-	EmitEngineDiagnostic(e event.EngineDiagnostic)
-	EmitPlanDiagnostic(e event.PlanDiagnostic)
-	EmitActionDiagnostic(e event.ActionDiagnostic)
-	EmitOpDiagnostic(e event.OpDiagnostic)
-
 	EmitDiagnostic(e event.Diagnostic)
 	EmitChange(e event.Change)
 	EmitProgress(e event.Progress)

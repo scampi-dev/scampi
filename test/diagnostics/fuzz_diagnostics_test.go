@@ -559,57 +559,15 @@ frobnicate(name = "test")`,
 		_ = err
 
 		// ---- Diagnostic invariants ----
-		assertEngineDiagnosticsWellFormed(t, rec.EngineDiagnostics)
-		assertPlanDiagnosticsWellFormed(t, rec.PlanDiagnostics)
-		assertActionDiagnosticsWellFormed(t, rec.ActionDiagnostics)
-		assertOpDiagnosticsWellFormed(t, rec.OpDiagnostics)
+		assertDiagnosticsWellFormed(t, rec.Diagnostics)
 	})
 }
 
-func assertEngineDiagnosticsWellFormed(t *testing.T, diags []event.EngineDiagnostic) {
+func assertDiagnosticsWellFormed(t *testing.T, diags []event.Diagnostic) {
 	t.Helper()
 	for i, d := range diags {
-		if d.Severity.String() == "" {
-			t.Fatalf("engine diagnostic [%d] has empty Severity", i)
-		}
-		if d.Detail.Template.ID == "" {
-			t.Fatalf("engine diagnostic [%d] has empty Template.ID", i)
-		}
-	}
-}
-
-func assertPlanDiagnosticsWellFormed(t *testing.T, diags []event.PlanDiagnostic) {
-	t.Helper()
-	for i, d := range diags {
-		if d.Severity.String() == "" {
-			t.Fatalf("plan diagnostic [%d] has empty Severity", i)
-		}
-		if d.Detail.Template.ID == "" {
-			t.Fatalf("plan diagnostic [%d] has empty Template.ID", i)
-		}
-	}
-}
-
-func assertActionDiagnosticsWellFormed(t *testing.T, diags []event.ActionDiagnostic) {
-	t.Helper()
-	for i, d := range diags {
-		if d.Severity.String() == "" {
-			t.Fatalf("action diagnostic [%d] has empty Severity", i)
-		}
-		if d.Detail.Template.ID == "" {
-			t.Fatalf("action diagnostic [%d] has empty Template.ID", i)
-		}
-	}
-}
-
-func assertOpDiagnosticsWellFormed(t *testing.T, diags []event.OpDiagnostic) {
-	t.Helper()
-	for i, d := range diags {
-		if d.Severity.String() == "" {
-			t.Fatalf("op diagnostic [%d] has empty Severity", i)
-		}
-		if d.Detail.Template.ID == "" {
-			t.Fatalf("op diagnostic [%d] has empty Template.ID", i)
+		if d.Template.ID == "" {
+			t.Fatalf("diagnostic [%d] has empty Template.ID", i)
 		}
 	}
 }

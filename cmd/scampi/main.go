@@ -281,8 +281,7 @@ func withDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.Sourc
 // returned value before passing it to diagnostic.NewEmitter.
 func cliPolicy(opts globalOpts) diagnostic.Policy {
 	return diagnostic.Policy{
-		Verbosity:        opts.verbosity,
-		DedupDiagnostics: true,
+		Verbosity: opts.verbosity,
 	}
 }
 

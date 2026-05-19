@@ -10,6 +10,7 @@ import (
 
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/signal"
 )
 
 type ExpectedDiagnostics struct {
@@ -96,15 +97,11 @@ type collectedDiagnostic struct {
 	template event.Template
 }
 
-// severityToString maps the v2 Severity enum to the string form
-// fixtures historically used. The legacy emission carried
-// signal.Severity (Debug/Info/Notice/Warning/Error/Fatal); the v2
-// surface narrows to Info/Warning/Error.
-func severityToString(s event.Severity) string {
+func severityToString(s signal.Severity) string {
 	switch s {
-	case event.SeverityWarning:
+	case signal.Warning:
 		return "Warning"
-	case event.SeverityError:
+	case signal.Error:
 		return "Error"
 	default:
 		return "Info"

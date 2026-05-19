@@ -1,11 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-//go:generate stringer -type=EngineKind
-//go:generate stringer -type=PlanKind
-//go:generate stringer -type=ActionKind
-//go:generate stringer -type=OpKind
-//go:generate stringer -type=Chattiness
-//go:generate stringer -type=Severity
 //go:generate stringer -type=CauseKind
 //go:generate stringer -type=ChangePhase
 package event
@@ -18,65 +12,8 @@ import (
 	"scampi.dev/scampi/spec"
 )
 
-type StepDetail struct {
-	StepIndex int
-	StepKind  string
-	StepDesc  string
-	HookID    string // non-empty when this op belongs to a hook
-}
-
-type EngineEvent struct {
-	Time             time.Time
-	Kind             EngineKind
-	Detail           *EngineFinishedDetail
-	ConnectingDetail *EngineConnectingDetail
-	Severity         signal.Severity
-	Chattiness       Chattiness
-}
-
-type EngineConnectingDetail struct {
-	TargetName string
-	TargetKind string
-}
-
-type PlanEvent struct {
-	Time           time.Time
-	Kind           PlanKind
-	Step           StepDetail
-	StartedDetail  *PlanStartedDetail
-	Detail         *PlanDetail
-	FinishedDetail *PlanFinishedDetail
-	Severity       signal.Severity
-	Chattiness     Chattiness
-}
-
-type ActionEvent struct {
-	Time       time.Time
-	Kind       ActionKind
-	Step       StepDetail
-	Detail     *ActionDetail
-	HookDetail *HookDetail
-	Severity   signal.Severity
-	Chattiness Chattiness
-}
-
-type OpEvent struct {
-	Time          time.Time
-	Kind          OpKind
-	Step          StepDetail
-	DisplayID     string
-	CheckDetail   *OpCheckDetail
-	ExecuteDetail *OpExecuteDetail
-	Severity      signal.Severity
-	Chattiness    Chattiness
-}
-
-type InspectEvent struct {
-	Time       time.Time
-	Detail     InspectDetail
-	Severity   signal.Severity
-	Chattiness Chattiness
-}
+// InspectDetail
+// -----------------------------------------------------------------------------
 
 type InspectDetail struct {
 	DeployName string
@@ -91,86 +28,8 @@ type InspectEntry struct {
 	Fields []spec.InspectField
 }
 
-type EngineDiagnostic struct {
-	Time       time.Time
-	CfgPath    string
-	Detail     DiagnosticDetail
-	Severity   signal.Severity
-	Chattiness Chattiness
-}
-
-type PlanDiagnostic struct {
-	Time       time.Time
-	Step       StepDetail
-	Detail     DiagnosticDetail
-	Severity   signal.Severity
-	Chattiness Chattiness
-}
-
-type ActionDiagnostic struct {
-	Time       time.Time
-	Step       StepDetail
-	Detail     DiagnosticDetail
-	Severity   signal.Severity
-	Chattiness Chattiness
-}
-
-type OpDiagnostic struct {
-	Time       time.Time
-	Step       StepDetail
-	DisplayID  string
-	Detail     DiagnosticDetail
-	Severity   signal.Severity
-	Chattiness Chattiness
-}
-
-type EngineKind uint8
-
-const (
-	EngineStarted EngineKind = iota
-	EngineConnecting
-	EngineFinished
-)
-
-type PlanKind uint8
-
-const (
-	PlanStarted PlanKind = iota
-	PlanFinished
-	StepPlanned
-	PlanProduced
-)
-
-type ActionKind uint8
-
-const (
-	ActionStarted ActionKind = iota
-	ActionFinished
-	HookTriggered
-	HookSkipped
-)
-
-type OpKind uint8
-
-const (
-	OpCheckStarted OpKind = iota
-	OpChecked
-
-	OpExecuteStarted
-	OpExecuted
-)
-
-// Chattiness describes how noisy an event is under normal operation.
-// It is orthogonal to Severity and MUST NOT be used to indicate importance.
-type Chattiness uint8
-
-const (
-	Subtle Chattiness = iota
-	Reserved
-	Normal
-	Chatty
-	Yappy
-)
+// Template
+// -----------------------------------------------------------------------------
 
 type Template struct {
 	ID   errs.Code
@@ -196,23 +55,8 @@ func (t Template) TextField() Field { return Field{string(t.ID) + ".Text", t.Tex
 func (t Template) HintField() Field { return Field{string(t.ID) + ".Hint", t.Hint, t.Data} }
 func (t Template) HelpField() Field { return Field{string(t.ID) + ".Help", t.Help, t.Data} }
 
-// New diagnostic surface
-// =============================================================================
-// These types replace the per-scope {Engine,Plan,Action,Op}{Event,Diagnostic}
-// envelopes above. They are introduced additively during the rework; the old
-// types stay in place until the final phase, at which point the surface
-// above this banner is deleted. See doc/design/diagnostics.md.
-
-// Severity collapses signal.Severity (6 levels) to the 3 levels users
-// actually need. The old enum stays alive until phase 6 because the
-// surviving lifecycle events still reference it.
-type Severity uint8
-
-const (
-	SeverityInfo Severity = iota
-	SeverityWarning
-	SeverityError
-)
+// Cause
+// -----------------------------------------------------------------------------
 
 // CauseKind identifies what triggered an event. Most events have no
 // notable trigger (CauseNone); hooks are the first thing that does.
@@ -233,16 +77,20 @@ type Cause struct {
 	Ref  string // hook ID for CauseHook; empty otherwise
 }
 
-// Diagnostic is the unified diagnostic event. It replaces the four
-// scope-specific envelope types (EngineDiagnostic, PlanDiagnostic,
-// ActionDiagnostic, OpDiagnostic). Source location lives on
+// Diagnostic
+// -----------------------------------------------------------------------------
+
+// Diagnostic is the unified diagnostic event. Source location lives on
 // Template.Source; there is no separate scope axis.
 type Diagnostic struct {
 	Time     time.Time
-	Severity Severity
+	Severity signal.Severity
 	Template Template
 	Cause    Cause
 }
+
+// Change
+// -----------------------------------------------------------------------------
 
 // ChangePhase distinguishes a would-change (check-only or pre-execute)
 // from a did-change (post-execute). Same shape both phases.
@@ -253,9 +101,7 @@ const (
 	ChangeExecuted
 )
 
-// StepRef identifies the step a Change belongs to. The fields mirror
-// the existing StepDetail but live here so phase 6 can delete
-// StepDetail cleanly.
+// StepRef identifies the step a Change belongs to.
 type StepRef struct {
 	Index int
 	Kind  string
@@ -273,10 +119,41 @@ type Change struct {
 	Cause     Cause
 }
 
+// Progress
+// -----------------------------------------------------------------------------
+
 // Progress is a status update - "currently doing X". Latest-wins on
 // TTY (the consumer overwrites a status line); appended one line at a
 // time on non-TTY. No severity, no cause: too ephemeral to bother.
 type Progress struct {
 	Time time.Time
 	Text string
+}
+
+// PlanDetail
+// -----------------------------------------------------------------------------
+
+// PlanDetail / PlannedAction / PlannedOp model the rendered structure of
+// `scampi plan` output: actions in order, each carrying their ops and
+// inter-op dependency edges. Returned from engine.Plan() rather than
+// emitted as an event.
+type PlanDetail struct {
+	UnitID   string
+	UnitDesc string
+	Actions  []PlannedAction
+}
+
+type PlannedAction struct {
+	Index     int
+	Desc      string
+	Kind      string
+	DependsOn []int
+	Ops       []PlannedOp
+}
+
+type PlannedOp struct {
+	Index     int
+	DisplayID string
+	DependsOn []int
+	Template  *spec.PlanTemplate // nil = no template, use DisplayID
 }

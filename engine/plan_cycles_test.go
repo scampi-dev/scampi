@@ -27,17 +27,9 @@ import (
 
 type noopEmitter struct{}
 
-func (noopEmitter) EmitEngineLifecycle(event.EngineEvent)       {}
-func (noopEmitter) EmitPlanLifecycle(event.PlanEvent)           {}
-func (noopEmitter) EmitActionLifecycle(event.ActionEvent)       {}
-func (noopEmitter) EmitOpLifecycle(event.OpEvent)               {}
-func (noopEmitter) EmitEngineDiagnostic(event.EngineDiagnostic) {}
-func (noopEmitter) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
-func (noopEmitter) EmitActionDiagnostic(event.ActionDiagnostic) {}
-func (noopEmitter) EmitOpDiagnostic(event.OpDiagnostic)         {}
-func (noopEmitter) EmitDiagnostic(event.Diagnostic)             {}
-func (noopEmitter) EmitChange(event.Change)                     {}
-func (noopEmitter) EmitProgress(event.Progress)                 {}
+func (noopEmitter) EmitDiagnostic(event.Diagnostic) {}
+func (noopEmitter) EmitChange(event.Change)         {}
+func (noopEmitter) EmitProgress(event.Progress)     {}
 
 // mockOp
 // -----------------------------------------------------------------------------
