@@ -144,8 +144,12 @@ does not inspect or modify the target system.`,
 			resolveOpts := parseResolveOpts(cmd)
 			em := diagnostic.NewEmitter(pol, displ)
 
-			err := engine.Plan(ctx, em, cfg, store, resolveOpts)
-			return handleEngineError("Plan", err)
+			result, err := engine.Plan(ctx, em, cfg, store, resolveOpts)
+			if err != nil {
+				return handleEngineError("Plan", err)
+			}
+			displ.RenderPlan(result)
+			return nil
 		},
 	}
 }

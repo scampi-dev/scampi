@@ -73,11 +73,6 @@ func (p Policy) apply(s signal.Severity) signal.Severity {
 	return s
 }
 
-func (p *policyEmitter) EmitPlanOutput(ev event.PlanEvent) {
-	ev.Severity = p.pol.apply(ev.Severity)
-	p.out.EmitPlanOutput(ev)
-}
-
 func (p *policyEmitter) EmitGraph(ev event.GraphEvent) {
 	ev.Severity = p.pol.apply(ev.Severity)
 	p.out.EmitGraph(ev)

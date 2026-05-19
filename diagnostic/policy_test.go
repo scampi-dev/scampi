@@ -212,7 +212,6 @@ func (r *recordingDisplayer) EmitOpDiagnostic(e event.OpDiagnostic) {
 func (r *recordingDisplayer) EmitDiagnostic(event.Diagnostic) {}
 func (r *recordingDisplayer) EmitChange(event.Change)         {}
 func (r *recordingDisplayer) EmitProgress(event.Progress)     {}
-func (r *recordingDisplayer) EmitPlanOutput(event.PlanEvent)  {}
 func (r *recordingDisplayer) Interrupt()                      {}
 func (r *recordingDisplayer) Close()                          {}
 
@@ -238,6 +237,5 @@ func (c *concurrentDisplayer) EmitOpDiagnostic(event.OpDiagnostic)         {}
 func (c *concurrentDisplayer) EmitDiagnostic(event.Diagnostic)             {}
 func (c *concurrentDisplayer) EmitChange(event.Change)                     {}
 func (c *concurrentDisplayer) EmitProgress(event.Progress)                 {}
-func (c *concurrentDisplayer) EmitPlanOutput(event.PlanEvent)              {}
 func (c *concurrentDisplayer) Interrupt()                                  {}
 func (c *concurrentDisplayer) Close()                                      {}

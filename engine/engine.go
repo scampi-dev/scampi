@@ -178,7 +178,7 @@ func forEachResolved(
 // shared-infra limits.
 func runPlansConcurrent(
 	ctx context.Context,
-	em diagnostic.Emitter,
+	_ diagnostic.Emitter,
 	resolved []spec.ResolvedConfig,
 	work func(ctx context.Context, res spec.ResolvedConfig) error,
 ) error {
@@ -190,7 +190,6 @@ func runPlansConcurrent(
 	if err != nil {
 		return err
 	}
-	emitGraphSummary(em, graph)
 
 	var causes []error
 	for _, level := range graph.levels {

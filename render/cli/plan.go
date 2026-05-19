@@ -43,9 +43,7 @@ type planLayout struct {
 	bracketCol      int
 }
 
-func (p *planRenderer) renderPlan(e event.PlanEvent) []renderEvent {
-	d := *e.Detail
-
+func (p *planRenderer) renderPlan(d event.PlanDetail) []renderEvent {
 	if p.width < minWidePlanCols {
 		for i := range d.Actions {
 			for j := range d.Actions[i].Ops {

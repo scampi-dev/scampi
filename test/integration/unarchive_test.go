@@ -992,7 +992,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	// Plan is the phase where format detection runs. If this succeeds,
 	// the URL was used for format detection instead of the empty cache path.
-	if err := e.Plan(context.Background()); err != nil {
+	if _, err := e.PlanDeploy(context.Background()); err != nil {
 		t.Fatalf("Plan failed: %v\nBefore fix, this was 'unsupported archive format: \"\"'", err)
 	}
 }

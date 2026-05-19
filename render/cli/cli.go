@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/x/term"
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/render/ansi"
 	"scampi.dev/scampi/render/layout"
@@ -116,8 +117,49 @@ func (c *CLI) commitRenderEvents(events []renderEvent) {
 	c.render.emitEvents(events)
 }
 
-func (c *CLI) EmitPlanOutput(e event.PlanEvent) {
-	c.commitRenderEvents(c.planRenderer.renderPlan(e))
+// RenderPlan prints the per-deploy action plans (one tree each, in
+// topo order) and, when the cross-deploy graph has any structure
+// worth showing, follows them with a [graph] header section.
+func (c *CLI) RenderPlan(result engine.PlanResult) {
+	for _, level := range result.Levels {
+		for _, node := range level.Nodes {
+			c.commitRenderEvents(c.planRenderer.renderPlan(node.Detail))
+		}
+	}
+	if result.HasGraph() {
+		c.renderDeployGraph(result)
+	}
+}
+
+func (c *CLI) renderDeployGraph(result engine.PlanResult) {
+	f := c.formatter
+	var out []renderEvent
+
+	out = append(out, renderEvent{
+		stream: streamOut,
+		line:   f.fmtMsg(ansi.Magenta().Bold(), "[graph] deploy plan"),
+	})
+	for _, level := range result.Levels {
+		for _, n := range level.Nodes {
+			indent := strings.Repeat("  ", level.Index)
+			label := f.fmtMsg(ansi.Cyan().Bold(), n.DeployName)
+			suffix := ""
+			if len(n.After) > 0 {
+				suffix = " (after: " + strings.Join(n.After, ", ")
+				if len(n.Needs) > 0 {
+					suffix += "; needs: " + strings.Join(n.Needs, ", ")
+				}
+				suffix += ")"
+				suffix = f.fmtMsg(ansi.BrightBlack(), suffix)
+			}
+			out = append(out, renderEvent{
+				stream: streamOut,
+				line:   "[graph] " + indent + f.glyphs.bullet + " " + label + suffix,
+			})
+		}
+	}
+	out = append(out, renderEvent{stream: streamOut, line: ""})
+	c.commitRenderEvents(out)
 }
 
 // RenderIndexAll prints the step catalog (`scampi index`). Docs are

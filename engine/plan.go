@@ -5,35 +5,191 @@ package engine
 import (
 	"context"
 	"io/fs"
+	"slices"
+	"strings"
+	"sync"
 
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
+// Plan loads cfgPath, resolves it into one plan per deploy block,
+// and returns the cross-deploy schedule with each deploy's action
+// tree attached as a leaf. The same shape covers the single-deploy
+// case (one level, one node, no edges).
 func Plan(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) error {
-	return forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
-		return e.Plan(ctx)
+) (PlanResult, error) {
+	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
+	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
+	if err != nil {
+		return PlanResult{}, err
+	}
+
+	resolved, err := ResolveMultiple(cfg, opts)
+	if err != nil {
+		if impact, ok := emitEngineDiagnostic(em, cfgPath, err); ok {
+			if impact.ShouldAbort() {
+				return PlanResult{}, AbortError{Causes: []error{err}}
+			}
+		}
+		return PlanResult{}, err
+	}
+
+	// Build the cross-deploy graph. For a single deploy this is a
+	// trivial one-level, one-node graph with no edges - same shape,
+	// no special case.
+	graph, err := buildDeployGraph(resolved)
+	if err != nil {
+		return PlanResult{}, err
+	}
+
+	// Plan each deploy concurrently and key the resulting PlanDetail
+	// by the resolved config's position in the input slice so we can
+	// stitch it back onto the matching graph node when assembling
+	// the levels structure.
+	allCaps := capabilityTarget{caps: capability.All}
+	var (
+		mu      sync.Mutex
+		details = make(map[int]event.PlanDetail, len(resolved))
+	)
+	err = runPlansConcurrent(ctx, em, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
+		e, eErr := NewWithTarget(ctx, src, res, em, allCaps)
+		if eErr != nil {
+			return eErr
+		}
+		defer e.Close()
+		e.store = store
+
+		detail, dErr := e.PlanDeploy(ctx)
+		if dErr != nil {
+			return dErr
+		}
+		idx := resolvedIndex(resolved, res)
+		mu.Lock()
+		details[idx] = detail
+		mu.Unlock()
+		return nil
 	})
+	if err != nil {
+		return PlanResult{}, err
+	}
+
+	levels := make([]DeployLevel, len(graph.levels))
+	for li, level := range graph.levels {
+		nodes := make([]DeployPlan, len(level))
+		for ni, n := range level {
+			nodes[ni] = DeployPlan{
+				DeployName: n.res.DeployName,
+				TargetName: n.res.TargetName,
+				After:      depNames(n),
+				Needs:      driverResources(n),
+				Detail:     details[n.idx],
+			}
+		}
+		// Stable within-level ordering by deploy name keeps output
+		// deterministic across runs.
+		slices.SortStableFunc(nodes, func(a, b DeployPlan) int {
+			return strings.Compare(a.DeployName, b.DeployName)
+		})
+		levels[li] = DeployLevel{Index: li, Nodes: nodes}
+	}
+	return PlanResult{Levels: levels}, nil
 }
 
-func (e *Engine) Plan(ctx context.Context) error {
-	plan, actionDeps, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
-	if err != nil {
-		return err
+// resolvedIndex returns the position of res in resolved by
+// deploy+target name (which together uniquely identify a resolved
+// config within a single run). Returns -1 if not found, which should
+// never happen because we only key configs from the same slice we
+// iterate.
+func resolvedIndex(resolved []spec.ResolvedConfig, res spec.ResolvedConfig) int {
+	for i, r := range resolved {
+		if r.DeployName == res.DeployName && r.TargetName == res.TargetName {
+			return i
+		}
 	}
-	e.storeSourcePaths(ctx, plan)
-	e.em.EmitPlanOutput(diagnostic.PlanProduced(plan, actionDeps))
-	return nil
+	return -1
 }
+
+// PlanDeploy builds the renderable plan detail for this engine's
+// resolved deploy. The top-level engine.Plan aggregates per-deploy
+// details into a PlanResult; tests can call this directly to
+// surface plan-time errors without exercising the full pipeline.
+func (e *Engine) PlanDeploy(ctx context.Context) (event.PlanDetail, error) {
+	p, actionDeps, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+	if err != nil {
+		return event.PlanDetail{}, err
+	}
+	e.storeSourcePaths(ctx, p)
+	return planDetail(p, actionDeps), nil
+}
+
+// planDetail assembles the rendering payload for one resolved plan.
+// Mirrors the previous diagnostic.PlanProduced factory; lives here
+// now that plan output is a return value, not an event.
+func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
+	var allOps []spec.Op
+	opIndex := make(map[spec.Op]int)
+	actionOpBase := make(map[int]int) // action index -> first op index
+	for i, act := range p.Unit.Actions {
+		actionOpBase[i] = len(allOps)
+		for _, op := range act.Ops() {
+			opIndex[op] = len(allOps)
+			allOps = append(allOps, op)
+		}
+	}
+
+	plannedOps := make([]event.PlannedOp, len(allOps))
+	for i, op := range allOps {
+		var tmpl *spec.PlanTemplate
+		if d, ok := op.(spec.OpDescriber); ok {
+			if desc := d.OpDescription(); desc != nil {
+				t := desc.PlanTemplate()
+				tmpl = &t
+			}
+		}
+		var deps []int
+		for _, dep := range op.DependsOn() {
+			deps = append(deps, opIndex[dep])
+		}
+		plannedOps[i] = event.PlannedOp{
+			Index:     i,
+			DisplayID: diagnostic.OpDisplayID(op),
+			DependsOn: deps,
+			Template:  tmpl,
+		}
+	}
+
+	detail := event.PlanDetail{UnitID: string(p.Unit.ID), UnitDesc: p.Unit.Desc}
+	for i, act := range p.Unit.Actions {
+		start := actionOpBase[i]
+		end := start + len(act.Ops())
+		var deps []int
+		if actionDeps != nil && i < len(actionDeps) {
+			deps = actionDeps[i]
+		}
+		detail.Actions = append(detail.Actions, event.PlannedAction{
+			Index:     i,
+			Desc:      act.Desc(),
+			Kind:      act.Kind(),
+			DependsOn: deps,
+			Ops:       plannedOps[start:end],
+		})
+	}
+	return detail
+}
+
+// ActionDeps is an alias kept for callers that haven't migrated yet.
+type ActionDeps = diagnostic.ActionDeps
 
 // hookPlan holds planned hook actions and the mapping from action index
 // to the hook IDs it should notify on change.

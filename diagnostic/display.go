@@ -11,7 +11,6 @@ import "scampi.dev/scampi/diagnostic/event"
 // output — not because rendering is part of the diagnostic package.
 type Displayer interface {
 	EmitGraph(e event.GraphEvent)
-	EmitPlanOutput(e event.PlanEvent)
 
 	EmitLegend()
 

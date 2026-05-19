@@ -39,7 +39,6 @@ func (noopEmitter) EmitOpDiagnostic(event.OpDiagnostic)         {}
 func (noopEmitter) EmitDiagnostic(event.Diagnostic)             {}
 func (noopEmitter) EmitChange(event.Change)                     {}
 func (noopEmitter) EmitProgress(event.Progress)                 {}
-func (noopEmitter) EmitPlanOutput(event.PlanEvent)              {}
 
 // mockOp
 // -----------------------------------------------------------------------------
