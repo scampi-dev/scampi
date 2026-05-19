@@ -27,6 +27,7 @@ import (
 
 type noopEmitter struct{}
 
+func (noopEmitter) Emit(event.Event)                {}
 func (noopEmitter) EmitDiagnostic(event.Diagnostic) {}
 func (noopEmitter) EmitChange(event.Change)         {}
 func (noopEmitter) EmitProgress(event.Progress)     {}

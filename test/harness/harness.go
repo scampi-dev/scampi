@@ -182,9 +182,9 @@ func AssertDiagnostics(
 			t.Fatalf("[%d] unexpected kind in test data: %q (should always be DiagnosticRaised)", i, exp.Kind)
 		}
 
-		// Scope is no longer carried by event.Diagnostic; legacy
-		// fixtures still encode it but the runtime no longer
-		// produces one. Ignore exp.Scope.
+		// exp.Scope is not asserted; event.Diagnostic carries no
+		// scope axis. Source spans on the template locate the
+		// diagnostic instead.
 
 		tmpl := got.template
 
@@ -212,7 +212,8 @@ func AssertDiagnostics(
 			}
 		}
 
-		// Step context is no longer carried by event.Diagnostic
-		// either; legacy fixtures keep it but it's not asserted.
+		// Step context (StepIndex/StepKind/StepDesc/HookID) is not
+		// asserted; diagnostics locate themselves via the source
+		// span on the template.
 	}
 }

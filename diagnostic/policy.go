@@ -27,6 +27,21 @@ func NewEmitter(policy Policy, displayer Displayer) Emitter {
 	return &policyEmitter{pol: policy, out: displayer}
 }
 
+func (p *policyEmitter) Emit(ev event.Event) {
+	// WarningsAsErrors flips the type but not Impact: the producer
+	// decides whether a diagnostic aborts, not the policy.
+	if p.pol.WarningsAsErrors {
+		if w, ok := ev.(event.Warning); ok {
+			ev = event.Error{
+				Time:     w.Time,
+				Template: w.Template,
+				Cause:    w.Cause,
+			}
+		}
+	}
+	p.out.Emit(ev)
+}
+
 func (p *policyEmitter) EmitDiagnostic(ev event.Diagnostic) {
 	if p.pol.WarningsAsErrors && ev.Severity == signal.Warning {
 		ev.Severity = signal.Error

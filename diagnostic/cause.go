@@ -5,12 +5,9 @@ package diagnostic
 import "scampi.dev/scampi/diagnostic/event"
 
 // WithCause returns an Emitter that stamps the given Cause on every
-// v2 event (Diagnostic, Change, Progress) forwarded through it.
-// Events that already carry a non-zero Cause are passed through
-// unchanged - explicit wins over the wrapper.
-//
-// Old lifecycle and *Diagnostic methods pass through untouched. They
-// have no Cause field; this wrapper is a no-op for them.
+// event forwarded through it. Events that already carry a non-zero
+// Cause pass through unchanged - explicit wins over the wrapper.
+// Progress events have no Cause field and are forwarded as-is.
 //
 // Typical use: wrap the emitter when entering a hook context so every
 // emit inside the hook gets a CauseHook stamp.
@@ -36,6 +33,25 @@ func (w *causeEmitter) stamp(c event.Cause) event.Cause {
 		return c // explicit cause wins over the wrapper
 	}
 	return w.cause
+}
+
+func (w *causeEmitter) Emit(e event.Event) {
+	switch v := e.(type) {
+	case event.Error:
+		v.Cause = w.stamp(v.Cause)
+		w.inner.Emit(v)
+	case event.Warning:
+		v.Cause = w.stamp(v.Cause)
+		w.inner.Emit(v)
+	case event.Info:
+		v.Cause = w.stamp(v.Cause)
+		w.inner.Emit(v)
+	case event.Change:
+		v.Cause = w.stamp(v.Cause)
+		w.inner.Emit(v)
+	case event.Progress:
+		w.inner.Emit(v)
+	}
 }
 
 func (w *causeEmitter) EmitDiagnostic(e event.Diagnostic) {

@@ -89,6 +89,52 @@ type Diagnostic struct {
 	Cause    Cause
 }
 
+// Event is the sealed union of everything Emit accepts: the
+// diagnostics (Error, Warning, Info) and the streaming events
+// (Change, Progress). External types cannot join the union - the
+// sealing method isEvent is unexported.
+type Event interface{ isEvent() }
+
+// Impact lives on Error only. Warning and Info never abort execution.
+type Impact uint8
+
+const (
+	ImpactNone Impact = iota
+	ImpactAbort
+)
+
+func (i Impact) ShouldAbort() bool { return i == ImpactAbort }
+
+// Error is a diagnostic that may or may not abort, depending on Impact.
+// Producers return a value of this type from their Diagnostic() method;
+// the engine reads .Impact to decide whether execution stops.
+type Error struct {
+	Time     time.Time
+	Impact   Impact
+	Template Template
+	Cause    Cause
+}
+
+// Warning is a non-fatal diagnostic advisory. Never aborts.
+type Warning struct {
+	Time     time.Time
+	Template Template
+	Cause    Cause
+}
+
+// Info is an informational diagnostic. Never aborts.
+type Info struct {
+	Time     time.Time
+	Template Template
+	Cause    Cause
+}
+
+func (Error) isEvent()    {}
+func (Warning) isEvent()  {}
+func (Info) isEvent()     {}
+func (Change) isEvent()   {}
+func (Progress) isEvent() {}
+
 // Change
 // -----------------------------------------------------------------------------
 

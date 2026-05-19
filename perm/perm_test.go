@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/spec"
 )
 
@@ -46,12 +45,12 @@ func TestParsePerm_InvalidPermissions(t *testing.T) {
 				t.Fatalf("expected error for input %q", tc.input)
 			}
 
-			d, ok := err.(diagnostic.Diagnostic)
+			ipe, ok := err.(InvalidPermissionError)
 			if !ok {
-				t.Fatalf("error does not implement diagnostic.Diagnostic: %T", err)
+				t.Fatalf("expected InvalidPermissionError, got %T", err)
 			}
 
-			tmpl := d.EventTemplate()
+			tmpl := ipe.Diagnostic().Template
 
 			text := strings.ToLower(tmpl.Text)
 			if !strings.Contains(text, "permission") {

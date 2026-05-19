@@ -670,6 +670,34 @@ func (c *CLI) EmitProgress(e event.Progress) {
 	}})
 }
 
+// Emit dispatches by concrete event type to the per-kind helpers.
+func (c *CLI) Emit(e event.Event) {
+	switch v := e.(type) {
+	case event.Error:
+		scope := ""
+		if v.Cause.Kind == event.CauseHook && v.Cause.Ref != "" {
+			scope = fmt.Sprintf(" in hook '%s'", v.Cause.Ref)
+		}
+		c.renderDiagnostic(signal.Error, "", scope, v.Template)
+	case event.Warning:
+		scope := ""
+		if v.Cause.Kind == event.CauseHook && v.Cause.Ref != "" {
+			scope = fmt.Sprintf(" in hook '%s'", v.Cause.Ref)
+		}
+		c.renderDiagnostic(signal.Warning, "", scope, v.Template)
+	case event.Info:
+		scope := ""
+		if v.Cause.Kind == event.CauseHook && v.Cause.Ref != "" {
+			scope = fmt.Sprintf(" in hook '%s'", v.Cause.Ref)
+		}
+		c.renderDiagnostic(signal.Info, "", scope, v.Template)
+	case event.Change:
+		c.EmitChange(v)
+	case event.Progress:
+		c.EmitProgress(v)
+	}
+}
+
 // stepIDFromRef returns a step display tag built from the StepRef
 // fields. Mirrors the formatting used by lifecycle renderers.
 func stepIDFromRef(s event.StepRef) string {

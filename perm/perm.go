@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/spec"
@@ -20,7 +19,6 @@ import (
 const CodeInvalidPermission errs.Code = "step.InvalidPermission"
 
 type InvalidPermissionError struct {
-	diagnostic.FatalError
 	Value  string
 	Hint   string
 	Source spec.SourceSpan
@@ -30,17 +28,20 @@ func (e InvalidPermissionError) Error() string {
 	return fmt.Sprintf("invalid permission %q", e.Value)
 }
 
-func (e InvalidPermissionError) EventTemplate() event.Template {
-	return event.Template{
-		ID:   CodeInvalidPermission,
-		Text: "invalid file permission '{{.Value}}'",
-		Hint: "expected octal, ls-style, or posix permissions",
-		Help: `supported formats:
+func (e InvalidPermissionError) Diagnostic() event.Error {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeInvalidPermission,
+			Text: "invalid file permission '{{.Value}}'",
+			Hint: "expected octal, ls-style, or posix permissions",
+			Help: `supported formats:
   - octal:        0600, 0644, 0755
   - ls-style:     rw-r--r--
   - posix style:  u=rw,g=r,o=r`,
-		Data:   e,
-		Source: &e.Source,
+			Data:   e,
+			Source: &e.Source,
+		},
 	}
 }
 

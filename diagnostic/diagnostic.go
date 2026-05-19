@@ -51,6 +51,9 @@ type Deferrable interface {
 
 type (
 	Emitter interface {
+		// Emit accepts any event.Event - the sealed union of Error,
+		// Warning, Info, Change, Progress.
+		Emit(event.Event)
 		EmitDiagnostic(e event.Diagnostic)
 		EmitChange(e event.Change)
 		EmitProgress(e event.Progress)
@@ -115,4 +118,13 @@ func Raise(d Diagnostic) event.Diagnostic {
 		Severity: d.Severity(),
 		Template: d.EventTemplate(),
 	}
+}
+
+// Raisable is implemented by errors that map directly onto a renderable
+// event.Error. The engine routes Raisable errors through em.Emit and
+// reads .Impact off the returned struct to decide whether execution
+// aborts.
+type Raisable interface {
+	error
+	Diagnostic() event.Error
 }

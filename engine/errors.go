@@ -134,18 +134,28 @@ func panicIfNotAbortError(err error) error {
 	panic(wrap)
 }
 
-// emitScopedDiagnostic extracts diagnostic(s) from err and passes each to emit.
+// emitScopedDiagnostic extracts diagnostic(s) from err and emits them.
 // Returns the max impact and whether any diagnostic was emitted.
-func emitScopedDiagnostic(err error, emit func(diagnostic.Diagnostic)) (diagnostic.Impact, bool) {
+func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, bool) {
 	if err == nil {
 		return 0, false
+	}
+
+	var re diagnostic.Raisable
+	if errors.As(err, &re) {
+		ev := re.Diagnostic()
+		em.Emit(ev)
+		if ev.Impact == event.ImpactAbort {
+			return diagnostic.ImpactAbort, true
+		}
+		return diagnostic.ImpactNone, true
 	}
 
 	var ds diagnostic.Diagnostics
 	if errors.As(err, &ds) {
 		impact := diagnostic.ImpactNone
 		for _, d := range ds {
-			emit(d)
+			em.EmitDiagnostic(diagnostic.Raise(d))
 			if d.Impact() > impact {
 				impact = d.Impact()
 			}
@@ -158,37 +168,29 @@ func emitScopedDiagnostic(err error, emit func(diagnostic.Diagnostic)) (diagnost
 		return 0, false
 	}
 
-	emit(d)
+	em.EmitDiagnostic(diagnostic.Raise(d))
 	return d.Impact(), true
 }
 
-// Scope parameters on the helpers below are no longer carried in the
-// emitted diagnostic - the new event.Diagnostic doesn't track scope
-// per the design. The signatures stay for now to minimize caller
-// churn; a follow-up pass can collapse them to one helper.
+// The scope parameters on these helpers are unused - event.Diagnostic
+// does not track scope. The signatures persist to keep call sites
+// stable; they can collapse to a single helper once the callers are
+// touched for unrelated reasons.
 
 func emitEngineDiagnostic(em diagnostic.Emitter, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitDiagnostic(diagnostic.Raise(d))
-	})
+	return emitScopedDiagnostic(em, err)
 }
 
 func emitPlanDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitDiagnostic(diagnostic.Raise(d))
-	})
+	return emitScopedDiagnostic(em, err)
 }
 
 func emitActionDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitDiagnostic(diagnostic.Raise(d))
-	})
+	return emitScopedDiagnostic(em, err)
 }
 
 func emitOpDiagnostic(em diagnostic.Emitter, _ int, _, _, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitDiagnostic(diagnostic.Raise(d))
-	})
+	return emitScopedDiagnostic(em, err)
 }
 
 // Index errors
