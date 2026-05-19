@@ -660,7 +660,7 @@ std.deploy(name = "test", targets = [host]) {
 	// Check for diagnostic with correct ID
 	found := false
 	for _, d := range rec.Diagnostics {
-		if d.Template.ID == "step.template.Parse" {
+		if harness.TemplateOf(d).ID == "step.template.Parse" {
 			found = true
 			break
 		}
@@ -728,7 +728,7 @@ std.deploy(name = "test", targets = [host]) {
 	// Check for diagnostic with correct ID
 	found := false
 	for _, d := range rec.Diagnostics {
-		if d.Template.ID == "step.template.Exec" {
+		if harness.TemplateOf(d).ID == "step.template.Exec" {
 			found = true
 			break
 		}
@@ -796,7 +796,7 @@ std.deploy(name = "test", targets = [host]) {
 	// Check for diagnostic with correct ID
 	found := false
 	for _, d := range rec.Diagnostics {
-		if d.Template.ID == "step.template.SourceMissing" {
+		if harness.TemplateOf(d).ID == "step.template.SourceMissing" {
 			found = true
 			break
 		}
@@ -872,7 +872,7 @@ std.deploy(name = "test", targets = [host]) {
 	// Check for diagnostic with correct ID
 	found := false
 	for _, d := range rec.Diagnostics {
-		if d.Template.ID == "step.template.EnvKeyNotInValues" {
+		if harness.TemplateOf(d).ID == "step.template.EnvKeyNotInValues" {
 			found = true
 			break
 		}
@@ -939,7 +939,7 @@ std.deploy(name = "test", targets = [host]) {
 	// Check for diagnostic with correct ID
 	found := false
 	for _, d := range rec.Diagnostics {
-		if d.Template.ID == "step.template.DestDirMissing" {
+		if harness.TemplateOf(d).ID == "step.template.DestDirMissing" {
 			found = true
 			break
 		}

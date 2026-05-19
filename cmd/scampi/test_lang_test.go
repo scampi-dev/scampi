@@ -27,11 +27,6 @@ func (d *nopDisplayer) Emit(e event.Event) {
 	d.events = append(d.events, e)
 }
 func (d *nopDisplayer) Raise(r diagnostic.Raisable) { d.Emit(r.Diagnostic()) }
-func (d *nopDisplayer) EmitDiagnostic(e event.Diagnostic) {
-	d.diagnostics = append(d.diagnostics, e)
-}
-func (d *nopDisplayer) EmitChange(event.Change)     {}
-func (d *nopDisplayer) EmitProgress(event.Progress) {}
 func (d *nopDisplayer) Interrupt()                  {}
 func (d *nopDisplayer) Close()                      {}
 

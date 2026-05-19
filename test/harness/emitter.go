@@ -10,26 +10,20 @@ import (
 
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/signal"
 )
 
 type (
-	Diagnostics    []event.Diagnostic
-	Changes        []event.Change
-	ProgressEvents []event.Progress
-	Events         []event.Event
+	Events []event.Event
 
-	// RecordingDisplayer captures every streaming event for test
-	// inspection. Implements diagnostic.Displayer.
+	// RecordingDisplayer captures every emitted event for test
+	// inspection. Implements diagnostic.Displayer. Events lands in
+	// arrival order; Diagnostics and Changes are populated alongside
+	// for convenient typed assertions.
 	RecordingDisplayer struct {
-		mu             sync.Mutex
-		Diagnostics    Diagnostics
-		Changes        Changes
-		ProgressEvents ProgressEvents
-		// Events records every event passed to Emit() in arrival order.
-		// Tests can read it directly to assert against the sealed union,
-		// or use the per-kind slices for type-narrowed assertions.
-		Events Events
+		mu          sync.Mutex
+		Events      Events
+		Diagnostics []event.Event // Error/Warning/Info entries
+		Changes     []event.Change
 	}
 	// NoopEmitter discards every event. Implements diagnostic.Emitter.
 	NoopEmitter struct{}
@@ -41,44 +35,14 @@ func (r *RecordingDisplayer) Raise(err diagnostic.Raisable) {
 
 func (r *RecordingDisplayer) Emit(e event.Event) {
 	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.Events = append(r.Events, e)
-	r.mu.Unlock()
 	switch v := e.(type) {
-	case event.Error:
-		r.EmitDiagnostic(event.Diagnostic{
-			Time: v.Time, Severity: signal.Error, Template: v.Template, Cause: v.Cause,
-		})
-	case event.Warning:
-		r.EmitDiagnostic(event.Diagnostic{
-			Time: v.Time, Severity: signal.Warning, Template: v.Template, Cause: v.Cause,
-		})
-	case event.Info:
-		r.EmitDiagnostic(event.Diagnostic{
-			Time: v.Time, Severity: signal.Info, Template: v.Template, Cause: v.Cause,
-		})
+	case event.Error, event.Warning, event.Info:
+		r.Diagnostics = append(r.Diagnostics, v)
 	case event.Change:
-		r.EmitChange(v)
-	case event.Progress:
-		r.EmitProgress(v)
+		r.Changes = append(r.Changes, v)
 	}
-}
-
-func (r *RecordingDisplayer) EmitDiagnostic(e event.Diagnostic) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.Diagnostics = append(r.Diagnostics, e)
-}
-
-func (r *RecordingDisplayer) EmitChange(e event.Change) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.Changes = append(r.Changes, e)
-}
-
-func (r *RecordingDisplayer) EmitProgress(e event.Progress) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.ProgressEvents = append(r.ProgressEvents, e)
 }
 
 func (r *RecordingDisplayer) EmitLegend() {}
@@ -86,9 +50,7 @@ func (r *RecordingDisplayer) Interrupt()  {}
 func (r *RecordingDisplayer) Close()      {}
 
 func (r *RecordingDisplayer) String() string {
-	return r.Diagnostics.String() + "\n" +
-		r.Changes.String() + "\n" +
-		r.ProgressEvents.String()
+	return r.Events.String()
 }
 
 func (r *RecordingDisplayer) Dump(w io.Writer) {
@@ -107,10 +69,24 @@ func (r *RecordingDisplayer) CountChangedOps() int {
 
 func (r *RecordingDisplayer) CollectDiagnosticIDs() []string {
 	var ids []string
-	for _, d := range r.Diagnostics {
-		ids = append(ids, string(d.Template.ID))
+	for _, e := range r.Diagnostics {
+		ids = append(ids, string(TemplateOf(e).ID))
 	}
 	return ids
+}
+
+// TemplateOf extracts the Template from any diagnostic-shaped event.
+func TemplateOf(ev event.Event) event.Template {
+	switch v := ev.(type) {
+	case event.Error:
+		return v.Template
+	case event.Warning:
+		return v.Template
+	case event.Info:
+		return v.Template
+	default:
+		return event.Template{}
+	}
 }
 
 func MarshalSection(header string, v any) string {
@@ -121,12 +97,7 @@ func MarshalSection(header string, v any) string {
 	return "----- " + header + " -----\n" + string(j)
 }
 
-func (e Diagnostics) String() string    { return MarshalSection("DIAGNOSTICS", e) }
-func (e Changes) String() string        { return MarshalSection("CHANGES", e) }
-func (e ProgressEvents) String() string { return MarshalSection("PROGRESS", e) }
+func (e Events) String() string { return MarshalSection("EVENTS", e) }
 
-func (NoopEmitter) Emit(event.Event)                {}
-func (NoopEmitter) Raise(diagnostic.Raisable)       {}
-func (NoopEmitter) EmitDiagnostic(event.Diagnostic) {}
-func (NoopEmitter) EmitChange(event.Change)         {}
-func (NoopEmitter) EmitProgress(event.Progress)     {}
+func (NoopEmitter) Emit(event.Event)          {}
+func (NoopEmitter) Raise(diagnostic.Raisable) {}

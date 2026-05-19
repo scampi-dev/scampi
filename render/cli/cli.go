@@ -620,18 +620,35 @@ func (c *CLI) Close() {
 	c.render.close()
 }
 
-// New diagnostic surface - see doc/design/diagnostics.md.
-// -----------------------------------------------------------------------------
-
-func (c *CLI) EmitDiagnostic(e event.Diagnostic) {
-	scope := ""
-	if e.Cause.Kind == event.CauseHook && e.Cause.Ref != "" {
-		scope = fmt.Sprintf(" in hook '%s'", e.Cause.Ref)
-	}
-	c.renderDiagnostic(e.Severity, "", scope, e.Template)
+// Raise emits the event produced by err.
+func (c *CLI) Raise(err diagnostic.Raisable) {
+	c.Emit(err.Diagnostic())
 }
 
-func (c *CLI) EmitChange(e event.Change) {
+// Emit dispatches by concrete event type to the per-kind renderers.
+func (c *CLI) Emit(e event.Event) {
+	switch v := e.(type) {
+	case event.Error:
+		c.renderDiagnostic(signal.Error, scopeFromCause(v.Cause), v.Template)
+	case event.Warning:
+		c.renderDiagnostic(signal.Warning, scopeFromCause(v.Cause), v.Template)
+	case event.Info:
+		c.renderDiagnostic(signal.Info, scopeFromCause(v.Cause), v.Template)
+	case event.Change:
+		c.renderChange(v)
+	case event.Progress:
+		c.renderProgress(v)
+	}
+}
+
+func scopeFromCause(c event.Cause) string {
+	if c.Kind == event.CauseHook && c.Ref != "" {
+		return fmt.Sprintf(" in hook '%s'", c.Ref)
+	}
+	return ""
+}
+
+func (c *CLI) renderChange(e event.Change) {
 	var verb string
 	var col ansi.ANSI
 	switch e.Phase {
@@ -663,44 +680,11 @@ func (c *CLI) EmitChange(e event.Change) {
 	}})
 }
 
-func (c *CLI) EmitProgress(e event.Progress) {
+func (c *CLI) renderProgress(e event.Progress) {
 	c.commitRenderEvents([]renderEvent{{
 		stream: streamOut,
 		line:   c.formatter.fmtfMsg(colEngineStarted, "[~] %s", e.Text),
 	}})
-}
-
-// Raise emits the event produced by err.
-func (c *CLI) Raise(err diagnostic.Raisable) {
-	c.Emit(err.Diagnostic())
-}
-
-// Emit dispatches by concrete event type to the per-kind helpers.
-func (c *CLI) Emit(e event.Event) {
-	switch v := e.(type) {
-	case event.Error:
-		scope := ""
-		if v.Cause.Kind == event.CauseHook && v.Cause.Ref != "" {
-			scope = fmt.Sprintf(" in hook '%s'", v.Cause.Ref)
-		}
-		c.renderDiagnostic(signal.Error, "", scope, v.Template)
-	case event.Warning:
-		scope := ""
-		if v.Cause.Kind == event.CauseHook && v.Cause.Ref != "" {
-			scope = fmt.Sprintf(" in hook '%s'", v.Cause.Ref)
-		}
-		c.renderDiagnostic(signal.Warning, "", scope, v.Template)
-	case event.Info:
-		scope := ""
-		if v.Cause.Kind == event.CauseHook && v.Cause.Ref != "" {
-			scope = fmt.Sprintf(" in hook '%s'", v.Cause.Ref)
-		}
-		c.renderDiagnostic(signal.Info, "", scope, v.Template)
-	case event.Change:
-		c.EmitChange(v)
-	case event.Progress:
-		c.EmitProgress(v)
-	}
 }
 
 // stepIDFromRef returns a step display tag built from the StepRef
@@ -713,7 +697,7 @@ func stepIDFromRef(s event.StepRef) string {
 	return tag
 }
 
-func (c *CLI) renderDiagnostic(sev signal.Severity, scope, msg string, tmpl event.Template) {
+func (c *CLI) renderDiagnostic(sev signal.Severity, scope string, tmpl event.Template) {
 	var glyph, suffix string
 	var col ansi.ANSI
 
@@ -734,10 +718,10 @@ func (c *CLI) renderDiagnostic(sev signal.Severity, scope, msg string, tmpl even
 		panic(errs.BUG("unhandled diagnostic severity %d", sev))
 	}
 
-	label := scope + "." + suffix
+	label := "." + suffix
 
 	var events []renderEvent
-	for _, l := range c.formatter.fmtTemplate(tmpl, label, msg, glyph, col, colDiagHelp) {
+	for _, l := range c.formatter.fmtTemplate(tmpl, label, scope, glyph, col, colDiagHelp) {
 		events = append(events, renderEvent{stream: streamErr, line: l, wrap: true})
 	}
 	c.commitRenderEvents(events)

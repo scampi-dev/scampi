@@ -110,10 +110,19 @@ func severityToString(s signal.Severity) string {
 
 func collectDiagnostics(rec *RecordingDisplayer) []collectedDiagnostic {
 	collected := make([]collectedDiagnostic, 0, len(rec.Diagnostics))
-	for _, d := range rec.Diagnostics {
+	for _, ev := range rec.Diagnostics {
+		var sev signal.Severity
+		switch ev.(type) {
+		case event.Error:
+			sev = signal.Error
+		case event.Warning:
+			sev = signal.Warning
+		default:
+			sev = signal.Info
+		}
 		collected = append(collected, collectedDiagnostic{
-			severity: severityToString(d.Severity),
-			template: d.Template,
+			severity: severityToString(sev),
+			template: TemplateOf(ev),
 		})
 	}
 	return collected

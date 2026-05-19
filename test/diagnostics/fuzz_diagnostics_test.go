@@ -563,10 +563,10 @@ frobnicate(name = "test")`,
 	})
 }
 
-func assertDiagnosticsWellFormed(t *testing.T, diags []event.Diagnostic) {
+func assertDiagnosticsWellFormed(t *testing.T, diags []event.Event) {
 	t.Helper()
 	for i, d := range diags {
-		if d.Template.ID == "" {
+		if harness.TemplateOf(d).ID == "" {
 			t.Fatalf("diagnostic [%d] has empty Template.ID", i)
 		}
 	}

@@ -14,10 +14,6 @@ type Displayer interface {
 
 	Emit(event.Event)
 
-	EmitDiagnostic(e event.Diagnostic)
-	EmitChange(e event.Change)
-	EmitProgress(e event.Progress)
-
 	Interrupt()
 	Close()
 }

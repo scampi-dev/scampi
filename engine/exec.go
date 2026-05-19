@@ -108,7 +108,7 @@ func (s *scheduler) emitChanges(displayID string, phase event.ChangePhase, drift
 		cause = event.Cause{Kind: event.CauseHook, Ref: s.hookID}
 	}
 	for _, d := range drift {
-		s.em.EmitChange(event.Change{
+		s.em.Emit(event.Change{
 			Time:      time.Now(),
 			Phase:     phase,
 			Step:      step,
@@ -134,7 +134,7 @@ func (s *scheduler) emitExecuted(displayID string) {
 	if s.hookID != "" {
 		cause = event.Cause{Kind: event.CauseHook, Ref: s.hookID}
 	}
-	s.em.EmitChange(event.Change{
+	s.em.Emit(event.Change{
 		Time:      time.Now(),
 		Phase:     event.ChangeExecuted,
 		Step:      step,

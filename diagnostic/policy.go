@@ -45,18 +45,3 @@ func (p *policyEmitter) Emit(ev event.Event) {
 	}
 	p.out.Emit(ev)
 }
-
-func (p *policyEmitter) EmitDiagnostic(ev event.Diagnostic) {
-	if p.pol.WarningsAsErrors && ev.Severity == signal.Warning {
-		ev.Severity = signal.Error
-	}
-	p.out.EmitDiagnostic(ev)
-}
-
-func (p *policyEmitter) EmitChange(ev event.Change) {
-	p.out.EmitChange(ev)
-}
-
-func (p *policyEmitter) EmitProgress(ev event.Progress) {
-	p.out.EmitProgress(ev)
-}

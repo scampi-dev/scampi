@@ -57,12 +57,3 @@ func (w *causeEmitter) Emit(e event.Event) {
 		w.inner.Emit(v)
 	}
 }
-
-func (w *causeEmitter) EmitChange(e event.Change) {
-	e.Cause = w.stamp(e.Cause)
-	w.inner.EmitChange(e)
-}
-
-func (w *causeEmitter) EmitProgress(e event.Progress) {
-	w.inner.EmitProgress(e)
-}

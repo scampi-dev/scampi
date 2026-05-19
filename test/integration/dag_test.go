@@ -257,12 +257,13 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 			// ---- collect diagnostics ----
 			for i, ev := range rec.Diagnostics {
-				if ev.Template.ID != "engine.CyclicDependency" {
+				tmpl := harness.TemplateOf(ev)
+				if tmpl.ID != "engine.CyclicDependency" {
 					t.Fatalf(
 						"[%d] expected template ID %q, got %q",
 						i,
 						"engine.CyclicDependency",
-						ev.Template.ID,
+						tmpl.ID,
 					)
 				}
 			}
@@ -293,15 +294,16 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 	}
 }
 
-func extractCyclePaths(diags []event.Diagnostic) [][]string {
+func extractCyclePaths(diags []event.Event) [][]string {
 	var paths [][]string
 
 	for _, ev := range diags {
-		if ev.Template.ID != "engine.CyclicDependency" {
+		tmpl := harness.TemplateOf(ev)
+		if tmpl.ID != "engine.CyclicDependency" {
 			continue
 		}
 
-		hint, _ := template.Render(ev.Template.HintField())
+		hint, _ := template.Render(tmpl.HintField())
 		paths = append(paths, strings.Split(hint, " -> "))
 	}
 

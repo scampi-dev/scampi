@@ -27,7 +27,7 @@ type Engine struct {
 }
 
 func New(ctx context.Context, src source.Source, cfg spec.ResolvedConfig, em diagnostic.Emitter) (*Engine, error) {
-	em.EmitProgress(event.Progress{
+	em.Emit(event.Progress{
 		Time: time.Now(),
 		Text: fmt.Sprintf("connecting to %s (%s)", cfg.TargetName, cfg.Target.Type.Kind()),
 	})

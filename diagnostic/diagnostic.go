@@ -57,8 +57,6 @@ type Emitter interface {
 	// sites stay close to the error site instead of constructing the
 	// event by hand.
 	Raise(err Raisable)
-	EmitChange(e event.Change)
-	EmitProgress(e event.Progress)
 }
 
 // ActionDeps maps action index to indices of actions it depends on.
