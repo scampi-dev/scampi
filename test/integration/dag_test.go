@@ -256,18 +256,18 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 			}
 
 			// ---- collect diagnostics ----
-			for i, ev := range rec.PlanDiagnostics {
-				if ev.Detail.Template.ID != "engine.CyclicDependency" {
+			for i, ev := range rec.Diagnostics {
+				if ev.Template.ID != "engine.CyclicDependency" {
 					t.Fatalf(
 						"[%d] expected template ID %q, got %q",
 						i,
 						"engine.CyclicDependency",
-						ev.Detail.Template.ID,
+						ev.Template.ID,
 					)
 				}
 			}
 
-			got := extractCyclePaths(rec.PlanDiagnostics)
+			got := extractCyclePaths(rec.Diagnostics)
 
 			if len(got) != len(tc.wantPaths) {
 				t.Fatalf("expected %d cycle paths, got %d", len(tc.wantPaths), len(got))
@@ -293,15 +293,15 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 	}
 }
 
-func extractCyclePaths(diags []event.PlanDiagnostic) [][]string {
+func extractCyclePaths(diags []event.Diagnostic) [][]string {
 	var paths [][]string
 
 	for _, ev := range diags {
-		if ev.Detail.Template.ID != "engine.CyclicDependency" {
+		if ev.Template.ID != "engine.CyclicDependency" {
 			continue
 		}
 
-		hint, _ := template.Render(ev.Detail.Template.HintField())
+		hint, _ := template.Render(ev.Template.HintField())
 		paths = append(paths, strings.Split(hint, " -> "))
 	}
 

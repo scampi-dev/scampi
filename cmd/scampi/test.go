@@ -133,9 +133,9 @@ func walkTestFiles(root string) ([]string, error) {
 }
 
 func emitTestDiag(em diagnostic.Emitter, d diagnostic.Diagnostic) {
-	em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic("", d))
+	em.EmitDiagnostic(diagnostic.Raise(d))
 }
 
-func emitTestInfo(em diagnostic.Emitter, path string, d diagnostic.Diagnostic) {
-	em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(path, d))
+func emitTestInfo(em diagnostic.Emitter, _ string, d diagnostic.Diagnostic) {
+	em.EmitDiagnostic(diagnostic.Raise(d))
 }

@@ -119,14 +119,14 @@ func (e *GenError) EventTemplate() event.Template {
 }
 
 func emitWarning(em diagnostic.Emitter, format string, args ...any) {
-	em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic("", &GenWarning{
+	em.EmitDiagnostic(diagnostic.Raise(&GenWarning{
 		Detail: fmt.Sprintf(format, args...),
 	}))
 }
 
 func emitAndAbort(em diagnostic.Emitter, err error) error {
 	diag := &GenError{Detail: err.Error()}
-	em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic("", diag))
+	em.EmitDiagnostic(diagnostic.Raise(diag))
 	return engine.AbortError{Causes: []error{diag}}
 }
 

@@ -41,5 +41,5 @@ func IndexStep(_ context.Context, stepKind string, em diagnostic.Emitter) (spec.
 }
 
 func emitIndexDiagnostic(em diagnostic.Emitter, d diagnostic.Diagnostic) {
-	em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic("", d))
+	em.EmitDiagnostic(diagnostic.Raise(d))
 }

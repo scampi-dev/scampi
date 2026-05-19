@@ -48,7 +48,7 @@ func (e *secretsInfo) EventTemplate() event.Template {
 // -----------------------------------------------------------------------------
 
 func emitSecretsInfo(em diagnostic.Emitter, detail string) {
-	em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic("", &secretsInfo{
+	em.EmitDiagnostic(diagnostic.Raise(&secretsInfo{
 		Detail: detail,
 	}))
 }

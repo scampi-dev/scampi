@@ -92,54 +92,33 @@ func LoadExpected(t *testing.T, path string) ExpectedDiagnostics {
 }
 
 type collectedDiagnostic struct {
-	scope    string
 	severity string
 	template event.Template
-	step     *event.StepDetail
+}
+
+// severityToString maps the v2 Severity enum to the string form
+// fixtures historically used. The legacy emission carried
+// signal.Severity (Debug/Info/Notice/Warning/Error/Fatal); the v2
+// surface narrows to Info/Warning/Error.
+func severityToString(s event.Severity) string {
+	switch s {
+	case event.SeverityWarning:
+		return "Warning"
+	case event.SeverityError:
+		return "Error"
+	default:
+		return "Info"
+	}
 }
 
 func collectDiagnostics(rec *RecordingDisplayer) []collectedDiagnostic {
-	var collected []collectedDiagnostic
-
-	for _, d := range rec.EngineDiagnostics {
+	collected := make([]collectedDiagnostic, 0, len(rec.Diagnostics))
+	for _, d := range rec.Diagnostics {
 		collected = append(collected, collectedDiagnostic{
-			scope:    "ScopeEngine",
-			severity: d.Severity.String(),
-			template: d.Detail.Template,
-			step:     nil,
+			severity: severityToString(d.Severity),
+			template: d.Template,
 		})
 	}
-
-	for _, d := range rec.PlanDiagnostics {
-		step := d.Step
-		collected = append(collected, collectedDiagnostic{
-			scope:    "ScopePlan",
-			severity: d.Severity.String(),
-			template: d.Detail.Template,
-			step:     &step,
-		})
-	}
-
-	for _, d := range rec.ActionDiagnostics {
-		step := d.Step
-		collected = append(collected, collectedDiagnostic{
-			scope:    "ScopeAction",
-			severity: d.Severity.String(),
-			template: d.Detail.Template,
-			step:     &step,
-		})
-	}
-
-	for _, d := range rec.OpDiagnostics {
-		step := d.Step
-		collected = append(collected, collectedDiagnostic{
-			scope:    "ScopeOp",
-			severity: d.Severity.String(),
-			template: d.Detail.Template,
-			step:     &step,
-		})
-	}
-
 	return collected
 }
 
@@ -159,7 +138,6 @@ func WriteSnapshot(t *testing.T, path string, abort bool, rec *RecordingDisplaye
 		exp := ExpectedDiagnostic{
 			ID:       string(d.template.ID),
 			Kind:     "DiagnosticRaised",
-			Scope:    d.scope,
 			Severity: d.severity,
 		}
 		if d.template.Source != nil && d.template.Source.Filename == cfgPath {
@@ -169,12 +147,6 @@ func WriteSnapshot(t *testing.T, path string, abort bool, rec *RecordingDisplaye
 				StartCol:  s.StartCol,
 				EndLine:   s.EndLine,
 				EndCol:    s.EndCol,
-			}
-		}
-		if d.step != nil {
-			exp.Step = &ExpectedStep{
-				Index: d.step.StepIndex,
-				Kind:  d.step.StepKind,
 			}
 		}
 		out.Diagnostics = append(out.Diagnostics, exp)
@@ -213,9 +185,9 @@ func AssertDiagnostics(
 			t.Fatalf("[%d] unexpected kind in test data: %q (should always be DiagnosticRaised)", i, exp.Kind)
 		}
 
-		if got.scope != exp.Scope {
-			t.Fatalf("[%d] expected scope %q, got %q", i, exp.Scope, got.scope)
-		}
+		// Scope is no longer carried by event.Diagnostic; legacy
+		// fixtures still encode it but the runtime no longer
+		// produces one. Ignore exp.Scope.
 
 		tmpl := got.template
 
@@ -243,14 +215,7 @@ func AssertDiagnostics(
 			}
 		}
 
-		if exp.Step != nil {
-			if got.step == nil {
-				t.Fatalf("[%d] expected step, got nil", i)
-			}
-			if got.step.StepIndex != exp.Step.Index || got.step.StepKind != exp.Step.Kind {
-				t.Fatalf("[%d] step mismatch: got {%d, %q}, want {%d, %q}",
-					i, got.step.StepIndex, got.step.StepKind, exp.Step.Index, exp.Step.Kind)
-			}
-		}
+		// Step context is no longer carried by event.Diagnostic
+		// either; legacy fixtures keep it but it's not asserted.
 	}
 }

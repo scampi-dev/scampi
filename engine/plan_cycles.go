@@ -64,13 +64,7 @@ func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
 		for _, cycle := range cycles {
 			cd := CyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
-
-			em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(
-				0,
-				cycle[0].Action().Kind(),
-				cycle[0].Action().Desc(),
-				cd,
-			))
+			em.EmitDiagnostic(diagnostic.Raise(cd))
 		}
 
 		return err
@@ -135,12 +129,7 @@ func detectHookCycles(em diagnostic.Emitter, hooks map[string][]spec.StepInstanc
 		cycle := cycles[0]
 		source := findCycleEdgeSource(hooks, cycle)
 		err := HookCycleError{Chain: cycle, Source: source}
-		em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(
-			-1,
-			"hook",
-			cycle[0],
-			err,
-		))
+		em.EmitDiagnostic(diagnostic.Raise(err))
 		return AbortError{Causes: []error{err}}
 	}
 
@@ -184,12 +173,7 @@ func DetectActionCycles(em diagnostic.Emitter, nodes []*actionNode) error {
 			cd := ActionCyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
 
-			em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(
-				0,
-				cycle[0].Kind(),
-				cycle[0].Desc(),
-				cd,
-			))
+			em.EmitDiagnostic(diagnostic.Raise(cd))
 		}
 
 		return err

@@ -106,17 +106,8 @@ func (r *RecordingDisplayer) CountChangedOps() int {
 
 func (r *RecordingDisplayer) CollectDiagnosticIDs() []string {
 	var ids []string
-	for _, d := range r.EngineDiagnostics {
-		ids = append(ids, string(d.Detail.Template.ID))
-	}
-	for _, d := range r.PlanDiagnostics {
-		ids = append(ids, string(d.Detail.Template.ID))
-	}
-	for _, d := range r.ActionDiagnostics {
-		ids = append(ids, string(d.Detail.Template.ID))
-	}
-	for _, d := range r.OpDiagnostics {
-		ids = append(ids, string(d.Detail.Template.ID))
+	for _, d := range r.Diagnostics {
+		ids = append(ids, string(d.Template.ID))
 	}
 	return ids
 }

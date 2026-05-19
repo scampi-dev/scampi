@@ -162,42 +162,32 @@ func emitScopedDiagnostic(err error, emit func(diagnostic.Diagnostic)) (diagnost
 	return d.Impact(), true
 }
 
-func emitEngineDiagnostic(em diagnostic.Emitter, cfgPath string, err error) (diagnostic.Impact, bool) {
+// Scope parameters on the helpers below are no longer carried in the
+// emitted diagnostic - the new event.Diagnostic doesn't track scope
+// per the design. The signatures stay for now to minimize caller
+// churn; a follow-up pass can collapse them to one helper.
+
+func emitEngineDiagnostic(em diagnostic.Emitter, _ string, err error) (diagnostic.Impact, bool) {
 	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(cfgPath, d))
+		em.EmitDiagnostic(diagnostic.Raise(d))
 	})
 }
 
-func emitPlanDiagnostic(
-	em diagnostic.Emitter,
-	stepIndex int,
-	stepKind, stepDesc string,
-	err error,
-) (diagnostic.Impact, bool) {
+func emitPlanDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
 	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitPlanDiagnostic(diagnostic.RaisePlanDiagnostic(stepIndex, stepKind, stepDesc, d))
+		em.EmitDiagnostic(diagnostic.Raise(d))
 	})
 }
 
-func emitActionDiagnostic(
-	em diagnostic.Emitter,
-	stepIndex int,
-	stepKind, stepDesc string,
-	err error,
-) (diagnostic.Impact, bool) {
+func emitActionDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
 	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitActionDiagnostic(diagnostic.RaiseActionDiagnostic(stepIndex, stepKind, stepDesc, d))
+		em.EmitDiagnostic(diagnostic.Raise(d))
 	})
 }
 
-func emitOpDiagnostic(
-	em diagnostic.Emitter,
-	stepIndex int,
-	stepKind, stepDesc, displayID string,
-	err error,
-) (diagnostic.Impact, bool) {
+func emitOpDiagnostic(em diagnostic.Emitter, _ int, _, _, _ string, err error) (diagnostic.Impact, bool) {
 	return emitScopedDiagnostic(err, func(d diagnostic.Diagnostic) {
-		em.EmitOpDiagnostic(diagnostic.RaiseOpDiagnostic(stepIndex, stepKind, stepDesc, displayID, d))
+		em.EmitDiagnostic(diagnostic.Raise(d))
 	})
 }
 

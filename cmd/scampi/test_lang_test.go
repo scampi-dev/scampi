@@ -18,21 +18,21 @@ import (
 // the structured (passed, failed, err) return values, not what
 // would be printed to the terminal.
 type nopDisplayer struct {
-	diagnostics []event.EngineDiagnostic
+	diagnostics []event.Diagnostic
 }
 
-func (d *nopDisplayer) EmitLegend() {}
-func (d *nopDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
-	d.diagnostics = append(d.diagnostics, e)
-}
+func (d *nopDisplayer) EmitLegend()                                 {}
+func (d *nopDisplayer) EmitEngineDiagnostic(event.EngineDiagnostic) {}
 func (d *nopDisplayer) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
 func (d *nopDisplayer) EmitActionDiagnostic(event.ActionDiagnostic) {}
 func (d *nopDisplayer) EmitOpDiagnostic(event.OpDiagnostic)         {}
-func (d *nopDisplayer) EmitDiagnostic(event.Diagnostic)             {}
-func (d *nopDisplayer) EmitChange(event.Change)                     {}
-func (d *nopDisplayer) EmitProgress(event.Progress)                 {}
-func (d *nopDisplayer) Interrupt()                                  {}
-func (d *nopDisplayer) Close()                                      {}
+func (d *nopDisplayer) EmitDiagnostic(e event.Diagnostic) {
+	d.diagnostics = append(d.diagnostics, e)
+}
+func (d *nopDisplayer) EmitChange(event.Change)     {}
+func (d *nopDisplayer) EmitProgress(event.Progress) {}
+func (d *nopDisplayer) Interrupt()                  {}
+func (d *nopDisplayer) Close()                      {}
 
 var _ diagnostic.Displayer = (*nopDisplayer)(nil)
 

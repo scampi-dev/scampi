@@ -498,12 +498,12 @@ func modCleanCmd() *cli.Command {
 
 func emitModDiagnostic(em diagnostic.Emitter, err error) {
 	if d, ok := err.(diagnostic.Diagnostic); ok {
-		em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic("", d))
+		em.EmitDiagnostic(diagnostic.Raise(d))
 	}
 }
 
 func emitModInfo(em diagnostic.Emitter, detail string) {
-	em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic("", &mod.ModInfo{
+	em.EmitDiagnostic(diagnostic.Raise(&mod.ModInfo{
 		Detail: detail,
 	}))
 }

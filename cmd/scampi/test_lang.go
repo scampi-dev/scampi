@@ -63,13 +63,11 @@ func runLangTestFile(
 		}
 		failed++
 		for _, m := range mismatches {
-			em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(
-				testPath,
-				&testkit.TestFail{
-					Description: entry.Name + ": " + m.Key,
-					Expected:    m.Matcher,
-					Actual:      m.Reason,
-				},
+			em.EmitDiagnostic(diagnostic.Raise(&testkit.TestFail{
+				Description: entry.Name + ": " + m.Key,
+				Expected:    m.Matcher,
+				Actual:      m.Reason,
+			},
 			))
 		}
 	}
@@ -85,13 +83,11 @@ func runLangTestFile(
 		}
 		failed++
 		for _, m := range mismatches {
-			em.EmitEngineDiagnostic(diagnostic.RaiseEngineDiagnostic(
-				testPath,
-				&testkit.TestFail{
-					Description: entry.Name + ": " + m.Key,
-					Expected:    m.Matcher,
-					Actual:      m.Reason,
-				},
+			em.EmitDiagnostic(diagnostic.Raise(&testkit.TestFail{
+				Description: entry.Name + ": " + m.Key,
+				Expected:    m.Matcher,
+				Actual:      m.Reason,
+			},
 			))
 		}
 	}
