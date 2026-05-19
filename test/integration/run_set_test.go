@@ -368,7 +368,7 @@ func runApply(t *testing.T, cfgStr string, tgt target.Target) *harness.Recording
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 		return nil
 	}

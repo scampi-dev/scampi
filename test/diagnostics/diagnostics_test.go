@@ -91,7 +91,8 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 		}
 		defer e.Close()
 
-		return e.Apply(ctx)
+		_, err = e.Apply(ctx)
+		return err
 	}
 
 	err := apply()

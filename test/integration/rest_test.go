@@ -863,7 +863,8 @@ func applyREST(t *testing.T, cfgStr, baseURL string) (*harness.RecordingDisplaye
 	}
 	defer e.Close()
 
-	return rec, e.Apply(ctx)
+	_, err = e.Apply(ctx)
+	return rec, err
 }
 
 // Helpers

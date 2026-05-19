@@ -13,6 +13,7 @@ import (
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/model"
 	"scampi.dev/scampi/render/ansi"
 	"scampi.dev/scampi/render/layout"
 	"scampi.dev/scampi/secret"
@@ -115,6 +116,37 @@ func (c *CLI) commitRenderEvents(events []renderEvent) {
 		}
 	}
 	c.render.emitEvents(events)
+}
+
+// RenderSummary prints the one-line end-of-run summary computed from
+// the aggregated ExecutionReport returned by engine.Check / Apply.
+func (c *CLI) RenderSummary(rep model.ExecutionReport, checkOnly bool) {
+	var changed, wouldChange, failed int
+	for _, ar := range rep.Actions {
+		changed += ar.Summary.Changed
+		wouldChange += ar.Summary.WouldChange
+		failed += ar.Summary.Failed + ar.Summary.Aborted
+	}
+	var parts []string
+	if checkOnly {
+		parts = append(parts, fmt.Sprintf("%d would change", wouldChange))
+	} else {
+		parts = append(parts, fmt.Sprintf("%d changed", changed))
+	}
+	if failed > 0 {
+		parts = append(parts, fmt.Sprintf("%d failed", failed))
+	}
+	line := "done: " + strings.Join(parts, ", ")
+	col := ansi.Green().Dim()
+	if failed > 0 {
+		col = ansi.Red().Bold()
+	} else if changed > 0 || wouldChange > 0 {
+		col = ansi.Yellow()
+	}
+	c.commitRenderEvents([]renderEvent{{
+		stream: streamOut,
+		line:   c.formatter.fmtMsg(col, line),
+	}})
 }
 
 // RenderPlan prints the per-deploy action plans (one tree each, in

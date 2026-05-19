@@ -221,5 +221,6 @@ func applyRESTWithRedactor(
 	}
 	defer e.Close()
 
-	return red, rec, e.Apply(ctx)
+	_, err = e.Apply(ctx)
+	return red, rec, err
 }

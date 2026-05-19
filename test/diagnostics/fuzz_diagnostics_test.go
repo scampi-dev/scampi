@@ -548,7 +548,8 @@ frobnicate(name = "test")`,
 			}
 			defer e.Close()
 
-			return e.Apply(ctx)
+			_, err = e.Apply(ctx)
+			return err
 		}
 
 		err := apply()

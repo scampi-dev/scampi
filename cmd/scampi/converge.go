@@ -50,8 +50,12 @@ changes when the current state differs from the declared state.`,
 
 			resolveOpts := parseResolveOpts(cmd)
 			em := diagnostic.NewEmitter(pol, displ)
-			err := engine.Apply(ctx, em, cfg, store, resolveOpts)
-			return handleEngineError("Apply", err)
+			report, err := engine.Apply(ctx, em, cfg, store, resolveOpts)
+			if err != nil {
+				return handleEngineError("Apply", err)
+			}
+			displ.RenderSummary(report, false)
+			return nil
 		},
 	}
 }
@@ -97,8 +101,12 @@ the actual system state.`,
 
 			resolveOpts := parseResolveOpts(cmd)
 			em := diagnostic.NewEmitter(pol, displ)
-			err := engine.Check(ctx, em, cfg, store, resolveOpts)
-			return handleEngineError("Check", err)
+			report, err := engine.Check(ctx, em, cfg, store, resolveOpts)
+			if err != nil {
+				return handleEngineError("Check", err)
+			}
+			displ.RenderSummary(report, true)
+			return nil
 		},
 	}
 }

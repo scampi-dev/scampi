@@ -40,7 +40,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -89,7 +89,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -134,7 +134,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -177,7 +177,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -228,7 +228,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -275,7 +275,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -318,7 +318,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -381,7 +381,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -429,7 +429,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -476,7 +476,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -520,7 +520,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -567,7 +567,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -628,7 +628,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -689,7 +689,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -736,7 +736,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -778,7 +778,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -818,7 +818,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -853,7 +853,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -895,7 +895,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -946,7 +946,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -993,7 +993,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -1038,7 +1038,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -1086,7 +1086,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -1134,7 +1134,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -1178,7 +1178,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(context.Background())
+	_, err = e.Apply(context.Background())
 	if err == nil {
 		t.Fatal("expected abort when mount source does not exist")
 	}
@@ -1215,7 +1215,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -1259,7 +1259,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 

@@ -62,7 +62,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(context.Background())
+	_, err = e.Apply(context.Background())
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -178,7 +178,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(context.Background())
+	_, err = e.Apply(context.Background())
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -266,7 +266,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(context.Background())
+	_, err = e.Apply(context.Background())
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -357,7 +357,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(context.Background())
+	_, err = e.Apply(context.Background())
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -474,7 +474,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(context.Background())
+	_, err = e.Apply(context.Background())
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}

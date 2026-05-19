@@ -155,7 +155,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -217,7 +217,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -279,7 +279,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -353,7 +353,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -423,7 +423,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -483,7 +483,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -544,7 +544,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -607,7 +607,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -674,7 +674,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -740,7 +740,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -812,7 +812,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -877,7 +877,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -943,7 +943,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()
@@ -1039,7 +1039,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
 
-				if err := e.Apply(ctx); err != nil {
+				if _, err = e.Apply(ctx); err != nil {
 					b.Fatal(err)
 				}
 				e.Close()

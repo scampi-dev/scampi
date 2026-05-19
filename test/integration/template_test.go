@@ -213,7 +213,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -301,7 +301,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -374,7 +374,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -447,7 +447,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -517,7 +517,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -582,7 +582,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -652,7 +652,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for parse failure, got nil")
 	}
@@ -720,7 +720,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for exec failure, got nil")
 	}
@@ -788,7 +788,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for missing source, got nil")
 	}
@@ -864,7 +864,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for env key not in values, got nil")
 	}
@@ -931,7 +931,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for missing dest directory, got nil")
 	}
@@ -1003,7 +1003,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1068,7 +1068,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1136,7 +1136,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1196,7 +1196,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1264,7 +1264,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1336,7 +1336,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1408,7 +1408,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1473,7 +1473,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 	if err == nil {
 		t.Fatal("expected error for write failure, got nil")
 	}

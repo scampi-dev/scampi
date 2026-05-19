@@ -4,48 +4,80 @@ package engine
 
 import (
 	"context"
-	"fmt"
-	"strings"
-	"time"
+	"sync"
 
 	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/model"
 	"scampi.dev/scampi/spec"
 )
 
+// Check resolves cfgPath into one execution per deploy, runs each in
+// check-only mode, and returns the aggregated report across deploys.
+// The cmd-side renders a summary line from the report.
 func Check(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) error {
-	return forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
-		return e.converge(ctx, true)
-	})
+) (model.ExecutionReport, error) {
+	return runConverge(ctx, em, cfgPath, store, opts, true)
 }
 
+// Apply resolves cfgPath into one execution per deploy, runs each in
+// apply mode, and returns the aggregated report across deploys.
 func Apply(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) error {
-	return forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
-		return e.converge(ctx, false)
-	})
+) (model.ExecutionReport, error) {
+	return runConverge(ctx, em, cfgPath, store, opts, false)
 }
 
-func (e *Engine) Check(ctx context.Context) error { return e.converge(ctx, true) }
-func (e *Engine) Apply(ctx context.Context) error { return e.converge(ctx, false) }
+// runConverge is the shared scaffolding for Check and Apply: iterate
+// resolved deploys concurrently and aggregate their reports into one.
+func runConverge(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	store *diagnostic.SourceStore,
+	opts spec.ResolveOptions,
+	checkOnly bool,
+) (model.ExecutionReport, error) {
+	var (
+		mu  sync.Mutex
+		agg model.ExecutionReport
+	)
+	err := forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+		rep, cErr := e.converge(ctx, checkOnly)
+		if cErr != nil {
+			return cErr
+		}
+		mu.Lock()
+		agg.Actions = append(agg.Actions, rep.Actions...)
+		mu.Unlock()
+		return nil
+	})
+	return agg, err
+}
 
-func (e *Engine) converge(ctx context.Context, checkOnly bool) error {
-	start := time.Now()
+// Check runs the deploy bound to this engine in check-only mode and
+// returns its report.
+func (e *Engine) Check(ctx context.Context) (model.ExecutionReport, error) {
+	return e.converge(ctx, true)
+}
+
+// Apply runs the deploy bound to this engine and returns its report.
+func (e *Engine) Apply(ctx context.Context) (model.ExecutionReport, error) {
+	return e.converge(ctx, false)
+}
+
+func (e *Engine) converge(ctx context.Context, checkOnly bool) (model.ExecutionReport, error) {
 	p, _, hp, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
-		return err
+		return model.ExecutionReport{}, err
 	}
 	e.storeSourcePaths(ctx, p)
 
@@ -57,41 +89,13 @@ func (e *Engine) converge(ctx context.Context, checkOnly bool) error {
 		rep, err = e.ExecutePlan(ctx, p)
 	}
 	if err != nil {
-		return err
+		return rep, err
 	}
 
 	hookRep, err := e.executeHooks(ctx, rep, hp, checkOnly, promisedPaths)
 	if err != nil {
-		return err
+		return rep, err
 	}
 	rep.Actions = append(rep.Actions, hookRep.Actions...)
-
-	e.em.EmitProgress(event.Progress{
-		Time: time.Now(),
-		Text: summarizeRun(rep, checkOnly, time.Since(start)),
-	})
-
-	return nil
-}
-
-// summarizeRun produces the final one-line summary the CLI shows at end
-// of run. Computed from the ExecutionReport per the diagnostics design.
-func summarizeRun(rep model.ExecutionReport, checkOnly bool, dur time.Duration) string {
-	var changed, wouldChange, failed int
-	for _, ar := range rep.Actions {
-		changed += ar.Summary.Changed
-		wouldChange += ar.Summary.WouldChange
-		failed += ar.Summary.Failed + ar.Summary.Aborted
-	}
-	var parts []string
-	if checkOnly {
-		parts = append(parts, fmt.Sprintf("%d would change", wouldChange))
-	} else {
-		parts = append(parts, fmt.Sprintf("%d changed", changed))
-	}
-	if failed > 0 {
-		parts = append(parts, fmt.Sprintf("%d failed", failed))
-	}
-	parts = append(parts, dur.Round(time.Millisecond).String())
-	return "done: " + strings.Join(parts, ", ")
+	return rep, nil
 }

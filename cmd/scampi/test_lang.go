@@ -44,7 +44,7 @@ func runLangTestFile(
 		if engineErr != nil {
 			return 0, 0, engineErr
 		}
-		if applyErr := e.Apply(ctx); applyErr != nil {
+		if _, applyErr := e.Apply(ctx); applyErr != nil {
 			e.Close()
 			return 0, 0, applyErr
 		}

@@ -43,7 +43,7 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 	}
 	defer e.Close()
 
-	err = e.Apply(ctx)
+	_, err = e.Apply(ctx)
 
 	var capErr engine.AbortError
 	if !errors.As(err, &capErr) {

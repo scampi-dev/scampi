@@ -184,7 +184,8 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 			return err
 		}
 
-		return e.Apply(ctx)
+		_, err = e.Apply(ctx)
+		return err
 	}
 
 	err := run()

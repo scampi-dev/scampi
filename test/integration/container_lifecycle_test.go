@@ -74,7 +74,7 @@ func applyContainerConfig(t *testing.T, cfgStr string, tgt target.Target) *harne
 	}
 	defer e.Close()
 
-	if err := e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(context.Background()); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 	return rec
