@@ -209,22 +209,23 @@ func (c *CLI) EmitGraph(e event.GraphEvent) {
 	c.commitRenderEvents(out)
 }
 
-func (c *CLI) EmitInspect(e event.InspectEvent) {
+// RenderInspect prints inspect output for one deploy.
+func (c *CLI) RenderInspect(d event.InspectDetail) {
 	f := c.formatter
 	var out []renderEvent
 
 	header := f.fmtfMsg(
 		ansi.Blue().Bold(),
 		"deploy %q "+f.glyphs.arrow+" %s",
-		e.Detail.DeployName,
-		e.Detail.TargetName,
+		d.DeployName,
+		d.TargetName,
 	)
 	out = append(out,
 		renderEvent{stream: streamOut, line: header},
 		renderEvent{stream: streamOut, line: ""},
 	)
 
-	for _, entry := range e.Detail.Entries {
+	for _, entry := range d.Entries {
 		line := "  " + f.fmtMsg(ansi.Cyan().Bold(), entry.Kind)
 		if entry.Desc != "" {
 			line += " " + f.fmtMsg(ansi.Cyan(), entry.Desc)

@@ -146,7 +146,6 @@ func (NoopEmitter) EmitEngineDiagnostic(event.EngineDiagnostic) {}
 func (NoopEmitter) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
 func (NoopEmitter) EmitActionDiagnostic(event.ActionDiagnostic) {}
 func (NoopEmitter) EmitOpDiagnostic(event.OpDiagnostic)         {}
-func (NoopEmitter) EmitInspect(event.InspectEvent)              {}
 func (NoopEmitter) EmitGraph(event.GraphEvent)                  {}
 func (NoopEmitter) EmitPlanOutput(event.PlanEvent)              {}
 func (NoopEmitter) EmitDiagnostic(event.Diagnostic)             {}

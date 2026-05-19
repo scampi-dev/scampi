@@ -51,7 +51,6 @@ type Deferrable interface {
 
 type (
 	Emitter interface {
-		EmitInspect(e event.InspectEvent)
 		EmitGraph(e event.GraphEvent)
 		EmitPlanOutput(e event.PlanEvent)
 
@@ -179,18 +178,6 @@ func PlanProduced(plan spec.Plan, actionDeps ActionDeps) event.PlanEvent {
 		Detail:     &detail,
 		Severity:   signal.Notice,
 		Chattiness: event.Subtle,
-	}
-}
-
-// Inspect
-// -----------------------------------------------------------------------------
-
-func InspectProduced(detail event.InspectDetail) event.InspectEvent {
-	return event.InspectEvent{
-		Time:       time.Now(),
-		Detail:     detail,
-		Severity:   signal.Notice,
-		Chattiness: event.Normal,
 	}
 }
 

@@ -10,7 +10,6 @@ import "scampi.dev/scampi/diagnostic/event"
 // because it is the public consumption contract for diagnostic
 // output — not because rendering is part of the diagnostic package.
 type Displayer interface {
-	EmitInspect(e event.InspectEvent)
 	EmitGraph(e event.GraphEvent)
 	EmitPlanOutput(e event.PlanEvent)
 

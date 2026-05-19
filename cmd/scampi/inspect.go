@@ -11,6 +11,7 @@ import (
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/osutil"
+	clir "scampi.dev/scampi/render/cli"
 	"scampi.dev/scampi/spec"
 )
 
@@ -87,7 +88,7 @@ Falls back to plain diff(1).`,
 				return inspectDiff(ctx, em, cfg, store, resolveOpts, diffPath)
 			}
 
-			return inspectList(ctx, em, cfg, store, resolveOpts)
+			return inspectList(ctx, displ, em, cfg, store, resolveOpts)
 		},
 	}
 }
@@ -97,13 +98,18 @@ Falls back to plain diff(1).`,
 
 func inspectList(
 	ctx context.Context,
+	displ *clir.CLI,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	resolveOpts spec.ResolveOptions,
 ) error {
-	if err := engine.InspectList(ctx, em, cfgPath, store, resolveOpts); err != nil {
+	details, err := engine.InspectList(ctx, em, cfgPath, store, resolveOpts)
+	if err != nil {
 		return handleEngineError("InspectList", err)
+	}
+	for _, d := range details {
+		displ.RenderInspect(d)
 	}
 	return nil
 }

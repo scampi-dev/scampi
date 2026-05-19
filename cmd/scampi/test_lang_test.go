@@ -21,9 +21,8 @@ type nopDisplayer struct {
 	diagnostics []event.EngineDiagnostic
 }
 
-func (d *nopDisplayer) EmitInspect(event.InspectEvent) {}
-func (d *nopDisplayer) EmitGraph(event.GraphEvent)     {}
-func (d *nopDisplayer) EmitLegend()                    {}
+func (d *nopDisplayer) EmitGraph(event.GraphEvent) {}
+func (d *nopDisplayer) EmitLegend()                {}
 func (d *nopDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	d.diagnostics = append(d.diagnostics, e)
 }

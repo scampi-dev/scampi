@@ -5,6 +5,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -22,17 +23,35 @@ type InspectDiffResult struct {
 	Desired  []byte
 }
 
-// InspectList emits resolved state for all steps through the emitter.
+// InspectList resolves each deploy and returns one InspectDetail per
+// successfully resolved deploy. Errors from any single deploy abort
+// the iteration. Results are sorted by DeployName so the caller
+// renders deterministically; per-deploy resolution runs concurrently.
 func InspectList(
 	ctx context.Context,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) error {
-	return forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
-		return e.emitInspect(ctx)
+) ([]event.InspectDetail, error) {
+	var (
+		mu      sync.Mutex
+		details []event.InspectDetail
+	)
+	err := forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+		d, err := e.buildInspect(ctx)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		details = append(details, d)
+		mu.Unlock()
+		return nil
 	})
+	slices.SortStableFunc(details, func(a, b event.InspectDetail) int {
+		return strings.Compare(a.DeployName, b.DeployName)
+	})
+	return details, err
 }
 
 // InspectDiffPaths returns destination paths of all diffable ops.
@@ -98,10 +117,10 @@ func InspectDiff(
 	return result, err
 }
 
-func (e *Engine) emitInspect(ctx context.Context) error {
+func (e *Engine) buildInspect(ctx context.Context) (event.InspectDetail, error) {
 	p, _, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
 	if err != nil {
-		return err
+		return event.InspectDetail{}, err
 	}
 	e.storeSourcePaths(ctx, p)
 
@@ -109,7 +128,6 @@ func (e *Engine) emitInspect(ctx context.Context) error {
 		DeployName: e.cfg.DeployName,
 		TargetName: e.cfg.TargetName,
 	}
-
 	for i, act := range p.Unit.Actions {
 		entry := event.InspectEntry{
 			Index: i,
@@ -123,9 +141,7 @@ func (e *Engine) emitInspect(ctx context.Context) error {
 		}
 		detail.Entries = append(detail.Entries, entry)
 	}
-
-	e.em.EmitInspect(diagnostic.InspectProduced(detail))
-	return nil
+	return detail, nil
 }
 
 // InspectDiffFile returns desired vs current content for a specific file op.

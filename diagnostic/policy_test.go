@@ -189,17 +189,14 @@ func makeTemplate(id, text string) event.Template {
 // recordingDisplayer is a minimal Displayer that captures
 // each emission for later inspection.
 type recordingDisplayer struct {
-	inspect []event.InspectEvent
-
 	engine []event.EngineDiagnostic
 	plan   []event.PlanDiagnostic
 	action []event.ActionDiagnostic
 	op     []event.OpDiagnostic
 }
 
-func (r *recordingDisplayer) EmitInspect(e event.InspectEvent) { r.inspect = append(r.inspect, e) }
-func (r *recordingDisplayer) EmitGraph(_ event.GraphEvent)     {}
-func (r *recordingDisplayer) EmitLegend()                      {}
+func (r *recordingDisplayer) EmitGraph(_ event.GraphEvent) {}
+func (r *recordingDisplayer) EmitLegend()                  {}
 func (r *recordingDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	r.engine = append(r.engine, e)
 }
@@ -228,9 +225,8 @@ type concurrentDisplayer struct {
 	engine []event.EngineDiagnostic
 }
 
-func (c *concurrentDisplayer) EmitInspect(event.InspectEvent) {}
-func (c *concurrentDisplayer) EmitGraph(event.GraphEvent)     {}
-func (c *concurrentDisplayer) EmitLegend()                    {}
+func (c *concurrentDisplayer) EmitGraph(event.GraphEvent) {}
+func (c *concurrentDisplayer) EmitLegend()                {}
 func (c *concurrentDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
