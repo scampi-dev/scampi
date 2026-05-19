@@ -88,10 +88,10 @@ func BenchmarkDiagnosticEmission(b *testing.B) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	diag := *harness.NewFakeDiagnostic(signal.Error, diagnostic.ImpactAbort, nil)
+	diag := harness.NewFakeDiagnostic(signal.Error, diagnostic.ImpactAbort, nil)
 
 	for b.Loop() {
-		em.EmitDiagnostic(diagnostic.RaiseLegacy(diag))
+		em.Raise(diag)
 	}
 }
 

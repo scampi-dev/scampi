@@ -175,25 +175,7 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 		return diagnostic.ImpactNone, true
 	}
 
-	var ds diagnostic.Diagnostics
-	if errors.As(err, &ds) {
-		impact := diagnostic.ImpactNone
-		for _, d := range ds {
-			em.EmitDiagnostic(diagnostic.RaiseLegacy(d))
-			if d.Impact() > impact {
-				impact = d.Impact()
-			}
-		}
-		return impact, true
-	}
-
-	var d diagnostic.Diagnostic
-	if !errors.As(err, &d) {
-		return 0, false
-	}
-
-	em.EmitDiagnostic(diagnostic.RaiseLegacy(d))
-	return d.Impact(), true
+	return 0, false
 }
 
 // The scope parameters on these helpers are unused - event.Diagnostic

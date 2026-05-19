@@ -58,11 +58,6 @@ func (w *causeEmitter) Emit(e event.Event) {
 	}
 }
 
-func (w *causeEmitter) EmitDiagnostic(e event.Diagnostic) {
-	e.Cause = w.stamp(e.Cause)
-	w.inner.EmitDiagnostic(e)
-}
-
 func (w *causeEmitter) EmitChange(e event.Change) {
 	e.Cause = w.stamp(e.Cause)
 	w.inner.EmitChange(e)

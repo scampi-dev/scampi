@@ -16,14 +16,14 @@ import (
 )
 
 // TestAllTemplatesRender is a contract test that auto-discovers every
-// diagnostic.Diagnostic and spec.OpDescription implementation in the module,
+// diagnostic.Raisable and spec.OpDescription implementation in the module,
 // extracts their template string literals from the AST, resolves the Data
 // type via go/types, and renders each template with both populated and nil
 // data. A panic means a template references a field that doesn't exist on
 // the Data struct.
 //
-// This replaces the old hand-maintained list. Adding a new Diagnostic or
-// OpDescription type is automatically picked up — no manual registration.
+// Adding a new Raisable or OpDescription type is automatically picked up
+// — no manual registration.
 func TestAllTemplatesRender(t *testing.T) {
 	cfg := &packages.Config{
 		Mode: packages.NeedSyntax |
@@ -37,9 +37,9 @@ func TestAllTemplatesRender(t *testing.T) {
 		t.Fatalf("failed to load packages: %v", err)
 	}
 
-	diagnosticIface := findInterface(pkgs, "Diagnostic")
+	diagnosticIface := findInterface(pkgs, "Raisable")
 	if diagnosticIface == nil {
-		t.Fatal("diagnostic.Diagnostic interface not found")
+		t.Fatal("diagnostic.Raisable interface not found")
 	}
 
 	opDescIface := findInterface(pkgs, "OpDescription")
@@ -143,11 +143,11 @@ func findInterface(pkgs []*packages.Package, name string) *types.Interface {
 	return nil
 }
 
-// extractDiagnosticTemplates finds the EventTemplate() method of a Diagnostic
+// extractDiagnosticTemplates finds the Diagnostic() method of a Raisable
 // implementor and extracts template literals from the returned event.Template{}.
 func extractDiagnosticTemplates(t *testing.T, pkg *packages.Package, named *types.Named) []renderable {
 	t.Helper()
-	return extractFromMethod(t, pkg, named, "EventTemplate", []string{"Text", "Hint", "Help"})
+	return extractFromMethod(t, pkg, named, "Diagnostic", []string{"Text", "Hint", "Help"})
 }
 
 // extractOpDescTemplates finds the PlanTemplate() method of an OpDescription
@@ -212,6 +212,14 @@ func extractFromMethod(
 						continue
 					}
 
+					// Drill into the Template field of an event.Error /
+					// event.Warning / event.Info wrapper so we operate on
+					// the Template literal regardless of whether it was
+					// returned bare (PlanTemplate) or wrapped (Diagnostic).
+					if inner := findTemplateField(cl); inner != nil {
+						cl = inner
+					}
+
 					fields := extractStringFields(t, typeName, cl, fieldNames)
 					dataType := extractDataType(pkg, cl)
 					data := buildTestData(dataType)
@@ -243,6 +251,25 @@ func extractFromMethod(
 	}
 
 	return results
+}
+
+// findTemplateField returns the composite literal assigned to a
+// "Template" field inside cl, or nil if no such field exists. Used to
+// drill from a Raisable's outer event.{Error,Warning,Info} wrapper
+// into the embedded event.Template literal.
+func findTemplateField(cl *ast.CompositeLit) *ast.CompositeLit {
+	for _, elt := range cl.Elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		ident, ok := kv.Key.(*ast.Ident)
+		if !ok || ident.Name != "Template" {
+			continue
+		}
+		return findCompositeLit(kv.Value)
+	}
+	return nil
 }
 
 // findCompositeLit unwraps an expression to find the composite literal.

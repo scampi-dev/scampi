@@ -13,6 +13,7 @@ import (
 	"go.lsp.dev/uri"
 
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/token"
@@ -183,21 +184,20 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 
 // analysisErrorToLSPDiagnostics flattens the error returned by
 // linker.Analyze into a slice of LSP diagnostics. linker.Analyze
-// returns either a single diagnostic.Diagnostic or a
-// diagnostic.Diagnostics slice (when multiple errors fire from the
-// same phase); both shapes are handled.
+// returns either a single Raisable or a Raisables slice; both shapes
+// are handled.
 func analysisErrorToLSPDiagnostics(err error, src []byte) []protocol.Diagnostic {
-	var ds diagnostic.Diagnostics
-	if errors.As(err, &ds) {
-		out := make([]protocol.Diagnostic, 0, len(ds))
-		for _, d := range ds {
-			out = append(out, diagnosticToLSP(d, src))
+	var rs diagnostic.Raisables
+	if errors.As(err, &rs) {
+		out := make([]protocol.Diagnostic, 0, len(rs))
+		for _, r := range rs {
+			out = append(out, diagnosticToLSP(r, src))
 		}
 		return out
 	}
-	var d diagnostic.Diagnostic
-	if errors.As(err, &d) {
-		return []protocol.Diagnostic{diagnosticToLSP(d, src)}
+	var r diagnostic.Raisable
+	if errors.As(err, &r) {
+		return []protocol.Diagnostic{diagnosticToLSP(r, src)}
 	}
 	// Non-diagnostic error (e.g. file not found): emit a placeholder
 	// diagnostic at file head so the user sees something.
@@ -209,16 +209,27 @@ func analysisErrorToLSPDiagnostics(err error, src []byte) []protocol.Diagnostic 
 	}}
 }
 
+// templateOf extracts the Template from any diagnostic-shaped event.
+func templateOf(ev event.Event) event.Template {
+	switch v := ev.(type) {
+	case event.Error:
+		return v.Template
+	case event.Warning:
+		return v.Template
+	case event.Info:
+		return v.Template
+	default:
+		return event.Template{}
+	}
+}
+
 // diagnosticToLSP renders a typed scampi diagnostic into the LSP
 // protocol shape. Source spans on the diagnostic are used directly;
 // when no span is present the diagnostic is anchored at file head so
 // the user still sees the message.
-func diagnosticToLSP(d diagnostic.Diagnostic, src []byte) protocol.Diagnostic {
-	tmpl := d.EventTemplate()
-	msg := tmpl.Text
-	if e, ok := d.(error); ok {
-		msg = e.Error()
-	}
+func diagnosticToLSP(r diagnostic.Raisable, src []byte) protocol.Diagnostic {
+	tmpl := templateOf(r.Diagnostic())
+	msg := r.Error()
 	// Render Hint/Help against tmpl.Data — the raw fields are Go
 	// template strings (e.g. `{{.Hint}}`) that would otherwise leak
 	// verbatim into the LSP message. Both get a labelled prefix so

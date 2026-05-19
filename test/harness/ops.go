@@ -158,16 +158,25 @@ func (d FakeDiagnostic) Error() string {
 
 func (d FakeDiagnostic) Unwrap() error { return d.cause }
 
-func (d FakeDiagnostic) EventTemplate() event.Template {
-	return event.Template{
+func (d FakeDiagnostic) Diagnostic() event.Event {
+	tmpl := event.Template{
 		ID:   "test.FakeDiagnostic",
 		Text: "{{if .}}{{.}}{{else}}test diagnostic{{end}}",
 		Data: d.cause,
 	}
+	switch d.severity {
+	case signal.Warning:
+		return event.Warning{Template: tmpl}
+	case signal.Info:
+		return event.Info{Template: tmpl}
+	default:
+		impact := event.ImpactNone
+		if d.impact == diagnostic.ImpactAbort {
+			impact = event.ImpactAbort
+		}
+		return event.Error{Impact: impact, Template: tmpl}
+	}
 }
-
-func (d FakeDiagnostic) Severity() signal.Severity { return d.severity }
-func (d FakeDiagnostic) Impact() diagnostic.Impact { return d.impact }
 
 // StubStepType returns a pre-built action from Plan, bypassing real config
 // parsing. Useful when tests need to control exactly which ops are planned.
