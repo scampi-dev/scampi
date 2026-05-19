@@ -73,11 +73,6 @@ func (p Policy) apply(s signal.Severity) signal.Severity {
 	return s
 }
 
-func (p *policyEmitter) EmitGraph(ev event.GraphEvent) {
-	ev.Severity = p.pol.apply(ev.Severity)
-	p.out.EmitGraph(ev)
-}
-
 func (p *policyEmitter) EmitEngineDiagnostic(ev event.EngineDiagnostic) {
 	ev.Severity = p.pol.apply(ev.Severity)
 	if !p.shouldEmit(&p.seen.engine, ev.Detail.Template) {

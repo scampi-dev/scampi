@@ -51,7 +51,6 @@ type Deferrable interface {
 
 type (
 	Emitter interface {
-		EmitGraph(e event.GraphEvent)
 
 		// Legacy diagnostic envelopes. Producers migrate to
 		// EmitDiagnostic during phase 5 (bare-error migration); the

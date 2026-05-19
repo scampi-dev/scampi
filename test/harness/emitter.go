@@ -56,8 +56,6 @@ func (r *RecordingDisplayer) EmitOpDiagnostic(e event.OpDiagnostic) {
 	r.OpDiagnostics = append(r.OpDiagnostics, e)
 }
 
-func (r *RecordingDisplayer) EmitGraph(_ event.GraphEvent) {}
-
 func (r *RecordingDisplayer) EmitDiagnostic(e event.Diagnostic) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -143,7 +141,6 @@ func (NoopEmitter) EmitEngineDiagnostic(event.EngineDiagnostic) {}
 func (NoopEmitter) EmitPlanDiagnostic(event.PlanDiagnostic)     {}
 func (NoopEmitter) EmitActionDiagnostic(event.ActionDiagnostic) {}
 func (NoopEmitter) EmitOpDiagnostic(event.OpDiagnostic)         {}
-func (NoopEmitter) EmitGraph(event.GraphEvent)                  {}
 func (NoopEmitter) EmitDiagnostic(event.Diagnostic)             {}
 func (NoopEmitter) EmitChange(event.Change)                     {}
 func (NoopEmitter) EmitProgress(event.Progress)                 {}

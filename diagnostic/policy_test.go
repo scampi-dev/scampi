@@ -195,8 +195,7 @@ type recordingDisplayer struct {
 	op     []event.OpDiagnostic
 }
 
-func (r *recordingDisplayer) EmitGraph(_ event.GraphEvent) {}
-func (r *recordingDisplayer) EmitLegend()                  {}
+func (r *recordingDisplayer) EmitLegend() {}
 func (r *recordingDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	r.engine = append(r.engine, e)
 }
@@ -224,8 +223,7 @@ type concurrentDisplayer struct {
 	engine []event.EngineDiagnostic
 }
 
-func (c *concurrentDisplayer) EmitGraph(event.GraphEvent) {}
-func (c *concurrentDisplayer) EmitLegend()                {}
+func (c *concurrentDisplayer) EmitLegend() {}
 func (c *concurrentDisplayer) EmitEngineDiagnostic(e event.EngineDiagnostic) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
