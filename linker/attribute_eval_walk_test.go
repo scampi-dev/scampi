@@ -5,13 +5,13 @@ package linker
 import (
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/eval"
 	"scampi.dev/scampi/lang/lex"
 	"scampi.dev/scampi/lang/parse"
 	"scampi.dev/scampi/std"
+	"scampi.dev/scampi/test/harness"
 )
 
 // TestEvalWalk_LetBoundIntViolatesMax proves the walker validates
@@ -32,7 +32,7 @@ std.deploy(name = "main", targets = [host]) {
 }
 `
 	fileScope, modules, result := evalForAttrTest(t, src)
-	capture := &diagnostic.Capture{}
+	capture := &harness.Capture{}
 	raised := runAttributeEvalChecks(
 		capture,
 		result,
@@ -65,7 +65,7 @@ std.deploy(name = "main", targets = [host]) {
 }
 `
 	fileScope, modules, result := evalForAttrTest(t, src)
-	capture := &diagnostic.Capture{}
+	capture := &harness.Capture{}
 	raised := runAttributeEvalChecks(
 		capture,
 		result,
@@ -96,7 +96,7 @@ std.deploy(name = "main", targets = [host]) {
 }
 `
 	fileScope, modules, result := evalForAttrTest(t, src)
-	capture := &diagnostic.Capture{}
+	capture := &harness.Capture{}
 	raised := runAttributeEvalChecks(
 		capture,
 		result,
@@ -136,7 +136,7 @@ func TestEvalWalk_SkipsCrossStepRef(t *testing.T) {
 		QualName: "fake_decl",
 		Fields:   map[string]eval.Value{"port": &eval.RefVal{}},
 	}
-	capture := &diagnostic.Capture{}
+	capture := &harness.Capture{}
 	ctx := &linkContext{em: capture}
 	dispatchEvalAttributes(ctx, sv, dt, DefaultAttributes(), nil, "test.scampi")
 	if len(capture.Events) != 0 {

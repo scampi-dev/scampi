@@ -175,15 +175,15 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 	}
 
 	// Run the full linker pipeline against the in-memory content. The
-	// linker raises every diagnostic through capture; the returned
-	// error is either nil, one of the linker's sentinel values, or a
-	// genuine outlier (file-read failure, etc.) that needs a
-	// head-of-file placeholder so the user sees something.
+	// linker raises every diagnostic through buf; the returned error
+	// is either nil, diagnostic.ErrAlreadyRaised, or a genuine outlier
+	// (file-read failure, etc.) that needs a head-of-file placeholder
+	// so the user sees something.
 	src := newOverlaySource(filePath, data)
-	capture := &diagnostic.Capture{}
-	_, err := linker.Analyze(ctx, capture, filePath, src, linker.WithLenient())
-	out := make([]protocol.Diagnostic, 0, len(capture.Events))
-	for _, ev := range capture.Events {
+	buf := &diagBuf{}
+	_, err := linker.Analyze(ctx, buf, filePath, src, linker.WithLenient())
+	out := make([]protocol.Diagnostic, 0, len(buf.events))
+	for _, ev := range buf.events {
 		out = append(out, eventToLSP(ev, data))
 	}
 	if err != nil && !errors.Is(err, diagnostic.ErrAlreadyRaised) {
@@ -199,6 +199,16 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 	}
 	return out
 }
+
+// diagBuf is a tiny in-process Emitter that buffers events so the LSP
+// can translate them to protocol diagnostics after linker.Analyze
+// returns.
+type diagBuf struct {
+	events []event.Event
+}
+
+func (b *diagBuf) Emit(e event.Event)          { b.events = append(b.events, e) }
+func (b *diagBuf) Raise(r diagnostic.Raisable) { b.Emit(r.Diagnostic()) }
 
 // eventToLSP renders an event.Event into LSP diagnostic shape. The
 // template's Text field is a Go template string ("{{.Msg}}"); render

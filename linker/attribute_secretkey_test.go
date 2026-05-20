@@ -6,13 +6,13 @@ import (
 	"errors"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/token"
 	"scampi.dev/scampi/secret"
 	"scampi.dev/scampi/spec"
+	"scampi.dev/scampi/test/harness"
 )
 
 // stubBackend is a tiny in-memory secret.Backend for testing.
@@ -41,7 +41,7 @@ func newSecretCtx(backend *stubBackend, arg ast.Expr) StaticCheckContext {
 		b = backend
 	}
 	return StaticCheckContext{
-		Linker:          &linkContext{em: &diagnostic.Capture{}},
+		Linker:          &linkContext{em: &harness.Capture{}},
 		ResolverBackend: b,
 		AttrName:        "secrets.@secretkey",
 		ParamName:       "key",
@@ -53,7 +53,7 @@ func newSecretCtx(backend *stubBackend, arg ast.Expr) StaticCheckContext {
 // capturedEvents reads back the events buffered by a linkContext set up
 // via newSecretCtx (or any other helper that wraps a Capture).
 func capturedEvents(ctx StaticCheckContext) []event.Event {
-	return ctx.Linker.(*linkContext).em.(*diagnostic.Capture).Events
+	return ctx.Linker.(*linkContext).em.(*harness.Capture).Events
 }
 
 func TestSecretKeyAttribute_LiteralFound(t *testing.T) {

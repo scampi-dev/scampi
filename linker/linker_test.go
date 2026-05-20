@@ -6,7 +6,6 @@ import (
 	"context"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/lang/check"
@@ -17,6 +16,7 @@ import (
 	"scampi.dev/scampi/source"
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/std"
+	"scampi.dev/scampi/test/harness"
 )
 
 func TestLinkBasicDeploy(t *testing.T) {
@@ -125,7 +125,7 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 	src.Files["/config.scampi"] = []byte("module main\n@@@ garbage\n")
 	reg := engine.NewRegistry()
 
-	capture := &diagnostic.Capture{}
+	capture := &harness.Capture{}
 	_, err := linker.LoadConfig(context.Background(), capture, "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for broken syntax")
@@ -143,7 +143,7 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 // firstDiagnosticTemplate returns the template of the first diagnostic
 // raised through capture. Every linker diagnostic is now delivered via
 // the emitter, so the error chain carries only sentinel values.
-func firstDiagnosticTemplate(t *testing.T, capture *diagnostic.Capture) event.Template {
+func firstDiagnosticTemplate(t *testing.T, capture *harness.Capture) event.Template {
 	t.Helper()
 	for _, ev := range capture.Events {
 		switch v := ev.(type) {
@@ -174,7 +174,7 @@ std.deploy(name = "test", targets = [host]) {
 `)
 	reg := engine.NewRegistry()
 
-	capture := &diagnostic.Capture{}
+	capture := &harness.Capture{}
 	_, err := linker.LoadConfig(context.Background(), capture, "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for secret() without backend")

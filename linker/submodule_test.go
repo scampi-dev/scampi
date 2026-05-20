@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/mod"
 	"scampi.dev/scampi/std"
+	"scampi.dev/scampi/test/harness"
 )
 
 func writeFile(t *testing.T, path string, data []byte) {
@@ -217,7 +217,7 @@ func helper() std.Step {
 	modules, _ := check.BootstrapModules(std.FS)
 	goodPath := filepath.Join(dir, "good.scampi")
 
-	_, broken, _ := loadSiblingDecls(&diagnostic.Capture{}, goodPath, "mylib", modules)
+	_, broken, _ := loadSiblingDecls(&harness.Capture{}, goodPath, "mylib", modules)
 	if len(broken) == 0 {
 		t.Fatal("expected broken sibling to be reported")
 	}
