@@ -140,7 +140,7 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
 	var allOps []spec.Op
 	opIndex := make(map[spec.Op]int)
 	actionOpBase := make(map[int]int) // action index -> first op index
-	for i, act := range p.Unit.Actions {
+	for i, act := range p.Deploy.Actions {
 		actionOpBase[i] = len(allOps)
 		for _, op := range act.Ops() {
 			opIndex[op] = len(allOps)
@@ -169,8 +169,8 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
 		}
 	}
 
-	detail := event.PlanDetail{UnitID: string(p.Unit.ID), UnitDesc: p.Unit.Desc}
-	for i, act := range p.Unit.Actions {
+	detail := event.PlanDetail{DeployID: string(p.Deploy.ID), DeployDesc: p.Deploy.Desc}
+	for i, act := range p.Deploy.Actions {
 		start := actionOpBase[i]
 		end := start + len(act.Ops())
 		var deps []int
@@ -203,7 +203,7 @@ func plan(
 	em diagnostic.Emitter,
 	tgtCaps capability.Capability,
 ) (spec.Plan, ActionDeps, *hookPlan, error) {
-	unitID := spec.UnitID(cfg.DeployName)
+	deployID := spec.DeployID(cfg.DeployName)
 
 	actions, actionSteps, onChange, causes, impacts := planSteps(cfg.Steps, em, tgtCaps)
 	hookActions, hookCauses, hookImpacts := planHooks(cfg.Hooks, em, tgtCaps)
@@ -211,8 +211,8 @@ func plan(
 	impacts = append(impacts, hookImpacts...)
 
 	p := spec.Plan{
-		Unit: spec.Unit{
-			ID:      unitID,
+		Deploy: spec.Deploy{
+			ID:      deployID,
 			Desc:    cfg.DeployName,
 			Actions: actions,
 		},
@@ -235,7 +235,7 @@ func plan(
 		return spec.Plan{}, nil, nil, err
 	}
 
-	nodes := buildActionGraph(p.Unit.Actions)
+	nodes := buildActionGraph(p.Deploy.Actions)
 	if err := DetectActionCycles(em, nodes); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}

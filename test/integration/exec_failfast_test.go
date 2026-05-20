@@ -44,7 +44,7 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -112,7 +112,7 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 	opC.Deps = []spec.Op{opB}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -187,7 +187,7 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 	act = harness.MkAction(opA, opB, opC)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -278,7 +278,7 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 	opD.Deps = []spec.Op{opC}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -337,7 +337,7 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -398,7 +398,7 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 	opB.Deps = []spec.Op{opA}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -462,7 +462,7 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 	opC.Deps = []spec.Op{opB}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -523,7 +523,7 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 	opB.Deps = []spec.Op{opA}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{

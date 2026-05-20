@@ -41,7 +41,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				b.Deps = []spec.Op{a}
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{
@@ -66,7 +66,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				c.Deps = []spec.Op{a}
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{
@@ -94,7 +94,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				d.Deps = []spec.Op{c}
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{
@@ -115,7 +115,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				a.Deps = []spec.Op{a}
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{
@@ -142,7 +142,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				d.Deps = []spec.Op{c}
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{
@@ -173,7 +173,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				f.Deps = nil
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{
@@ -200,7 +200,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				d.Deps = []spec.Op{a}
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{
@@ -225,7 +225,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 				c.Deps = []spec.Op{a}
 
 				return spec.Plan{
-					Unit: spec.Unit{
+					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
 						Actions: []spec.Action{

@@ -61,10 +61,10 @@ func (p *planRenderer) renderPlan(d event.PlanDetail) []renderEvent {
 	hdr := p.fmt.fmtMsg(colPlanRail, p.glyphs.planStart)
 	hdr += p.fmt.fmtMsg(colPlanHeader, " execution plan")
 
-	if d.UnitID != "" {
-		hdr += p.fmt.fmtfMsg(colPlanHeader, ": %s", d.UnitID)
-		if d.UnitDesc != "" {
-			hdr += p.fmt.fmtfMsg(colPlanHeader, " %s %s", p.glyphs.actionKindSep, d.UnitDesc)
+	if d.DeployID != "" {
+		hdr += p.fmt.fmtfMsg(colPlanHeader, ": %s", d.DeployID)
+		if d.DeployDesc != "" {
+			hdr += p.fmt.fmtfMsg(colPlanHeader, " %s %s", p.glyphs.actionKindSep, d.DeployDesc)
 		}
 	}
 

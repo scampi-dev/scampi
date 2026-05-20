@@ -91,7 +91,7 @@ func TestCheck_DeferredPath_UpstreamPromisesDirectory(t *testing.T) {
 	copyAction := mkPromiserAction(paths("/foo"), paths("/foo/bar"), copyOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-deferred",
 			Actions: []spec.Action{dirAction, copyAction},
 		},
@@ -144,7 +144,7 @@ func TestCheck_DeferredPath_NoPromise_StillAborts(t *testing.T) {
 	copyAction := mkPromiserAction(nil, paths("/nonexistent/bar"), copyOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-no-promise",
 			Actions: []spec.Action{copyAction},
 		},
@@ -191,7 +191,7 @@ func TestCheck_DeferredPath_UpstreamSatisfied_NoPromise(t *testing.T) {
 	copyAction := mkPromiserAction(paths("/foo"), paths("/foo/bar"), copyOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-satisfied-no-promise",
 			Actions: []spec.Action{dirAction, copyAction},
 		},
@@ -233,7 +233,7 @@ func TestCheck_DeferredPath_NonDeferrableError_StillAborts(t *testing.T) {
 	abortAction := mkPromiserAction(paths("/foo"), paths("/foo/file"), abortOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-non-deferrable",
 			Actions: []spec.Action{dirAction, abortAction},
 		},
@@ -280,7 +280,7 @@ func TestCheck_DeferredPath_AncestorPromise(t *testing.T) {
 	copyAction := mkPromiserAction(paths("/foo/bar"), paths("/foo/file"), copyOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-ancestor-promise",
 			Actions: []spec.Action{dirAction, copyAction},
 		},
@@ -330,7 +330,7 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 	copyAction := mkPromiserAction(paths("/foo"), paths("/foo/bar"), copyOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-outcome",
 			Actions: []spec.Action{dirAction, copyAction},
 		},
@@ -390,7 +390,7 @@ func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
 	dirAction := mkPromiserAction(users("appd"), paths("/opt/app"), dirOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-deferred-user",
 			Actions: []spec.Action{userAction, dirAction},
 		},
@@ -439,7 +439,7 @@ func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
 	dirAction := mkPromiserAction(groups("appusers"), paths("/opt/app"), dirOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-deferred-group",
 			Actions: []spec.Action{groupAction, dirAction},
 		},
@@ -482,7 +482,7 @@ func TestCheck_DeferredUser_NoPromise_StillAborts(t *testing.T) {
 	dirAction := mkPromiserAction(nil, paths("/opt/app"), dirOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "test-user-no-promise",
 			Actions: []spec.Action{dirAction},
 		},

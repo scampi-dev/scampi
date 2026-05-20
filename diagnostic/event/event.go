@@ -188,9 +188,9 @@ type Progress struct {
 // inter-op dependency edges. Returned from engine.Plan() rather than
 // emitted as an event.
 type PlanDetail struct {
-	UnitID   string
-	UnitDesc string
-	Actions  []PlannedAction
+	DeployID   string
+	DeployDesc string
+	Actions    []PlannedAction
 }
 
 type PlannedAction struct {

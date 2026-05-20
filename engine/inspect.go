@@ -73,7 +73,7 @@ func InspectDiffPaths(
 			return planErr
 		}
 		var local []string
-		for _, act := range p.Unit.Actions {
+		for _, act := range p.Deploy.Actions {
 			for _, op := range act.Ops() {
 				if d, ok := op.(spec.Diffable); ok {
 					local = append(local, d.DestPath())
@@ -128,7 +128,7 @@ func (e *Engine) buildInspect(ctx context.Context) (event.InspectDetail, error) 
 		DeployName: e.cfg.DeployName,
 		TargetName: e.cfg.TargetName,
 	}
-	for i, act := range p.Unit.Actions {
+	for i, act := range p.Deploy.Actions {
 		entry := event.InspectEntry{
 			Index: i,
 			Kind:  act.Kind(),
@@ -153,7 +153,7 @@ func (e *Engine) InspectDiffFile(ctx context.Context, destPath string) (*Inspect
 	e.storeSourcePaths(ctx, p)
 
 	var found []diffableOp
-	for _, act := range p.Unit.Actions {
+	for _, act := range p.Deploy.Actions {
 		for _, op := range act.Ops() {
 			d, ok := op.(spec.Diffable)
 			if !ok {

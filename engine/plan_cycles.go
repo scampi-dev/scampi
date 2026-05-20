@@ -52,7 +52,7 @@ func (e CyclicDependencyError) Diagnostic() event.Event {
 
 func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
 	var roots []spec.Op
-	for _, a := range plan.Unit.Actions {
+	for _, a := range plan.Deploy.Actions {
 		roots = append(roots, a.Ops()...)
 	}
 

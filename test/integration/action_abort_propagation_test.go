@@ -36,7 +36,7 @@ func TestExecutePlan_OpAborted_NonAbortImpact_BlocksDownstream(t *testing.T) {
 	actB := mkPromiserAction(paths("/foo"), paths("/bar"), bOp)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "issue-330",
 			Actions: []spec.Action{actA, actB},
 		},

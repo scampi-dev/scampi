@@ -313,7 +313,7 @@ func (e *Engine) CheckPlan(ctx context.Context, plan spec.Plan) (model.Execution
 }
 
 func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, map[spec.Resource]bool, error) {
-	nodes := buildActionGraph(plan.Unit.Actions)
+	nodes := buildActionGraph(plan.Deploy.Actions)
 	initActionPending(nodes)
 
 	rep := model.ExecutionReport{
@@ -481,7 +481,7 @@ func (e *Engine) runCheckAction(
 }
 
 func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {
-	nodes := buildActionGraph(plan.Unit.Actions)
+	nodes := buildActionGraph(plan.Deploy.Actions)
 	initActionPending(nodes)
 
 	rep := model.ExecutionReport{

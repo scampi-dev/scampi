@@ -65,7 +65,7 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -109,7 +109,7 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -155,7 +155,7 @@ func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{

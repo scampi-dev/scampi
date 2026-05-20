@@ -79,7 +79,7 @@ func (e *Engine) storeSourcePaths(ctx context.Context, p spec.Plan) {
 	if e.store == nil {
 		return
 	}
-	for _, act := range p.Unit.Actions {
+	for _, act := range p.Deploy.Actions {
 		sr, ok := act.(spec.SourceReader)
 		if !ok {
 			continue

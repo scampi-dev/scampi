@@ -37,7 +37,7 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -117,7 +117,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID: "fakeUnit",
 			Actions: []spec.Action{
 				harness.MkAction(opA, opB),
@@ -168,7 +168,7 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -214,7 +214,7 @@ func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -272,7 +272,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{
@@ -333,7 +333,7 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 	child.Deps = append(child.Deps, parent)
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
 			Actions: []spec.Action{

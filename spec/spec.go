@@ -90,8 +90,8 @@ type (
 		Fields map[string]FieldSpan
 	}
 
-	UnitInstance struct {
-		ID   UnitID
+	DeployInstance struct {
+		ID   DeployID
 		Desc string
 	}
 	StepInstance struct {
@@ -144,11 +144,11 @@ type (
 	}
 
 	Plan struct {
-		Unit Unit
+		Deploy Deploy
 	}
-	UnitID string
-	Unit   struct {
-		ID      UnitID
+	DeployID string
+	Deploy   struct {
+		ID      DeployID
 		Desc    string
 		Target  target.Target
 		Actions []Action

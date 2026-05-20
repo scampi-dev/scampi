@@ -61,7 +61,7 @@ func TestDetectPlanCycles_NoCycle(t *testing.T) {
 	act.ops = []spec.Op{opA, opB}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			Actions: []spec.Action{act},
 		},
 	}
@@ -81,7 +81,7 @@ func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
 	act.ops = []spec.Op{opA, opB}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			Actions: []spec.Action{act},
 		},
 	}

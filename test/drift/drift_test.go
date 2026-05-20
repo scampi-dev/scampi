@@ -34,7 +34,7 @@ func TestCheckPlan_DriftEmitted(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "driftUnit",
 			Desc:    "drift test",
 			Actions: []spec.Action{harness.MkAction(opA)},
@@ -88,7 +88,7 @@ func TestCheckPlan_SatisfiedNoDrift(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "driftUnit",
 			Desc:    "drift test",
 			Actions: []spec.Action{harness.MkAction(opA)},
@@ -128,7 +128,7 @@ func TestExecutePlan_NoDrift(t *testing.T) {
 	}
 
 	plan := spec.Plan{
-		Unit: spec.Unit{
+		Deploy: spec.Deploy{
 			ID:      "driftUnit",
 			Desc:    "drift test",
 			Actions: []spec.Action{harness.MkAction(opA)},
