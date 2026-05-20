@@ -277,7 +277,7 @@ func loadSiblingDecls(
 		c.RegisterForwardDecls(f)
 		if cErrs := c.Errors(); len(cErrs) > 0 {
 			raiseLangErrors(em, cErrs, mf.Path, mf.Data)
-			return nil, nil, ErrLangError
+			return nil, nil, diagnostic.ErrAlreadyRaised
 		}
 	}
 	return scope, broken, nil

@@ -58,13 +58,12 @@ func LoadConfig(
 	reg := NewRegistry()
 	cfg, err := linker.LoadConfig(ctx, em, cfgPath, src, reg, opts...)
 	if err != nil {
-		// The linker's sentinels (ErrAttributeViolation, ErrLangError)
-		// mean diagnostics have already been raised through em; the
-		// engine just propagates the abort. Other errors are genuine
-		// outliers (file-read failure, etc.) that haven't surfaced a
-		// diagnostic, so wrap them in LoadConfigError for visibility.
-		if !errors.Is(err, linker.ErrAttributeViolation) &&
-			!errors.Is(err, linker.ErrLangError) {
+		// ErrAlreadyRaised means diagnostics are already on the
+		// emitter; the engine just propagates the abort. Other errors
+		// are genuine outliers (file-read failure, etc.) that haven't
+		// surfaced a diagnostic, so wrap them in LoadConfigError for
+		// visibility.
+		if !errors.Is(err, diagnostic.ErrAlreadyRaised) {
 			_, emitted := emitEngineDiagnostic(em, cfgPath, err)
 			if !emitted {
 				em.Raise(&LoadConfigError{

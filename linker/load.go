@@ -21,19 +21,6 @@ import (
 	"scampi.dev/scampi/std"
 )
 
-// ErrAttributeViolation signals that an attribute static check raised
-// one or more diagnostics through the emitter. The diagnostics have
-// already been delivered; callers use this only to short-circuit the
-// pipeline. Diagnostic content is on the events, not on the error.
-// bare-error: sentinel; content lives on the emitted events.
-var ErrAttributeViolation = errs.New("attribute violation")
-
-// ErrLangError signals that a lex/parse/check/eval pass raised one or
-// more diagnostics through the emitter. Same shape as
-// ErrAttributeViolation: a sentinel, no content.
-// bare-error: sentinel; content lives on the emitted events.
-var ErrLangError = errs.New("lang pipeline error")
-
 // Analysis is the result of Analyze: the parsed AST, the eval result,
 // and the original file bytes. Callers needing only diagnostics can
 // discard everything and use the error return; callers needing the
@@ -97,11 +84,11 @@ func Analyze(
 	f := p.Parse()
 	if lexErrs := l.Errors(); len(lexErrs) > 0 {
 		raiseLangErrors(em, lexErrs, cfgPath, data)
-		return nil, ErrLangError
+		return nil, diagnostic.ErrAlreadyRaised
 	}
 	if parseErrs := p.Errors(); len(parseErrs) > 0 {
 		raiseLangErrors(em, parseErrs, cfgPath, data)
-		return nil, ErrLangError
+		return nil, diagnostic.ErrAlreadyRaised
 	}
 
 	// Type check. Bootstrap std modules first, then load any user
@@ -109,7 +96,7 @@ func Analyze(
 	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
 		em.Raise(toLangDiagnostic(err, cfgPath, data))
-		return nil, ErrLangError
+		return nil, diagnostic.ErrAlreadyRaised
 	}
 	userMods := LoadUserModules(cfgPath, modules)
 
@@ -142,7 +129,7 @@ func Analyze(
 	if checkErrs := c.Errors(); len(checkErrs) > 0 {
 		raiseBrokenSiblings(em, brokenSiblings)
 		raiseLangErrors(em, checkErrs, cfgPath, data)
-		return nil, ErrLangError
+		return nil, diagnostic.ErrAlreadyRaised
 	}
 
 	// Evaluate with secret backend builtins registered so
@@ -168,7 +155,7 @@ func Analyze(
 	result, evalErrs := eval.Eval(f, data, evalOpts...)
 	if len(evalErrs) > 0 {
 		raiseLangErrors(em, evalErrs, cfgPath, data)
-		return nil, ErrLangError
+		return nil, diagnostic.ErrAlreadyRaised
 	}
 
 	// Run attribute static checks. Two complementary passes:
@@ -201,7 +188,7 @@ func Analyze(
 		registry,
 	)
 	if raisedStatic || raisedEval {
-		return nil, ErrAttributeViolation
+		return nil, diagnostic.ErrAlreadyRaised
 	}
 
 	return &Analysis{

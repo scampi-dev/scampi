@@ -186,9 +186,7 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 	for _, ev := range capture.Events {
 		out = append(out, eventToLSP(ev, data))
 	}
-	if err != nil &&
-		!errors.Is(err, linker.ErrAttributeViolation) &&
-		!errors.Is(err, linker.ErrLangError) {
+	if err != nil && !errors.Is(err, diagnostic.ErrAlreadyRaised) {
 		out = append(out, protocol.Diagnostic{
 			Range:    protocol.Range{},
 			Severity: protocol.DiagnosticSeverityError,
