@@ -212,7 +212,23 @@ func eventToLSP(ev event.Event, src []byte) protocol.Diagnostic {
 	if rendered, ok := template.Render(tmpl.TextField()); ok {
 		msg = rendered
 	}
-	return lspDiagFromTemplate(tmpl, src, msg)
+	return lspDiagFromTemplate(tmpl, src, msg, lspSeverity(ev))
+}
+
+// lspSeverity maps an event type to the matching LSP severity.
+// Non-diagnostic events (Change/Progress) shouldn't reach here, but
+// fall back to Information rather than misreport as Error.
+func lspSeverity(ev event.Event) protocol.DiagnosticSeverity {
+	switch ev.(type) {
+	case event.Error:
+		return protocol.DiagnosticSeverityError
+	case event.Warning:
+		return protocol.DiagnosticSeverityWarning
+	case event.Info:
+		return protocol.DiagnosticSeverityInformation
+	default:
+		return protocol.DiagnosticSeverityInformation
+	}
 }
 
 // templateOf extracts the Template from any diagnostic-shaped event.
@@ -229,7 +245,12 @@ func templateOf(ev event.Event) event.Template {
 	}
 }
 
-func lspDiagFromTemplate(tmpl event.Template, src []byte, msg string) protocol.Diagnostic {
+func lspDiagFromTemplate(
+	tmpl event.Template,
+	src []byte,
+	msg string,
+	sev protocol.DiagnosticSeverity,
+) protocol.Diagnostic {
 	// Render Hint/Help against tmpl.Data — the raw fields are Go
 	// template strings (e.g. `{{.Hint}}`) that would otherwise leak
 	// verbatim into the LSP message. Both get a labelled prefix so
@@ -274,7 +295,7 @@ func lspDiagFromTemplate(tmpl event.Template, src []byte, msg string) protocol.D
 	_ = src // currently unused; reserved for future content-based span resolution
 	return protocol.Diagnostic{
 		Range:    rng,
-		Severity: protocol.DiagnosticSeverityError,
+		Severity: sev,
 		Source:   diagSourceLSP,
 		Code:     string(tmpl.ID),
 		Message:  msg,
