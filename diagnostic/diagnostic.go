@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-//go:generate stringer -type=Impact
 package diagnostic
 
 import (
@@ -28,16 +27,16 @@ func OpDisplayID(op spec.Op) string {
 	return t.Name()
 }
 
-type Impact uint8
+// Impact and its constants are aliases for the canonical types in
+// event/. The diagnostic package re-exports them so producers that
+// already import diagnostic don't also have to import event just to
+// reference Impact.
+type Impact = event.Impact
 
 const (
-	ImpactNone Impact = iota
-	ImpactAbort
+	ImpactNone  = event.ImpactNone
+	ImpactAbort = event.ImpactAbort
 )
-
-func (i Impact) ShouldAbort() bool {
-	return i == ImpactAbort
-}
 
 // Deferrable is implemented by errors that reference a missing resource which
 // could be created by an upstream action. The engine uses this to defer aborts

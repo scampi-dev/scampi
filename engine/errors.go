@@ -142,7 +142,7 @@ func panicIfNotAbortError(err error) error {
 // carries Impact; Warning/Info are advisories that never stop the run.
 func aborts(ev event.Event) bool {
 	e, ok := ev.(event.Error)
-	return ok && e.Impact == event.ImpactAbort
+	return ok && e.Impact.ShouldAbort()
 }
 
 // emitScopedDiagnostic extracts diagnostic(s) from err and emits them.
