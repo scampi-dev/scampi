@@ -69,13 +69,6 @@ func (e *ModuleNotFoundError) Diagnostic() event.Event {
 	}
 }
 
-//nolint:unused // satisfies star.sourceSettable across package boundary
-func (e *ModuleNotFoundError) setSource(s spec.SourceSpan) {
-	if e.Source == (spec.SourceSpan{}) {
-		e.Source = s
-	}
-}
-
 // ModuleNotCachedError
 // -----------------------------------------------------------------------------
 
@@ -103,13 +96,6 @@ func (e *ModuleNotCachedError) Diagnostic() event.Event {
 	}
 }
 
-//nolint:unused // satisfies star.sourceSettable across package boundary
-func (e *ModuleNotCachedError) setSource(s spec.SourceSpan) {
-	if e.Source == (spec.SourceSpan{}) {
-		e.Source = s
-	}
-}
-
 // ModuleNoEntryPointError
 // -----------------------------------------------------------------------------
 
@@ -134,13 +120,6 @@ func (e *ModuleNoEntryPointError) Diagnostic() event.Event {
 			Data:   e,
 			Source: &e.Source,
 		},
-	}
-}
-
-//nolint:unused // satisfies star.sourceSettable across package boundary
-func (e *ModuleNoEntryPointError) setSource(s spec.SourceSpan) {
-	if e.Source == (spec.SourceSpan{}) {
-		e.Source = s
 	}
 }
 
@@ -220,7 +199,7 @@ func (e *InitError) Diagnostic() event.Event {
 // InitStatError is raised when scampi mod init cannot stat the target
 // scampi.mod path (e.g. permission denied on the parent directory).
 //
-// Uses structured fields + a literal-template EventTemplate so dynamic
+// Uses structured fields + a literal-template Diagnostic so dynamic
 // content cannot leak through {{.Detail}}-style interpolation.
 type InitStatError struct {
 	Path  string
