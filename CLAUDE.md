@@ -135,10 +135,14 @@ This is a core UX principle, not a nice-to-have.
 `errs.Errorf` or bare strings in `mod/`, `step/`, `engine/`, `lang/`, or
 any other package. Every error must:
 
-- Embed `diagnostic.FatalError`
-- Implement `EventTemplate()` with ID, Text, Hint, Source, Data
-- Carry a `spec.SourceSpan` pointing to the offending source
-- Have a Hint guiding the user toward the fix
+- Have an `Error() string` method (so it satisfies Go's `error`)
+- Have a `Diagnostic() event.Event` method returning the typed event:
+  - `event.Error{Impact: event.ImpactAbort, Template: event.Template{...}}` for fatal
+  - `event.Error{Template: event.Template{...}}` for non-fatal errors that don't abort
+  - `event.Warning{Template: event.Template{...}}` for warnings
+  - `event.Info{Template: event.Template{...}}` for info
+- The Template carries `ID`, `Text`, `Hint`, `Help`, `Data`, `Source` (a `*spec.SourceSpan`)
+- The error gets raised via `em.Raise(err)` at the production site
 
 This is how errors reach the render pipeline (`--color`, `--ascii`,
 `--json` future). Bare errors bypass all of that. No exceptions.
