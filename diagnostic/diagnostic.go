@@ -57,9 +57,6 @@ type Emitter interface {
 	Raise(err Raisable)
 }
 
-// ActionDeps maps action index to indices of actions it depends on.
-type ActionDeps [][]int
-
 // Raisable is implemented by errors that map directly onto a
 // renderable event (event.Error, event.Warning, or event.Info).
 // Emitter.Raise routes Raisable errors through Emit; the engine

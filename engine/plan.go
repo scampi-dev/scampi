@@ -188,8 +188,8 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
 	return detail
 }
 
-// ActionDeps is an alias kept for callers that haven't migrated yet.
-type ActionDeps = diagnostic.ActionDeps
+// ActionDeps maps action index to indices of actions it depends on.
+type ActionDeps [][]int
 
 // hookPlan holds planned hook actions and the mapping from action index
 // to the hook IDs it should notify on change.
@@ -202,7 +202,7 @@ func plan(
 	cfg spec.ResolvedConfig,
 	em diagnostic.Emitter,
 	tgtCaps capability.Capability,
-) (spec.Plan, diagnostic.ActionDeps, *hookPlan, error) {
+) (spec.Plan, ActionDeps, *hookPlan, error) {
 	unitID := spec.UnitID(cfg.DeployName)
 
 	actions, actionSteps, onChange, causes, impacts := planSteps(cfg.Steps, em, tgtCaps)
@@ -389,8 +389,8 @@ func validateHooks(em diagnostic.Emitter, cfg spec.ResolvedConfig, hp *hookPlan)
 }
 
 // extractActionDeps converts action graph nodes to dependency indices.
-func extractActionDeps(nodes []*actionNode) diagnostic.ActionDeps {
-	deps := make(diagnostic.ActionDeps, len(nodes))
+func extractActionDeps(nodes []*actionNode) ActionDeps {
+	deps := make(ActionDeps, len(nodes))
 	for _, n := range nodes {
 		for _, req := range n.requires {
 			deps[n.idx] = append(deps[n.idx], req.idx)
