@@ -58,15 +58,15 @@ func LoadConfig(
 	reg := NewRegistry()
 	cfg, err := linker.LoadConfig(ctx, em, cfgPath, src, reg, opts...)
 	if err != nil {
-		// linker.ErrAttributeViolation means the diagnostics have
-		// already been raised through em; nothing more to do besides
-		// surface the abort to the caller.
-		if !errors.Is(err, linker.ErrAttributeViolation) {
+		// The linker's sentinels (ErrAttributeViolation, ErrLangError)
+		// mean diagnostics have already been raised through em; the
+		// engine just propagates the abort. Other errors are genuine
+		// outliers (file-read failure, etc.) that haven't surfaced a
+		// diagnostic, so wrap them in LoadConfigError for visibility.
+		if !errors.Is(err, linker.ErrAttributeViolation) &&
+			!errors.Is(err, linker.ErrLangError) {
 			_, emitted := emitEngineDiagnostic(em, cfgPath, err)
 			if !emitted {
-				// Error didn't carry a diagnostic (e.g. raw file-read
-				// failure). Wrap it in a generic LoadConfigError so
-				// the user sees something instead of a silent abort.
 				em.Raise(&LoadConfigError{
 					Cause:  err,
 					Source: spec.SourceSpan{Filename: cfgPath},

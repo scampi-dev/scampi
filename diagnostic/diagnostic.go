@@ -5,7 +5,6 @@ package diagnostic
 
 import (
 	"reflect"
-	"strings"
 
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/spec"
@@ -70,17 +69,4 @@ type ActionDeps [][]int
 type Raisable interface {
 	error
 	Diagnostic() event.Event
-}
-
-// Raisables aggregates multiple Raisable errors into a single error
-// value. Producers that run many checks in a batch return a Raisables
-// so each entry surfaces individually through emitScopedDiagnostic.
-type Raisables []Raisable
-
-func (rs Raisables) Error() string {
-	msgs := make([]string, len(rs))
-	for i, r := range rs {
-		msgs[i] = r.Error()
-	}
-	return strings.Join(msgs, "; ")
 }

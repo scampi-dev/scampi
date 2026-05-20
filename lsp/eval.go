@@ -175,9 +175,10 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 	}
 
 	// Run the full linker pipeline against the in-memory content. The
-	// linker raises diagnostics through cap; on a non-diagnostic
-	// failure (e.g. wrapped lang errors that haven't been wired into
-	// the emitter pipeline yet) we still need to surface something.
+	// linker raises every diagnostic through capture; the returned
+	// error is either nil, one of the linker's sentinel values, or a
+	// genuine outlier (file-read failure, etc.) that needs a
+	// head-of-file placeholder so the user sees something.
 	src := newOverlaySource(filePath, data)
 	capture := &diagnostic.Capture{}
 	_, err := linker.Analyze(ctx, capture, filePath, src, linker.WithLenient())
@@ -185,27 +186,15 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 	for _, ev := range capture.Events {
 		out = append(out, eventToLSP(ev, data))
 	}
-	if err != nil && !errors.Is(err, linker.ErrAttributeViolation) {
-		// Try to extract Raisable(s) from the error chain for the
-		// remaining batched paths (lex/parse/check/eval).
-		var rs diagnostic.Raisables
-		if errors.As(err, &rs) {
-			for _, r := range rs {
-				out = append(out, diagnosticToLSP(r, data))
-			}
-		} else {
-			var r diagnostic.Raisable
-			if errors.As(err, &r) {
-				out = append(out, diagnosticToLSP(r, data))
-			} else {
-				out = append(out, protocol.Diagnostic{
-					Range:    protocol.Range{},
-					Severity: protocol.DiagnosticSeverityError,
-					Source:   diagSourceLSP,
-					Message:  err.Error(),
-				})
-			}
-		}
+	if err != nil &&
+		!errors.Is(err, linker.ErrAttributeViolation) &&
+		!errors.Is(err, linker.ErrLangError) {
+		out = append(out, protocol.Diagnostic{
+			Range:    protocol.Range{},
+			Severity: protocol.DiagnosticSeverityError,
+			Source:   diagSourceLSP,
+			Message:  err.Error(),
+		})
 	}
 	if len(out) == 0 {
 		return nil
@@ -213,10 +202,17 @@ func (s *Server) evaluate(ctx context.Context, docURI protocol.DocumentURI, cont
 	return out
 }
 
-// eventToLSP renders an event.Event into LSP diagnostic shape.
+// eventToLSP renders an event.Event into LSP diagnostic shape. The
+// template's Text field is a Go template string ("{{.Msg}}"); render
+// it against Data so the LSP message carries the actual text rather
+// than the raw template.
 func eventToLSP(ev event.Event, src []byte) protocol.Diagnostic {
 	tmpl := templateOf(ev)
-	return lspDiagFromTemplate(tmpl, src, "")
+	msg := tmpl.Text
+	if rendered, ok := template.Render(tmpl.TextField()); ok {
+		msg = rendered
+	}
+	return lspDiagFromTemplate(tmpl, src, msg)
 }
 
 // templateOf extracts the Template from any diagnostic-shaped event.
@@ -233,18 +229,7 @@ func templateOf(ev event.Event) event.Template {
 	}
 }
 
-// diagnosticToLSP renders a typed scampi diagnostic into the LSP
-// protocol shape. Source spans on the diagnostic are used directly;
-// when no span is present the diagnostic is anchored at file head so
-// the user still sees the message.
-func diagnosticToLSP(r diagnostic.Raisable, src []byte) protocol.Diagnostic {
-	return lspDiagFromTemplate(templateOf(r.Diagnostic()), src, r.Error())
-}
-
 func lspDiagFromTemplate(tmpl event.Template, src []byte, msg string) protocol.Diagnostic {
-	if msg == "" {
-		msg = tmpl.Text
-	}
 	// Render Hint/Help against tmpl.Data — the raw fields are Go
 	// template strings (e.g. `{{.Hint}}`) that would otherwise leak
 	// verbatim into the LSP message. Both get a labelled prefix so

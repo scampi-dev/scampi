@@ -3,8 +3,6 @@
 package linker
 
 import (
-	"errors"
-
 	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/errs"
@@ -16,8 +14,8 @@ type langDiagData struct {
 	Hint string
 }
 
-// langDiagnostic wraps a plain lang pipeline error as a
-// diagnostic.Diagnostic so the engine can render it properly.
+// langDiagnostic wraps a plain lang pipeline error as a Raisable so
+// the engine can render it properly.
 type langDiagnostic struct {
 	code errs.Code
 	msg  string
@@ -40,22 +38,34 @@ func (d *langDiagnostic) Diagnostic() event.Event {
 	return event.Error{Impact: event.ImpactAbort, Template: t}
 }
 
-// wrapLangError converts a plain error from the lang pipeline into a
-// Raisable the engine can render. wrapLangErrors wraps multiple lang
-// errors as a Raisables slice so the engine emits all of them, not
-// just the first.
-func wrapLangErrors[T error](errs []T, cfgPath string, source []byte) error {
-	if len(errs) == 1 {
-		return wrapLangError(errs[0], cfgPath, source)
-	}
-	var diags diagnostic.Raisables
+// raiseLangErrors raises each error from the lang pipeline through em
+// as an individual diagnostic. Returns true if any were raised.
+func raiseLangErrors[T error](em diagnostic.Emitter, errs []T, cfgPath string, source []byte) bool {
 	for _, e := range errs {
-		diags = append(diags, wrapLangError(e, cfgPath, source).(*langDiagnostic))
+		em.Raise(toLangDiagnostic(e, cfgPath, source))
 	}
-	return diags
+	return len(errs) > 0
 }
 
-func wrapLangError(err error, cfgPath string, source []byte) error {
+// raiseBrokenSiblings emits one diagnostic per broken sibling file so
+// the user sees why symbols from those files are missing.
+func raiseBrokenSiblings(em diagnostic.Emitter, broken []brokenSibling) {
+	seen := map[string]bool{}
+	for _, b := range broken {
+		if seen[b.path] {
+			continue
+		}
+		seen[b.path] = true
+		em.Raise(&langDiagnostic{
+			code: CodeBrokenSibling,
+			msg:  "sibling file " + b.path + " has errors and was skipped",
+			hint: b.firstErr,
+			src:  &spec.SourceSpan{Filename: b.path},
+		})
+	}
+}
+
+func toLangDiagnostic(err error, cfgPath string, source []byte) *langDiagnostic {
 	span := &spec.SourceSpan{Filename: cfgPath}
 
 	var hint string
@@ -96,40 +106,6 @@ func wrapLangError(err error, cfgPath string, source []byte) error {
 		hint: hint,
 		src:  span,
 	}
-}
-
-// prependBrokenSiblings adds broken-sibling diagnostics to the front
-// of an existing error so the user sees why symbols are missing.
-func prependBrokenSiblings(err error, broken []brokenSibling) error {
-	if len(broken) == 0 {
-		return err
-	}
-	// Deduplicate by path (both loaders may report the same file).
-	seen := map[string]bool{}
-	var diags diagnostic.Raisables
-	for _, b := range broken {
-		if seen[b.path] {
-			continue
-		}
-		seen[b.path] = true
-		diags = append(diags, &langDiagnostic{
-			code: CodeBrokenSibling,
-			msg:  "sibling file " + b.path + " has errors and was skipped",
-			hint: b.firstErr,
-			src:  &spec.SourceSpan{Filename: b.path},
-		})
-	}
-	// Append original error(s) after the broken-sibling diagnostics.
-	var origDiags diagnostic.Raisables
-	if errors.As(err, &origDiags) {
-		diags = append(diags, origDiags...)
-	} else {
-		var r diagnostic.Raisable
-		if errors.As(err, &r) {
-			diags = append(diags, r)
-		}
-	}
-	return diags
 }
 
 func offsetToLineCol(src []byte, offset int) (line, col int) {

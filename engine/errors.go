@@ -152,19 +152,6 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 		return 0, false
 	}
 
-	var rs diagnostic.Raisables
-	if errors.As(err, &rs) {
-		impact := diagnostic.ImpactNone
-		for _, r := range rs {
-			ev := r.Diagnostic()
-			em.Emit(ev)
-			if aborts(ev) {
-				impact = diagnostic.ImpactAbort
-			}
-		}
-		return impact, true
-	}
-
 	var re diagnostic.Raisable
 	if errors.As(err, &re) {
 		ev := re.Diagnostic()

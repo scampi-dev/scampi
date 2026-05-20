@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"scampi.dev/scampi/diagnostic"
 	"scampi.dev/scampi/lang/ast"
 	"scampi.dev/scampi/lang/check"
 	"scampi.dev/scampi/lang/eval"
@@ -17,15 +18,13 @@ import (
 
 // LoadUserModules finds scampi.mod by walking up from cfgPath,
 // parses each dependency, and adds the resulting scopes to modules.
-// Errors from individual modules are silently skipped — the checker
+// Errors from individual modules are silently skipped - the checker
 // will emit "unknown module" for anything that failed to load, which
 // is a better UX than aborting the whole pipeline on a broken dep.
 //
 // This is the production counterpart to lsp/eval.go:loadUserModules.
-// Both use LoadModule for the actual lex+parse+check of each dep.
-// LoadUserModules finds scampi.mod, parses each dependency, adds
-// scopes to modules (keyed by the full require path), and returns
-// the parsed ASTs so the evaluator can register their funcs/decls.
+// Both share LoadUserModulesFromMod (and its loadMultiFileModule
+// helper) for the actual lex+parse+check of each dep.
 func LoadUserModules(cfgPath string, modules map[string]*check.Scope) []eval.UserModule {
 	modFile := findModFile(cfgPath)
 	if modFile == "" {
@@ -241,6 +240,7 @@ type brokenSibling struct {
 }
 
 func loadSiblingDecls(
+	em diagnostic.Emitter,
 	cfgPath string,
 	modName string,
 	modules map[string]*check.Scope,
@@ -276,7 +276,8 @@ func loadSiblingDecls(
 		c.WithScope(scope)
 		c.RegisterForwardDecls(f)
 		if cErrs := c.Errors(); len(cErrs) > 0 {
-			return nil, nil, wrapLangErrors(cErrs, mf.Path, mf.Data)
+			raiseLangErrors(em, cErrs, mf.Path, mf.Data)
+			return nil, nil, ErrLangError
 		}
 	}
 	return scope, broken, nil

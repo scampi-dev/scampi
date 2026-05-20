@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,6 +47,24 @@ func writeFile(t *testing.T, dir, name, content string) string {
 		t.Fatalf("WriteFile %s: %v", name, err)
 	}
 	return path
+}
+
+// recContains returns true if any captured diagnostic's rendered text
+// (template text or any field on the template Data) includes the given
+// substring. Used by tests that previously matched against err.Error()
+// before linker diagnostics started flowing through the emitter
+// instead of the error chain.
+func recContains(rec *harness.RecordingDisplayer, substr string) bool {
+	for _, ev := range rec.Diagnostics {
+		tmpl := harness.TemplateOf(ev)
+		if strings.Contains(tmpl.Text, substr) {
+			return true
+		}
+		if strings.Contains(fmt.Sprintf("%+v", tmpl.Data), substr) {
+			return true
+		}
+	}
+	return false
 }
 
 // errContains returns true if the error string contains all of the given substrings.
@@ -418,8 +437,8 @@ std.deploy(name = "test", targets = [tgt]) {
 	if !ok || len(ae.Causes) == 0 {
 		t.Fatalf("expected AbortError with causes, got: %v", err)
 	}
-	if !errContains(ae.Causes[0], "unknown module") {
-		t.Errorf("expected 'unknown module' error, got: %v", ae.Causes[0])
+	if !recContains(rec, "unknown module") {
+		t.Errorf("expected 'unknown module' diagnostic, got events: %v", rec.Diagnostics)
 	}
 }
 
@@ -464,8 +483,8 @@ std.deploy(name = "test", targets = [tgt]) {
 	if !ok || len(ae.Causes) == 0 {
 		t.Fatalf("expected AbortError with causes, got: %v", err)
 	}
-	if !errContains(ae.Causes[0], "unknown module") {
-		t.Errorf("expected 'unknown module' error, got: %v", ae.Causes[0])
+	if !recContains(rec, "unknown module") {
+		t.Errorf("expected 'unknown module' diagnostic, got events: %v", rec.Diagnostics)
 	}
 }
 

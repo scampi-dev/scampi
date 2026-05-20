@@ -86,25 +86,6 @@ func TestEmitScopedDiagnostic_Raisable(t *testing.T) {
 	}
 }
 
-func TestEmitScopedDiagnostic_Raisables(t *testing.T) {
-	rec := &recEmitter{}
-	rs := diagnostic.Raisables{
-		stubRaisable{impact: event.ImpactNone, tmpl: event.Template{ID: "d1", Text: "first"}},
-		stubRaisable{impact: event.ImpactAbort, tmpl: event.Template{ID: "d2", Text: "second"}},
-	}
-	impact, ok := emitScopedDiagnostic(rec, rs)
-
-	if !ok {
-		t.Error("expected ok=true")
-	}
-	if impact != diagnostic.ImpactAbort {
-		t.Errorf("expected max impact ImpactAbort, got %d", impact)
-	}
-	if len(rec.events) != 2 {
-		t.Fatalf("expected 2 events emitted, got %d", len(rec.events))
-	}
-}
-
 type stubRaisable struct {
 	impact event.Impact
 	tmpl   event.Template

@@ -5,7 +5,6 @@ package integration
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"filippo.io/age"
@@ -118,21 +117,9 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatal("expected error for missing secret, got nil")
 	}
 
-	errStr := unwrapAbortCauses(err)
-	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "secret") {
-		t.Fatalf("expected error about missing secret, got: %s", errStr)
+	if !recContains(rec, "not found") && !recContains(rec, "secret") {
+		t.Fatalf("expected diagnostic about missing secret, got events: %v", rec.Diagnostics)
 	}
-}
-
-func unwrapAbortCauses(err error) string {
-	if ae, ok := err.(engine.AbortError); ok {
-		var parts []string
-		for _, c := range ae.Causes {
-			parts = append(parts, c.Error())
-		}
-		return strings.Join(parts, "; ")
-	}
-	return err.Error()
 }
 
 // TestSecrets_FileBackend verifies secrets.from_file configures the backend.
@@ -416,9 +403,8 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatal("expected error for missing secret, got nil")
 	}
 
-	errStr := unwrapAbortCauses(err)
-	if !strings.Contains(errStr, "not found") && !strings.Contains(errStr, "secret") {
-		t.Fatalf("expected error about missing secret, got: %s", errStr)
+	if !recContains(rec, "not found") && !recContains(rec, "secret") {
+		t.Fatalf("expected diagnostic about missing secret, got events: %v", rec.Diagnostics)
 	}
 }
 

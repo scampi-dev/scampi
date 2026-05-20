@@ -28,6 +28,12 @@ import (
 // bare-error: sentinel; content lives on the emitted events.
 var ErrAttributeViolation = errs.New("attribute violation")
 
+// ErrLangError signals that a lex/parse/check/eval pass raised one or
+// more diagnostics through the emitter. Same shape as
+// ErrAttributeViolation: a sentinel, no content.
+// bare-error: sentinel; content lives on the emitted events.
+var ErrLangError = errs.New("lang pipeline error")
+
 // Analysis is the result of Analyze: the parsed AST, the eval result,
 // and the original file bytes. Callers needing only diagnostics can
 // discard everything and use the error return; callers needing the
@@ -90,17 +96,20 @@ func Analyze(
 	p := parse.New(l)
 	f := p.Parse()
 	if lexErrs := l.Errors(); len(lexErrs) > 0 {
-		return nil, wrapLangErrors(lexErrs, cfgPath, data)
+		raiseLangErrors(em, lexErrs, cfgPath, data)
+		return nil, ErrLangError
 	}
 	if parseErrs := p.Errors(); len(parseErrs) > 0 {
-		return nil, wrapLangErrors(parseErrs, cfgPath, data)
+		raiseLangErrors(em, parseErrs, cfgPath, data)
+		return nil, ErrLangError
 	}
 
 	// Type check. Bootstrap std modules first, then load any user
 	// modules declared in scampi.mod so `import "mymodule"` works.
 	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
-		return nil, wrapLangError(err, cfgPath, data)
+		em.Raise(toLangDiagnostic(err, cfgPath, data))
+		return nil, ErrLangError
 	}
 	userMods := LoadUserModules(cfgPath, modules)
 
@@ -117,9 +126,9 @@ func Analyze(
 	var brokenSiblings []brokenSibling
 	c := check.New(modules)
 	if modName != "main" {
-		siblings, broken, dupeErr := loadSiblingDecls(cfgPath, modName, modules)
-		if dupeErr != nil {
-			return nil, dupeErr
+		siblings, broken, sibErr := loadSiblingDecls(em, cfgPath, modName, modules)
+		if sibErr != nil {
+			return nil, sibErr
 		}
 		brokenSiblings = append(brokenSiblings, broken...)
 		if siblings != nil {
@@ -131,8 +140,9 @@ func Analyze(
 	}
 	c.Check(f)
 	if checkErrs := c.Errors(); len(checkErrs) > 0 {
-		wrapped := wrapLangErrors(checkErrs, cfgPath, data)
-		return nil, prependBrokenSiblings(wrapped, brokenSiblings)
+		raiseBrokenSiblings(em, brokenSiblings)
+		raiseLangErrors(em, checkErrs, cfgPath, data)
+		return nil, ErrLangError
 	}
 
 	// Evaluate with secret backend builtins registered so
@@ -157,7 +167,8 @@ func Analyze(
 	}
 	result, evalErrs := eval.Eval(f, data, evalOpts...)
 	if len(evalErrs) > 0 {
-		return nil, wrapLangErrors(evalErrs, cfgPath, data)
+		raiseLangErrors(em, evalErrs, cfgPath, data)
+		return nil, ErrLangError
 	}
 
 	// Run attribute static checks. Two complementary passes:
@@ -198,43 +209,6 @@ func Analyze(
 		Result: result,
 		Source: data,
 	}, nil
-}
-
-// LoadModule parses and type-checks a single stub or user-module
-// file against the provided module map. Returns the parsed AST and
-// the resulting file scope so callers can extract module metadata
-// (catalog entries, goto-def locations, completion sources).
-//
-// Unlike Analyze, LoadModule does not run the evaluator or attribute
-// static checks — stub modules declare types and signatures but have
-// no runtime body to evaluate. The LSP uses this to load user-module
-// dependencies into its catalog without dragging in eval/link
-// machinery.
-//
-// On lex/parse/check errors the function returns the partial parse
-// result alongside a wrapped diagnostic error so callers can choose
-// to log-and-skip (LSP) or fail-hard (test harness).
-func LoadModule(
-	modules map[string]*check.Scope,
-	path string,
-	data []byte,
-) (*ast.File, *check.Scope, error) {
-	l := lex.New(path, data)
-	p := parse.New(l)
-	f := p.Parse()
-	if lexErrs := l.Errors(); len(lexErrs) > 0 {
-		return f, nil, wrapLangErrors(lexErrs, path, data)
-	}
-	if parseErrs := p.Errors(); len(parseErrs) > 0 {
-		return f, nil, wrapLangErrors(parseErrs, path, data)
-	}
-	c := check.New(modules)
-	c.Check(f)
-	scope := c.FileScope()
-	if checkErrs := c.Errors(); len(checkErrs) > 0 {
-		return f, scope, wrapLangErrors(checkErrs, path, data)
-	}
-	return f, scope, nil
 }
 
 // LoadConfig reads a .scampi file, runs the full lang pipeline

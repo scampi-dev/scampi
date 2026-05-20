@@ -4,7 +4,6 @@ package linker_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"scampi.dev/scampi/diagnostic"
@@ -132,7 +131,7 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 		t.Fatal("expected error for broken syntax")
 	}
 
-	tmpl := firstDiagnosticTemplate(t, capture, err)
+	tmpl := firstDiagnosticTemplate(t, capture)
 	if tmpl.Source == nil {
 		t.Fatal("diagnostic should have source span")
 	}
@@ -142,10 +141,9 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 }
 
 // firstDiagnosticTemplate returns the template of the first diagnostic
-// raised through capture, falling back to extraction from the error chain
-// for the lex/parse/check/eval paths that still batch errors as
-// Raisable(s) instead of raising them directly.
-func firstDiagnosticTemplate(t *testing.T, capture *diagnostic.Capture, err error) event.Template {
+// raised through capture. Every linker diagnostic is now delivered via
+// the emitter, so the error chain carries only sentinel values.
+func firstDiagnosticTemplate(t *testing.T, capture *diagnostic.Capture) event.Template {
 	t.Helper()
 	for _, ev := range capture.Events {
 		switch v := ev.(type) {
@@ -157,18 +155,7 @@ func firstDiagnosticTemplate(t *testing.T, capture *diagnostic.Capture, err erro
 			return v.Template
 		}
 	}
-	var rs diagnostic.Raisables
-	if errors.As(err, &rs) {
-		if len(rs) == 0 {
-			t.Fatal("expected at least one diagnostic in Raisables")
-		}
-		return rs[0].Diagnostic().(event.Error).Template
-	}
-	var r diagnostic.Raisable
-	if errors.As(err, &r) {
-		return r.Diagnostic().(event.Error).Template
-	}
-	t.Fatalf("no diagnostic raised through cap and error chain has no Raisable: %v", err)
+	t.Fatal("no diagnostic raised through capture")
 	return event.Template{}
 }
 
@@ -193,7 +180,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatal("expected error for secret() without backend")
 	}
 
-	tmpl := firstDiagnosticTemplate(t, capture, err)
+	tmpl := firstDiagnosticTemplate(t, capture)
 	if tmpl.Source == nil {
 		t.Fatal("diagnostic should have source span")
 	}
