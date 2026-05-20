@@ -70,23 +70,9 @@ func (r *RecordingDisplayer) CountChangedOps() int {
 func (r *RecordingDisplayer) CollectDiagnosticIDs() []string {
 	var ids []string
 	for _, e := range r.Diagnostics {
-		ids = append(ids, string(TemplateOf(e).ID))
+		ids = append(ids, string(event.TemplateOf(e).ID))
 	}
 	return ids
-}
-
-// TemplateOf extracts the Template from any diagnostic-shaped event.
-func TemplateOf(ev event.Event) event.Template {
-	switch v := ev.(type) {
-	case event.Error:
-		return v.Template
-	case event.Warning:
-		return v.Template
-	case event.Info:
-		return v.Template
-	default:
-		return event.Template{}
-	}
 }
 
 func MarshalSection(header string, v any) string {

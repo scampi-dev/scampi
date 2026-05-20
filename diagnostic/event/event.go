@@ -31,6 +31,22 @@ type InspectEntry struct {
 // Template
 // -----------------------------------------------------------------------------
 
+// TemplateOf extracts the Template from any diagnostic-shaped event
+// (Error / Warning / Info). Returns the zero Template for events that
+// don't carry one (Change / Progress).
+func TemplateOf(ev Event) Template {
+	switch v := ev.(type) {
+	case Error:
+		return v.Template
+	case Warning:
+		return v.Template
+	case Info:
+		return v.Template
+	default:
+		return Template{}
+	}
+}
+
 type Template struct {
 	ID   errs.Code
 	Text string

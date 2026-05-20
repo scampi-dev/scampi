@@ -566,7 +566,7 @@ frobnicate(name = "test")`,
 func assertDiagnosticsWellFormed(t *testing.T, diags []event.Event) {
 	t.Helper()
 	for i, d := range diags {
-		if harness.TemplateOf(d).ID == "" {
+		if event.TemplateOf(d).ID == "" {
 			t.Fatalf("diagnostic [%d] has empty Template.ID", i)
 		}
 	}

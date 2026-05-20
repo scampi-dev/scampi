@@ -122,7 +122,7 @@ func collectDiagnostics(rec *RecordingDisplayer) []collectedDiagnostic {
 		}
 		collected = append(collected, collectedDiagnostic{
 			severity: severityToString(sev),
-			template: TemplateOf(ev),
+			template: event.TemplateOf(ev),
 		})
 	}
 	return collected

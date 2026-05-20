@@ -215,7 +215,7 @@ func (b *diagBuf) Raise(r diagnostic.Raisable) { b.Emit(r.Diagnostic()) }
 // it against Data so the LSP message carries the actual text rather
 // than the raw template.
 func eventToLSP(ev event.Event, src []byte) protocol.Diagnostic {
-	tmpl := templateOf(ev)
+	tmpl := event.TemplateOf(ev)
 	msg := tmpl.Text
 	if rendered, ok := template.Render(tmpl.TextField()); ok {
 		msg = rendered
@@ -236,20 +236,6 @@ func lspSeverity(ev event.Event) protocol.DiagnosticSeverity {
 		return protocol.DiagnosticSeverityInformation
 	default:
 		return protocol.DiagnosticSeverityInformation
-	}
-}
-
-// templateOf extracts the Template from any diagnostic-shaped event.
-func templateOf(ev event.Event) event.Template {
-	switch v := ev.(type) {
-	case event.Error:
-		return v.Template
-	case event.Warning:
-		return v.Template
-	case event.Info:
-		return v.Template
-	default:
-		return event.Template{}
 	}
 }
 

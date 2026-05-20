@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/mod"
 	"scampi.dev/scampi/source"
@@ -56,7 +57,7 @@ func writeFile(t *testing.T, dir, name, content string) string {
 // instead of the error chain.
 func recContains(rec *harness.RecordingDisplayer, substr string) bool {
 	for _, ev := range rec.Diagnostics {
-		tmpl := harness.TemplateOf(ev)
+		tmpl := event.TemplateOf(ev)
 		if strings.Contains(tmpl.Text, substr) {
 			return true
 		}
