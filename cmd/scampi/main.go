@@ -66,6 +66,11 @@ const (
 )
 
 func main() {
+	if err := startProfiling(os.Args); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(exitUserError)
+	}
+
 	scampi := &cli.Command{
 		Name:                   "scampi",
 		Usage:                  "Declarative task execution for local and remote systems",
@@ -94,6 +99,18 @@ func main() {
 			&cli.BoolFlag{
 				Name:  flagVerbosity,
 				Usage: "increase verbosity (-v, -vv, -vvv)",
+			},
+			&cli.StringFlag{
+				Name:  flagCPUProfile,
+				Usage: "write CPU profile to `FILE` (pprof format)",
+			},
+			&cli.StringFlag{
+				Name:  flagMemProfile,
+				Usage: "write heap profile to `FILE` at exit (pprof format)",
+			},
+			&cli.StringFlag{
+				Name:  flagTrace,
+				Usage: "write execution trace to `FILE` (go tool trace)",
 			},
 		},
 		Commands: []*cli.Command{
@@ -153,12 +170,14 @@ func main() {
 		// to stderr by urfave/cli before returning. Exit cleanly so the
 		// user sees only the library's message, not a scary "unhandled
 		// error" trace.
+		stopProfiling()
 		var exitErr cli.ExitCoder
 		if errors.As(err, &exitErr) {
 			os.Exit(exitErr.ExitCode())
 		}
 		os.Exit(exitUserError)
 	}
+	stopProfiling()
 }
 
 // Argument validation
@@ -381,5 +400,6 @@ func recoverAndReport(r any) {
 	_println(string(debug.Stack()))
 
 	// Hard exit with a distinct code for internal bugs
+	stopProfiling()
 	os.Exit(exitBug)
 }

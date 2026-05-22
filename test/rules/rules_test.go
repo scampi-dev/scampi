@@ -65,6 +65,10 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,os/signal,runtime/debug",
 		},
 		{
+			pattern:        "cmd/scampi/profile.go",
+			allowedImports: "os,runtime,runtime/pprof,runtime/trace",
+		},
+		{
 			pattern:        "cmd/scampls/main.go",
 			allowedImports: "os,os/signal",
 		},
