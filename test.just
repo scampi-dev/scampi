@@ -112,11 +112,11 @@ fuzz time='30s' pkg='':
     go test "./$pkg" -fuzz=. -fuzztime={{time}}
   done
 
-[doc("Run benchmarks")]
+[doc("Run benchmarks (SCAMPI_BENCH_FULL=1 enables Size-{10,100,1000,10000} variants in addition to Size-1)")]
 bench save_as='' count='10' benchtime='100ms':
   {{
     if save_as == '' {
-      f"go test ./test/integration -bench=. -benchmem -count={{count}} -benchtime={{benchtime}}"
+      f"SCAMPI_BENCH_FULL=1 go test ./test/integration -bench=. -benchmem -count={{count}} -benchtime={{benchtime}}"
     } else {
       f'''
       mkdir -p "{{bench_dir}}"
@@ -129,9 +129,9 @@ bench save_as='' count='10' benchtime='100ms':
         fi
       fi
       echo 'Warmup run...'
-      go test ./test/integration -bench=. -benchmem -count=2 -benchtime={{benchtime}}
+      SCAMPI_BENCH_FULL=1 go test ./test/integration -bench=. -benchmem -count=2 -benchtime={{benchtime}}
       echo 'Recorded run...'
-      go test ./test/integration -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
+      SCAMPI_BENCH_FULL=1 go test ./test/integration -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
         | tee "{{bench_dir}}/$ts-{{save_as}}.txt"
       '''
     }

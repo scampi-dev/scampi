@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -16,6 +17,17 @@ import (
 	"scampi.dev/scampi/target"
 	"scampi.dev/scampi/test/harness"
 )
+
+// benchSizes returns the scale-out sizes for a benchmark. Default is
+// just {1} so the pre-commit gate's -benchtime=1x smoke runs in tens
+// of milliseconds per bench instead of seconds. Set SCAMPI_BENCH_FULL=1
+// to run the full set — `just test bench` does this automatically.
+func benchSizes(full ...int) []int {
+	if os.Getenv("SCAMPI_BENCH_FULL") != "" {
+		return full
+	}
+	return []int{1}
+}
 
 /*
 BENCHMARK PHILOSOPHY
@@ -37,7 +49,7 @@ They intentionally avoid:
 func BenchmarkLoadConfig(b *testing.B) {
 	tmp := b.TempDir()
 
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfg := fmt.Sprintf(`module main
@@ -99,7 +111,7 @@ func BenchmarkDiagnosticEmission(b *testing.B) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -169,7 +181,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Symlink(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -231,7 +243,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Dir(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -293,7 +305,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Mixed(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -367,7 +379,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Template(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -437,7 +449,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Pkg(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -497,7 +509,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Service(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -558,7 +570,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Group(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -621,7 +633,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_User(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -688,7 +700,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Sysctl(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -754,7 +766,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Firewall(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -826,7 +838,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Run(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -891,7 +903,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 func BenchmarkApplyNoOp_Container(b *testing.B) {
-	sizes := []int{1, 10, 100, 1000, 10000}
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
@@ -967,8 +979,6 @@ func generateFiles(n int) map[string]string {
 	return files
 }
 
-var benchArchiveSizes = []int{1, 10, 100, 1000}
-
 func BenchmarkApplyNoOp_Unarchive_TarGz(b *testing.B) {
 	benchUnarchiveNoOp(b, makeTarGz, "/data.tar.gz")
 }
@@ -990,7 +1000,7 @@ func BenchmarkApplyNoOp_Unarchive_Zip(b *testing.B) {
 }
 
 func benchUnarchiveNoOp(b *testing.B, makeFn func(testing.TB, map[string]string) []byte, srcPath string) {
-	for _, n := range benchArchiveSizes {
+	for _, n := range benchSizes(1, 10, 100, 1000) {
 		archive := makeFn(b, generateFiles(n))
 		b.Run(fmt.Sprintf("Size-%d", n), func(b *testing.B) {
 			cfgStr := fmt.Sprintf(`module main
