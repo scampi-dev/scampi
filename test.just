@@ -125,8 +125,12 @@ bench save_as='' count='10' benchtime='100ms':
       latest=$(ls {{bench_dir}}/*.txt 2>/dev/null | sort | tail -1)
       ts=$(date '+%Y-%m-%dT%H%M')
       if [ -n "$latest" ]; then
-        prev_ts=$(basename "$latest" | sed 's/-[^-]*\.txt$//')
-        if [ ! -f "{{bench_dir}}/$prev_ts-{{save_as}}.txt" ]; then
+        # Coalesce timestamps when multiple suffixes are recorded in
+        # quick succession. Extract the leading 'YYYY-MM-DDTHHMM' so the
+        # match works for any suffix shape, including dashed CI suffixes
+        # like 'ci-forgejo-<hostname>'.
+        prev_ts=$(basename "$latest" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{4}')
+        if [ -n "$prev_ts" ] && [ ! -f "{{bench_dir}}/$prev_ts-{{save_as}}.txt" ]; then
           ts=$prev_ts
         fi
       fi

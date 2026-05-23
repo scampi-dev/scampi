@@ -3,6 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+    # Skip CI on bot-driven bench commits to avoid an infinite loop:
+    # the bench job below pushes to benchmarks/ on main, which would
+    # otherwise re-trigger CI.
+    paths-ignore:
+      - 'benchmarks/**'
   pull_request:
     branches: [main]
 
@@ -13,3 +18,43 @@ jobs:
       - uses: actions/checkout@v4
       - run: just test everything
       - run: just lint
+
+  bench:
+    # Record a bench baseline only after main pushes pass, never on PRs.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: scampi
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Compute suffix
+        id: suffix
+        run: echo "value=ci-forgejo-$(hostname)" >> "$GITHUB_OUTPUT"
+
+      - name: Record benchmark baseline
+        run: just test bench ${{ steps.suffix.outputs.value }}
+
+      - name: Compare against previous baseline
+        # Non-fatal: first run for a new suffix has nothing to compare,
+        # and regression auto-fail is a follow-up. Output lands in the
+        # job log either way.
+        run: just test benchcomp ${{ steps.suffix.outputs.value }} || true
+
+      - name: Commit and push baseline
+        run: |
+          set -euo pipefail
+          git config user.name "scampi-bench-bot"
+          git config user.email "bench-bot@scampi.dev"
+          git add benchmarks/
+          if git diff --cached --quiet; then
+            echo "No new benchmark file"
+            exit 0
+          fi
+          ts=$(date '+%Y-%m-%dT%H%M')
+          git commit -m "ci: bench baseline ${ts} for ${{ steps.suffix.outputs.value }}"
+          # Rebase in case main moved during the bench run.
+          git pull --rebase origin main
+          git push
