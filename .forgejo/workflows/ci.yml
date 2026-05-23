@@ -68,3 +68,20 @@ jobs:
           # Rebase in case main moved during the bench run.
           git pull --rebase origin main
           git push
+
+      - name: Publish raw bench data to Caddy
+        # Runner is on the same VPS as Caddy (see .infra/runner.scampi
+        # and .infra/site.scampi). The target dir is owned by
+        # forgejo-runner so we can write directly without SSH/rsync
+        # over the network. --delete keeps the published copy in sync
+        # with git (renames + size-10000 strip etc. propagate cleanly).
+        run: |
+          set -euo pipefail
+          suffix="${{ steps.meta.outputs.suffix }}"
+          target="/var/www/scampi.dev/raw-bench/${suffix}"
+          install -d "$target"
+          rsync -a --delete --include='*-'"$suffix"'.txt' --exclude='*' \
+            benchmarks/ "$target/"
+          # Manifest the JS dashboard consumes: chronologically sorted
+          # list of filenames in the suffix's directory.
+          (cd "$target" && ls -1 *-"$suffix".txt | jq -R . | jq -s .) > "$target/index.json"
