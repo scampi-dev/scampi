@@ -123,7 +123,12 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 		}
 	}
 
-	sftpClient, err := sftp.NewClient(client)
+	// UseConcurrentWrites engages pkg/sftp's concurrent in-flight
+	// write path; without it File.ReadFrom falls back to sequential
+	// 32KB writes that bottleneck around 5 MB/s on LAN (#417). Safe
+	// for our usage: we don't resume partial writes — a write error
+	// fails the op, the caller never observes a half-written file.
+	sftpClient, err := sftp.NewClient(client, sftp.UseConcurrentWrites(true))
 	if err != nil {
 		_ = closeAgent()
 		_ = client.Close()

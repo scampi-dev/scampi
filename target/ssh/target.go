@@ -3,6 +3,7 @@
 package ssh
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -171,7 +172,11 @@ func (t *SSHTarget) WriteFile(ctx context.Context, path string, data []byte) err
 	}
 	defer func() { _ = f.Close() }()
 
-	_, err = f.Write(data)
+	// ReadFrom with a bytes.Reader engages pkg/sftp's concurrent
+	// in-flight write path (it sniffs Len()/Size() on the source).
+	// File.Write([]byte) issues 32KB chunks sequentially, which on
+	// LAN tops out around 5 MB/s vs ~37 MB/s for scp. See #417.
+	_, err = f.ReadFrom(bytes.NewReader(data))
 	return normalizeError(err)
 }
 
@@ -593,7 +598,7 @@ func (t *SSHTarget) writeTempFile(data []byte) (string, error) {
 	}
 	defer func() { _ = f.Close() }()
 
-	if _, err := f.Write(data); err != nil {
+	if _, err := f.ReadFrom(bytes.NewReader(data)); err != nil {
 		_ = t.sftp.Remove(tmp)
 		return "", err
 	}
