@@ -32,6 +32,12 @@ race:
 containers:
   SCAMPI_TEST_CONTAINERS=1 go test -v ./test/...
 
+# Fuzz funcs are NOT run with -fuzz here: plain `go test` already
+# executes their f.Add() seeds (and any saved corpus) as deterministic
+# subtests during `go test -race -v ./...`, which catches "fuzz code is
+# broken" without doing exploratory fuzzing. Real fuzzing belongs in
+# scheduled jobs or `just test fuzz <dur>`.
+
 [doc("Run everything except container-gated tests (pre-commit gate; pass 'quiet' to suppress passing output)")]
 nocontainers mode='':
   #!/usr/bin/env bash
@@ -41,13 +47,11 @@ nocontainers mode='':
       just test _q 'go test -race -v ./...'
       just test _q 'just test testkit'
       just test _q 'go test ./test/integration -bench=. -benchmem -count=1 -benchtime=1x'
-      just test _q 'just test fuzz 5s'
       ;;
     *)
       go test -race -v ./...
       just test testkit
       go test ./test/integration -bench=. -benchmem -count=1 -benchtime=1x
-      just test fuzz 5s
       ;;
   esac
 
@@ -60,13 +64,11 @@ everything mode='':
       just test _q 'SCAMPI_TEST_CONTAINERS=1 go test -race -v ./...'
       just test _q 'just test testkit'
       just test _q 'go test ./test/integration -bench=. -benchmem -count=1 -benchtime=1x'
-      just test _q 'just test fuzz 5s'
       ;;
     *)
       SCAMPI_TEST_CONTAINERS=1 go test -race -v ./...
       just test testkit
       go test ./test/integration -bench=. -benchmem -count=1 -benchtime=1x
-      just test fuzz 5s
       ;;
   esac
 
