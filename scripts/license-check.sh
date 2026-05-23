@@ -25,21 +25,36 @@ check_file() {
   fi
 }
 
+# Restrict to tracked + untracked-not-ignored files so anything in
+# .gitignore — .sandbox/, .issues/, build/, etc. — is naturally
+# skipped. Testdata fixtures and .dev/ scripts are tracked but
+# exempt from the SPDX requirement, so they're filtered out
+# explicitly below.
+list_tracked() {
+  local pattern="$1"
+  git ls-files --cached --others --exclude-standard -- "$pattern" \
+    | grep -v '^\.dev/' || true
+}
+
 # Go files: SPDX on line 1
 while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
   check_file "$f" 1
-done < <(find . -name '*.go' -not -path './vendor/*')
+done < <(list_tracked '*.go')
 
 # Shell scripts: SPDX on line 2 (after shebang)
 while IFS= read -r f; do
+  [[ -z "$f" ]] && continue
+  [[ "$(basename "$f")" == "license-check.sh" ]] && continue
   check_file "$f" 2
-done < <(find . -name '*.sh' -not -path './vendor/*' -not -path './build/*' -not -path './.dev/*' -not -path './bench/ansible/venv/*' -not -name 'license-check.sh')
+done < <(list_tracked '*.sh')
 
 # Scampi-lang files: SPDX on line 1
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
+  [[ "$f" == *"/testdata/"* ]] && continue
   check_file "$f" 1
-done < <(find . -name '*.scampi' -not -path './.sandbox/*' -not -path './.issues/*' -not -path '*/testdata/*')
+done < <(list_tracked '*.scampi')
 
 ok=true
 if [[ ${#missing[@]} -gt 0 ]]; then
@@ -58,9 +73,9 @@ if [[ ${#stray[@]} -gt 0 ]]; then
   ok=false
 fi
 if [[ "$ok" == true ]]; then
-  n_go=$(find . -name '*.go' -not -path './vendor/*' | wc -l)
-  n_sh=$(find . -name '*.sh' -not -path './vendor/*' -not -path './build/*' -not -path './site/static/*' -not -path './.dev/*' | wc -l)
-  n_scampi=$(find . -name '*.scampi' -not -path './.sandbox/*' -not -path '*/testdata/*' | wc -l)
+  n_go=$(list_tracked '*.go' | grep -cv '^$' || true)
+  n_sh=$(list_tracked '*.sh' | grep -v '^$' | grep -cv '/license-check\.sh$' || true)
+  n_scampi=$(list_tracked '*.scampi' | grep -v '^$' | grep -cv '/testdata/' || true)
   echo "✓ All $((n_go + n_sh + n_scampi)) files have correct SPDX headers"
 fi
 [[ "$ok" == true ]]
