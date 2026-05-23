@@ -23,6 +23,7 @@ import (
 	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 	"scampi.dev/scampi/target/ctrmgr"
+	"scampi.dev/scampi/target/identity"
 	"scampi.dev/scampi/target/pkgmgr"
 	"scampi.dev/scampi/target/posix"
 	"scampi.dev/scampi/target/svcmgr"
@@ -145,6 +146,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstanc
 	})
 	sshTgt.dialCount.Add(1)
 	sshTgt.Runner = sshTgt.RunCommand
+	sshTgt.Identity = identity.New()
 
 	// OS detection for package manager and platform-specific dispatch.
 	if result, err := sshTgt.RunCommand(ctx, "uname -s"); err == nil {

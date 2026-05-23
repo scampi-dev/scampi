@@ -87,6 +87,10 @@ func (b Base) CreateUser(ctx context.Context, info target.UserInfo) error {
 		// bare-error: system command error, wrapped by step before reaching engine
 		return errs.Errorf("useradd %s failed (exit %d): %s", info.Name, result.ExitCode, result.Stderr)
 	}
+	// useradd on many distros also creates a primary group with the
+	// same name (USERGROUPS_ENAB yes), so invalidate both namespaces.
+	b.Identity.InvalidateUser(info.Name)
+	b.Identity.InvalidateGroup(info.Name)
 	return nil
 }
 
@@ -122,6 +126,7 @@ func (b Base) ModifyUser(ctx context.Context, info target.UserInfo) error {
 		// bare-error: system command error, wrapped by step before reaching engine
 		return errs.Errorf("usermod %s failed (exit %d): %s", info.Name, result.ExitCode, result.Stderr)
 	}
+	b.Identity.InvalidateUser(info.Name)
 	return nil
 }
 
@@ -143,6 +148,10 @@ func (b Base) DeleteUser(ctx context.Context, name string) error {
 		// bare-error: system command error, wrapped by step before reaching engine
 		return errs.Errorf("userdel %s failed (exit %d): %s", name, result.ExitCode, result.Stderr)
 	}
+	// userdel of a user with USERGROUPS_ENAB also removes the primary
+	// group of the same name when empty; invalidate both.
+	b.Identity.InvalidateUser(name)
+	b.Identity.InvalidateGroup(name)
 	return nil
 }
 
@@ -194,6 +203,7 @@ func (b Base) CreateGroup(ctx context.Context, info target.GroupInfo) error {
 		// bare-error: system command error, wrapped by step before reaching engine
 		return errs.Errorf("groupadd %s failed (exit %d): %s", info.Name, result.ExitCode, result.Stderr)
 	}
+	b.Identity.InvalidateGroup(info.Name)
 	return nil
 }
 
@@ -215,6 +225,7 @@ func (b Base) DeleteGroup(ctx context.Context, name string) error {
 		// bare-error: system command error, wrapped by step before reaching engine
 		return errs.Errorf("groupdel %s failed (exit %d): %s", name, result.ExitCode, result.Stderr)
 	}
+	b.Identity.InvalidateGroup(name)
 	return nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"scampi.dev/scampi/capability"
 	"scampi.dev/scampi/target"
 	"scampi.dev/scampi/target/ctrmgr"
+	"scampi.dev/scampi/target/identity"
 	"scampi.dev/scampi/target/pkgmgr"
 	"scampi.dev/scampi/target/svcmgr"
 )
@@ -20,6 +21,7 @@ import (
 // and set Runner to their command execution function.
 type Base struct {
 	Runner         func(ctx context.Context, cmd string) (target.CommandResult, error)
+	Identity       *identity.Cache
 	OSInfo         target.OSInfo
 	PkgBackend     *pkgmgr.Backend
 	SvcBackend     svcmgr.Backend

@@ -338,6 +338,13 @@ func (t *SSHTarget) resolveUser(ctx context.Context, user string) (int, error) {
 		return uid, nil
 	}
 
+	if uid, exists, ok := t.Identity.UID(user); ok {
+		if !exists {
+			return 0, target.ErrUnknownUser
+		}
+		return uid, nil
+	}
+
 	result, err := t.RunCommand(ctx, fmt.Sprintf("id -u %s", target.ShellQuote(user)))
 	if err != nil {
 		return 0, err
@@ -346,6 +353,7 @@ func (t *SSHTarget) resolveUser(ctx context.Context, user string) (int, error) {
 		return 0, target.ErrCommandNotFound
 	}
 	if result.ExitCode != 0 {
+		t.Identity.MarkUserAbsent(user)
 		return 0, target.ErrUnknownUser
 	}
 
@@ -353,11 +361,19 @@ func (t *SSHTarget) resolveUser(ctx context.Context, user string) (int, error) {
 	if err != nil {
 		return 0, target.ErrUnknownUser
 	}
+	t.Identity.SetUser(user, uid)
 	return uid, nil
 }
 
 func (t *SSHTarget) resolveGroup(ctx context.Context, group string) (int, error) {
 	if gid, err := strconv.Atoi(group); err == nil {
+		return gid, nil
+	}
+
+	if gid, exists, ok := t.Identity.GID(group); ok {
+		if !exists {
+			return 0, target.ErrUnknownGroup
+		}
 		return gid, nil
 	}
 
@@ -369,6 +385,7 @@ func (t *SSHTarget) resolveGroup(ctx context.Context, group string) (int, error)
 		return 0, target.ErrCommandNotFound
 	}
 	if result.ExitCode != 0 {
+		t.Identity.MarkGroupAbsent(group)
 		return 0, target.ErrUnknownGroup
 	}
 
@@ -381,28 +398,37 @@ func (t *SSHTarget) resolveGroup(ctx context.Context, group string) (int, error)
 	if err != nil {
 		return 0, target.ErrUnknownGroup
 	}
+	t.Identity.SetGroup(group, gid)
 	return gid, nil
 }
 
 func (t *SSHTarget) resolveUID(ctx context.Context, uid int) string {
+	if name, ok := t.Identity.UserName(uid); ok {
+		return name
+	}
 	result, err := t.RunCommand(ctx, fmt.Sprintf("getent passwd %d", uid))
 	if err != nil || result.ExitCode != 0 {
 		return fmt.Sprintf("%d", uid)
 	}
 	parts := strings.Split(strings.TrimSpace(result.Stdout), ":")
-	if len(parts) > 0 {
+	if len(parts) > 0 && parts[0] != "" {
+		t.Identity.SetUser(parts[0], uid)
 		return parts[0]
 	}
 	return fmt.Sprintf("%d", uid)
 }
 
 func (t *SSHTarget) resolveGID(ctx context.Context, gid int) string {
+	if name, ok := t.Identity.GroupName(gid); ok {
+		return name
+	}
 	result, err := t.RunCommand(ctx, fmt.Sprintf("getent group %d", gid))
 	if err != nil || result.ExitCode != 0 {
 		return fmt.Sprintf("%d", gid)
 	}
 	parts := strings.Split(strings.TrimSpace(result.Stdout), ":")
-	if len(parts) > 0 {
+	if len(parts) > 0 && parts[0] != "" {
+		t.Identity.SetGroup(parts[0], gid)
 		return parts[0]
 	}
 	return fmt.Sprintf("%d", gid)
