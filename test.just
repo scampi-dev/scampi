@@ -146,7 +146,10 @@ bench save_as='' count='10' benchtime='100ms':
     exit 0
   fi
   mkdir -p "{{bench_dir}}"
-  ts=$(date '+%Y-%m-%dT%H%M')
+  # Allow CI to fix the filename timestamp to the same value used in
+  # the eventual commit message, so the file in benchmarks/ matches
+  # `ci: bench baseline <ts>` instead of drifting by the bench runtime.
+  ts="${SCAMPI_BENCH_TS:-$(date '+%Y-%m-%dT%H%M')}"
   echo 'Warmup run...'
   SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count=2 -benchtime={{benchtime}}
   echo 'Recorded run...'

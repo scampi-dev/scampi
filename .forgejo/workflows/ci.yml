@@ -24,24 +24,35 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: ci
     runs-on: scampi
+    env:
+      # Force UTC for all timestamps so filenames + commit messages are
+      # consistent regardless of the runner host's TZ.
+      TZ: UTC
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
           fetch-depth: 0
 
-      - name: Compute suffix
-        id: suffix
-        run: echo "value=ci-forgejo-$(hostname)" >> "$GITHUB_OUTPUT"
+      - name: Compute suffix and timestamp
+        id: meta
+        run: |
+          echo "suffix=ci-forgejo-$(hostname)" >> "$GITHUB_OUTPUT"
+          echo "ts=$(date '+%Y-%m-%dT%H%M')" >> "$GITHUB_OUTPUT"
 
       - name: Record benchmark baseline
-        run: just test bench ${{ steps.suffix.outputs.value }}
+        # SCAMPI_BENCH_TS pins the filename timestamp to the same value
+        # we use for the commit message, so filename and commit-msg ts
+        # match exactly instead of drifting by the bench runtime.
+        env:
+          SCAMPI_BENCH_TS: ${{ steps.meta.outputs.ts }}
+        run: just test bench ${{ steps.meta.outputs.suffix }}
 
       - name: Compare against previous baseline
         # Non-fatal: first run for a new suffix has nothing to compare,
         # and regression auto-fail is a follow-up. Output lands in the
         # job log either way.
-        run: just test benchcomp ${{ steps.suffix.outputs.value }} || true
+        run: just test benchcomp ${{ steps.meta.outputs.suffix }} || true
 
       - name: Commit and push baseline
         run: |
@@ -53,8 +64,7 @@ jobs:
             echo "No new benchmark file"
             exit 0
           fi
-          ts=$(date '+%Y-%m-%dT%H%M')
-          git commit -m "ci: bench baseline ${ts} for ${{ steps.suffix.outputs.value }}"
+          git commit -m "ci: bench baseline ${{ steps.meta.outputs.ts }} for ${{ steps.meta.outputs.suffix }}"
           # Rebase in case main moved during the bench run.
           git pull --rebase origin main
           git push
