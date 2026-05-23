@@ -283,6 +283,13 @@ diagnostic changes; review the diff before committing.
 Issues live on **Codeberg**, not GitHub. Use `just cb` subcommands to
 interact with them — run `just help cb` for the full list.
 
+**When to file an issue**: if the change is worth showing up in the
+changelog (user-facing features, bugs that affect behavior, design
+decisions worth explaining), file one. For tiny internal fixes
+(test infra, scripts, lint cleanups, scaffolding tweaks), just
+commit — issues add ceremony without value when there's nothing for
+the changelog to say.
+
 **Before starting work on an issue**, assign it with
 `just cb assign-issue N pskry`. Do this before planning, not at
 commit time.

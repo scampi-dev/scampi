@@ -116,32 +116,23 @@ fuzz time='30s' pkg='':
 
 [doc("Run benchmarks (SCAMPI_BENCH_FULL=1 enables Size-{10,100,1000,10000} variants in addition to Size-1)")]
 bench save_as='' count='10' benchtime='100ms':
-  {{
-    if save_as == '' {
-      f"SCAMPI_BENCH_FULL=1 go test ./test/integration -bench=. -benchmem -count={{count}} -benchtime={{benchtime}}"
-    } else {
-      f'''
-      mkdir -p "{{bench_dir}}"
-      latest=$(ls {{bench_dir}}/*.txt 2>/dev/null | sort | tail -1)
-      ts=$(date '+%Y-%m-%dT%H%M')
-      if [ -n "$latest" ]; then
-        # Coalesce timestamps when multiple suffixes are recorded in
-        # quick succession. Extract the leading 'YYYY-MM-DDTHHMM' so the
-        # match works for any suffix shape, including dashed CI suffixes
-        # like 'ci-forgejo-<hostname>'.
-        prev_ts=$(basename "$latest" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{4}')
-        if [ -n "$prev_ts" ] && [ ! -f "{{bench_dir}}/$prev_ts-{{save_as}}.txt" ]; then
-          ts=$prev_ts
-        fi
-      fi
-      echo 'Warmup run...'
-      SCAMPI_BENCH_FULL=1 go test ./test/integration -bench=. -benchmem -count=2 -benchtime={{benchtime}}
-      echo 'Recorded run...'
-      SCAMPI_BENCH_FULL=1 go test ./test/integration -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
-        | tee "{{bench_dir}}/$ts-{{save_as}}.txt"
-      '''
-    }
-  }}
+  #!/usr/bin/env bash
+  # -run=^$ skips tests entirely; we want to measure only benchmarks
+  # so an unrelated test flake can't poison a recorded baseline.
+  # pipefail makes `go test ... | tee` propagate go test's exit code
+  # so callers (CI) see real failures instead of tee's swallowed 0.
+  set -euo pipefail
+  if [[ -z "{{save_as}}" ]]; then
+    SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count={{count}} -benchtime={{benchtime}}
+    exit 0
+  fi
+  mkdir -p "{{bench_dir}}"
+  ts=$(date '+%Y-%m-%dT%H%M')
+  echo 'Warmup run...'
+  SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count=2 -benchtime={{benchtime}}
+  echo 'Recorded run...'
+  SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
+    | tee "{{bench_dir}}/$ts-{{save_as}}.txt"
 
 [doc("Show test coverage by package — runs the full suite (incl. containers) with -coverpkg, filters generated/main files, summary sorted by coverage ascending (filter: grep pattern)")]
 coverage filter='':

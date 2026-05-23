@@ -1,6 +1,0 @@
---- FAIL: TestIntegration_PartialFailure (0.00s)
-    integration_test.go:430: second file should be written (independent action)
-FAIL
-exit status 1
-FAIL	scampi.dev/scampi/test/integration	15.444s
-FAIL
