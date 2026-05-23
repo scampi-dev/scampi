@@ -29,6 +29,28 @@ func benchSizes(full ...int) []int {
 	return []int{1}
 }
 
+// recordCmdsOp samples MemTarget.Commands before and after a bench
+// loop, reporting the per-op delta as the "cmds/op" custom metric.
+// benchstat tracks it as a first-class metric over time so a
+// regression that adds extra shell commands per step (e.g. the
+// identity-cache class of bug from #416) lands as a clear delta in
+// `just test benchcomp` output instead of being lost in ns/op noise.
+//
+// Usage:
+//
+//	done := recordCmdsOp(b, tgt)
+//	for b.Loop() { ... }
+//	done()
+func recordCmdsOp(b *testing.B, tgt *target.MemTarget) func() {
+	start := len(tgt.Commands)
+	return func() {
+		delta := len(tgt.Commands) - start
+		if b.N > 0 {
+			b.ReportMetric(float64(delta)/float64(b.N), "cmds/op")
+		}
+	}
+}
+
 /*
 BENCHMARK PHILOSOPHY
 
@@ -148,6 +170,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -173,6 +196,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -210,6 +234,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -235,6 +260,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -272,6 +298,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -297,6 +324,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -346,6 +374,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -371,6 +400,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -416,6 +446,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -441,6 +472,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -476,6 +508,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -501,6 +534,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -537,6 +571,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -562,6 +597,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -600,6 +636,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -625,6 +662,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -667,6 +705,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -692,6 +731,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -733,6 +773,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -758,6 +799,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -805,6 +847,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -830,6 +873,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -870,6 +914,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -895,6 +940,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -936,6 +982,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -961,6 +1008,7 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 	}
 }
@@ -1030,6 +1078,7 @@ std.deploy(name = "bench", targets = [host]) {
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewSourceStore()
 
+			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
@@ -1055,7 +1104,333 @@ std.deploy(name = "bench", targets = [host]) {
 				e.Close()
 				cancel()
 			}
+			cmdsDone()
 		})
 
+	}
+}
+
+// Benchmark: Apply() no-op run for mount (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Mount(b *testing.B) {
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			var cfgEntries strings.Builder
+			var fstab strings.Builder
+			mountedTargets := make(map[string]bool, size)
+			for i := range size {
+				dest := fmt.Sprintf("/mnt/data-%d", i)
+				src := fmt.Sprintf("/dev/sda%d", i+1)
+				fmt.Fprintf(
+					&cfgEntries,
+					"  posix.mount { src = %q, dest = %q, fs_type = posix.MountType.ext4, opts = \"defaults\" }\n",
+					src,
+					dest,
+				)
+				fmt.Fprintf(&fstab, "%s %s ext4 defaults 0 0\n", src, dest)
+				mountedTargets[dest] = true
+			}
+
+			cfgStr := fmt.Sprintf(`module main
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "bench", targets = [host]) {
+%s}
+`, cfgEntries.String())
+
+			src := source.NewMemSource()
+			src.Files["/config.scampi"] = []byte(cfgStr)
+
+			tgt := target.NewMemTarget()
+			tgt.Files["/etc/fstab"] = []byte(fstab.String())
+			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
+				// findmnt --target <dest> --noheadings → exit 0 means mounted.
+				if strings.HasPrefix(cmd, "findmnt --target ") {
+					rest := strings.TrimPrefix(cmd, "findmnt --target ")
+					rest = strings.TrimSuffix(rest, " --noheadings")
+					if mountedTargets[strings.TrimSpace(rest)] {
+						return target.CommandResult{ExitCode: 0}, nil
+					}
+					return target.CommandResult{ExitCode: 1}, nil
+				}
+				return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil
+			}
+
+			rec := &harness.RecordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := diagnostic.NewSourceStore()
+
+			cmdsDone := recordCmdsOp(b, tgt)
+			for b.Loop() {
+				ctx, cancel := context.WithCancel(context.Background())
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = harness.MockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, em)
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if _, err = e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+				cancel()
+			}
+			cmdsDone()
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for run_set (idempotent path)
+// -----------------------------------------------------------------------------
+
+func BenchmarkApplyNoOp_Runset(b *testing.B) {
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			// Each run_set step lists exactly one item, and desired
+			// matches it — no add, no remove, no drift.
+			var cfgEntries strings.Builder
+			for i := range size {
+				fmt.Fprintf(
+					&cfgEntries,
+					"  posix.run_set { list = \"list-%[1]d\", add = \"add {{ item }}\", "+
+						"remove = \"rm {{ item }}\", desired = [\"item-%[1]d\"] }\n",
+					i,
+				)
+			}
+
+			cfgStr := fmt.Sprintf(`module main
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "bench", targets = [host]) {
+%s}
+`, cfgEntries.String())
+
+			src := source.NewMemSource()
+			src.Files["/config.scampi"] = []byte(cfgStr)
+
+			tgt := target.NewMemTarget()
+			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
+				// list-N returns "item-N\n" so the desired set matches.
+				if strings.HasPrefix(cmd, "list-") {
+					n := strings.TrimPrefix(cmd, "list-")
+					return target.CommandResult{ExitCode: 0, Stdout: "item-" + n + "\n"}, nil
+				}
+				return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil
+			}
+
+			rec := &harness.RecordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := diagnostic.NewSourceStore()
+
+			cmdsDone := recordCmdsOp(b, tgt)
+			for b.Loop() {
+				ctx, cancel := context.WithCancel(context.Background())
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = harness.MockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, em)
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if _, err = e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+				cancel()
+			}
+			cmdsDone()
+		})
+	}
+}
+
+// Benchmark: Apply() no-op run for rest.request (idempotent path)
+// -----------------------------------------------------------------------------
+//
+// Drift detection on REST resources follows the rest.request idempotency
+// check path: a GET against the resource returns a status that the
+// rest.status check accepts. No POST/DELETE is needed in steady state.
+// MemREST counts as "calls"; we report it as http/op alongside cmds/op.
+
+func BenchmarkApplyNoOp_REST(b *testing.B) {
+	sizes := benchSizes(1, 10, 100, 1000, 10000)
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			var cfgEntries strings.Builder
+			routes := make(map[string]target.MemRESTResponse, size)
+			for i := range size {
+				path := fmt.Sprintf("/items/%d", i)
+				fmt.Fprintf(
+					&cfgEntries,
+					"  rest.request { method = \"GET\", path = %q, check = rest.status { code = 200 } }\n",
+					path,
+				)
+				routes["GET "+path] = target.MemRESTResponse{StatusCode: 200, Body: []byte(`{"ok":true}`)}
+			}
+
+			cfgStr := fmt.Sprintf(`module main
+import "std"
+import "std/rest"
+
+let api = rest.target { name = "api", base_url = "http://localhost:8080" }
+
+std.deploy(name = "bench", targets = [api]) {
+%s}
+`, cfgEntries.String())
+
+			src := source.NewMemSource()
+			src.Files["/config.scampi"] = []byte(cfgStr)
+
+			tgt := target.NewMemREST(routes)
+
+			rec := &harness.RecordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := diagnostic.NewSourceStore()
+
+			startCalls := len(tgt.Calls())
+			for b.Loop() {
+				ctx, cancel := context.WithCancel(context.Background())
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = harness.MockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, em)
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if _, err = e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+				cancel()
+			}
+			if b.N > 0 {
+				delta := len(tgt.Calls()) - startCalls
+				b.ReportMetric(float64(delta)/float64(b.N), "http/op")
+			}
+		})
+	}
+}
+
+// Benchmark: Apply() cold run with mixed step types (mutation path)
+// -----------------------------------------------------------------------------
+//
+// All other ApplyNoOp_* benches measure the converged-state Check path.
+// This one measures the COLD path: target starts empty, Apply mutates.
+// Each iteration creates a fresh target so iteration N+1 is also cold.
+// The b.StopTimer fence keeps the reset out of the measured interval.
+
+func BenchmarkApplyMixed_Cold(b *testing.B) {
+	sizes := benchSizes(1, 10, 100, 1000)
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
+			cfgStr := fmt.Sprintf(`module main
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "bench", targets = [host]) {
+  for i in std.range(%d) {
+    posix.dir {
+      path  = "/var/cold-${i}"
+      perm  = "0755"
+      owner = "perf-owner"
+      group = "perf-group"
+    }
+    posix.symlink {
+      target = "/var/cold-${i}/target"
+      link   = "/var/cold-${i}/link"
+    }
+  }
+}
+`, size)
+
+			src := source.NewMemSource()
+			src.Files["/config.scampi"] = []byte(cfgStr)
+
+			rec := &harness.RecordingDisplayer{}
+			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			store := diagnostic.NewSourceStore()
+
+			var cmdTotal int
+			for b.Loop() {
+				b.StopTimer()
+				tgt := target.NewMemTarget()
+				b.StartTimer()
+
+				ctx, cancel := context.WithCancel(context.Background())
+				cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+				if err != nil {
+					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
+				}
+
+				resolved, err := engine.Resolve(cfg, "", "")
+				if err != nil {
+					b.Fatalf("engine.Resolve() must not return error, got %v", err)
+				}
+
+				resolved.Target = harness.MockTargetInstance(tgt)
+
+				e, err := engine.New(ctx, src, resolved, em)
+				if err != nil {
+					b.Fatalf("engine.New() must not return error, got %v", err)
+				}
+
+				if _, err = e.Apply(ctx); err != nil {
+					b.Fatal(err)
+				}
+				e.Close()
+				cancel()
+
+				b.StopTimer()
+				cmdTotal += len(tgt.Commands)
+				b.StartTimer()
+			}
+			if b.N > 0 {
+				b.ReportMetric(float64(cmdTotal)/float64(b.N), "cmds/op")
+			}
+		})
 	}
 }
