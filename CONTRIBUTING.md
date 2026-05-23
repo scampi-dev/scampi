@@ -56,7 +56,7 @@ remember flags.
 
 ```bash
 just build       # build scampi and scampls binaries to ./build/bin/
-just test        # fast tests, no containers, no race detector
+just test all    # fast tests, no containers, no race detector
 just lint        # golangci-lint
 just fmt         # format Go + markdown tables
 ```
@@ -64,8 +64,8 @@ just fmt         # format Go + markdown tables
 Three test gates, in order of fanciness:
 
 ```bash
-just test                # inner loop, run after every meaningful change
-just test nocontainers   # pre-commit gate — race + integration + fuzz + bench
+just test all            # inner loop, run after every meaningful change
+just test nocontainers   # pre-commit gate — race + integration + bench smoke
 just test everything     # pre-push gate — adds container-gated suites
 ```
 
@@ -73,7 +73,7 @@ CI runs `everything`. Hitting `nocontainers` locally before commit and
 `everything` before push catches regressions where the feedback loop is
 tight rather than waiting for CI to fail.
 
-For step-specific test recipes, run `just help test`.
+`just test` (bare) shows the full list of test recipes.
 
 ## Code style
 

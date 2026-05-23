@@ -1,9 +1,17 @@
 bench_dir := "./benchmarks"
 
-# Broad
-# ##############################################################################
+# Help
+# -----------------------------------------------------------------------------
 
 [default]
+[doc("Show this help message")]
+@help *args:
+  just --unsorted --list test {{args}}
+
+# Broad
+# -----------------------------------------------------------------------------
+
+[group('broad')]
 [doc("Run all tests (pass 'quiet' to suppress passing output)")]
 all mode='':
   #!/usr/bin/env bash
@@ -12,22 +20,12 @@ all mode='':
     *)     go test ./... ;;
   esac
 
+[group('broad')]
 [doc("Shortcut for 'just test all quiet'")]
 quiet:
   just test all quiet
 
-[doc("Run unit tests (per-package, excludes integration)")]
-unit:
-  go test $(go list ./... | grep -v scampi.dev/scampi/test)
-
-[doc("Run integration tests")]
-integration:
-  go test -v ./test/integration/...
-
-[doc("Run tests with race-detector")]
-race:
-  go test -race ./...
-
+[group('broad')]
 [doc("Run all tests with containers")]
 containers:
   SCAMPI_TEST_CONTAINERS=1 go test -v ./test/...
@@ -38,6 +36,7 @@ containers:
 # broken" without doing exploratory fuzzing. Real fuzzing belongs in
 # scheduled jobs or `just test fuzz <dur>`.
 
+[group('broad')]
 [doc("Run everything except container-gated tests (pre-commit gate; pass 'quiet' to suppress passing output)")]
 nocontainers mode='':
   #!/usr/bin/env bash
@@ -55,6 +54,7 @@ nocontainers mode='':
       ;;
   esac
 
+[group('broad')]
 [doc("Run all tests with race-detector and containers (pre-push gate; pass 'quiet' to suppress passing output)")]
 everything mode='':
   #!/usr/bin/env bash
@@ -85,19 +85,37 @@ _q cmd:
   exit $rc
 
 # Focused
-# ##############################################################################
+# -----------------------------------------------------------------------------
 
+[group('focused')]
+[doc("Run unit tests (per-package, excludes integration)")]
+unit:
+  go test $(go list ./... | grep -v scampi.dev/scampi/test)
+
+[group('focused')]
+[doc("Run integration tests")]
+integration:
+  go test -v ./test/integration/...
+
+[group('focused')]
+[doc("Run tests with race-detector")]
+race:
+  go test -race ./...
+
+[group('focused')]
 [doc("Run SSH tests (requires containers)")]
 ssh:
   SCAMPI_TEST_CONTAINERS=1 go test -v ./test/ssh/...
 
+[group('focused')]
 [doc("Run scampi testkit tests (scampi test framework)")]
 testkit:
   go run ./cmd/scampi test test/testdata/testkit/...
 
 # Fuzz and benchmarks
-# ##############################################################################
+# -----------------------------------------------------------------------------
 
+[group('fuzz-bench')]
 [doc("Run fuzz tests (optional package filter, e.g. just test fuzz 10m test)")]
 fuzz time='30s' pkg='':
   #!/usr/bin/env bash
@@ -114,6 +132,7 @@ fuzz time='30s' pkg='':
     go test "./$pkg" -fuzz=. -fuzztime={{time}}
   done
 
+[group('fuzz-bench')]
 [doc("Run benchmarks (SCAMPI_BENCH_FULL=1 enables Size-{10,100,1000,10000} variants in addition to Size-1)")]
 bench save_as='' count='10' benchtime='100ms':
   #!/usr/bin/env bash
@@ -134,7 +153,29 @@ bench save_as='' count='10' benchtime='100ms':
   SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
     | tee "{{bench_dir}}/$ts-{{save_as}}.txt"
 
-[doc("Show test coverage by package — runs the full suite (incl. containers) with -coverpkg, filters generated/main files, summary sorted by coverage ascending (filter: grep pattern)")]
+[group('fuzz-bench')]
+[doc("Compare the latest 2 existing benchmarks with suffix")]
+benchcomp suffix:
+  curr=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 1`; \
+  prev=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 2 | head -n 1`; \
+  echo "Comparing:"; \
+  echo "  $prev"; \
+  echo "  $curr"; \
+  go tool benchstat -table .config -row .fullname -col .file "$prev" "$curr"
+
+[group('fuzz-bench')]
+[doc("Plot benchmark history as HTML dashboard for given suffix")]
+benchplot suffix:
+  go run ./bin/benchplot \
+    -o ./bin/benchplot/{{suffix}}.html \
+    {{bench_dir}}/*-{{suffix}}.txt
+  open ./bin/benchplot/{{suffix}}.html
+
+# Coverage
+# -----------------------------------------------------------------------------
+
+[group('coverage')]
+[doc("Show test coverage by package -- runs the full suite (incl. containers) with -coverpkg, filters generated/main files, summary sorted by coverage ascending (filter: grep pattern)")]
 coverage filter='':
   #!/usr/bin/env bash
   set -euo pipefail
@@ -143,7 +184,7 @@ coverage filter='':
     pkglist=$(echo "$pkglist" | grep "{{filter}}")
   fi
   SCAMPI_TEST_CONTAINERS=1 go test -coverpkg=./... -coverprofile=coverage.raw.out $pkglist >/dev/null
-  # Drop generated stringer files and bare CLI entrypoints — noise in
+  # Drop generated stringer files and bare CLI entrypoints -- noise in
   # the HTML view, and skews per-package numbers. The mode: header
   # doesn't match the pattern and survives.
   grep -v -E '(_string\.go|cmd/scampi/main\.go|cmd/scampls/main\.go):' coverage.raw.out > coverage.out
@@ -165,12 +206,13 @@ coverage filter='':
   echo
   go tool cover -func=coverage.out | tail -1
 
+[group('coverage')]
 [doc("Per-function coverage from coverage.out, sorted by coverage ascending (filter: grep pattern; run `just test coverage` first)")]
 coverage-func filter='':
   #!/usr/bin/env bash
   set -euo pipefail
   if [[ ! -f coverage.out ]]; then
-    echo "coverage.out not found — run 'just test coverage' first" >&2
+    echo "coverage.out not found -- run 'just test coverage' first" >&2
     exit 1
   fi
   if [[ -n "{{filter}}" ]]; then
@@ -180,28 +222,13 @@ coverage-func filter='':
     go tool cover -func=coverage.out | grep '^total:'
   fi
 
+[group('coverage')]
 [doc("Open HTML coverage report from coverage.out (run `just test coverage` first)")]
 coverage-html:
   #!/usr/bin/env bash
   set -euo pipefail
   if [[ ! -f coverage.out ]]; then
-    echo "coverage.out not found — run 'just test coverage' first" >&2
+    echo "coverage.out not found -- run 'just test coverage' first" >&2
     exit 1
   fi
   go tool cover -html=coverage.out
-
-[doc("Compare the latest 2 existing benchmarks with suffix")]
-benchcomp suffix:
-  curr=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 1`; \
-  prev=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 2 | head -n 1`; \
-  echo "Comparing:"; \
-  echo "  $prev"; \
-  echo "  $curr"; \
-  go tool benchstat -table .config -row .fullname -col .file "$prev" "$curr"
-
-[doc("Plot benchmark history as HTML dashboard for given suffix")]
-benchplot suffix:
-  go run ./bin/benchplot \
-    -o ./bin/benchplot/{{suffix}}.html \
-    {{bench_dir}}/*-{{suffix}}.txt
-  open ./bin/benchplot/{{suffix}}.html

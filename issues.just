@@ -1,7 +1,19 @@
-# scampi issue pipeline — two loops:
-#   eval  (.issues/eval-inbox/  → claude-code QA → .issues/pusher-inbox/)
-#   push  (.issues/pusher-inbox/ → Codeberg)
+# scampi issue pipeline -- two loops:
+#   eval  (.issues/eval-inbox/  -> claude-code QA -> .issues/pusher-inbox/)
+#   push  (.issues/pusher-inbox/ -> Codeberg)
 
+# Help
+# -----------------------------------------------------------------------------
+
+[default]
+[doc("Show this help message")]
+@help *args:
+  just --unsorted --list issues {{args}}
+
+# Control
+# -----------------------------------------------------------------------------
+
+[group('control')]
 [doc("Start both loops")]
 up:
   #!/usr/bin/env bash
@@ -19,11 +31,16 @@ up:
     echo "push-loop started (pid $!)"
   fi
 
+[group('control')]
 [doc("Stop both loops")]
 down:
   @pkill -f 'scripts/issues-eval-loop.sh' && echo "eval-loop stopped" || echo "eval-loop not running"
   @pkill -f 'scripts/issues-push-loop.sh' && echo "push-loop stopped" || echo "push-loop not running"
 
+# Observability
+# -----------------------------------------------------------------------------
+
+[group('observe')]
 [doc("Report loop state + queue depths")]
 status:
   #!/usr/bin/env bash
@@ -41,6 +58,7 @@ status:
   echo "eval-inbox:   $(ls .issues/eval-inbox/ 2>/dev/null | wc -l | tr -d ' ') drafts"
   echo "pusher-inbox: $(ls .issues/pusher-inbox/ 2>/dev/null | wc -l | tr -d ' ') drafts"
 
+[group('observe')]
 [doc("Follow both logs, docker-compose style (prefix per source)")]
 tail:
   #!/usr/bin/env bash

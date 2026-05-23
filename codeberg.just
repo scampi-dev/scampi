@@ -1,9 +1,18 @@
 codeberg_api := "https://codeberg.org/api/v1"
 codeberg_repo := "scampi-dev/scampi"
 
-# Issues
-# ##############################################################################
+# Help
+# -----------------------------------------------------------------------------
 
+[default]
+[doc("Show this help message")]
+@help *args:
+  just --unsorted --list cb {{args}}
+
+# Issues
+# -----------------------------------------------------------------------------
+
+[group('issues')]
 [doc("List open issues (optional: --label 'Kind/Bug', --milestone ID)")]
 [positional-arguments]
 list-issues *args:
@@ -11,6 +20,7 @@ list-issues *args:
   exec ./scripts/codeberg-list-issues.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "$@"
 
+[group('issues')]
 [doc("Show full issue details (--refresh to bypass cache)")]
 [positional-arguments]
 show-issue number *args:
@@ -19,6 +29,7 @@ show-issue number *args:
   exec ./scripts/codeberg-show-issue.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "{{number}}" "$@"
 
+[group('issues')]
 [doc("Create issues from file or dir (--dry-run to preview)")]
 [positional-arguments]
 create-issue path *flags:
@@ -27,6 +38,7 @@ create-issue path *flags:
   exec ./scripts/codeberg-create-issue.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "{{path}}" "$@"
 
+[group('issues')]
 [doc("Update an issue (--body, --state, --labels, --title)")]
 [positional-arguments]
 update-issue number *args:
@@ -35,26 +47,31 @@ update-issue number *args:
   exec ./scripts/codeberg-update-issue.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "{{number}}" "$@"
 
+[group('issues')]
 [doc("Close an issue")]
 close-issue number:
   just cb update-issue {{number}} --state closed
 
+[group('issues')]
 [doc("Reopen an issue")]
 reopen-issue number:
   just cb update-issue {{number}} --state open
 
+[group('issues')]
 [doc("Assign an issue to a user")]
 assign-issue number user:
   ./scripts/codeberg-assign-issue.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" \
     "{{number}}" "{{user}}"
 
+[group('issues')]
 [doc("Add a label to an issue (without removing existing labels)")]
 add-label number label:
   ./scripts/codeberg-add-label.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" \
     "{{number}}" "{{label}}"
 
+[group('issues')]
 [doc("Comment on an issue")]
 comment-issue number body:
   ./scripts/codeberg-comment-issue.sh \
@@ -62,8 +79,9 @@ comment-issue number body:
     "{{number}}" "{{body}}"
 
 # Milestones
-# ##############################################################################
+# -----------------------------------------------------------------------------
 
+[group('milestones')]
 [doc("List milestones (--closed for closed ones)")]
 [positional-arguments]
 list-milestones *args:
@@ -71,18 +89,21 @@ list-milestones *args:
   exec ./scripts/codeberg-list-milestones.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "$@"
 
+[group('milestones')]
 [doc("Create a milestone")]
 create-milestone title description="":
   ./scripts/codeberg-create-milestone.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" \
     "{{title}}" "{{description}}"
 
+[group('milestones')]
 [doc("Set milestone on an issue")]
 set-milestone issue_number milestone_id:
   ./scripts/codeberg-set-milestone.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" \
     "{{issue_number}}" "{{milestone_id}}"
 
+[group('milestones')]
 [doc("Close a milestone")]
 close-milestone milestone_id:
   ./scripts/codeberg-close-milestone.sh \
@@ -90,8 +111,9 @@ close-milestone milestone_id:
     "{{milestone_id}}"
 
 # Releases
-# ##############################################################################
+# -----------------------------------------------------------------------------
 
+[group('releases')]
 [doc("Generate release notes from issues since last tag")]
 [positional-arguments]
 release-notes *args:
@@ -99,6 +121,7 @@ release-notes *args:
   exec ./scripts/release-notes.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "$@"
 
+[group('releases')]
 [doc("Calculate next version tag (alpha|beta|rc or omit for stable)")]
 [positional-arguments]
 next-version *args:
@@ -106,6 +129,7 @@ next-version *args:
   exec ./scripts/next-version.sh \
     "{{codeberg_api}}" "{{codeberg_repo}}" "$@"
 
+[group('releases')]
 [doc("Prepare a release: changelog, commit, tag (alpha|beta|rc or omit for stable)")]
 [positional-arguments]
 release *args:
@@ -116,6 +140,7 @@ release *args:
   echo ""
   echo "run 'just cb push-release' when ready"
 
+[group('releases')]
 [doc("Push the release commit and tag to origin")]
 push-release:
   #!/usr/bin/env bash
@@ -133,8 +158,9 @@ push-release:
   echo "pushing $tag..."
   git push
   git push origin "$tag"
-  echo "done — $tag pushed to origin"
+  echo "done -- $tag pushed to origin"
 
+[group('releases')]
 [doc("Undo the last unpushed release (delete tag and reset release commit)")]
 undo-release:
   #!/usr/bin/env bash
@@ -152,7 +178,7 @@ undo-release:
   # Refuse to undo pushed releases
   remote_tag=$(git ls-remote --tags origin "refs/tags/$tag" 2>/dev/null || true)
   if [[ -n "$remote_tag" ]]; then
-    echo "error: $tag has already been pushed to origin — cannot undo" >&2
+    echo "error: $tag has already been pushed to origin -- cannot undo" >&2
     exit 1
   fi
   upstream=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)
@@ -160,11 +186,11 @@ undo-release:
     remote_head=$(git rev-parse "$upstream" 2>/dev/null || true)
     local_head=$(git rev-parse HEAD)
     if [[ "$remote_head" == "$local_head" ]]; then
-      echo "error: release commit has already been pushed — cannot undo" >&2
+      echo "error: release commit has already been pushed -- cannot undo" >&2
       exit 1
     fi
   fi
   echo "undoing: $tag"
   git tag -d "$tag"
   git reset --hard HEAD~1
-  echo "done — tag deleted, release commit removed"
+  echo "done -- tag deleted, release commit removed"

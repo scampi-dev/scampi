@@ -54,7 +54,7 @@ the wrong thing.
 
 ## 8. Implementation
 
-Code → inner loop (`just test`, `just fmt`, `just lint`). Iterate until
+Code → inner loop (`just test all`, `just fmt`, `just lint`). Iterate until
 green. No committing yet — that's the user's call.
 
 ## 9. Review

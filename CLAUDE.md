@@ -22,7 +22,7 @@ A declarative system convergence engine. Users describe desired system state in 
 
 ```bash
 just build          # Build scampi and scampls binaries
-just test           # Run all tests (default subcommand)
+just test           # Show test recipes; `just test all` runs the full suite
 just lint           # Run golangci-lint
 just fmt            # Format code
 just scampi <args>  # Build and run scampi locally
@@ -170,13 +170,13 @@ Three tiers, each with a clear trigger:
 **Inner loop** — after every meaningful change:
 
 ```bash
-just test    # fast, no containers, no race
+just test all    # fast, no containers, no race
 just fmt
 just lint
 ```
 
 **Pre-commit gate** — `just test nocontainers`. Runs race-detector, integration,
-testkit, bench smoke, and fuzz — everything CI runs except the container-gated
+testkit, and bench smoke — everything CI runs except the container-gated
 tests. Run before committing a meaningful chunk so CI doesn't catch what you
 could've.
 
