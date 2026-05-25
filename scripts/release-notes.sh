@@ -2,25 +2,22 @@
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Generate release notes from closed issues since the last tag.
-# Usage: release-notes.sh <api> <repo> [--head] [--refresh]
+# Usage: release-notes.sh [--head]
+#
+# Reads issue metadata from GitHub via the `gh` CLI.
 #
 # Groups issues by label into sections:
-#   Kind/Feature     -> Features
-#   Kind/Enhancement -> Enhancements
-#   Kind/Bug         -> Bug Fixes
-#   Kind/Breaking    -> Breaking Changes
-#   Kind/Security    -> Security
+#   kind/feature     -> Features
+#   kind/enhancement -> Enhancements
+#   kind/bug         -> Bug Fixes
+#   compat/breaking  -> Breaking Changes
+#   kind/security    -> Security
 #   (unlabelled)     -> Other
 set -euo pipefail
 
-api="$1"; repo="$2"; shift 2
-dir="$(cd "$(dirname "$0")" && pwd)"
-
-refresh_flag=""
 head_flag=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --refresh) refresh_flag="--refresh"; shift ;;
     --head) head_flag=true; shift ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
@@ -58,7 +55,7 @@ security=""
 other=""
 
 for issue in $issues; do
-  json=$("$dir/codeberg-fetch.sh" "$api/repos/$repo/issues/$issue" $refresh_flag)
+  json=$(gh issue view "$issue" --json title,labels 2>/dev/null || echo '{}')
 
   title=$(echo "$json" | jq -r '.title // "???"')
   labels=$(echo "$json" | jq -r '.labels[].name' 2>/dev/null || true)
@@ -67,23 +64,23 @@ for issue in $issues; do
   classified=false
   for label in $labels; do
     case "$label" in
-      Compat/Breaking)
+      compat/breaking)
         breaking="${breaking}${entry}\n"
         classified=true
         ;;
-      Kind/Security)
+      kind/security)
         security="${security}${entry}\n"
         classified=true
         ;;
-      Kind/Feature)
+      kind/feature)
         features="${features}${entry}\n"
         classified=true
         ;;
-      Kind/Enhancement)
+      kind/enhancement)
         enhancements="${enhancements}${entry}\n"
         classified=true
         ;;
-      Kind/Bug)
+      kind/bug)
         bugs="${bugs}${entry}\n"
         classified=true
         ;;

@@ -38,7 +38,7 @@ v0.2.0            stable
 ```
 
 Not every stage is required. Skip from alpha straight to rc if the scope is
-small. Tags containing a hyphen are marked as pre-releases on the Codeberg
+small. Tags containing a hyphen are marked as pre-releases on the GitHub
 releases page.
 
 ## Major Zero
@@ -55,15 +55,14 @@ wins:
 
 | Label              | Bump  |
 | ------------------ | ----- |
-| `Compat/Breaking`  | major |
-| `Kind/Feature`     | minor |
-| `Kind/Enhancement` | minor |
-| `Kind/Bug`         | patch |
+| `compat/breaking`  | major |
+| `kind/feature`     | minor |
+| `kind/enhancement` | minor |
+| `kind/bug`         | patch |
 
 If no qualifying issues are found, the bump defaults to patch.
 
-Run `just cb next-version` to calculate the next tag automatically.
-It inspects the git log since the last tag, queries Codeberg for issue
-labels, and prints the next version. Pass `--pre-release alpha` (or
-`beta`, `rc`) to append a pre-release suffix with auto-incrementing
-number.
+The next tag is derived from the git log since the last tag plus the
+labels of the issues it closes (read from GitHub). A `just`
+recipe wraps this; pass `--pre-release alpha` (or `beta`, `rc`) to
+append a pre-release suffix with auto-incrementing number.

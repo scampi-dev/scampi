@@ -21,7 +21,7 @@ linkTitle: Install
 
 <img src="/scampi-get.png" alt="scampi mascot" class="get-mascot">
 
-{{< hextra/hero-badge link="https://codeberg.org/scampi-dev/scampi/releases" >}}
+{{< hextra/hero-badge link="https://github.com/scampi-dev/scampi/releases" >}}
   <span>All releases</span>
   {{< icon name="arrow-circle-right" attributes="height=14" >}}
 {{< /hextra/hero-badge >}}
@@ -78,8 +78,8 @@ Requires Go {{< go-version >}}+.
 
 ## Manual download
 
-Prebuilt binaries for all supported platforms are available on
-[Codeberg releases](https://codeberg.org/scampi-dev/scampi/releases).
+Prebuilt binaries for all supported platforms are available on the
+[GitHub releases page](https://github.com/scampi-dev/scampi/releases).
 
 Download the binary for your platform, verify against `SHA256SUMS` (and ideally
 the [signature](#verify-a-release) too), and place it on your `PATH`.
@@ -146,16 +146,16 @@ sha256sum --ignore-missing -c SHA256SUMS
 >
 > Cross-check the line you saved against the same one in the
 > [`install.sh`](/install-source/) we serve and in
-> [`SECURITY.md`](https://codeberg.org/scampi-dev/scampi/src/branch/main/SECURITY.md)
-> on the canonical Codeberg repo — those three places are deliberately
+> [`SECURITY.md`](https://github.com/scampi-dev/scampi/blob/main/SECURITY.md)
+> on the canonical GitHub repo — those three places are deliberately
 > kept in sync, so a mismatch anywhere is a red flag worth reporting
 > via the
-> [security policy](https://codeberg.org/scampi-dev/scampi/src/branch/main/SECURITY.md).
+> [security policy](https://github.com/scampi-dev/scampi/blob/main/SECURITY.md).
 
 ## Build from source
 
 ```bash
-git clone https://codeberg.org/scampi-dev/scampi.git
+git clone https://github.com/scampi-dev/scampi.git
 cd scampi
 just build
 ```

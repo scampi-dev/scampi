@@ -36,8 +36,8 @@ Multiple modules can live in subdirectories of a single git repository.
 The module path extends beyond the repo path:
 
 ```text
-codeberg.org/yourname/modules/npm       → repo/npm/
-codeberg.org/yourname/modules/authelia   → repo/authelia/
+github.com/yourname/modules/npm       → repo/npm/
+github.com/yourname/modules/authelia   → repo/authelia/
 ```
 
 scampi resolves this automatically — it probes progressively shorter
@@ -56,7 +56,7 @@ the path to the real repository:
 
 ```html
 <meta name="scampi-import"
-      content="scampi.dev/modules git https://codeberg.org/scampi-dev/modules.git">
+      content="scampi.dev/modules git https://github.com/scampi-dev/modules.git">
 ```
 
 The `content` attribute has three space-separated fields:
@@ -138,7 +138,7 @@ func internal_helper() string { ... }      // module-private
 If your module depends on other modules, include a `scampi.mod`:
 
 ```scampi-mod {filename="scampi.mod"}
-module codeberg.org/yourname/my-module
+module github.com/yourname/my-module
 
 require (
     scampi.dev/modules/helpers v1.0.0

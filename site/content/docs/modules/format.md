@@ -9,7 +9,7 @@ Every project and module has a `scampi.mod` file at its root. It declares the
 module path and lists dependencies.
 
 ```scampi-mod {filename="scampi.mod"}
-module codeberg.org/yourname/yourproject
+module github.com/yourname/yourproject
 
 require (
     scampi.dev/modules/npm v1.0.0
@@ -38,7 +38,7 @@ dependencies, not by your project itself), scampi marks it with a
 `// indirect` comment:
 
 ```scampi-mod {filename="scampi.mod"}
-module codeberg.org/yourname/yourproject
+module github.com/yourname/yourproject
 
 require (
     scampi.dev/modules/npm v1.0.0
@@ -62,7 +62,7 @@ requested by any dependency wins.
 Lines starting with `//` are comments.
 
 ```scampi-mod {filename="scampi.mod"}
-module codeberg.org/yourname/yourproject
+module github.com/yourname/yourproject
 
 require (
     // Nginx Proxy Manager API wrappers
@@ -85,7 +85,7 @@ and can be checked explicitly with `scampi mod verify`.
 
 ## Entry points
 
-When you `import "codeberg.org/user/module"`, scampi looks for an entry
+When you `import "github.com/user/module"`, scampi looks for an entry
 point in the module's root directory:
 
 1. `_index.scampi` — checked first
@@ -128,7 +128,7 @@ path — no self-require needed. If your `scampi.mod` says
 You can import from subdirectories within a module:
 
 ```scampi
-import "codeberg.org/user/module/internal/helpers"
+import "github.com/user/module/internal/helpers"
 ```
 
 This resolves to `internal/helpers.scampi` or `internal/helpers/_index.scampi`

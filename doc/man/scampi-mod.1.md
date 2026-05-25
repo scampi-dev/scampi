@@ -39,7 +39,7 @@ versions) and *scampi.sum* (content hashes for integrity).
 
 Create a *scampi.mod* file in the current directory. The optional
 *module-path* sets the module's import path (e.g.
-*codeberg.org/user/infra*).
+*github.com/user/infra*).
 
 ## tidy
 
@@ -80,15 +80,15 @@ Remove all cached modules.
 
 Initialize a new module:
 
-    $ scampi mod init codeberg.org/myorg/infra
+    $ scampi mod init github.com/myorg/infra
 
 Add a dependency:
 
-    $ scampi mod add codeberg.org/scampi-dev/std
+    $ scampi mod add github.com/scampi-dev/std
 
 Add a pinned version:
 
-    $ scampi mod add codeberg.org/scampi-dev/std@v0.2.0
+    $ scampi mod add github.com/scampi-dev/std@v0.2.0
 
 Use a local module during development:
 
@@ -105,7 +105,7 @@ Download everything and verify integrity:
 
 Update a dependency to the latest version:
 
-    $ scampi mod update codeberg.org/scampi-dev/std
+    $ scampi mod update github.com/scampi-dev/std
 
 Clean the module cache:
 

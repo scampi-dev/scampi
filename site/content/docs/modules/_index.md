@@ -12,7 +12,7 @@ you use in deploy blocks.
 Add a module to your project:
 
 ```bash
-scampi mod init codeberg.org/yourname/yourproject
+scampi mod init github.com/yourname/yourproject
 scampi mod add scampi.dev/modules/npm
 ```
 

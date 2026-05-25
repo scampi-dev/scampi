@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Prepare a release: generate changelog, update CHANGELOG.md, and tag.
-# Usage: release.sh <api> <repo> [alpha|beta|rc] [--dry-run]
+# Usage: release.sh [alpha|beta|rc] [--dry-run]
 #
 # Steps:
 #   1. Compute next version via next-version.sh
@@ -14,9 +14,6 @@
 # With --dry-run, prints what would happen without modifying anything.
 set -euo pipefail
 
-api="$1"
-repo="$2"
-shift 2
 dir="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$dir/.." && pwd)"
 
@@ -34,7 +31,7 @@ while [[ $# -gt 0 ]]; do
     shift
     ;;
   *)
-    echo "usage: release.sh <api> <repo> [alpha|beta|rc] [--dry-run]" >&2
+    echo "usage: release.sh [alpha|beta|rc] [--dry-run]" >&2
     exit 1
     ;;
   esac
@@ -48,14 +45,13 @@ fi
 
 # Compute version
 # shellcheck disable=SC2086
-version=$("$dir/next-version.sh" "$api" "$repo" $stage --refresh)
+version=$("$dir/next-version.sh" $stage)
 echo ""
 echo "next version: $version"
 echo ""
 
 # Generate release notes for HEAD (pre-tag, so use --head)
-# shellcheck disable=SC2086
-notes=$("$dir/release-notes.sh" "$api" "$repo" --head --refresh)
+notes=$("$dir/release-notes.sh" --head)
 
 # Strip the header and whitespace — if nothing remains, there are no notes.
 notes_body=$(echo "$notes" | sed '1d' | tr -d '[:space:]')

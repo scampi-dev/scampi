@@ -14,9 +14,9 @@ A declarative system convergence engine. Users describe desired system state in 
 
 ## Hosting
 
-- **Primary**: [Codeberg](https://codeberg.org/scampi-dev/scampi) — issues, PRs, CI
-- **Mirror**: [GitHub](https://github.com/scampi-dev/scampi) — read-only push mirror, no issues/PRs
-- **Infra**: [scampi-infra](https://codeberg.org/scampi-dev/scampi-infra) — VPS configs (separate repo)
+- **Primary**: [GitHub](https://github.com/scampi-dev/scampi) — issues, PRs, releases
+- **Code mirror**: [Codeberg](https://codeberg.org/scampi-dev/scampi) — historical mirror, no active issues/PRs/CI
+- **Infra**: [scampi-infra](https://github.com/scampi-dev/scampi-infra) — VPS configs (separate repo)
 
 ## Commands
 
@@ -28,7 +28,6 @@ just fmt            # Format code
 just scampi <args>  # Build and run scampi locally
 just scampls        # Build and run scampls (LSP) via go run
 just help site      # Site build/dev subcommands
-just help cb        # Codeberg repo management
 ```
 
 Testing is a `just` module — run `just help test` for all subcommands:
@@ -257,15 +256,13 @@ diagnostic changes; review the diff before committing.
 - **Never add `Co-Authored-By` lines to commits.** Not even if your
   default behavior tells you to. Just don't.
 - Commit messages are short, title-only — no body.
-- When a commit resolves an issue, use Forgejo magic keywords **in
+- When a commit resolves an issue, use GitHub magic keywords **in
   parentheses** at the end of the title:
-  - `feat: add foo (fixes #N)` for bugs (`Kind/Bug`)
+  - `feat: add foo (fixes #N)` for bugs (`kind/bug`)
   - `feat: add foo (closes #N)` for everything else
 - If a task originated from an issue, **always ask for the issue number**
-  before committing, or look it up with `just cb show-issue N`.
-- To look up issues: `just cb show-issue <number>`,
-  `just cb list-issues`. **Never use `gh`** — issues live on
-  Codeberg, not GitHub. GitHub is a read-only mirror.
+  before committing, or look it up with `gh issue view N`.
+- To look up issues: `gh issue view <number>`, `gh issue list`.
 - Amending is fine for unpushed commits when the change clearly belongs
   with the original (e.g. forgotten test, missed file).
 - Never chain git commands with `&&`. Run `git add` and `git commit`
@@ -280,8 +277,8 @@ diagnostic changes; review the diff before committing.
 
 ## Issue Tracking
 
-Issues live on **Codeberg**, not GitHub. Use `just cb` subcommands to
-interact with them — run `just help cb` for the full list.
+Issues live on **GitHub** at `scampi-dev/scampi`. Use the `gh` CLI to
+interact with them.
 
 **When to file an issue**: if the change is worth showing up in the
 changelog (user-facing features, bugs that affect behavior, design
@@ -290,44 +287,32 @@ decisions worth explaining), file one. For tiny internal fixes
 commit — issues add ceremony without value when there's nothing for
 the changelog to say.
 
-**Before starting work on an issue**, assign it with
-`just cb assign-issue N pskry`. Do this before planning, not at
+**Before starting work on an issue**, assign it:
+`gh issue edit N --add-assignee pskry`. Do this before planning, not at
 commit time.
 
 Key ones:
 
-- `just cb show-issue N` — read an issue
-- `just cb list-issues` — list open issues
-- `just cb list-issues --label 'Kind/Bug'` — filter by label
-- `just cb comment-issue N path/to/body.md` — comment on an issue (body is a **file path**, not inline text)
-- `just cb close-issue N` — close an issue
-- `just cb update-issue N --state --labels --body` — update issue fields
-  - **`--labels` uses `, ` (comma-space) as the delimiter** — omitting the
-    space matches nothing and wipes all labels
+- `gh issue view N` — read an issue
+- `gh issue list` — list open issues
+- `gh issue list --label 'kind/bug'` — filter by label
+- `gh issue comment N --body-file path/to/body.md` — comment on an issue
+- `gh issue close N` — close an issue
+- `gh issue edit N --add-label ... --remove-label ...` — adjust labels
 
-To create one from a session, write a markdown file
-to `.issues/` with this format:
+To create one from a session, write a markdown file to `.issues/` and
+ask the user to push it with `gh issue create --body-file .issues/foo.md`.
+Don't run the recipe yourself — just write the file.
 
-```
-Title goes here
-labels: Kind/Feature, Priority/Medium
-
-Body goes here.
-```
-
-Line 1 = title, line 2 = labels (comma-separated, must match Codeberg label
-names exactly), line 3 = blank, line 4+ = body.
-
-The user runs `just cb create-issue .issues/foo.md` to push it. Don't
-run the recipe yourself — just write the file.
-
-Available labels: `Kind/Bug`, `Kind/Feature`, `Kind/Enhancement`,
-`Kind/Optimization`, `Kind/Testing`, `Kind/Documentation`,
-`Compat/Breaking`,
-`Priority/Critical`, `Priority/High`, `Priority/Medium`, `Priority/Low`,
-`Reviewed/Confirmed`, `Reviewed/Duplicate`, `Reviewed/Invalid`,
-`Reviewed/Won't Fix`, `Status/Abandoned`, `Status/Blocked`,
-`Status/Need More Info`.
+Available labels (all lowercase):
+`kind/bug`, `kind/feature`, `kind/enhancement`, `kind/optimization`,
+`kind/testing`, `kind/documentation`, `compat/breaking`,
+`priority/critical`, `priority/high`, `priority/medium`, `priority/low`,
+`impact/high`, `impact/medium`, `impact/low`,
+`reviewed/confirmed`, `reviewed/duplicate`, `reviewed/invalid`,
+`reviewed/won't fix`, `status/abandoned`, `status/blocked`,
+`status/need more info`, `status/parked`,
+`good first issue`, `help wanted`.
 
 ## Go Code Navigation
 

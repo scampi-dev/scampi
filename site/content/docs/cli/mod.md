@@ -26,9 +26,9 @@ version is specified. For local modules, provide a name and filesystem path.
 
 | Form             | Example                                                  |
 | ---------------- | -------------------------------------------------------- |
-| Latest stable    | `scampi mod add codeberg.org/user/module`                |
-| Explicit version | `scampi mod add codeberg.org/user/module@v1.0.0`         |
-| Pre-release      | `scampi mod add codeberg.org/user/module@v2.0.0-alpha.1` |
+| Latest stable    | `scampi mod add github.com/user/module`                  |
+| Explicit version | `scampi mod add github.com/user/module@v1.0.0`           |
+| Pre-release      | `scampi mod add github.com/user/module@v2.0.0-alpha.1`   |
 | Local module     | `scampi mod add my/helpers ./modules/helpers`            |
 
 ## tidy

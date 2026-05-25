@@ -29,8 +29,8 @@ parse_args() {
 }
 
 REPO="scampi-dev/scampi"
-API="https://codeberg.org/api/v1/repos/${REPO}"
-DL="https://codeberg.org/${REPO}/releases/download"
+API="https://api.github.com/repos/${REPO}"
+DL="https://github.com/${REPO}/releases/download"
 
 # Release signing key — embedded so verification works offline.
 # To rotate: regenerate the keypair, push a new install.sh with the new
@@ -101,7 +101,7 @@ fetch_version() {
     grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
 
   if [ -z "${VERSION}" ]; then
-    VERSION=$(curl -fsSL "${API}/releases?limit=1" |
+    VERSION=$(curl -fsSL "${API}/releases?per_page=1" |
       grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
   fi
 

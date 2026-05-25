@@ -16,7 +16,7 @@ This adds a local dependency to `scampi.mod` with a filesystem path instead
 of a version:
 
 ```scampi-mod {filename="scampi.mod"}
-module codeberg.org/yourname/yourproject
+module github.com/yourname/yourproject
 
 require (
     scampi.dev/modules/npm v1.0.0
@@ -72,7 +72,7 @@ When a local module is ready to be shared:
 my/helpers ./modules/helpers
 
 // After (remote)
-codeberg.org/yourname/helpers v1.0.0
+github.com/yourname/helpers v1.0.0
 ```
 
 5. Update `import` statements to use the new path

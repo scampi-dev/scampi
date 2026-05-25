@@ -3,7 +3,7 @@ title: scampi
 layout: hextra-home
 ---
 
-{{< hextra/hero-badge link="https://codeberg.org/scampi-dev/scampi" >}}
+{{< hextra/hero-badge link="https://github.com/scampi-dev/scampi" >}}
   <span>Open Source</span>
   {{< icon name="arrow-circle-right" attributes="height=14" >}}
 {{< /hextra/hero-badge >}}

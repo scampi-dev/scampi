@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Calculate the next semver tag based on issue labels since the last tag.
-# Usage: next-version.sh <api> <repo> [alpha|beta|rc] [--refresh]
+# Usage: next-version.sh [alpha|beta|rc]
 #
 # Inspects git log since the last tag, extracts issue numbers from
-# "fixes #N" / "closes #N", queries Codeberg for labels, and determines
-# the bump level:
+# "fixes #N" / "closes #N", reads issue labels from GitHub via the `gh`
+# CLI, and determines the bump level:
 #
-#   Compat/Breaking  -> major
-#   Kind/Feature     -> minor
-#   Kind/Enhancement -> minor
-#   Kind/Bug         -> patch
+#   compat/breaking  -> major
+#   kind/feature     -> minor
+#   kind/enhancement -> minor
+#   kind/bug         -> patch
 #
 # Stage argument:
 #   alpha, beta, rc  Pre-release tag with auto-incrementing suffix.
@@ -21,16 +21,11 @@
 # (e.g. requesting alpha when beta tags exist) is an error.
 set -euo pipefail
 
-api="$1"; repo="$2"; shift 2
-dir="$(cd "$(dirname "$0")" && pwd)"
-
 pre_stage=""
-refresh_flag=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     alpha|beta|rc) pre_stage="$1"; shift ;;
-    --refresh) refresh_flag="--refresh"; shift ;;
-    *) echo "usage: next-version.sh <api> <repo> [alpha|beta|rc] [--refresh]" >&2; exit 1 ;;
+    *) echo "usage: next-version.sh [alpha|beta|rc]" >&2; exit 1 ;;
   esac
 done
 
@@ -79,7 +74,7 @@ else
   summary=""
 
   for issue in $issues; do
-    json=$("$dir/codeberg-fetch.sh" "$api/repos/$repo/issues/$issue" $refresh_flag)
+    json=$(gh issue view "$issue" --json title,labels 2>/dev/null || echo '{}')
 
     title=$(echo "$json" | jq -r '.title // "???"')
     labels=$(echo "$json" | jq -r '.labels[].name' 2>/dev/null || true)
@@ -87,10 +82,10 @@ else
 
     for label in $labels; do
       case "$label" in
-        Compat/Breaking)
+        compat/breaking)
           bump="major"
           ;;
-        Kind/Feature|Kind/Enhancement)
+        kind/feature|kind/enhancement)
           [[ "$bump" != "major" ]] && bump="minor"
           ;;
       esac

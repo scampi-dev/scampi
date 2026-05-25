@@ -5,17 +5,6 @@ Hi, and thanks for considering a contribution to scampi!
 scampi is a small, solo-developed project. PRs and issues are very
 welcome, but a few notes will save us both some friction.
 
-## Where things live
-
-scampi is developed on **[Codeberg](https://codeberg.org/scampi-dev/scampi)**.
-The GitHub repository is a read-only mirror — issues and pull requests
-filed there will be auto-closed with a redirect.
-
-[Codeberg](https://codeberg.org/) is a non-profit, EU-hosted Forgejo
-instance. [Sign-up](https://codeberg.org/user/sign_up) is free, no
-email confirmation needed, and the workflow is the same as GitHub —
-fork, branch, push, open PR.
-
 ## Filing issues
 
 Pick an issue template that matches what you're filing:
@@ -97,7 +86,7 @@ issue first and we'll talk it through before you write code.
 
 ## Commit messages
 
-Short, title-only, no body. We use Forgejo magic keywords in
+Short, title-only, no body. We use GitHub magic keywords in
 parentheses at the end:
 
 ```
@@ -160,4 +149,4 @@ for both of us.
 ---
 
 For questions that don't fit issues, my email is on
-[my Codeberg profile](https://codeberg.org/pskry).
+[my GitHub profile](https://github.com/pskry).

@@ -10,12 +10,8 @@ mod test
 mod site
 
 [group('modules')]
-[doc("Codeberg repo management")]
-mod cb 'codeberg.just'
-
-[group('modules')]
-[doc("Issue pipeline (eval + push loops; just issues --list for subcommands)")]
-mod issues
+[doc("Release management (changelog, version bump, tag)")]
+mod release 'release.just'
 
 # Constants
 # -----------------------------------------------------------------------------

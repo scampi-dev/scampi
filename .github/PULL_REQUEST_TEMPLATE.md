@@ -1,30 +1,38 @@
 <!--
-  Hi, and thanks for taking the time to contribute to scampi!
+  Thanks for taking the time to contribute to scampi!
 
-  Heads-up before you hit submit: this GitHub repository is a read-only
-  mirror, and PRs filed here will be auto-closed with a redirect.
+  Quick read first if you haven't: CONTRIBUTING.md covers the build/test
+  workflow, commit style, and scope expectations. The short version:
 
-  Please re-file at:
-  https://codeberg.org/scampi-dev/scampi
-
-  Codeberg is a non-profit, EU-hosted Forgejo instance. Account creation
-  is free and the workflow is the same as GitHub — fork, branch, push,
-  open PR.
-
-  Sorry for the friction. Hope to see you over on Codeberg!
+  - One concern per PR.
+  - Link an issue if there is one (see "Linked issue" below).
+  - Tests when reasonable; an honest "I didn't test X because Y" is fine.
 -->
 
-## Hi, and thanks for taking the time to contribute to scampi!
+## Summary
 
-Heads-up before you hit submit: this GitHub repository is a **read-only
-mirror**, and PRs filed here will be auto-closed with a redirect to
-Codeberg.
+<!-- One or two sentences on what changes and why. -->
 
-Please re-file at
-**[codeberg.org/scampi-dev/scampi](https://codeberg.org/scampi-dev/scampi)**.
+## Linked issue
 
-[Codeberg](https://codeberg.org) is a non-profit, EU-hosted Forgejo
-instance. Account creation is free and the workflow is the same as
-GitHub — fork, branch, push, open PR.
+<!--
+  Use a magic keyword in parentheses if this PR resolves an issue:
+    closes #123       (general)
+    fixes #123        (bugs, label Kind/Bug)
+    refs #123         (related but doesn't close)
+-->
 
-Sorry for the friction. Hope to see you over on Codeberg!
+## Test plan
+
+<!--
+  How did you verify this works? "Ran just test nocontainers" is a fine
+  answer if behavior is covered. "Not sure how to test this" is also a
+  fine answer — it opens a conversation.
+-->
+
+## Checklist
+
+- [ ] `just fmt` is clean
+- [ ] `just lint` is clean
+- [ ] `just test nocontainers` passes
+- [ ] Docs under `site/content/` updated if behavior changed

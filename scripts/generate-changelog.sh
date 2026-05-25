@@ -2,22 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Regenerate CHANGELOG.md from all version tags.
-# Usage: generate-changelog.sh <api> <repo> [--refresh]
+# Usage: generate-changelog.sh
 #
 # Walks tags newest-first, generates release notes for each range,
-# and outputs a complete changelog to stdout.
+# and outputs a complete changelog to stdout. Reads issue metadata
+# from GitHub via the `gh` CLI.
 set -euo pipefail
-
-api="$1"; repo="$2"; shift 2
-dir="$(cd "$(dirname "$0")" && pwd)"
-
-refresh_flag=""
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --refresh) refresh_flag="--refresh"; shift ;;
-    *) echo "unknown option: $1" >&2; exit 1 ;;
-  esac
-done
 
 # Collect all version tags, newest first
 tags=$(git tag -l 'v*' --sort=-version:refname)
@@ -62,7 +52,7 @@ emit_section() {
   other=""
 
   for issue in $issues; do
-    json=$("$dir/codeberg-fetch.sh" "$api/repos/$repo/issues/$issue" $refresh_flag)
+    json=$(gh issue view "$issue" --json title,labels 2>/dev/null || echo '{}')
 
     title=$(echo "$json" | jq -r '.title // "???"')
     labels=$(echo "$json" | jq -r '.labels[].name' 2>/dev/null || true)
@@ -71,11 +61,11 @@ emit_section() {
     classified=false
     for label in $labels; do
       case "$label" in
-        Compat/Breaking)  breaking="${breaking}${entry}\n"; classified=true ;;
-        Kind/Security)    security="${security}${entry}\n"; classified=true ;;
-        Kind/Feature)     features="${features}${entry}\n"; classified=true ;;
-        Kind/Enhancement) enhancements="${enhancements}${entry}\n"; classified=true ;;
-        Kind/Bug)         bugs="${bugs}${entry}\n"; classified=true ;;
+        compat/breaking)  breaking="${breaking}${entry}\n"; classified=true ;;
+        kind/security)    security="${security}${entry}\n"; classified=true ;;
+        kind/feature)     features="${features}${entry}\n"; classified=true ;;
+        kind/enhancement) enhancements="${enhancements}${entry}\n"; classified=true ;;
+        kind/bug)         bugs="${bugs}${entry}\n"; classified=true ;;
       esac
     done
 

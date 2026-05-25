@@ -12,9 +12,9 @@ The CLI- and LSP-only endpoints ([/cli.sh](/cli.sh) and
 [/lsp.sh](/lsp.sh)) serve trimmed variants of the same script.
 
 All three are generated from
-[scripts/install.sh](https://codeberg.org/scampi-dev/scampi/src/branch/main/scripts/install.sh)
-in the canonical Codeberg repo by
-[gen-install-scripts.sh](https://codeberg.org/scampi-dev/scampi/src/branch/main/scripts/gen-install-scripts.sh)
+[scripts/install.sh](https://github.com/scampi-dev/scampi/blob/main/scripts/install.sh)
+in the canonical GitHub repo by
+[gen-install-scripts.sh](https://github.com/scampi-dev/scampi/blob/main/scripts/gen-install-scripts.sh)
 at site-build time, with the per-variant binary list substituted in.
 
 <!-- The block between the GENERATED markers below is regenerated on
@@ -55,8 +55,8 @@ parse_args() {
 }
 
 REPO="scampi-dev/scampi"
-API="https://codeberg.org/api/v1/repos/${REPO}"
-DL="https://codeberg.org/${REPO}/releases/download"
+API="https://api.github.com/repos/${REPO}"
+DL="https://github.com/${REPO}/releases/download"
 
 # Release signing key — embedded so verification works offline.
 # To rotate: regenerate the keypair, push a new install.sh with the new
@@ -128,7 +128,7 @@ fetch_version() {
     grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
 
   if [ -z "${VERSION}" ]; then
-    VERSION=$(curl -fsSL "${API}/releases?limit=1" |
+    VERSION=$(curl -fsSL "${API}/releases?per_page=1" |
       grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
   fi
 

@@ -2,19 +2,14 @@
 
 # scampi
 
-[![CI](https://codeberg.org/scampi-dev/scampi/badges/workflows/ci.yml/badge.svg?branch=main)](https://codeberg.org/scampi-dev/scampi/actions?workflow=ci.yml)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](https://codeberg.org/scampi-dev/scampi/src/branch/main/LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](https://github.com/scampi-dev/scampi/blob/main/LICENSE)
 [![Security Policy](https://img.shields.io/badge/security-policy-critical?logo=gnuprivacyguard&logoColor=white)](SECURITY.md)
-[![Latest Release](https://img.shields.io/gitea/v/release/scampi-dev/scampi?gitea_url=https%3A%2F%2Fcodeberg.org&include_prereleases&label=release&color=blue)](https://codeberg.org/scampi-dev/scampi/releases)
-[![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macos%20%7C%20freebsd-lightgrey)](https://codeberg.org/scampi-dev/scampi/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/scampi-dev/scampi?include_prereleases&label=release&color=blue)](https://github.com/scampi-dev/scampi/releases)
+[![Platforms](https://img.shields.io/badge/platforms-linux%20%7C%20macos%20%7C%20freebsd-lightgrey)](https://github.com/scampi-dev/scampi/releases/latest)
 [![Install](https://img.shields.io/badge/install-get.scampi.dev-2ea44f)](https://get.scampi.dev)
 
 > [!IMPORTANT]
 > **Found a security issue?** Please follow the [security policy](SECURITY.md) — don't open a public issue. Sensitive reports can be PGP-encrypted; the key is published in `SECURITY.md`.
-
-> [!NOTE]
-> **scampi is developed on [Codeberg](https://codeberg.org/scampi-dev/scampi).**
-> The GitHub repository is a read-only mirror — please file issues and pull requests on Codeberg. Account creation is free and the workflow is the same as GitHub.
 
 Hi, I'm **scampi** — your friendly infrastructure crustacean. I do IaC convergence, garlic buttery smooth.
 
@@ -84,7 +79,7 @@ Stack `-v` flags on any of those for more detail — `-v` (why), `-vv` (how), `-
 Prefer building from a checkout? You'll need [Go](https://go.dev) and [`just`](https://github.com/casey/just):
 
 ```bash
-git clone https://codeberg.org/scampi-dev/scampi
+git clone https://github.com/scampi-dev/scampi
 cd scampi
 just build           # produces ./build/bin/scampi and ./build/bin/scampls
 ```

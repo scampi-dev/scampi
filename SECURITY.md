@@ -52,7 +52,7 @@ in release notes.
 - `mod/` and `linker/` — module integrity (`scampi.sum`), remote
   module resolution
 - The official module library at
-  [scampi-dev/modules](https://codeberg.org/scampi-dev/modules)
+  [scampi-dev/modules](https://github.com/scampi-dev/modules)
 - The install pipeline: `get.scampi.dev`, release artifacts,
   `install.sh`, and `SHA256SUMS`
 
