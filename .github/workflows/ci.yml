@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    # Bench commits land in benchmarks/ and shouldn't re-trigger CI.
+    paths-ignore:
+      - 'benchmarks/**'
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          check-latest: true
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Test (everything, includes container-gated)
+        run: just test everything
+
+      - name: Lint
+        run: just lint
