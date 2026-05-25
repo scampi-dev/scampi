@@ -61,8 +61,11 @@ jobs:
             exit 0
           fi
           git commit -m "ci: bench baseline ${{ steps.meta.outputs.ts }} for ${{ steps.meta.outputs.suffix }}"
+          # Checkout above is by SHA, so HEAD is detached. Push the new
+          # bench commit explicitly to main; rebase first in case main
+          # has moved since.
           git pull --rebase origin main
-          git push
+          git push origin HEAD:main
 
       - name: Publish raw bench data to Caddy
         # Runner is on the same VPS as Caddy. /var/www/scampi.dev/raw-bench
