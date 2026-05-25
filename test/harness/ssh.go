@@ -126,7 +126,9 @@ func RecreateContainer(t *testing.T) {
 		t.Fatal("RecreateContainer: no compose file — TestMain did not start a container")
 	}
 
-	cmd := exec.Command("docker", "compose", "-p", sharedProject, "-f", SharedComposeFile, "up", "-d", "--force-recreate", "--wait")
+	cmd := exec.Command("docker", "compose",
+		"-p", sharedProject, "-f", SharedComposeFile,
+		"up", "-d", "--force-recreate", "--wait")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -160,7 +162,9 @@ func RecreateContainer(t *testing.T) {
 // lookupHostPort asks compose for the host port bound to <service>:<containerPort>.
 // Output of `docker compose port` looks like "0.0.0.0:54321" or "[::]:54321".
 func lookupHostPort(project, file, service string, containerPort int) (int, error) {
-	out, err := exec.Command("docker", "compose", "-p", project, "-f", file, "port", service, strconv.Itoa(containerPort)).Output()
+	out, err := exec.Command("docker", "compose",
+		"-p", project, "-f", file,
+		"port", service, strconv.Itoa(containerPort)).Output()
 	if err != nil {
 		return 0, fmt.Errorf("docker compose port %s %d: %w", service, containerPort, err)
 	}

@@ -101,4 +101,3 @@ func TestEnsureRemoteDep_AlreadyCached(t *testing.T) {
 		t.Errorf("expected no-op for cached dep, got: %v", err)
 	}
 }
-
