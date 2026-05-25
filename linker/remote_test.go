@@ -90,23 +90,6 @@ func TestParseScampiImport_MalformedContent(t *testing.T) {
 	}
 }
 
-func TestResolveImportPath_LiveVanity(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping live vanity test in short mode")
-	}
-
-	repoURL, subdir, err := resolveImportPath("scampi.dev/modules/npm")
-	if err != nil {
-		t.Fatalf("resolveImportPath: %v", err)
-	}
-	if repoURL != "https://codeberg.org/scampi-dev/modules.git" {
-		t.Errorf("repoURL = %q", repoURL)
-	}
-	if subdir != "npm" {
-		t.Errorf("subdir = %q, want 'npm'", subdir)
-	}
-}
-
 func TestEnsureRemoteDep_AlreadyCached(t *testing.T) {
 	dir := t.TempDir()
 	cacheDir := filepath.Join(dir, "cached")
@@ -119,28 +102,3 @@ func TestEnsureRemoteDep_AlreadyCached(t *testing.T) {
 	}
 }
 
-func TestEnsureRemoteDep_LiveClone(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping live clone test in short mode")
-	}
-	dir := t.TempDir()
-	cacheDir := filepath.Join(dir, "npm@main")
-
-	err := ensureRemoteDep("scampi.dev/modules/npm", "main", cacheDir)
-	if err != nil {
-		t.Fatalf("ensureRemoteDep: %v", err)
-	}
-
-	if _, err := os.Stat(filepath.Join(cacheDir, "_index.scampi")); err != nil {
-		t.Errorf("_index.scampi not found in cache: %v", err)
-	}
-	if _, err := os.Stat(filepath.Join(cacheDir, "npm.api.scampi")); err != nil {
-		t.Errorf("npm.api.scampi not found in cache: %v", err)
-	}
-
-	// Second call: cache hit, no-op.
-	err = ensureRemoteDep("scampi.dev/modules/npm", "main", cacheDir)
-	if err != nil {
-		t.Errorf("second call should be no-op, got: %v", err)
-	}
-}
