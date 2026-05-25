@@ -2,7 +2,11 @@ services:
   sshd:
     build: .
     ports:
-      - "2222:22"
+      # Ephemeral host port. The harness looks it up via
+      # `docker compose port sshd 22` after `up --wait`. Lets multiple
+      # test packages run their own sshd container in parallel without
+      # colliding on a fixed host port.
+      - "22"
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "22"]
       interval: 1s

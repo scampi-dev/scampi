@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,9 +21,14 @@ import (
 
 const (
 	SSHTestHost = "localhost"
-	SSHTestPort = 2222
 	SSHTestUser = "testuser"
 )
+
+// SSHTestPort is the host port that the SSH container is bound to.
+// Set at StartSharedContainer time — the compose file uses an ephemeral
+// host port (binding `"22"`) so multiple test packages can run their own
+// sshd container in parallel without colliding.
+var SSHTestPort int
 
 // SharedSSHEnv holds the shared container environment.
 // Initialized by TestMain via StartSharedContainer().
@@ -30,6 +36,11 @@ var SharedSSHEnv *SSHTestEnv
 
 // SharedComposeFile is the path to docker-compose.yml for the shared container.
 var SharedComposeFile string
+
+// sharedProject is the docker-compose project name passed to every compose
+// command. Distinct per test package so parallel packages don't clobber
+// each other's container.
+var sharedProject string
 
 // SharedKnownHostsPath is the path to the temp known_hosts file.
 var SharedKnownHostsPath string
@@ -41,9 +52,12 @@ type SSHTestEnv struct {
 	KeyPath string
 }
 
-// StartSharedContainer starts the SSH container once for all tests.
-// Called from TestMain.
-func StartSharedContainer() error {
+// StartSharedContainer starts the SSH container once for all tests in
+// the calling package. The project name namespaces the compose project
+// — each test package passes its own (e.g. "scampi-test-ssh",
+// "scampi-test-e2e") so two packages can run their own container in
+// parallel. Called from TestMain.
+func StartSharedContainer(project string) error {
 	testDir, err := FindTestSSHDirOrErr()
 	if err != nil {
 		return err
@@ -55,13 +69,20 @@ func StartSharedContainer() error {
 	}
 
 	SharedComposeFile = filepath.Join(testDir, "sshd", "docker-compose.yml")
+	sharedProject = project
 
-	cmd := exec.Command("docker", "compose", "-f", SharedComposeFile, "up", "-d", "--wait")
+	cmd := exec.Command("docker", "compose", "-p", sharedProject, "-f", SharedComposeFile, "up", "-d", "--wait")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to start container: %w", err)
 	}
+
+	port, err := lookupHostPort(sharedProject, SharedComposeFile, "sshd", 22)
+	if err != nil {
+		return err
+	}
+	SSHTestPort = port
 
 	if err := WaitForSSHOrErr(SSHTestHost, SSHTestPort, 30*time.Second); err != nil {
 		return err
@@ -86,8 +107,8 @@ func StartSharedContainer() error {
 // StopSharedContainer stops the shared container.
 // Called from TestMain defer.
 func StopSharedContainer() {
-	if SharedComposeFile != "" {
-		cmd := exec.Command("docker", "compose", "-f", SharedComposeFile, "down", "-v")
+	if SharedComposeFile != "" && sharedProject != "" {
+		cmd := exec.Command("docker", "compose", "-p", sharedProject, "-f", SharedComposeFile, "down", "-v")
 		_ = cmd.Run()
 	}
 	if SharedKnownHostsPath != "" {
@@ -101,15 +122,24 @@ func StopSharedContainer() {
 func RecreateContainer(t *testing.T) {
 	t.Helper()
 
-	if SharedComposeFile == "" {
+	if SharedComposeFile == "" || sharedProject == "" {
 		t.Fatal("RecreateContainer: no compose file — TestMain did not start a container")
 	}
 
-	cmd := exec.Command("docker", "compose", "-f", SharedComposeFile, "up", "-d", "--force-recreate", "--wait")
+	cmd := exec.Command("docker", "compose", "-p", sharedProject, "-f", SharedComposeFile, "up", "-d", "--force-recreate", "--wait")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("RecreateContainer: docker compose up failed: %v", err)
+	}
+
+	port, err := lookupHostPort(sharedProject, SharedComposeFile, "sshd", 22)
+	if err != nil {
+		t.Fatalf("RecreateContainer: %v", err)
+	}
+	SSHTestPort = port
+	if SharedSSHEnv != nil {
+		SharedSSHEnv.Port = port
 	}
 
 	if err := WaitForSSHOrErr(SSHTestHost, SSHTestPort, 30*time.Second); err != nil {
@@ -125,6 +155,26 @@ func RecreateContainer(t *testing.T) {
 		_ = os.Remove(SharedKnownHostsPath)
 	}
 	SharedKnownHostsPath = knownHostsPath
+}
+
+// lookupHostPort asks compose for the host port bound to <service>:<containerPort>.
+// Output of `docker compose port` looks like "0.0.0.0:54321" or "[::]:54321".
+func lookupHostPort(project, file, service string, containerPort int) (int, error) {
+	out, err := exec.Command("docker", "compose", "-p", project, "-f", file, "port", service, strconv.Itoa(containerPort)).Output()
+	if err != nil {
+		return 0, fmt.Errorf("docker compose port %s %d: %w", service, containerPort, err)
+	}
+	// Take the last `:PORT` segment — handles both IPv4 and IPv6 outputs.
+	s := strings.TrimSpace(string(out))
+	idx := strings.LastIndex(s, ":")
+	if idx < 0 {
+		return 0, fmt.Errorf("unexpected docker compose port output: %q", s)
+	}
+	port, err := strconv.Atoi(s[idx+1:])
+	if err != nil {
+		return 0, fmt.Errorf("parse port from %q: %w", s, err)
+	}
+	return port, nil
 }
 
 // SetupSSHTestEnv returns the shared SSH environment.
