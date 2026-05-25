@@ -121,7 +121,7 @@ func TestAdd_ExplicitVersion(t *testing.T) {
 	cacheDir := t.TempDir()
 
 	// Write a minimal scampi.mod
-	modContent := "module codeberg.org/test/mymod\n"
+	modContent := "module github.com/test/mymod\n"
 	if err := os.WriteFile(filepath.Join(dir, "scampi.mod"), []byte(modContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestAdd_LatestStable(t *testing.T) {
 	dir := t.TempDir()
 	cacheDir := t.TempDir()
 
-	modContent := "module codeberg.org/test/mymod\n"
+	modContent := "module github.com/test/mymod\n"
 	if err := os.WriteFile(filepath.Join(dir, "scampi.mod"), []byte(modContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestAdd_NoStableVersion(t *testing.T) {
 	dir := t.TempDir()
 	cacheDir := t.TempDir()
 
-	modContent := "module codeberg.org/test/mymod\n"
+	modContent := "module github.com/test/mymod\n"
 	if err := os.WriteFile(filepath.Join(dir, "scampi.mod"), []byte(modContent), 0o644); err != nil {
 		t.Fatal(err)
 	}

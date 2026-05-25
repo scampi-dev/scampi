@@ -15,13 +15,13 @@ import (
 const testFile = "scampi.mod"
 
 func TestParse_HappyPath_ModuleOnly(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n")
+	data := []byte("module github.com/pskry/skrynet\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if m.Module != "codeberg.org/pskry/skrynet" {
-		t.Errorf("module = %q, want %q", m.Module, "codeberg.org/pskry/skrynet")
+	if m.Module != "github.com/pskry/skrynet" {
+		t.Errorf("module = %q, want %q", m.Module, "github.com/pskry/skrynet")
 	}
 	if m.ModuleLine != 1 {
 		t.Errorf("ModuleLine = %d, want 1", m.ModuleLine)
@@ -32,30 +32,30 @@ func TestParse_HappyPath_ModuleOnly(t *testing.T) {
 }
 
 func TestParse_HappyPath_WithRequire(t *testing.T) {
-	data := []byte(`module codeberg.org/pskry/skrynet
+	data := []byte(`module github.com/pskry/skrynet
 
 require (
-    codeberg.org/scampi-modules/npm v1.0.0
-    codeberg.org/scampi-modules/authelia v0.3.2
+    github.com/scampi-modules/npm v1.0.0
+    github.com/scampi-modules/authelia v0.3.2
 )
 `)
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if m.Module != "codeberg.org/pskry/skrynet" {
+	if m.Module != "github.com/pskry/skrynet" {
 		t.Errorf("module = %q", m.Module)
 	}
 	if len(m.Require) != 2 {
 		t.Fatalf("len(Require) = %d, want 2", len(m.Require))
 	}
-	if m.Require[0].Path != "codeberg.org/scampi-modules/npm" {
+	if m.Require[0].Path != "github.com/scampi-modules/npm" {
 		t.Errorf("Require[0].Path = %q", m.Require[0].Path)
 	}
 	if m.Require[0].Version != "v1.0.0" {
 		t.Errorf("Require[0].Version = %q", m.Require[0].Version)
 	}
-	if m.Require[1].Path != "codeberg.org/scampi-modules/authelia" {
+	if m.Require[1].Path != "github.com/scampi-modules/authelia" {
 		t.Errorf("Require[1].Path = %q", m.Require[1].Path)
 	}
 	if m.Require[1].Version != "v0.3.2" {
@@ -64,7 +64,7 @@ require (
 }
 
 func TestParse_HappyPath_EmptyRequireBlock(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n)\n")
+	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n)\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -76,31 +76,31 @@ func TestParse_HappyPath_EmptyRequireBlock(t *testing.T) {
 
 func TestParse_HappyPath_Comments(t *testing.T) {
 	data := []byte(`// This is a module manifest
-module codeberg.org/pskry/skrynet // inline comment
+module github.com/pskry/skrynet // inline comment
 
 require (
     // pin npm for compatibility
-    codeberg.org/scampi-modules/npm v1.0.0 // locked
+    github.com/scampi-modules/npm v1.0.0 // locked
 )
 `)
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if m.Module != "codeberg.org/pskry/skrynet" {
+	if m.Module != "github.com/pskry/skrynet" {
 		t.Errorf("module = %q", m.Module)
 	}
 	if len(m.Require) != 1 {
 		t.Fatalf("len(Require) = %d, want 1", len(m.Require))
 	}
-	if m.Require[0].Path != "codeberg.org/scampi-modules/npm" {
+	if m.Require[0].Path != "github.com/scampi-modules/npm" {
 		t.Errorf("Require[0].Path = %q", m.Require[0].Path)
 	}
 }
 
 func TestParse_HappyPath_PreReleaseVersion(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\n" +
-		"require (\n    codeberg.org/scampi-modules/npm v1.0.0-alpha.1\n)\n")
+	data := []byte("module github.com/pskry/skrynet\n\n" +
+		"require (\n    github.com/scampi-modules/npm v1.0.0-alpha.1\n)\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -111,10 +111,10 @@ func TestParse_HappyPath_PreReleaseVersion(t *testing.T) {
 }
 
 func TestParse_HappyPath_LineNumbers(t *testing.T) {
-	data := []byte(`module codeberg.org/pskry/skrynet
+	data := []byte(`module github.com/pskry/skrynet
 
 require (
-    codeberg.org/scampi-modules/npm v1.0.0
+    github.com/scampi-modules/npm v1.0.0
 )
 `)
 	m, err := mod.Parse(testFile, data)
@@ -130,7 +130,7 @@ require (
 }
 
 func TestParse_HappyPath_Filename(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n")
+	data := []byte("module github.com/pskry/skrynet\n")
 	m, err := mod.Parse("path/to/scampi.mod", data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -141,7 +141,7 @@ func TestParse_HappyPath_Filename(t *testing.T) {
 }
 
 func TestParse_Error_MissingModuleDirective(t *testing.T) {
-	data := []byte("require (\n    codeberg.org/scampi-modules/npm v1.0.0\n)\n")
+	data := []byte("require (\n    github.com/scampi-modules/npm v1.0.0\n)\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -170,7 +170,7 @@ func TestParse_Error_MissingModuleDirective_EmptyFile(t *testing.T) {
 }
 
 func TestParse_Error_DuplicateModule(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\nmodule codeberg.org/pskry/other\n")
+	data := []byte("module github.com/pskry/skrynet\nmodule github.com/pskry/other\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -200,7 +200,7 @@ func TestParse_Error_InvalidModulePath(t *testing.T) {
 }
 
 func TestParse_BranchVersion(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm main\n)\n")
+	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm main\n)\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
 		t.Fatalf("expected branch version to be accepted, got: %v", err)
@@ -211,7 +211,7 @@ func TestParse_BranchVersion(t *testing.T) {
 }
 
 func TestParse_Error_MalformedRequireEntry(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm\n)\n")
+	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm\n)\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -243,7 +243,7 @@ func TestParse_Error_SourceSpanFilename(t *testing.T) {
 
 func TestParse_Error_ErrorMessageIncludesLine(t *testing.T) {
 	// Use a genuinely invalid entry (missing version entirely).
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm\n)\n")
+	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm\n)\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -262,7 +262,7 @@ func TestParse_Error_ErrorMessageIncludesLine(t *testing.T) {
 }
 
 func TestParse_Error_UnclosedRequireBlock(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm v1.0.0\n")
+	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm v1.0.0\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -274,7 +274,7 @@ func TestParse_Error_UnclosedRequireBlock(t *testing.T) {
 }
 
 func TestParse_Error_UnexpectedToken(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\nfoobar\n")
+	data := []byte("module github.com/pskry/skrynet\nfoobar\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -311,7 +311,7 @@ func TestParse_DiagnosticInterface(t *testing.T) {
 }
 
 func TestDepSpan(t *testing.T) {
-	data := []byte("module codeberg.org/pskry/skrynet\n\nrequire (\n    codeberg.org/scampi-modules/npm v1.0.0\n)\n")
+	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm v1.0.0\n)\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -331,9 +331,9 @@ func TestDepSpan(t *testing.T) {
 
 func TestIsModulePath(t *testing.T) {
 	valid := []string{
-		"codeberg.org/pskry/skrynet",
+		"github.com/pskry/skrynet",
 		"github.com/foo/bar",
-		"codeberg.org/scampi-modules/npm",
+		"github.com/scampi-modules/npm",
 	}
 	for _, p := range valid {
 		if !mod.IsModulePath(p) {
@@ -355,11 +355,11 @@ func TestIsModulePath(t *testing.T) {
 }
 
 func TestParse_HappyPath_IndirectFlag(t *testing.T) {
-	data := []byte(`module codeberg.org/pskry/skrynet
+	data := []byte(`module github.com/pskry/skrynet
 
 require (
-    codeberg.org/scampi-modules/npm v1.0.0
-    codeberg.org/scampi-modules/authelia v0.3.2 // indirect
+    github.com/scampi-modules/npm v1.0.0
+    github.com/scampi-modules/authelia v0.3.2 // indirect
 )
 `)
 	m, err := mod.Parse(testFile, data)
@@ -378,11 +378,11 @@ require (
 }
 
 func TestParse_HappyPath_NoIndirectFlag(t *testing.T) {
-	data := []byte(`module codeberg.org/pskry/skrynet
+	data := []byte(`module github.com/pskry/skrynet
 
 require (
-    codeberg.org/scampi-modules/npm v1.0.0
-    codeberg.org/scampi-modules/authelia v0.3.2
+    github.com/scampi-modules/npm v1.0.0
+    github.com/scampi-modules/authelia v0.3.2
 )
 `)
 	m, err := mod.Parse(testFile, data)
@@ -401,11 +401,11 @@ func TestWriteModFile_IndirectRoundTrip(t *testing.T) {
 	src := source.NewMemSource()
 
 	deps := []mod.Dependency{
-		{Path: "codeberg.org/scampi-modules/npm", Version: "v1.0.0", Indirect: false},
-		{Path: "codeberg.org/scampi-modules/authelia", Version: "v0.3.2", Indirect: true},
+		{Path: "github.com/scampi-modules/npm", Version: "v1.0.0", Indirect: false},
+		{Path: "github.com/scampi-modules/authelia", Version: "v0.3.2", Indirect: true},
 	}
 
-	if err := mod.WriteModFile(ctx, src, testFile, "codeberg.org/pskry/skrynet", deps); err != nil {
+	if err := mod.WriteModFile(ctx, src, testFile, "github.com/pskry/skrynet", deps); err != nil {
 		t.Fatalf("writeModFile: %v", err)
 	}
 

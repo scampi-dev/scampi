@@ -25,7 +25,7 @@ func (s *statFailingSource) Stat(_ context.Context, _ string) (source.FileMeta, 
 
 func TestInit_WritesScampiModWhenMissing(t *testing.T) {
 	src := source.NewMemSource()
-	const path = "codeberg.org/me/foo"
+	const path = "github.com/me/foo"
 
 	if err := mod.Init(context.Background(), src, "/proj", path); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -47,7 +47,7 @@ func TestInit_ErrorsWhenScampiModExists(t *testing.T) {
 		t.Fatalf("seed write failed: %v", err)
 	}
 
-	err := mod.Init(context.Background(), src, "/proj", "codeberg.org/me/foo")
+	err := mod.Init(context.Background(), src, "/proj", "github.com/me/foo")
 	if err == nil {
 		t.Fatal("expected error when scampi.mod exists, got nil")
 	}
@@ -74,7 +74,7 @@ func TestInit_ReturnsInitStatErrorOnStatFailure(t *testing.T) {
 		statErr:   statErr,
 	}
 
-	err := mod.Init(context.Background(), src, "/proj", "codeberg.org/me/foo")
+	err := mod.Init(context.Background(), src, "/proj", "github.com/me/foo")
 	if err == nil {
 		t.Fatal("expected error when Stat fails, got nil")
 	}

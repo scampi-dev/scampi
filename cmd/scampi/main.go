@@ -383,7 +383,7 @@ func recoverAndReport(r any) {
 	_println("This is a BUG in scampi, not in your configuration.")
 	_println()
 	_println("Please report this issue and include the information below:")
-	_println("  https://codeberg.org/scampi-dev/scampi/issues")
+	_println("  https://github.com/scampi-dev/scampi/issues")
 	_println()
 	_println()
 	_println("======  internal error  ======")

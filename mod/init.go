@@ -30,7 +30,7 @@ func Init(ctx context.Context, src source.Source, dir string, modulePath string)
 	if !isModulePath(modulePath) {
 		return &InitError{
 			Detail: fmt.Sprintf("invalid module path %q", modulePath),
-			Hint:   "module path must be a host/path URL, e.g. codeberg.org/yourname/yourmodule",
+			Hint:   "module path must be a host/path URL, e.g. github.com/yourname/yourmodule",
 			Source: span,
 		}
 	}

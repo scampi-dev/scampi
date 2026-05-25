@@ -96,8 +96,8 @@ func TestComputeHash_Format(t *testing.T) {
 func TestWriteAndReadSum(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "scampi.sum")
 	sums := map[string]string{
-		"codeberg.org/foo/bar v1.0.0": "h1:abc123",
-		"codeberg.org/baz/qux v2.1.0": "h1:def456",
+		"github.com/foo/bar v1.0.0": "h1:abc123",
+		"github.com/baz/qux v2.1.0": "h1:def456",
 	}
 
 	if err := mod.WriteSum(context.Background(), source.LocalPosixSource{}, path, sums); err != nil {
@@ -133,9 +133,9 @@ func TestReadSum_Missing(t *testing.T) {
 func TestWriteSum_Sorted(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "scampi.sum")
 	sums := map[string]string{
-		"codeberg.org/zzz/mod v1.0.0": "h1:zzz",
-		"codeberg.org/aaa/mod v1.0.0": "h1:aaa",
-		"codeberg.org/mmm/mod v1.0.0": "h1:mmm",
+		"github.com/zzz/mod v1.0.0": "h1:zzz",
+		"github.com/aaa/mod v1.0.0": "h1:aaa",
+		"github.com/mmm/mod v1.0.0": "h1:mmm",
 	}
 
 	if err := mod.WriteSum(context.Background(), source.LocalPosixSource{}, path, sums); err != nil {
@@ -164,9 +164,9 @@ func TestVerifyModule_OK(t *testing.T) {
 		t.Fatalf("ComputeHash: %v", err)
 	}
 
-	dep := mod.Dependency{Path: "codeberg.org/foo/bar", Version: "v1.0.0"}
+	dep := mod.Dependency{Path: "github.com/foo/bar", Version: "v1.0.0"}
 	sums := map[string]string{
-		"codeberg.org/foo/bar v1.0.0": hash,
+		"github.com/foo/bar v1.0.0": hash,
 	}
 
 	if err := mod.VerifyModule(nil, dep, dir, sums); err != nil {
@@ -178,9 +178,9 @@ func TestVerifyModule_Mismatch(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "main.scampi", "# scampi module")
 
-	dep := mod.Dependency{Path: "codeberg.org/foo/bar", Version: "v1.0.0"}
+	dep := mod.Dependency{Path: "github.com/foo/bar", Version: "v1.0.0"}
 	sums := map[string]string{
-		"codeberg.org/foo/bar v1.0.0": "h1:0000000000000000000000000000000000000000000000000000000000000000",
+		"github.com/foo/bar v1.0.0": "h1:0000000000000000000000000000000000000000000000000000000000000000",
 	}
 
 	err := mod.VerifyModule(nil, dep, dir, sums)
@@ -197,7 +197,7 @@ func TestVerifyModule_NotInSum(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "main.scampi", "# scampi module")
 
-	dep := mod.Dependency{Path: "codeberg.org/new/module", Version: "v1.0.0"}
+	dep := mod.Dependency{Path: "github.com/new/module", Version: "v1.0.0"}
 	sums := map[string]string{}
 
 	if err := mod.VerifyModule(nil, dep, dir, sums); err != nil {

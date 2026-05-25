@@ -29,7 +29,7 @@ func TestResolveDeps_NoTransitive(t *testing.T) {
 
 	// A has no scampi.mod in cache — leaf module.
 	direct := []Dependency{
-		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
+		{Path: "github.com/user/a", Version: "v1.0.0"},
 	}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -39,8 +39,8 @@ func TestResolveDeps_NoTransitive(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d deps, want 1", len(got))
 	}
-	if got[0].Path != "codeberg.org/user/a" || got[0].Version != "v1.0.0" {
-		t.Errorf("got %s@%s, want codeberg.org/user/a@v1.0.0", got[0].Path, got[0].Version)
+	if got[0].Path != "github.com/user/a" || got[0].Version != "v1.0.0" {
+		t.Errorf("got %s@%s, want github.com/user/a@v1.0.0", got[0].Path, got[0].Version)
 	}
 	if got[0].Indirect {
 		t.Error("direct dep should not be indirect")
@@ -53,13 +53,13 @@ func TestResolveDeps_SimpleChain(t *testing.T) {
 	cacheDir := "/cache"
 
 	// A@v1.0.0 → B@v1.0.0 → C@v1.0.0
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a", "codeberg.org/user/b v1.0.0")
-	src.Files["/cache/codeberg.org/user/b@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/b", "codeberg.org/user/c v1.0.0")
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a", "github.com/user/b v1.0.0")
+	src.Files["/cache/github.com/user/b@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/b", "github.com/user/c v1.0.0")
 
 	direct := []Dependency{
-		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
+		{Path: "github.com/user/a", Version: "v1.0.0"},
 	}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -71,9 +71,9 @@ func TestResolveDeps_SimpleChain(t *testing.T) {
 	}
 
 	// Sorted by path: a, b, c
-	assertDep(t, got[0], "codeberg.org/user/a", "v1.0.0", false)
-	assertDep(t, got[1], "codeberg.org/user/b", "v1.0.0", true)
-	assertDep(t, got[2], "codeberg.org/user/c", "v1.0.0", true)
+	assertDep(t, got[0], "github.com/user/a", "v1.0.0", false)
+	assertDep(t, got[1], "github.com/user/b", "v1.0.0", true)
+	assertDep(t, got[2], "github.com/user/c", "v1.0.0", true)
 }
 
 func TestResolveDeps_Diamond(t *testing.T) {
@@ -84,18 +84,18 @@ func TestResolveDeps_Diamond(t *testing.T) {
 	// A → B@v1.0.0, C@v1.0.0
 	// B@v1.0.0 → D@v1.0.0
 	// C@v1.0.0 → D@v2.0.0   ← higher wins
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a",
-			"codeberg.org/user/b v1.0.0",
-			"codeberg.org/user/c v1.0.0",
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a",
+			"github.com/user/b v1.0.0",
+			"github.com/user/c v1.0.0",
 		)
-	src.Files["/cache/codeberg.org/user/b@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/b", "codeberg.org/user/d v1.0.0")
-	src.Files["/cache/codeberg.org/user/c@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/c", "codeberg.org/user/d v2.0.0")
+	src.Files["/cache/github.com/user/b@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/b", "github.com/user/d v1.0.0")
+	src.Files["/cache/github.com/user/c@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/c", "github.com/user/d v2.0.0")
 
 	direct := []Dependency{
-		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
+		{Path: "github.com/user/a", Version: "v1.0.0"},
 	}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -106,7 +106,7 @@ func TestResolveDeps_Diamond(t *testing.T) {
 	// Find D in the results.
 	var d *Dependency
 	for i := range got {
-		if got[i].Path == "codeberg.org/user/d" {
+		if got[i].Path == "github.com/user/d" {
 			d = &got[i]
 			break
 		}
@@ -131,19 +131,19 @@ func TestResolveDeps_PreReleaseLosesToRelease(t *testing.T) {
 	ctx := context.Background()
 	cacheDir := "/cache"
 
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a",
-			"codeberg.org/user/c v1.0.0",
-			"codeberg.org/user/b v1.0.0-rc1",
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a",
+			"github.com/user/c v1.0.0",
+			"github.com/user/b v1.0.0-rc1",
 		)
-	src.Files["/cache/codeberg.org/user/c@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/c", "codeberg.org/user/b v1.0.0")
-	src.Files["/cache/codeberg.org/user/b@v1.0.0-rc1/scampi.mod"] =
-		modContent("codeberg.org/user/b")
-	src.Files["/cache/codeberg.org/user/b@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/b")
+	src.Files["/cache/github.com/user/c@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/c", "github.com/user/b v1.0.0")
+	src.Files["/cache/github.com/user/b@v1.0.0-rc1/scampi.mod"] =
+		modContent("github.com/user/b")
+	src.Files["/cache/github.com/user/b@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/b")
 
-	direct := []Dependency{{Path: "codeberg.org/user/a", Version: "v1.0.0"}}
+	direct := []Dependency{{Path: "github.com/user/a", Version: "v1.0.0"}}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
@@ -152,7 +152,7 @@ func TestResolveDeps_PreReleaseLosesToRelease(t *testing.T) {
 
 	var b *Dependency
 	for i := range got {
-		if got[i].Path == "codeberg.org/user/b" {
+		if got[i].Path == "github.com/user/b" {
 			b = &got[i]
 			break
 		}
@@ -175,19 +175,19 @@ func TestResolveDeps_BranchLosesToRelease(t *testing.T) {
 	ctx := context.Background()
 	cacheDir := "/cache"
 
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a",
-			"codeberg.org/user/c v1.0.0",
-			"codeberg.org/user/b main",
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a",
+			"github.com/user/c v1.0.0",
+			"github.com/user/b main",
 		)
-	src.Files["/cache/codeberg.org/user/c@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/c", "codeberg.org/user/b v1.0.0")
-	src.Files["/cache/codeberg.org/user/b@main/scampi.mod"] =
-		modContent("codeberg.org/user/b")
-	src.Files["/cache/codeberg.org/user/b@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/b")
+	src.Files["/cache/github.com/user/c@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/c", "github.com/user/b v1.0.0")
+	src.Files["/cache/github.com/user/b@main/scampi.mod"] =
+		modContent("github.com/user/b")
+	src.Files["/cache/github.com/user/b@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/b")
 
-	direct := []Dependency{{Path: "codeberg.org/user/a", Version: "v1.0.0"}}
+	direct := []Dependency{{Path: "github.com/user/a", Version: "v1.0.0"}}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
 	if err != nil {
@@ -196,7 +196,7 @@ func TestResolveDeps_BranchLosesToRelease(t *testing.T) {
 
 	var b *Dependency
 	for i := range got {
-		if got[i].Path == "codeberg.org/user/b" {
+		if got[i].Path == "github.com/user/b" {
 			b = &got[i]
 			break
 		}
@@ -222,16 +222,16 @@ func TestResolveDeps_DirectPin_TransitiveBumpRefused(t *testing.T) {
 	//   a v1.0.0
 	//   foo v1.2.0   ← direct pin
 	// a@v1.0.0 requires foo v1.3.0 (transitive bump attempt)
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a", "codeberg.org/user/foo v1.3.0")
-	src.Files["/cache/codeberg.org/user/foo@v1.2.0/scampi.mod"] =
-		modContent("codeberg.org/user/foo")
-	src.Files["/cache/codeberg.org/user/foo@v1.3.0/scampi.mod"] =
-		modContent("codeberg.org/user/foo")
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a", "github.com/user/foo v1.3.0")
+	src.Files["/cache/github.com/user/foo@v1.2.0/scampi.mod"] =
+		modContent("github.com/user/foo")
+	src.Files["/cache/github.com/user/foo@v1.3.0/scampi.mod"] =
+		modContent("github.com/user/foo")
 
 	direct := []Dependency{
-		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
-		{Path: "codeberg.org/user/foo", Version: "v1.2.0"},
+		{Path: "github.com/user/a", Version: "v1.0.0"},
+		{Path: "github.com/user/foo", Version: "v1.2.0"},
 	}
 
 	_, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -242,8 +242,8 @@ func TestResolveDeps_DirectPin_TransitiveBumpRefused(t *testing.T) {
 	if !errors.As(err, &conflict) {
 		t.Fatalf("expected *DirectPinConflictError, got %T: %v", err, err)
 	}
-	if conflict.ModPath != "codeberg.org/user/foo" {
-		t.Errorf("ModPath = %q, want codeberg.org/user/foo", conflict.ModPath)
+	if conflict.ModPath != "github.com/user/foo" {
+		t.Errorf("ModPath = %q, want github.com/user/foo", conflict.ModPath)
 	}
 	if conflict.DirectVersion != "v1.2.0" {
 		t.Errorf("DirectVersion = %q, want v1.2.0", conflict.DirectVersion)
@@ -259,13 +259,13 @@ func TestResolveDeps_Cycle(t *testing.T) {
 	cacheDir := "/cache"
 
 	// A → B, B → A
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a", "codeberg.org/user/b v1.0.0")
-	src.Files["/cache/codeberg.org/user/b@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/b", "codeberg.org/user/a v1.0.0")
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a", "github.com/user/b v1.0.0")
+	src.Files["/cache/github.com/user/b@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/b", "github.com/user/a v1.0.0")
 
 	direct := []Dependency{
-		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
+		{Path: "github.com/user/a", Version: "v1.0.0"},
 	}
 
 	_, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -289,7 +289,7 @@ func TestResolveDeps_ModuleNoScampiMod(t *testing.T) {
 
 	// Module exists in cache but has no scampi.mod — leaf node.
 	direct := []Dependency{
-		{Path: "codeberg.org/user/leaf", Version: "v1.0.0"},
+		{Path: "github.com/user/leaf", Version: "v1.0.0"},
 	}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -299,7 +299,7 @@ func TestResolveDeps_ModuleNoScampiMod(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d deps, want 1", len(got))
 	}
-	assertDep(t, got[0], "codeberg.org/user/leaf", "v1.0.0", false)
+	assertDep(t, got[0], "github.com/user/leaf", "v1.0.0", false)
 }
 
 func TestResolveDeps_LocalDepSkipped(t *testing.T) {
@@ -309,12 +309,12 @@ func TestResolveDeps_LocalDepSkipped(t *testing.T) {
 
 	// Local dep should pass through without resolution.
 	// Also add a remote dep with transitive to prove they work side by side.
-	src.Files["/cache/codeberg.org/user/remote@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/remote", "codeberg.org/user/trans v1.0.0")
+	src.Files["/cache/github.com/user/remote@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/remote", "github.com/user/trans v1.0.0")
 
 	direct := []Dependency{
 		{Path: "my-local", Version: "./libs/local"},
-		{Path: "codeberg.org/user/remote", Version: "v1.0.0"},
+		{Path: "github.com/user/remote", Version: "v1.0.0"},
 	}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -354,12 +354,12 @@ func TestResolveDeps_DirectVersionWins(t *testing.T) {
 
 	// Direct: A@v1.0.0, D@v2.0.0
 	// A's transitive: D@v1.0.0 — direct's v2.0.0 should win.
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a", "codeberg.org/user/d v1.0.0")
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a", "github.com/user/d v1.0.0")
 
 	direct := []Dependency{
-		{Path: "codeberg.org/user/a", Version: "v1.0.0"},
-		{Path: "codeberg.org/user/d", Version: "v2.0.0"},
+		{Path: "github.com/user/a", Version: "v1.0.0"},
+		{Path: "github.com/user/d", Version: "v2.0.0"},
 	}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -369,7 +369,7 @@ func TestResolveDeps_DirectVersionWins(t *testing.T) {
 
 	var d *Dependency
 	for i := range got {
-		if got[i].Path == "codeberg.org/user/d" {
+		if got[i].Path == "github.com/user/d" {
 			d = &got[i]
 			break
 		}
@@ -392,12 +392,12 @@ func TestResolveDeps_IndirectInputStaysIndirect(t *testing.T) {
 
 	// Simulate a second run: B is already in scampi.mod as indirect from
 	// a previous resolution. It should stay indirect in the output.
-	src.Files["/cache/codeberg.org/user/a@v1.0.0/scampi.mod"] =
-		modContent("codeberg.org/user/a", "codeberg.org/user/b v1.0.0")
+	src.Files["/cache/github.com/user/a@v1.0.0/scampi.mod"] =
+		modContent("github.com/user/a", "github.com/user/b v1.0.0")
 
 	direct := []Dependency{
-		{Path: "codeberg.org/user/a", Version: "v1.0.0", Indirect: false},
-		{Path: "codeberg.org/user/b", Version: "v1.0.0", Indirect: true},
+		{Path: "github.com/user/a", Version: "v1.0.0", Indirect: false},
+		{Path: "github.com/user/b", Version: "v1.0.0", Indirect: true},
 	}
 
 	got, err := ResolveDeps(ctx, src, &Module{Require: direct}, cacheDir)
@@ -407,7 +407,7 @@ func TestResolveDeps_IndirectInputStaysIndirect(t *testing.T) {
 
 	var b *Dependency
 	for i := range got {
-		if got[i].Path == "codeberg.org/user/b" {
+		if got[i].Path == "github.com/user/b" {
 			b = &got[i]
 			break
 		}

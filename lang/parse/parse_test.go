@@ -61,12 +61,12 @@ func TestParseMultipleImports(t *testing.T) {
 module main
 import "std"
 import "std/rest"
-import "codeberg.org/scampi-dev/modules/unifi"
+import "github.com/scampi-dev/modules/unifi"
 `)
 	if len(f.Imports) != 3 {
 		t.Fatalf("expected 3 imports, got %d", len(f.Imports))
 	}
-	wants := []string{"std", "std/rest", "codeberg.org/scampi-dev/modules/unifi"}
+	wants := []string{"std", "std/rest", "github.com/scampi-dev/modules/unifi"}
 	for i, want := range wants {
 		if f.Imports[i].Path != want {
 			t.Errorf("import %d: got %q, want %q", i, f.Imports[i].Path, want)

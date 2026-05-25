@@ -19,7 +19,7 @@ var (
 func makeModule(t *testing.T, deps ...Dependency) *Module {
 	t.Helper()
 	return &Module{
-		Module:   "codeberg.org/test/project",
+		Module:   "github.com/test/project",
 		Filename: "scampi.mod",
 		Require:  deps,
 	}
@@ -41,11 +41,11 @@ func writeFile(t *testing.T, path string) {
 
 func TestResolve_IndexEntry(t *testing.T) {
 	cache := t.TempDir()
-	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
+	modDir := filepath.Join(cache, "github.com/user/npm@v1.0.0")
 	writeFile(t, filepath.Join(modDir, "_index.scampi"))
 
-	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
-	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
+	m := makeModule(t, dep("github.com/user/npm", "v1.0.0", 2))
+	got, err := Resolve(testCtx, testSrc, m, "github.com/user/npm", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -57,11 +57,11 @@ func TestResolve_IndexEntry(t *testing.T) {
 
 func TestResolve_NameEntry(t *testing.T) {
 	cache := t.TempDir()
-	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
+	modDir := filepath.Join(cache, "github.com/user/npm@v1.0.0")
 	writeFile(t, filepath.Join(modDir, "npm.scampi"))
 
-	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
-	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
+	m := makeModule(t, dep("github.com/user/npm", "v1.0.0", 2))
+	got, err := Resolve(testCtx, testSrc, m, "github.com/user/npm", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,12 +73,12 @@ func TestResolve_NameEntry(t *testing.T) {
 
 func TestResolve_IndexTakesPrecedenceOverName(t *testing.T) {
 	cache := t.TempDir()
-	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
+	modDir := filepath.Join(cache, "github.com/user/npm@v1.0.0")
 	writeFile(t, filepath.Join(modDir, "_index.scampi"))
 	writeFile(t, filepath.Join(modDir, "npm.scampi"))
 
-	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
-	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
+	m := makeModule(t, dep("github.com/user/npm", "v1.0.0", 2))
+	got, err := Resolve(testCtx, testSrc, m, "github.com/user/npm", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -90,11 +90,11 @@ func TestResolve_IndexTakesPrecedenceOverName(t *testing.T) {
 
 func TestResolve_Subpath(t *testing.T) {
 	cache := t.TempDir()
-	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
+	modDir := filepath.Join(cache, "github.com/user/npm@v1.0.0")
 	writeFile(t, filepath.Join(modDir, "internal", "helpers.scampi"))
 
-	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
-	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm/internal/helpers", cache)
+	m := makeModule(t, dep("github.com/user/npm", "v1.0.0", 2))
+	got, err := Resolve(testCtx, testSrc, m, "github.com/user/npm/internal/helpers", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -106,11 +106,11 @@ func TestResolve_Subpath(t *testing.T) {
 
 func TestResolve_SubpathIndex(t *testing.T) {
 	cache := t.TempDir()
-	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
+	modDir := filepath.Join(cache, "github.com/user/npm@v1.0.0")
 	writeFile(t, filepath.Join(modDir, "internal", "_index.scampi"))
 
-	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
-	got, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm/internal", cache)
+	m := makeModule(t, dep("github.com/user/npm", "v1.0.0", 2))
+	got, err := Resolve(testCtx, testSrc, m, "github.com/user/npm/internal", cache)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestResolve_SubpathIndex(t *testing.T) {
 func TestResolve_NotInRequireTable(t *testing.T) {
 	cache := t.TempDir()
 	m := makeModule(t)
-	_, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
+	_, err := Resolve(testCtx, testSrc, m, "github.com/user/npm", cache)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -131,15 +131,15 @@ func TestResolve_NotInRequireTable(t *testing.T) {
 	if !asError(err, &notFound) {
 		t.Fatalf("expected *ModuleNotFoundError, got %T: %v", err, err)
 	}
-	if notFound.LoadPath != "codeberg.org/user/npm" {
-		t.Errorf("LoadPath = %q, want %q", notFound.LoadPath, "codeberg.org/user/npm")
+	if notFound.LoadPath != "github.com/user/npm" {
+		t.Errorf("LoadPath = %q, want %q", notFound.LoadPath, "github.com/user/npm")
 	}
 }
 
 func TestResolve_NotCached(t *testing.T) {
 	cache := t.TempDir()
-	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 3))
-	_, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
+	m := makeModule(t, dep("github.com/user/npm", "v1.0.0", 3))
+	_, err := Resolve(testCtx, testSrc, m, "github.com/user/npm", cache)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -147,7 +147,7 @@ func TestResolve_NotCached(t *testing.T) {
 	if !asError(err, &notCached) {
 		t.Fatalf("expected *ModuleNotCachedError, got %T: %v", err, err)
 	}
-	if notCached.ModPath != "codeberg.org/user/npm" {
+	if notCached.ModPath != "github.com/user/npm" {
 		t.Errorf("ModPath = %q", notCached.ModPath)
 	}
 	if notCached.Version != "v1.0.0" {
@@ -160,13 +160,13 @@ func TestResolve_NotCached(t *testing.T) {
 
 func TestResolve_NoEntryPoint(t *testing.T) {
 	cache := t.TempDir()
-	modDir := filepath.Join(cache, "codeberg.org/user/npm@v1.0.0")
+	modDir := filepath.Join(cache, "github.com/user/npm@v1.0.0")
 	if err := os.MkdirAll(modDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	m := makeModule(t, dep("codeberg.org/user/npm", "v1.0.0", 2))
-	_, err := Resolve(testCtx, testSrc, m, "codeberg.org/user/npm", cache)
+	m := makeModule(t, dep("github.com/user/npm", "v1.0.0", 2))
+	_, err := Resolve(testCtx, testSrc, m, "github.com/user/npm", cache)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -174,7 +174,7 @@ func TestResolve_NoEntryPoint(t *testing.T) {
 	if !asError(err, &noEntry) {
 		t.Fatalf("expected *ModuleNoEntryPointError, got %T: %v", err, err)
 	}
-	if noEntry.ModPath != "codeberg.org/user/npm" {
+	if noEntry.ModPath != "github.com/user/npm" {
 		t.Errorf("ModPath = %q", noEntry.ModPath)
 	}
 	if len(noEntry.Tried) == 0 {

@@ -89,7 +89,7 @@ func errContains(err error, substrings ...string) bool {
 // would catch manually, but automatically and on every apply.
 func TestApply_SumMismatch_AbortsBeforeRun(t *testing.T) {
 	const (
-		modPath    = "codeberg.org/scampi-modules/helpers"
+		modPath    = "github.com/scampi-modules/helpers"
 		modVersion = "v1.0.0"
 	)
 
@@ -108,7 +108,7 @@ pub func greeting() string {
 	}
 
 	projDir := t.TempDir()
-	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
+	writeFile(t, projDir, "scampi.mod", `module github.com/test/myproject
 
 require (
     `+modPath+` `+modVersion+`
@@ -174,7 +174,7 @@ std.deploy(name = "test", targets = [host]) {
 // TestModuleLoad_Basic verifies that a config can import a function from a
 // cached module and use it, producing a valid deploy block.
 func TestModuleLoad_Basic(t *testing.T) {
-	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/helpers", "v1.0.0")
+	_, modDir := setupModCache(t, "github.com/scampi-modules/helpers", "v1.0.0")
 
 	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
 module helpers
@@ -187,10 +187,10 @@ pub func greeting() string {
 	}
 
 	projDir := t.TempDir()
-	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
+	writeFile(t, projDir, "scampi.mod", `module github.com/test/myproject
 
 require (
-    codeberg.org/scampi-modules/helpers v1.0.0
+    github.com/scampi-modules/helpers v1.0.0
 )
 `)
 	cfgFile := writeFile(t, projDir, "config.scampi", `module main
@@ -198,7 +198,7 @@ require (
 import "std"
 import "std/local"
 import "std/posix"
-import "codeberg.org/scampi-modules/helpers"
+import "github.com/scampi-modules/helpers"
 
 let host = local.target { name = "localhost" }
 let msg = helpers.greeting()
@@ -231,7 +231,7 @@ func TestModInit_CreatesScampiModInEmptyDir(t *testing.T) {
 	dir := t.TempDir()
 	src := source.LocalPosixSource{}
 
-	if err := mod.Init(context.Background(), src, dir, "codeberg.org/test/myproj"); err != nil {
+	if err := mod.Init(context.Background(), src, dir, "github.com/test/myproj"); err != nil {
 		t.Fatalf("init: %v", err)
 	}
 
@@ -239,7 +239,7 @@ func TestModInit_CreatesScampiModInEmptyDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
-	if string(data) != "module codeberg.org/test/myproj\n" {
+	if string(data) != "module github.com/test/myproj\n" {
 		t.Errorf("scampi.mod content = %q", string(data))
 	}
 }
@@ -250,11 +250,11 @@ func TestModInit_CreatesScampiModInEmptyDir(t *testing.T) {
 func TestModInit_RejectsExistingScampiMod(t *testing.T) {
 	dir := t.TempDir()
 	src := source.LocalPosixSource{}
-	if err := mod.Init(context.Background(), src, dir, "codeberg.org/test/myproj"); err != nil {
+	if err := mod.Init(context.Background(), src, dir, "github.com/test/myproj"); err != nil {
 		t.Fatalf("first init: %v", err)
 	}
 
-	err := mod.Init(context.Background(), src, dir, "codeberg.org/test/other")
+	err := mod.Init(context.Background(), src, dir, "github.com/test/other")
 	if err == nil {
 		t.Fatal("expected error on second init, got nil")
 	}
@@ -264,18 +264,18 @@ func TestModInit_RejectsExistingScampiMod(t *testing.T) {
 
 	// First call's content must still be there.
 	data, _ := os.ReadFile(filepath.Join(dir, "scampi.mod"))
-	if string(data) != "module codeberg.org/test/myproj\n" {
+	if string(data) != "module github.com/test/myproj\n" {
 		t.Errorf("existing scampi.mod was overwritten: got %q", string(data))
 	}
 }
 
 // TestModuleLoad_Subpath verifies that a subpath import
-// (e.g. codeberg.org/user/mod/sub/path) resolves correctly within the cache.
+// (e.g. github.com/user/mod/sub/path) resolves correctly within the cache.
 // TODO(#xxx): loadLocalSubmodules only runs for the self-module, not for
 // cached external deps. Enable once external subpath scanning is wired up.
 func TestModuleLoad_Subpath(t *testing.T) {
 	t.Skip("external module subpath imports not yet supported")
-	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/toolkit", "v2.3.1")
+	_, modDir := setupModCache(t, "github.com/scampi-modules/toolkit", "v2.3.1")
 
 	// Root module declaration.
 	if err := os.WriteFile(filepath.Join(modDir, "_index.scampi"), []byte(`
@@ -300,10 +300,10 @@ pub func make_url(host: string) string {
 	}
 
 	projDir := t.TempDir()
-	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
+	writeFile(t, projDir, "scampi.mod", `module github.com/test/myproject
 
 require (
-    codeberg.org/scampi-modules/toolkit v2.3.1
+    github.com/scampi-modules/toolkit v2.3.1
 )
 `)
 	cfgFile := writeFile(t, projDir, "config.scampi", `module main
@@ -311,7 +311,7 @@ require (
 import "std"
 import "std/local"
 import "std/posix"
-import "codeberg.org/scampi-modules/toolkit/net"
+import "github.com/scampi-modules/toolkit/net"
 
 let tgt = local.target { name = "host" }
 let url = net.make_url(host = "example.com")
@@ -339,7 +339,7 @@ std.deploy(name = "net-test", targets = [tgt]) {
 // files sharing the same module declaration can use each other's symbols, and
 // that the config can import the module and use its exported functions.
 func TestModuleLoad_InternalMultiFile(t *testing.T) {
-	_, modDir := setupModCache(t, "codeberg.org/scampi-modules/utils", "v0.1.0")
+	_, modDir := setupModCache(t, "github.com/scampi-modules/utils", "v0.1.0")
 
 	// helpers.scampi defines a helper used by _index.scampi.
 	if err := os.WriteFile(filepath.Join(modDir, "helpers.scampi"), []byte(`
@@ -363,10 +363,10 @@ pub func double(x: int) int {
 	}
 
 	projDir := t.TempDir()
-	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
+	writeFile(t, projDir, "scampi.mod", `module github.com/test/myproject
 
 require (
-    codeberg.org/scampi-modules/utils v0.1.0
+    github.com/scampi-modules/utils v0.1.0
 )
 `)
 	cfgFile := writeFile(t, projDir, "config.scampi", `module main
@@ -374,7 +374,7 @@ require (
 import "std"
 import "std/local"
 import "std/posix"
-import "codeberg.org/scampi-modules/utils"
+import "github.com/scampi-modules/utils"
 
 let tgt = local.target { name = "host" }
 let result = utils.double(x = 21)
@@ -405,10 +405,10 @@ func TestModuleLoad_NotInRequireTable(t *testing.T) {
 	t.Setenv("XDG_CACHE_HOME", cacheParent)
 
 	projDir := t.TempDir()
-	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
+	writeFile(t, projDir, "scampi.mod", `module github.com/test/myproject
 
 require (
-    codeberg.org/scampi-modules/known v1.0.0
+    github.com/scampi-modules/known v1.0.0
 )
 `)
 	cfgFile := writeFile(t, projDir, "config.scampi", `module main
@@ -416,7 +416,7 @@ require (
 import "std"
 import "std/local"
 import "std/posix"
-import "codeberg.org/scampi-modules/unknown"
+import "github.com/scampi-modules/unknown"
 
 let tgt = local.target { name = "host" }
 
@@ -451,10 +451,10 @@ func TestModuleLoad_NotCached(t *testing.T) {
 	// Deliberately do NOT create the module directory in the cache.
 
 	projDir := t.TempDir()
-	writeFile(t, projDir, "scampi.mod", `module codeberg.org/test/myproject
+	writeFile(t, projDir, "scampi.mod", `module github.com/test/myproject
 
 require (
-    codeberg.org/scampi-modules/missing v3.0.0
+    github.com/scampi-modules/missing v3.0.0
 )
 `)
 	cfgFile := writeFile(t, projDir, "config.scampi", `module main
@@ -462,7 +462,7 @@ require (
 import "std"
 import "std/local"
 import "std/posix"
-import "codeberg.org/scampi-modules/missing"
+import "github.com/scampi-modules/missing"
 
 let tgt = local.target { name = "host" }
 
@@ -531,7 +531,7 @@ func createEmptyRepo(t *testing.T) string {
 // The cache is pre-populated so the test doesn't require internet access;
 // the actual git-clone path is covered by TestFetch_* in mod/fetch_test.go.
 func TestModuleAdd_ThenLoad(t *testing.T) {
-	const modPath = "codeberg.org/test/greetings"
+	const modPath = "github.com/test/greetings"
 	const version = "v1.0.0"
 
 	projDir := t.TempDir()
@@ -555,7 +555,7 @@ pub func greet(name: string) string {
 		t.Fatal(err)
 	}
 
-	modContent := "module codeberg.org/test/addload\n"
+	modContent := "module github.com/test/addload\n"
 	if err := os.WriteFile(filepath.Join(projDir, "scampi.mod"), []byte(modContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -584,7 +584,7 @@ pub func greet(name: string) string {
 import "std"
 import "std/local"
 import "std/posix"
-import "codeberg.org/test/greetings"
+import "github.com/test/greetings"
 
 let host = local.target { name = "localhost" }
 let msg = greetings.greet(name = "world")
@@ -620,7 +620,7 @@ func TestModuleAdd_NotAModule(t *testing.T) {
 	cacheParent := t.TempDir()
 	t.Setenv("XDG_CACHE_HOME", cacheParent)
 
-	modContent := "module codeberg.org/test/notamod\n"
+	modContent := "module github.com/test/notamod\n"
 	if err := os.WriteFile(filepath.Join(projDir, "scampi.mod"), []byte(modContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -694,7 +694,7 @@ pub func greet(name: string) string {
 	}
 
 	modFile := filepath.Join(projDir, "scampi.mod")
-	if err := os.WriteFile(modFile, []byte(`module codeberg.org/test/proj
+	if err := os.WriteFile(modFile, []byte(`module github.com/test/proj
 
 require (
 	my/helpers ./modules/helpers
@@ -752,7 +752,7 @@ pub func helper() int {
 	}
 
 	modFile := filepath.Join(projDir, "scampi.mod")
-	modContent := "module codeberg.org/test/proj\n\n" +
+	modContent := "module github.com/test/proj\n\n" +
 		"require (\n\tmy/util " + localMod + "\n)\n"
 	if err := os.WriteFile(modFile, []byte(modContent), 0o644); err != nil {
 		t.Fatal(err)

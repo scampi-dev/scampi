@@ -17,20 +17,20 @@ func TestParseScampiImportMeta(t *testing.T) {
 			name: "exact match",
 			html: `<html><head>` +
 				`<meta name="scampi-import" ` +
-				`content="scampi.dev/modules/npm git https://codeberg.org/scampi-dev/npm.git">` +
+				`content="scampi.dev/modules/npm git https://github.com/scampi-dev/npm.git">` +
 				`</head></html>`,
 			modPath: "scampi.dev/modules/npm",
-			wantURL: "https://codeberg.org/scampi-dev/npm.git",
+			wantURL: "https://github.com/scampi-dev/npm.git",
 			wantOK:  true,
 		},
 		{
 			name: "prefix match — subdir extracted",
 			html: `<html><head>` +
 				`<meta name="scampi-import" ` +
-				`content="scampi.dev/modules git https://codeberg.org/scampi-dev/modules.git">` +
+				`content="scampi.dev/modules git https://github.com/scampi-dev/modules.git">` +
 				`</head></html>`,
 			modPath:    "scampi.dev/modules/npm",
-			wantURL:    "https://codeberg.org/scampi-dev/modules.git",
+			wantURL:    "https://github.com/scampi-dev/modules.git",
 			wantSubdir: "npm",
 			wantOK:     true,
 		},
@@ -38,10 +38,10 @@ func TestParseScampiImportMeta(t *testing.T) {
 			name: "deep subdir",
 			html: `<html><head>` +
 				`<meta name="scampi-import" ` +
-				`content="scampi.dev/modules git https://codeberg.org/scampi-dev/modules.git">` +
+				`content="scampi.dev/modules git https://github.com/scampi-dev/modules.git">` +
 				`</head></html>`,
 			modPath:    "scampi.dev/modules/network/firewall",
-			wantURL:    "https://codeberg.org/scampi-dev/modules.git",
+			wantURL:    "https://github.com/scampi-dev/modules.git",
 			wantSubdir: "network/firewall",
 			wantOK:     true,
 		},

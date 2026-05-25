@@ -12,11 +12,11 @@ import (
 
 // Resolve maps a module load path to an absolute .scampi file path.
 //
-// For bare module loads (e.g. codeberg.org/user/repo), the entry point is
+// For bare module loads (e.g. github.com/user/repo), the entry point is
 // resolved by trying _index.scampi then <last-segment>.scampi. If both
 // exist, _index.scampi takes precedence.
 //
-// For subpath loads (e.g. codeberg.org/user/repo/internal/helpers), the
+// For subpath loads (e.g. github.com/user/repo/internal/helpers), the
 // subpath is resolved by trying <subpath>.scampi then <subpath>/_index.scampi.
 //
 // Remote deps resolve against cacheDir. Local deps resolve against the

@@ -137,7 +137,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 				return nil, ParseError{
 					Detail: "invalid module path " + quote(path),
 					Hint: "module path must be a host/path URL, e.g. " +
-						"module codeberg.org/" + nonEmpty(path, "yourname/yourmodule"),
+						"module github.com/" + nonEmpty(path, "yourname/yourmodule"),
 					Source: m.span(lineNum),
 				}
 			}
@@ -153,7 +153,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 		}
 
 		if strings.HasPrefix(line, "require ") {
-			// single-line require: require codeberg.org/foo/bar v1.0.0
+			// single-line require: require github.com/foo/bar v1.0.0
 			rest := strings.TrimSpace(line[len("require "):])
 			dep, err := parseDependency(m, rest, lineNum, indirect)
 			if err != nil {
@@ -183,7 +183,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 	if m.Module == "" {
 		return nil, ParseError{
 			Detail: "missing module directive",
-			Hint:   "add a module directive as the first line, e.g. module codeberg.org/yourname/yourmodule",
+			Hint:   "add a module directive as the first line, e.g. module github.com/yourname/yourmodule",
 			Source: spec.SourceSpan{Filename: filename},
 		}
 	}
@@ -199,7 +199,7 @@ func parseDependency(m *Module, line string, lineNum int, indirect bool) (*Depen
 	if len(fields) < 2 {
 		return nil, ParseError{
 			Detail: "malformed require entry " + quote(line),
-			Hint:   "require entries must be: " + nonEmpty(fields[0], "codeberg.org/example/module") + " v1.0.0",
+			Hint:   "require entries must be: " + nonEmpty(fields[0], "github.com/example/module") + " v1.0.0",
 			Source: m.span(lineNum),
 		}
 	}
@@ -209,7 +209,7 @@ func parseDependency(m *Module, line string, lineNum int, indirect bool) (*Depen
 	if !isLocal && !isModulePath(path) {
 		return nil, ParseError{
 			Detail: "invalid module path " + quote(path),
-			Hint:   "module path must be a host/path URL, e.g. codeberg.org/" + nonEmpty(path, "example/module"),
+			Hint:   "module path must be a host/path URL, e.g. github.com/" + nonEmpty(path, "example/module"),
 			Source: m.span(lineNum),
 		}
 	}
