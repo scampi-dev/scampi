@@ -1,50 +1,46 @@
-name: CI
+name: Bench
+
+# Bench runs only on the VPS self-hosted runner (consistent hardware =
+# stable measurements). Triggered after a successful CI run on main —
+# avoids recording a baseline from a broken commit.
 
 on:
-  push:
-    branches: [main]
-    # Skip CI on bot-driven bench commits to avoid an infinite loop:
-    # the bench job below pushes to benchmarks/ on main, which would
-    # otherwise re-trigger CI.
-    paths-ignore:
-      - 'benchmarks/**'
-  pull_request:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 jobs:
-  ci:
-    runs-on: scampi
-    steps:
-      - uses: actions/checkout@v4
-      - run: just test everything
-      - run: just lint
-
   bench:
-    # Record a bench baseline only after main pushes pass, never on PRs.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: ci
-    runs-on: scampi
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: [self-hosted, vps]
+    permissions:
+      contents: write
     env:
-      # Force UTC for all timestamps so filenames + commit messages are
-      # consistent regardless of the runner host's TZ.
+      # UTC so the filename + commit-message timestamp are consistent
+      # regardless of the runner host's TZ.
       TZ: UTC
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
+          # Check out the SHA the CI run was on, not the workflow_run's
+          # default (which is the default branch HEAD).
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Compute suffix and timestamp
         id: meta
         run: |
-          echo "suffix=ci-forgejo-$(hostname)" >> "$GITHUB_OUTPUT"
+          echo "suffix=ci-gh-$(hostname)" >> "$GITHUB_OUTPUT"
           echo "ts=$(date '+%Y-%m-%dT%H%M')" >> "$GITHUB_OUTPUT"
 
       - name: Record benchmark baseline
-        # SCAMPI_BENCH_TS pins the filename timestamp to the same value
-        # we use for the commit message, so filename and commit-msg ts
-        # match exactly instead of drifting by the bench runtime.
         env:
+          # SCAMPI_BENCH_TS pins the filename timestamp to the same value
+          # we use for the commit message, so filename and commit-msg ts
+          # match exactly instead of drifting by the bench runtime.
           SCAMPI_BENCH_TS: ${{ steps.meta.outputs.ts }}
         run: just test bench ${{ steps.meta.outputs.suffix }}
 
@@ -65,16 +61,14 @@ jobs:
             exit 0
           fi
           git commit -m "ci: bench baseline ${{ steps.meta.outputs.ts }} for ${{ steps.meta.outputs.suffix }}"
-          # Rebase in case main moved during the bench run.
           git pull --rebase origin main
           git push
 
       - name: Publish raw bench data to Caddy
-        # Runner is on the same VPS as Caddy (see .infra/runner.scampi
-        # and .infra/site.scampi). The target dir is owned by
-        # forgejo-runner so we can write directly without SSH/rsync
-        # over the network. --delete keeps the published copy in sync
-        # with git (renames + size-10000 strip etc. propagate cleanly).
+        # Runner is on the same VPS as Caddy. /var/www/scampi.dev/raw-bench
+        # is owned by actions-runner (see .infra/site.scampi) so we can
+        # write directly without SSH/rsync over the network. --delete
+        # keeps the published copy in sync with git.
         run: |
           set -euo pipefail
           suffix="${{ steps.meta.outputs.suffix }}"
