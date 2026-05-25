@@ -33,8 +33,7 @@ jobs:
         run: just site dist
 
       - name: Checkout scampi-infra
-        # Still on Codeberg — sibling-repo migration is a follow-up.
-        run: git clone https://codeberg.org/scampi-dev/scampi-infra.git scampi-infra
+        run: git clone https://github.com/scampi-dev/scampi-infra.git scampi-infra
 
       - name: Deploy site via scampi
         env:
