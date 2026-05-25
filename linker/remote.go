@@ -82,7 +82,12 @@ func ensureRemoteDep(depPath, version, cacheDir string) error {
 // falls back to probing progressively shorter .git URLs.
 func resolveImportPath(importPath string) (repoURL, subdir string, err error) {
 	url := "https://" + importPath + "?scampi-get=1"
-	resp, err := http.Get(url)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	// Default Go User-Agent gets bot-challenged by Cloudflare from
+	// some IP ranges (notably GitHub Actions runners). A named UA
+	// looks like a real client and avoids the challenge.
+	req.Header.Set("User-Agent", "scampi-mod-resolver/1.0")
+	resp, err := http.DefaultClient.Do(req)
 	if err == nil && resp.StatusCode == http.StatusOK {
 		defer func() { _ = resp.Body.Close() }()
 		body, readErr := io.ReadAll(resp.Body)
