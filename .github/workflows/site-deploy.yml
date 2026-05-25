@@ -1,39 +1,54 @@
 name: Site Deploy
 
+# Build the docs site and deploy it to the VPS Caddy dir whenever a
+# release is published. Runs on ubuntu-latest — only bench needs the
+# self-hosted VPS runner for measurement stability; this is just a
+# build + ssh-push.
+
 on:
   release:
     types: [published]
 
 jobs:
   deploy:
-    runs-on: scampi
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          check-latest: true
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
 
       - name: Build scampi
         run: just build
 
       - name: Build and package site
+        # `go tool hugo` works via go.mod's tool directive, so no
+        # separate Hugo install needed.
         run: just site dist
 
       - name: Checkout scampi-infra
+        # Still on Codeberg — sibling-repo migration is a follow-up.
         run: git clone https://codeberg.org/scampi-dev/scampi-infra.git scampi-infra
 
       - name: Deploy site via scampi
         env:
           SCAMPI_AGE_KEY: ${{ secrets.AGE_KEY }}
         run: |
-          # Set up SSH key
+          set -euo pipefail
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           echo "${{ secrets.HAL9000_SSH_KEY }}" > ~/.ssh/hal9000
           chmod 600 ~/.ssh/hal9000
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/hal9000
 
-          # Add host to known_hosts
           HOST=$(./build/bin/scampi secrets get -f scampi-infra/secrets.age.json vps.host)
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Deploy
           cp build/site-dist/site.tar.gz scampi-infra/files/site.tar.gz
           cd scampi-infra && ../build/bin/scampi apply site.scampi
