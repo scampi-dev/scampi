@@ -1,6 +1,6 @@
 # Security Policy
 
-<img src="https://scampi.dev/scampi-sec.png" alt="security scampi" width="160" align="right">
+<img src="scampi-sec.png" alt="security scampi" width="160" align="right">
 
 scampi runs as root, manages secrets, and executes commands on remote
 systems via SSH. Vulnerability reports are taken seriously.
