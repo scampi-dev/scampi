@@ -1,5 +1,3 @@
-<img src="scampi.png" alt="scampi" width="200" align="right">
-
 # scampi
 
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](https://github.com/scampi-dev/scampi/blob/main/LICENSE)
@@ -10,6 +8,8 @@
 
 > [!IMPORTANT]
 > **Found a security issue?** Please follow the [security policy](SECURITY.md) — don't open a public issue. Sensitive reports can be PGP-encrypted; the key is published in `SECURITY.md`.
+
+<img src="scampi.png" alt="scampi" width="200" align="right">
 
 Hi, I'm **scampi** — your friendly infrastructure crustacean. I do IaC convergence, garlic buttery smooth.
 
