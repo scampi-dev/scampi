@@ -26,4 +26,10 @@ jobs:
           git clone --mirror "https://github.com/${{ github.repository }}.git" repo
           cd repo
           git remote add cb "git@codeberg.org:${{ github.repository }}.git"
-          git push --mirror cb
+          # Push branches + tags explicitly. --mirror would also push
+          # refs/pull/* (GH's internal PR refs), which other forges reject
+          # as hidden refs. --prune deletes refs on CB that no longer
+          # exist on GH so the mirror stays in sync on branch deletes.
+          git push --prune cb \
+            "refs/heads/*:refs/heads/*" \
+            "refs/tags/*:refs/tags/*"
