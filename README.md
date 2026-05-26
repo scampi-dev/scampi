@@ -1,4 +1,4 @@
-<img src="scampi.png" alt="scampi" width="200">
+<img src="scampi.png" alt="scampi" width="200" align="right">
 
 # scampi
 
