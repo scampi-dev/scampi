@@ -13,6 +13,14 @@ mod site
 [doc("Release management (changelog, version bump, tag)")]
 mod release 'release.just'
 
+[group('modules')]
+[doc("GitHub issue/PR/milestone helpers via the gh CLI")]
+mod gh 'github.just'
+
+[group('modules')]
+[doc("Issue intake pipeline: eval-inbox -> claude QA -> pusher-inbox -> GitHub")]
+mod issues 'issues.just'
+
 # Constants
 # -----------------------------------------------------------------------------
 
