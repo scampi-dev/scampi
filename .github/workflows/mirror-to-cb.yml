@@ -1,0 +1,29 @@
+name: Mirror to Codeberg
+
+# Pushes git refs to the Codeberg backup mirror on every push to main
+# and on tag pushes. Codeberg is a passive code-only backup — issues,
+# releases, etc. live on GitHub.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror push
+        env:
+          CB_MIRROR_KEY: ${{ secrets.CB_MIRROR_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CB_MIRROR_KEY" > ~/.ssh/cb_mirror_key
+          chmod 600 ~/.ssh/cb_mirror_key
+          ssh-keyscan codeberg.org >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/cb_mirror_key -o IdentitiesOnly=yes"
+          git clone --mirror "https://github.com/${{ github.repository }}.git" repo
+          cd repo
+          git remote add cb "git@codeberg.org:${{ github.repository }}.git"
+          git push --mirror cb
