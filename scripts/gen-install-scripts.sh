@@ -8,15 +8,15 @@
 #   lsp.sh      — scampls only           (served at /lsp)
 #
 # Also rewrites the block between the GENERATED:install.sh markers in
-# site/content/install-source.md with a fenced rendering of the freshly
-# generated install.sh. The prose and frontmatter around the markers
-# are tracked in git and stay untouched.
+# site/content/get/install-source.md with a fenced rendering of the
+# freshly generated install.sh. The prose and frontmatter around the
+# markers are tracked in git and stay untouched.
 #
 set -eu
 
 SRC="scripts/install.sh"
 STATIC="site/static"
-SOURCE_MD="site/content/install-source.md"
+SOURCE_MD="site/content/get/install-source.md"
 MARKER_OPEN='<!-- GENERATED:install.sh -->'
 MARKER_CLOSE='<!-- /GENERATED:install.sh -->'
 

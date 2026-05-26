@@ -51,16 +51,24 @@ publishDir = "../build/site"
     icon = "book-open"
 
 [[menus.main]]
+  name = "Benchmarks"
+  pageRef = "/bench"
+  weight = 4
+  [menus.main.params]
+    type = "link"
+    icon = "chart-bar"
+
+[[menus.main]]
   name = "Install"
   pageRef = "/get"
-  weight = 4
+  weight = 5
   [menus.main.params]
     type = "link"
     icon = "download"
 
 [[menus.main]]
   name = "Search"
-  weight = 5
+  weight = 6
   [menus.main.params]
     type = "search"
 

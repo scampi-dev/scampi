@@ -1,6 +1,9 @@
 ---
 title: Why scampi exists
+linkTitle: Why
+weight: 1
 description: The pain that drove me to build scampi, and the architectural bet underneath.
+type: docs
 ---
 
 ## The pain

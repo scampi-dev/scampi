@@ -23,7 +23,7 @@ build: _copy-static
 
 [group('build')]
 [doc("Local dev server")]
-dev *args: _copy-static
+dev *args: _copy-static _stage-bench
   cd site && {{hugo}} server --disableFastRender -D -e production {{args}}
 
 [group('build')]
@@ -37,6 +37,28 @@ _copy-static:
   cp scampi.png site/static/scampi.png
   cp scampi-sec.png site/static/scampi-sec.png
   ./scripts/gen-install-scripts.sh
+
+# Stage CI bench baselines into site/static/raw-bench/ so `bench.md`'s
+# JS can fetch them at the same /raw-bench/<suffix>/... paths it uses
+# in production (where Caddy serves /var/www/scampi.dev/raw-bench/
+# directly, outside the Hugo build). Local-only — dist/deploy don't
+# use this dir.
+[private]
+_stage-bench:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  rm -rf site/static/raw-bench
+  shopt -s nullglob
+  for f in benchmarks/*-ci-gh-*.txt; do
+    name="$(basename "$f")"
+    suffix="$(echo "$name" | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{4}-//; s/\.txt$//')"
+    dst="site/static/raw-bench/$suffix"
+    mkdir -p "$dst"
+    cp "$f" "$dst/"
+  done
+  for dir in site/static/raw-bench/*/; do
+    (cd "$dir" && ls -1 *.txt | jq -R . | jq -s . > index.json)
+  done
 
 # Deploy
 # -----------------------------------------------------------------------------
@@ -62,6 +84,7 @@ lint:
 [doc("Remove all generated files")]
 clean:
   rm -rf build/site build/site-dist site/resources/_gen
+  rm -rf site/static/raw-bench
   rm site/static/scampi.png
   rm site/static/scampi-sec.png
   rm site/static/cli.sh

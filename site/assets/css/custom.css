@@ -115,6 +115,120 @@ nav a[href*="docs"] * {
   background: hsl(140 40% 35% / 0.12);
 }
 
+/* Benchmark dashboard (content/bench.md). Page chrome comes from
+   the Hextra docs layout; rules here style only the per-bench chart
+   plus the loading status line. */
+.bench-status {
+  font-size: 0.85rem;
+  color: hsl(0 0% 45%);
+  margin: 0.5rem 0 1rem;
+}
+.dark .bench-status { color: hsl(0 0% 60%); }
+
+/* Dim the per-chart blurb so it sits quietly under the heading. */
+.bench-card-desc {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: hsl(0 0% 50%);
+  margin: 0.25rem 0 0.75rem;
+}
+.dark .bench-card-desc { color: hsl(40 5% 55%); }
+
+/* Chart panel: tinted contrast vs the page background — slightly
+   darker in light mode, slightly lighter in dark mode. */
+.bench-card-chart {
+  background: hsl(40 15% 96%);
+  border: 1px solid hsl(40 12% 90%);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 0.5rem 0 1.5rem;
+}
+.dark .bench-card-chart {
+  background: #32302f;          /* gruvbox bg0_s — lighter than bg0 */
+  border-color: #3c3836;
+}
+.bench-card-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 780px;
+}
+
+.bench-empty {
+  color: hsl(0 0% 50%);
+  font-style: italic;
+  margin: 0;
+}
+.dark .bench-empty { color: hsl(0 0% 60%); }
+
+.bench-grid { stroke: hsl(40 10% 88%); stroke-width: 1; }
+.dark .bench-grid { stroke: #3c3836; }
+
+.bench-axis { stroke: hsl(40 10% 70%); stroke-width: 1; }
+.dark .bench-axis { stroke: #504945; }
+
+.bench-axis-label {
+  fill: hsl(40 5% 45%);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.dark .bench-axis-label { fill: #a89984; }
+
+/* Dot outline matches the chart-panel background so it pops above the
+   line stroke regardless of theme. */
+.bench-dot { stroke: hsl(40 15% 96%); stroke-width: 1.5; cursor: pointer; }
+.dark .bench-dot { stroke: #32302f; }
+
+.bench-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+}
+.bench-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.bench-legend-item:hover { background: hsl(40 10% 90%); }
+.dark .bench-legend-item:hover { background: #3c3836; }
+.bench-legend-item.hidden { opacity: 0.35; }
+.bench-legend-swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.bench-tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: hsl(40 10% 96%);
+  border: 1px solid hsl(40 10% 75%);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  display: none;
+  z-index: 100;
+}
+.dark .bench-tooltip {
+  background: #1d2021;
+  border-color: #504945;
+  color: #ebdbb2;
+}
+.bench-tooltip-label { color: hsl(40 5% 50%); }
+.dark .bench-tooltip-label { color: #a89984; }
+
 /* External link indicator for content area */
 article a[href^="http"]::after,
 .hextra-content a[href^="http"]::after {

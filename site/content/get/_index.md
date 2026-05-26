@@ -1,6 +1,10 @@
 ---
 title: ""
 linkTitle: Install
+weight: 5
+type: docs
+sidebar:
+  open: true
 ---
 
 <style>
@@ -8,18 +12,7 @@ linkTitle: Install
 #content > br, #content > h1 { display: none; }
 #content > .content { margin-top: 0; }
 #content > div.hx\:mb-16 { margin-bottom: 1.9rem; }
-/* Mascot in left margin */
-.get-mascot {
-  position: sticky;
-  top: 6rem;
-  float: left;
-  margin-left: -200px;
-  width: 160px;
-}
-@media (max-width: 1280px) { .get-mascot { display: none; } }
 </style>
-
-<img src="/scampi-get.png" alt="scampi mascot" class="get-mascot">
 
 {{< hextra/hero-badge link="https://github.com/scampi-dev/scampi/releases" >}}
   <span>All releases</span>
@@ -40,7 +33,9 @@ linkTitle: Install
 curl get.scampi.dev | sh
 ```
 
-This fetches [`install.sh`](/install-source/) from `get.scampi.dev`
+<img src="/scampi-get.png" alt="scampi mascot" style="float: right; width: 160px; margin: 0 0 1rem 1.5rem;">
+
+This fetches [`install.sh`](/get/install-source/) from `get.scampi.dev`
 and pipes it into POSIX `sh`. The script is short enough to read in
 full before you trust it; it downloads the latest release of **both
 `scampi` and `scampls`** (the LSP server), verifies the release SSH
@@ -145,7 +140,7 @@ sha256sum --ignore-missing -c SHA256SUMS
 > **If the signature verification fails, DO NOT RUN THE BINARY.**
 >
 > Cross-check the line you saved against the same one in the
-> [`install.sh`](/install-source/) we serve and in
+> [`install.sh`](/get/install-source/) we serve and in
 > [`SECURITY.md`](https://github.com/scampi-dev/scampi/blob/main/SECURITY.md)
 > on the canonical GitHub repo — those three places are deliberately
 > kept in sync, so a mismatch anywhere is a red flag worth reporting

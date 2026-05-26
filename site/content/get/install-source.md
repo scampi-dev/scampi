@@ -2,11 +2,14 @@
 title: install.sh
 linkTitle: install.sh source
 description: The install script served at get.scampi.dev, embedded for inspection.
+type: docs
 ---
 
 This is the literal script `curl get.scampi.dev | sh` pipes into your
-shell. It's also served raw at [/install.sh](/install.sh) and at
-https://get.scampi.dev directly.
+shell. It's also served raw at [/install.sh](/install.sh).
+
+`get.scampi.dev` itself only returns the script body to CLI clients
+(curl, wget, fetch); browsers get redirected back to this page.
 
 The CLI- and LSP-only endpoints ([/cli.sh](/cli.sh) and
 [/lsp.sh](/lsp.sh)) serve trimmed variants of the same script.

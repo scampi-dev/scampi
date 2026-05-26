@@ -1,5 +1,7 @@
 ---
 title: Documentation
+linkTitle: Docs
+weight: 3
 layout: docs
 sidebar:
   open: true

@@ -1,0 +1,13 @@
+{{/* Bench chart placeholders. Iterates over site.Data.benchmarks
+     (generated from each Go benchmark function's doc comment) and
+     emits one section per benchmark. Must be invoked via the
+     markdown-processed shortcode form so goldmark parses the H2
+     headings into .Fragments.Headings for Hextra's TOC. */ -}}
+{{ range site.Data.benchmarks -}}
+## {{ .pretty }} {#bench-{{ anchorize .name }}}
+
+{{ with .desc }}<p class="bench-card-desc">{{ . }}</p>{{ end }}
+
+<div class="bench-card-chart" data-bench="{{ .name }}"></div>
+
+{{ end -}}

@@ -23,6 +23,7 @@ site/static/scampi-sec.png
 site/static/install.sh
 site/static/cli.sh
 site/static/lsp.sh
+site/static/raw-bench/
 __debug*
 *.zip
 *.out

@@ -1,6 +1,12 @@
 ---
 title: scampi
 layout: hextra-home
+# Hextra's sidebar partial uses site.Home.Type to pick the nav root.
+# With type=docs, every page that renders the sidebar (i.e. every
+# page using the docs layout) shows the full site tree instead of
+# just its containing section. Keeps left-nav consistent across
+# About, Why, Benchmarks, and the docs section itself.
+type: docs
 ---
 
 {{< hextra/hero-badge link="https://github.com/scampi-dev/scampi" >}}

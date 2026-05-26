@@ -1,5 +1,8 @@
 ---
 title: About
+linkTitle: About
+weight: 2
+type: docs
 ---
 
 <style>
