@@ -49,11 +49,11 @@ func main() {
 	if err := write(*out, descs); err != nil {
 		fail("write %s: %v", *out, err)
 	}
-	fmt.Fprintf(os.Stderr, "wrote %d descriptions to %s\n", len(descs), *out)
+	_, _ = fmt.Fprintf(os.Stderr, "wrote %d descriptions to %s\n", len(descs), *out)
 }
 
 func fail(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "bench-descriptions: "+format+"\n", args...)
+	_, _ = fmt.Fprintf(os.Stderr, "bench-descriptions: "+format+"\n", args...)
 	os.Exit(1)
 }
 
