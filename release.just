@@ -21,9 +21,9 @@ next *args:
   #!/usr/bin/env bash
   exec ./scripts/next-version.sh "$@"
 
-[doc("Prepare a release: changelog, commit, tag (alpha|beta|rc or omit for stable)")]
+[doc("Stage a release: changelog, commit, tag (alpha|beta|rc or omit for stable)")]
 [positional-arguments]
-cut *args:
+stage *args:
   #!/usr/bin/env bash
   set -euo pipefail
   ./scripts/release.sh "$@"
