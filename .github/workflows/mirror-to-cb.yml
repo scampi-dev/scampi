@@ -24,16 +24,26 @@ jobs:
           fi
           printf '%s\n' "$CB_MIRROR_KEY" > ~/.ssh/cb_mirror_key
           chmod 600 ~/.ssh/cb_mirror_key
-          ssh-keyscan codeberg.org >> ~/.ssh/known_hosts 2>/dev/null
-          echo "GIT_SSH_COMMAND=ssh -i $HOME/.ssh/cb_mirror_key -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
+          # ssh-keyscan codeberg.org from GH-Actions runners times out at
+          # ~5s with no host key returned (port 22 blocked or rate-limited
+          # from the runner pool). Skip it; the git push uses
+          # StrictHostKeyChecking=accept-new instead.
+          echo "GIT_SSH_COMMAND=ssh -i $HOME/.ssh/cb_mirror_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" >> "$GITHUB_ENV"
 
       - name: Verify SSH auth to codeberg.org
         run: |
-          # `ssh -T git@codeberg.org` returns 0 + "Hi <user>!" on success,
-          # 255 on auth failure. We want the per-step failure to land here,
-          # not later inside the cryptic `git push` error.
-          ssh -o BatchMode=yes -T git@codeberg.org || true
-          ssh -o BatchMode=yes -o ExitOnForwardFailure=yes -T git@codeberg.org
+          # Codeberg's SSH endpoint returns the welcome banner and exits
+          # 1 (no shell available for users), which is the success case.
+          # An auth failure exits 255 instead. We treat anything non-255
+          # as success.
+          set +e
+          ssh -o BatchMode=yes -T git@codeberg.org
+          rc=$?
+          if [ $rc -eq 255 ]; then
+            echo "SSH auth to codeberg.org FAILED (exit 255)"
+            exit 1
+          fi
+          echo "SSH auth ok (exit $rc — non-255 means banner returned)"
 
       - name: Clone GitHub source (mirror)
         run: |
