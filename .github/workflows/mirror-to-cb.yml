@@ -15,20 +15,21 @@ jobs:
     steps:
       - name: Install SSH key for codeberg.org
         env:
-          CB_MIRROR_KEY: ${{ secrets.CB_MIRROR_KEY }}
+          HAL9000_SSH_KEY: ${{ secrets.HAL9000_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          if [ -z "$CB_MIRROR_KEY" ]; then
-            echo "CB_MIRROR_KEY secret is empty — add it under repo Settings -> Secrets"
+          if [ -z "$HAL9000_SSH_KEY" ]; then
+            echo "HAL9000_SSH_KEY secret is empty — add it under repo Settings -> Secrets"
             exit 1
           fi
-          printf '%s\n' "$CB_MIRROR_KEY" > ~/.ssh/cb_mirror_key
-          chmod 600 ~/.ssh/cb_mirror_key
-          # ssh-keyscan codeberg.org from GH-Actions runners times out at
-          # ~5s with no host key returned (port 22 blocked or rate-limited
-          # from the runner pool). Skip it; the git push uses
-          # StrictHostKeyChecking=accept-new instead.
-          echo "GIT_SSH_COMMAND=ssh -i $HOME/.ssh/cb_mirror_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" >> "$GITHUB_ENV"
+          printf '%s\n' "$HAL9000_SSH_KEY" > ~/.ssh/hal9000_key
+          chmod 600 ~/.ssh/hal9000_key
+          # ssh-keyscan codeberg.org from GH-Actions runners hits its
+          # ~5s timeout before the handshake completes (the actual
+          # connection takes longer than that even when it succeeds).
+          # Skip the keyscan and let StrictHostKeyChecking=accept-new
+          # populate known_hosts on first connect instead.
+          echo "GIT_SSH_COMMAND=ssh -i $HOME/.ssh/hal9000_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" >> "$GITHUB_ENV"
 
       - name: Verify SSH auth to codeberg.org
         run: |
@@ -36,8 +37,16 @@ jobs:
           # 1 (no shell available for users), which is the success case.
           # An auth failure exits 255 instead. We treat anything non-255
           # as success.
+          #
+          # Pass the SSH flags explicitly — GIT_SSH_COMMAND is only read
+          # by git, not by a bare `ssh` invocation, so we'd otherwise hit
+          # "Host key verification failed" on first connect.
           set +e
-          ssh -o BatchMode=yes -T git@codeberg.org
+          ssh -i ~/.ssh/hal9000_key \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=accept-new \
+              -o BatchMode=yes \
+              -T git@codeberg.org
           rc=$?
           if [ $rc -eq 255 ]; then
             echo "SSH auth to codeberg.org FAILED (exit 255)"
