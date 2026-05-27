@@ -41,12 +41,22 @@ stage_rank() {
 # Find the last tag (stable or pre-release)
 last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-# Extract the stable base from the last tag (strip pre-release suffix)
-if [[ -n "$last_tag" ]]; then
-  base="${last_tag%%-*}"  # v0.1.0-alpha.1 -> v0.1.0
-else
-  base="v0.0.0"
+# Inception short-circuit: with no prior tag there's no since-last-tag
+# range to scan, no bump level to compute (nothing to bump *from*), and
+# nothing to be gained by hitting `gh issue view` for every closure
+# reference in the entire history. Just emit the v0.1.0 starting point
+# and exit. Pre-release flag controls the suffix.
+if [[ -z "$last_tag" ]]; then
+  if [[ -n "$pre_stage" ]]; then
+    echo "v0.1.0-${pre_stage}.1"
+  else
+    echo "v0.1.0"
+  fi
+  exit 0
 fi
+
+# Extract the stable base from the last tag (strip pre-release suffix)
+base="${last_tag%%-*}"  # v0.1.0-alpha.1 -> v0.1.0
 
 major="${base#v}"          # 0.1.0
 major="${major%%.*}"       # 0
