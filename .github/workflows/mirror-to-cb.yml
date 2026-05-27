@@ -6,12 +6,16 @@ name: Mirror to Codeberg
 
 on:
   push:
+    # Only trigger on main pushes (not on tag pushes). Atomic pushes of
+    # main + tag fire two webhook events, both starting simultaneously,
+    # and racing each other to push to CB — the queue-on-in-progress
+    # concurrency rule doesn't help when both are queued at the same
+    # tick. The push step below pushes refs/heads/* AND refs/tags/* in
+    # one git push, so the tag travels with the main push.
     branches: [main]
-    tags: ['v*']
 
-# Serialize so two near-simultaneous pushes (e.g. main + tag) can't race
-# on the codeberg-side ref locks. `cancel-in-progress: false` lets each
-# queued run finish so we don't drop a sync.
+# Belt-and-suspenders: even with a single trigger above, manual
+# workflow_dispatch / re-runs / out-of-band tag pushes should serialize.
 concurrency:
   group: mirror-to-cb
   cancel-in-progress: false
@@ -73,6 +77,9 @@ jobs:
           # refs/pull/* (GH's internal PR refs), which other forges reject
           # as hidden refs. --prune deletes refs on CB that no longer
           # exist on GH so the mirror stays in sync on branch deletes.
-          git push --prune cb \
+          # --force because GH is the source of truth: if a tag moved
+          # (e.g. mid-migration retags) or a branch was force-pushed,
+          # CB should follow rather than reject.
+          git push --prune --force cb \
             "refs/heads/*:refs/heads/*" \
             "refs/tags/*:refs/tags/*"

@@ -6,14 +6,43 @@ name: Site Deploy
 # build + ssh-push.
 
 on:
-  release:
-    # `published` only fires for stable releases; `prereleased` fires
-    # when an alpha/beta/rc is published. Listening to both means every
-    # release deploys the site.
-    types: [published, prereleased]
+  # Triggered when the Release workflow completes. The Release workflow
+  # itself uses a detect+release pattern that runs (and reports success)
+  # on every CI completion regardless of whether a tag was present, so
+  # we have to repeat the tag-at-HEAD check here. workflow_run is the
+  # documented gate-on-another-workflow pattern; the release-event
+  # types (`published` / `prereleased`) aren't emitted consistently by
+  # softprops/action-gh-release.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+    branches: [main]
 
 jobs:
+  detect:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.find.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - id: find
+        name: Find release tag at HEAD
+        run: |
+          tag=$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -n 1 || true)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ -z "$tag" ]; then
+            echo "no release tag at $(git rev-parse --short HEAD) -- skipping site deploy"
+          else
+            echo "release tag at HEAD: $tag"
+          fi
+
   deploy:
+    needs: detect
+    if: needs.detect.outputs.tag != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
