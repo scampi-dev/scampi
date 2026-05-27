@@ -1,18 +1,51 @@
 name: Release
 
+# Triggered by CI completing successfully on main. If the head commit
+# carries a release tag (v*), build and publish a GitHub release.
+# Non-release CI runs go through the `detect` job and exit cheaply.
+
 on:
-  push:
-    tags: ['v*']
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
+  detect:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.find.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - id: find
+        name: Find release tag at HEAD
+        run: |
+          tag=$(git tag --points-at HEAD | grep -E '^v[0-9]' | head -n 1 || true)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if [ -z "$tag" ]; then
+            echo "no release tag at $(git rev-parse --short HEAD) -- skipping release"
+          else
+            echo "release tag at HEAD: $tag"
+          fi
+
   release:
+    needs: detect
+    if: needs.detect.outputs.tag != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Setup Go
@@ -43,7 +76,7 @@ jobs:
       - name: Determine prerelease
         id: prerelease
         run: |
-          case "${GITHUB_REF_NAME}" in
+          case "${{ needs.detect.outputs.tag }}" in
             *-*) echo "value=true"  >> "$GITHUB_OUTPUT" ;;
             *)   echo "value=false" >> "$GITHUB_OUTPUT" ;;
           esac
@@ -51,6 +84,7 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.detect.outputs.tag }}
           files: release/*
           generate_release_notes: true
           prerelease: ${{ steps.prerelease.outputs.value }}

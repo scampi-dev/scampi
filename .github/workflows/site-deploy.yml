@@ -7,7 +7,10 @@ name: Site Deploy
 
 on:
   release:
-    types: [published]
+    # `published` only fires for stable releases; `prereleased` fires
+    # when an alpha/beta/rc is published. Listening to both means every
+    # release deploys the site.
+    types: [published, prereleased]
 
 jobs:
   deploy:

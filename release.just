@@ -40,8 +40,9 @@ push:
     exit 1
   fi
   echo "pushing $tag..."
-  git push
-  git push origin "$tag"
+  # Atomic: main + tag in one push operation = one GH webhook event = one
+  # each of CI / Mirror / Release runs (instead of double-firing).
+  git push --atomic origin main "refs/tags/$tag"
   echo "done -- $tag pushed to origin"
 
 [doc("Undo the last unpushed release tag")]

@@ -9,6 +9,13 @@ on:
     branches: [main]
     tags: ['v*']
 
+# Serialize so two near-simultaneous pushes (e.g. main + tag) can't race
+# on the codeberg-side ref locks. `cancel-in-progress: false` lets each
+# queued run finish so we don't drop a sync.
+concurrency:
+  group: mirror-to-cb
+  cancel-in-progress: false
+
 jobs:
   mirror:
     runs-on: ubuntu-latest
