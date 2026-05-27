@@ -40,26 +40,6 @@ jobs:
           rm /tmp/release-signing.key
           ls -lh release/SHA256SUMS.sig
 
-      - name: Extract release notes from CHANGELOG.md
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-
-          # Extract the section for this tag from CHANGELOG.md.
-          # Matches from "## <tag>" until the next "## " heading or EOF.
-          {
-            echo "## What's Changed"
-            echo ""
-            awk -v tag="$TAG" '
-              $0 ~ "^## " tag " " { found=1; next }
-              found && /^## /     { exit }
-              found               { print }
-            ' CHANGELOG.md
-          } > /tmp/notes-raw.md
-
-          # Escape @ to prevent user mentions from issue titles.
-          sed -E 's/@([a-zA-Z][a-zA-Z0-9_]*)/`@\1`/g' /tmp/notes-raw.md > /tmp/notes.md
-
       - name: Determine prerelease
         id: prerelease
         run: |
@@ -72,6 +52,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release/*
-          body_path: /tmp/notes.md
+          generate_release_notes: true
           prerelease: ${{ steps.prerelease.outputs.value }}
           fail_on_unmatched_files: true

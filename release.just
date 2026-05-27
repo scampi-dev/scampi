@@ -9,19 +9,13 @@
 # Releases
 # -----------------------------------------------------------------------------
 
-[doc("Generate release notes from issues since last tag")]
-[positional-arguments]
-notes *args:
-  #!/usr/bin/env bash
-  exec ./scripts/release-notes.sh "$@"
-
 [doc("Calculate next version tag (alpha|beta|rc or omit for stable)")]
 [positional-arguments]
 next *args:
   #!/usr/bin/env bash
   exec ./scripts/next-version.sh "$@"
 
-[doc("Stage a release: changelog, commit, tag (alpha|beta|rc or omit for stable)")]
+[doc("Stage a release: tag the current HEAD (alpha|beta|rc or omit for stable)")]
 [positional-arguments]
 stage *args:
   #!/usr/bin/env bash
@@ -30,7 +24,7 @@ stage *args:
   echo ""
   echo "run 'just release push' when ready"
 
-[doc("Push the release commit and tag to origin")]
+[doc("Push the staged tag to origin")]
 push:
   #!/usr/bin/env bash
   set -euo pipefail
@@ -39,9 +33,10 @@ push:
     echo "error: no tags found" >&2
     exit 1
   fi
-  last_msg=$(git log -1 --format='%s')
-  if [[ "$last_msg" != "release: $tag" ]]; then
-    echo "error: HEAD is not a release commit (expected 'release: $tag', got '$last_msg')" >&2
+  # The tag must point at a commit reachable from HEAD; otherwise we'd
+  # be publishing a release tag for code that's not on the current branch.
+  if ! git merge-base --is-ancestor "$tag" HEAD; then
+    echo "error: tag $tag is not an ancestor of HEAD -- refusing to push" >&2
     exit 1
   fi
   echo "pushing $tag..."
@@ -49,7 +44,7 @@ push:
   git push origin "$tag"
   echo "done -- $tag pushed to origin"
 
-[doc("Undo the last unpushed release (delete tag and reset release commit)")]
+[doc("Undo the last unpushed release tag")]
 undo:
   #!/usr/bin/env bash
   set -euo pipefail
@@ -58,27 +53,12 @@ undo:
     echo "error: no tags found" >&2
     exit 1
   fi
-  last_msg=$(git log -1 --format='%s')
-  if [[ "$last_msg" != "release: $tag" ]]; then
-    echo "error: HEAD is not a release commit (expected 'release: $tag', got '$last_msg')" >&2
-    exit 1
-  fi
   # Refuse to undo pushed releases
   remote_tag=$(git ls-remote --tags origin "refs/tags/$tag" 2>/dev/null || true)
   if [[ -n "$remote_tag" ]]; then
     echo "error: $tag has already been pushed to origin -- cannot undo" >&2
     exit 1
   fi
-  upstream=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null || true)
-  if [[ -n "$upstream" ]]; then
-    remote_head=$(git rev-parse "$upstream" 2>/dev/null || true)
-    local_head=$(git rev-parse HEAD)
-    if [[ "$remote_head" == "$local_head" ]]; then
-      echo "error: release commit has already been pushed -- cannot undo" >&2
-      exit 1
-    fi
-  fi
   echo "undoing: $tag"
   git tag -d "$tag"
-  git reset --hard HEAD~1
-  echo "done -- tag deleted, release commit removed"
+  echo "done -- tag deleted"
