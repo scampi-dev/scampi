@@ -23,7 +23,7 @@ jobs:
       # regardless of the runner host's TZ.
       TZ: UTC
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Check out the SHA the CI run was on, not the workflow_run's
           # default (which is the default branch HEAD).
