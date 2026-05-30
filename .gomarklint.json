@@ -1,0 +1,10 @@
+{
+  "include": ["README.md", ".dev/", "doc/"],
+  "minHeadingLevel": 1,
+  "enableLinkCheck": false,
+  "enableDuplicateHeadingCheck": false,
+  "enableHeadingLevelCheck": true,
+  "enableNoMultipleBlankLinesCheck": true,
+  "enableNoSetextHeadingsCheck": true,
+  "enableFinalBlankLineCheck": true
+}

@@ -1,0 +1,16 @@
+---
+name: scampi
+root: ./
+
+on_project_start:
+  - tmux set-window-option -g main-pane-width 67%
+
+windows:
+  - "nvim  ":
+      layout: main-vertical
+      panes:
+        - nvim:
+            - nvim
+        - claude:
+            - caffeinate -i claude
+  - "git  ": lazygit

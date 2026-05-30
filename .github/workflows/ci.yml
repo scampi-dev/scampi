@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up just
+        uses: taiki-e/install-action@just
+
+      - name: Install dev dependencies
+        run: just setup
+
+      - name: Lint project
+        run: just lint
+
+      - name: Run all tests
+        run: just test all
+
+      - name: Build
+        run: just build

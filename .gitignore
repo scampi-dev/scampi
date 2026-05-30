@@ -1,0 +1,12 @@
+# Dotfiles
+.*
+!.gitignore
+!.golangci.yml
+!.gomarklint.json
+!.github/
+
+# Developer environments
+!.dev/
+
+# Build artifacts
+/build/
