@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package engine reconciles desired-state HCL snapshots against the
+// Package engine reconciles desired-state snapshots against the
 // real filesystem. Apply runs once; Run polls and reconciles
 // continuously.
 package engine
@@ -17,10 +17,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Log
@@ -144,152 +140,32 @@ type Ref struct {
 
 func (r Ref) String() string { return r.Kind + "." + r.Name }
 
-// Resource is one parsed top-level HCL block. Attrs holds literal
-// values resolved at parse time; ref-bearing attrs live in exprs
-// until the resolve phase folds them back into Attrs.
+// Resource is one parsed top-level block. Attrs holds literal values
+// resolved at parse time; ref-bearing attrs live in pending until the
+// resolve phase folds them back into Attrs.
 type Resource struct {
 	Kind  string
 	Name  string
 	Attrs map[string]string
 
-	exprs map[string]hclsyntax.Expression
-	deps  []Ref
+	pending map[string]resolvable
+	deps    []Ref
 }
 
 func (r Resource) Ref() Ref { return Ref{Kind: r.Kind, Name: r.Name} }
 
-// Parse
-// -----------------------------------------------------------------------------
-
-func parseDir(ctx context.Context, log Log, dir string) ([]Resource, error) {
-	log.Debug(ctx, "parsing", "dir", dir)
-	info, err := os.Stat(dir)
-	if err != nil {
-		return nil, err
-	}
-	if !info.IsDir() {
-		return nil, fmt.Errorf("%s: not a directory", dir)
-	}
-	paths, err := filepath.Glob(filepath.Join(dir, "*.hcl"))
-	if err != nil {
-		return nil, err
-	}
-	sort.Strings(paths)
-	var out []Resource
-	for _, p := range paths {
-		rs, perr := parseFile(ctx, log, p)
-		if perr != nil {
-			return nil, perr
-		}
-		out = append(out, rs...)
-	}
-	return out, nil
+// resolvable is the language-agnostic shape of a deferred attr value.
+// HCL's impl lives in hcl.go; swapping the language replaces that
+// file without touching the rest of the engine.
+type resolvable interface {
+	Resolve(store []resolvedRef) (string, error)
 }
 
-func parseFile(ctx context.Context, log Log, path string) ([]Resource, error) {
-	log.Debug(ctx, "parsing", "path", path)
-	src, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	file, diags := hclsyntax.ParseConfig(src, path, hcl.Pos{Line: 1, Column: 1})
-	if diags.HasErrors() {
-		return nil, diags
-	}
-	body, ok := file.Body.(*hclsyntax.Body)
-	if !ok {
-		return nil, fmt.Errorf("%s: unexpected body type %T", path, file.Body)
-	}
-	if len(body.Attributes) > 0 {
-		return nil, fmt.Errorf("%s: top-level attributes not allowed; use blocks", path)
-	}
-	out := make([]Resource, 0, len(body.Blocks))
-	for _, block := range body.Blocks {
-		r, perr := parseBlock(ctx, log, block, path)
-		if perr != nil {
-			return nil, perr
-		}
-		out = append(out, r)
-	}
-	return out, nil
-}
-
-func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path string) (Resource, error) {
-	log.Debug(ctx, "parsing", "block", block.Type, "path", path)
-	if len(block.Labels) != 1 {
-		return Resource{}, fmt.Errorf("%s: %s block needs exactly one label, got %d",
-			path, block.Type, len(block.Labels))
-	}
-	if len(block.Body.Blocks) > 0 {
-		return Resource{}, fmt.Errorf("%s: nested blocks not supported", path)
-	}
-	attrs := make(map[string]string, len(block.Body.Attributes))
-	exprs := map[string]hclsyntax.Expression{}
-	seenDeps := map[Ref]bool{}
-	var deps []Ref
-	for name, attr := range block.Body.Attributes {
-		refs := refsFromExpr(attr.Expr)
-		if len(refs) > 0 {
-			exprs[name] = attr.Expr
-			for _, r := range refs {
-				if !seenDeps[r] {
-					seenDeps[r] = true
-					deps = append(deps, r)
-				}
-			}
-			continue
-		}
-		val, diags := attr.Expr.Value(nil)
-		if diags.HasErrors() {
-			return Resource{}, diags
-		}
-		if val.Type() != cty.String {
-			return Resource{}, fmt.Errorf("%s:%d: attr %q must be a string",
-				path, attr.Range().Start.Line, name)
-		}
-		attrs[name] = val.AsString()
-	}
-	return Resource{
-		Kind:  block.Type,
-		Name:  block.Labels[0],
-		Attrs: attrs,
-		exprs: exprs,
-		deps:  deps,
-	}, nil
-}
-
-// refsFromExpr collects kind.name refs from a traversal. Anything
-// past the kind.name prefix stays in the HCL expression and gets
-// evaluated against the resolve store later.
-func refsFromExpr(expr hclsyntax.Expression) []Ref {
-	seen := map[Ref]bool{}
-	var refs []Ref
-	for _, trav := range expr.Variables() {
-		r, ok := traversalToRef(trav)
-		if !ok {
-			continue
-		}
-		if !seen[r] {
-			seen[r] = true
-			refs = append(refs, r)
-		}
-	}
-	return refs
-}
-
-func traversalToRef(trav hcl.Traversal) (Ref, bool) {
-	if len(trav) < 2 {
-		return Ref{}, false
-	}
-	root, ok := trav[0].(hcl.TraverseRoot)
-	if !ok {
-		return Ref{}, false
-	}
-	attr, ok := trav[1].(hcl.TraverseAttr)
-	if !ok {
-		return Ref{}, false
-	}
-	return Ref{Kind: root.Name, Name: attr.Name}, true
+// resolvedRef is one entry in the resolve store: a Ref plus the
+// resource's already-folded attrs.
+type resolvedRef struct {
+	Ref   Ref
+	Attrs map[string]string
 }
 
 // Validate
@@ -349,48 +225,12 @@ func hasAttr(r Resource, name string) bool {
 	if _, ok := r.Attrs[name]; ok {
 		return true
 	}
-	_, ok := r.exprs[name]
+	_, ok := r.pending[name]
 	return ok
 }
 
 // Resolve
 // -----------------------------------------------------------------------------
-
-type resolved struct {
-	ref   Ref
-	attrs map[string]string
-}
-
-type resolveStore []resolved
-
-func (s *resolveStore) put(ref Ref, attrs map[string]string) {
-	*s = append(*s, resolved{ref: ref, attrs: attrs})
-}
-
-// evalContext shapes the store into HCL's kind.name.attr scope:
-// vars[kind] is an object whose members are name -> object(attrs).
-func (s resolveStore) evalContext() *hcl.EvalContext {
-	byKind := map[string]map[string]cty.Value{}
-	for _, e := range s {
-		if byKind[e.ref.Kind] == nil {
-			byKind[e.ref.Kind] = map[string]cty.Value{}
-		}
-		byKind[e.ref.Kind][e.ref.Name] = ctyStringObject(e.attrs)
-	}
-	vars := make(map[string]cty.Value, len(byKind))
-	for k, m := range byKind {
-		vars[k] = cty.ObjectVal(m)
-	}
-	return &hcl.EvalContext{Variables: vars}
-}
-
-func ctyStringObject(attrs map[string]string) cty.Value {
-	out := make(map[string]cty.Value, len(attrs))
-	for k, v := range attrs {
-		out[k] = cty.StringVal(v)
-	}
-	return cty.ObjectVal(out)
-}
 
 // resolve topo-sorts then folds ref-bearing attrs in dependency
 // order. Cycles, unknown refs, and type mismatches at eval time are
@@ -400,26 +240,19 @@ func resolve(resources []Resource) ([]Resource, error) {
 	if err != nil {
 		return nil, err
 	}
-	var store resolveStore
+	var store []resolvedRef
 	var errs []error
 	for i := range sorted {
 		r := &sorted[i]
-		if len(r.exprs) > 0 {
-			evalCtx := store.evalContext()
-			for name, expr := range r.exprs {
-				val, diags := expr.Value(evalCtx)
-				if diags.HasErrors() {
-					errs = append(errs, fmt.Errorf("%s: eval %q: %w", r.Ref(), name, diags))
-					continue
-				}
-				if val.Type() != cty.String {
-					errs = append(errs, fmt.Errorf("%s: attr %q must resolve to a string", r.Ref(), name))
-					continue
-				}
-				r.Attrs[name] = val.AsString()
+		for name, p := range r.pending {
+			val, perr := p.Resolve(store)
+			if perr != nil {
+				errs = append(errs, fmt.Errorf("%s: eval %q: %w", r.Ref(), name, perr))
+				continue
 			}
+			r.Attrs[name] = val
 		}
-		store.put(r.Ref(), r.Attrs)
+		store = append(store, resolvedRef{Ref: r.Ref(), Attrs: r.Attrs})
 	}
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)

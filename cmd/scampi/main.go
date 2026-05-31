@@ -20,8 +20,6 @@ var errUsage = errors.New("usage: scampi {apply|run} <dir>")
 
 type slogLog struct{ l *slog.Logger }
 
-var _ engine.Log = (*slogLog)(nil)
-
 func (s slogLog) Debug(ctx context.Context, msg string, args ...any) {
 	s.l.DebugContext(ctx, msg, args...)
 }

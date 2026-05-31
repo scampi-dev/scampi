@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package engine
+package test
 
 import (
 	"bytes"
@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
+
+	"scampi.dev/scampi/internal/engine"
 )
 
 type nopLog struct{}
@@ -83,7 +85,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		t.Fatalf("expected.yaml: %v", yerr)
 	}
 
-	gotErr := Apply(t.Context(), cfg, nopLog{})
+	gotErr := engine.Apply(t.Context(), cfg, nopLog{})
 
 	switch want.Error {
 	case "":
@@ -91,12 +93,12 @@ func runGoldenCase(t *testing.T, caseDir string) {
 			t.Fatalf("expected success, got: %v", gotErr)
 		}
 	case "snapshot":
-		if !errors.Is(gotErr, ErrSnapshotRejected) {
-			t.Fatalf("expected ErrSnapshotRejected, got: %v", gotErr)
+		if !errors.Is(gotErr, engine.ErrSnapshotRejected) {
+			t.Fatalf("expected engine.ErrSnapshotRejected, got: %v", gotErr)
 		}
 	case "apply":
-		if !errors.Is(gotErr, ErrApplyFailed) {
-			t.Fatalf("expected ErrApplyFailed, got: %v", gotErr)
+		if !errors.Is(gotErr, engine.ErrApplyFailed) {
+			t.Fatalf("expected engine.ErrApplyFailed, got: %v", gotErr)
 		}
 	default:
 		t.Fatalf("unknown expected.error %q", want.Error)
@@ -150,7 +152,7 @@ file "etc" {
   content = "hello"
 }
 `)
-	if err := Apply(t.Context(), cfg, nopLog{}); err != nil {
+	if err := engine.Apply(t.Context(), cfg, nopLog{}); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	after, err := os.Stat(target)
@@ -188,7 +190,7 @@ file "x" {
 `)
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
-	if err := Run(ctx, cfg, 24*time.Hour, nopLog{}); err != nil {
+	if err := engine.Run(ctx, cfg, 24*time.Hour, nopLog{}); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	got, err := os.ReadFile(target)
@@ -225,7 +227,7 @@ file "x" {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- Run(ctx, cfg, 20*time.Millisecond, nopLog{})
+		done <- engine.Run(ctx, cfg, 20*time.Millisecond, nopLog{})
 	}()
 
 	waitForFile(t, target, []byte("first"), time.Second)
