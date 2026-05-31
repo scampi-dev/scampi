@@ -5,15 +5,20 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -22,7 +27,8 @@ import (
 
 func main() {
 	log := slogLog{slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))}
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	err := run(ctx, os.Args[1:], log)
 	switch {
 	case err == nil:
@@ -46,12 +52,14 @@ func run(ctx context.Context, args []string, log Log) error {
 	switch args[0] {
 	case "apply":
 		return cmdApply(ctx, args[1:], log)
+	case "run":
+		return cmdRun(ctx, args[1:], log)
 	default:
 		return errUsage
 	}
 }
 
-var errUsage = errors.New("usage: scampi apply <dir>")
+var errUsage = errors.New("usage: scampi {apply|run} <dir>")
 
 // ErrSnapshotRejected wraps anything that makes the desired-state
 // snapshot structurally unusable (parse, schema). Nothing applies.
@@ -69,7 +77,25 @@ func cmdApply(ctx context.Context, args []string, log Log) error {
 	if fset.NArg() != 1 {
 		return errUsage
 	}
-	dir := fset.Arg(0)
+	return reconcileOnce(ctx, fset.Arg(0), log)
+}
+
+func cmdRun(ctx context.Context, args []string, log Log) error {
+	fset := flag.NewFlagSet("run", flag.ContinueOnError)
+	interval := fset.Duration("interval", 5*time.Second, "poll interval between snapshots")
+	if err := fset.Parse(args); err != nil {
+		return err
+	}
+	if fset.NArg() != 1 {
+		return errUsage
+	}
+	return runLoop(ctx, fset.Arg(0), *interval, log)
+}
+
+// reconcileOnce runs one full parse + validate + resolve + apply pass.
+// The four phases are wrapped in their respective sentinel buckets so
+// callers can distinguish "config is bad" from "system misbehaved".
+func reconcileOnce(ctx context.Context, dir string, log Log) error {
 	resources, err := parseDir(ctx, log, dir)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
@@ -85,6 +111,72 @@ func cmdApply(ctx context.Context, args []string, log Log) error {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, aerr)
 	}
 	return nil
+}
+
+// runLoop polls dir for changes and reconciles whenever the inputs
+// hash differently from the previous tick. Errors during reconcile
+// log and the loop continues; a snapshot reject does not exit the
+// process (the operator gets to fix the config without restarting).
+func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) error {
+	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
+	var lastRev string
+	for {
+		log.Info(ctx, "loop tick", "dir", dir, "interval", interval)
+		rev, hashErr := hashDir(dir)
+		switch {
+		case hashErr != nil:
+			log.Error(ctx, "hash dir", "err", hashErr)
+		case rev != lastRev:
+			log.Debug(ctx, "snapshot change", "rev", rev)
+			if rerr := reconcileOnce(ctx, dir, log); rerr != nil {
+				logReconcileErr(ctx, log, rerr)
+			}
+			lastRev = rev
+		}
+		log.Info(ctx, "no changes", "dir", dir, "rev", rev)
+		select {
+		case <-ctx.Done():
+			log.Info(ctx, "shutting down")
+			return nil
+		case <-time.After(interval):
+		}
+	}
+}
+
+// hashDir returns a stable revision over the inputs (file basenames
+// + contents). Changing any byte in any .hcl file changes the rev.
+func hashDir(dir string) (string, error) {
+	paths, err := filepath.Glob(filepath.Join(dir, "*.hcl"))
+	if err != nil {
+		return "", err
+	}
+	sort.Strings(paths)
+	h := sha256.New()
+	for _, p := range paths {
+		content, rerr := os.ReadFile(p)
+		if rerr != nil {
+			return "", rerr
+		}
+		// Hash basename + null + content so renames bump the rev.
+		_, _ = h.Write([]byte(filepath.Base(p)))
+		_, _ = h.Write([]byte{0})
+		_, _ = h.Write(content)
+	}
+	return hex.EncodeToString(h.Sum(nil)[:8]), nil
+}
+
+// logReconcileErr routes a reconcile failure to the right severity.
+// Snapshot rejects are operator-actionable config faults; apply
+// failures are runtime issues the operator may need to investigate.
+func logReconcileErr(ctx context.Context, log Log, err error) {
+	switch {
+	case errors.Is(err, ErrSnapshotRejected):
+		log.Warn(ctx, "snapshot rejected", "err", err)
+	case errors.Is(err, ErrApplyFailed):
+		log.Warn(ctx, "apply failed", "err", err)
+	default:
+		log.Error(ctx, "reconcile failed", "err", err)
+	}
 }
 
 // Log

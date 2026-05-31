@@ -3,12 +3,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -186,4 +188,87 @@ func writeConfig(t *testing.T, hcl string) string {
 		t.Fatal(err)
 	}
 	return dir
+}
+
+// Run mode
+// -----------------------------------------------------------------------------
+
+// Initial reconcile fires before the first tick, so a very long
+// interval plus a short ctx deadline still proves the loop landed
+// the snapshot once.
+func TestRun_AppliesOnceAtStart(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out.txt")
+	cfg := writeConfig(t, `
+file "x" {
+  path    = "`+target+`"
+  content = "hi"
+}
+`)
+	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
+	defer cancel()
+	if err := run(ctx, []string{"run", "--interval=24h", cfg}, nopLog{}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "hi" {
+		t.Errorf("content = %q, want %q", got, "hi")
+	}
+}
+
+// Loop must pick up an in-flight config change.
+func TestRun_PicksUpChanges(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out.txt")
+	cfg := t.TempDir()
+	hclPath := filepath.Join(cfg, "main.hcl")
+	writeHCL := func(content string) {
+		t.Helper()
+		hcl := `
+file "x" {
+  path    = "` + target + `"
+  content = "` + content + `"
+}
+`
+		if err := os.WriteFile(hclPath, []byte(hcl), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	writeHCL("first")
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- run(ctx, []string{"run", "--interval=20ms", cfg}, nopLog{})
+	}()
+
+	waitForFile(t, target, []byte("first"), time.Second)
+
+	writeHCL("second")
+	waitForFile(t, target, []byte("second"), time.Second)
+
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("run: %v", err)
+	}
+}
+
+func waitForFile(t *testing.T, path string, want []byte, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		got, err := os.ReadFile(path)
+		if err == nil && bytes.Equal(got, want) {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	got, _ := os.ReadFile(path)
+	t.Fatalf("%s never became %q (last saw %q)", path, want, got)
 }
