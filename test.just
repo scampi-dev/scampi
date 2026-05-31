@@ -13,10 +13,6 @@
 all:
   go test ./...
 
-[doc("Regenerate golden artifacts")]
-regen:
-  go test ./... -regen
-
 [doc("Show test coverage per package")]
 cover:
   ./scripts/cover.sh

@@ -13,7 +13,7 @@ outdir="build/coverage"
 profile="$outdir/coverage.out"
 mkdir -p "$outdir"
 
-go test -coverpkg=./internal/... -coverprofile="$profile" ./... >/dev/null
+go test -coverprofile="$profile" ./... >/dev/null
 
 awk '
   NR == 1 { next }  # skip "mode: set"

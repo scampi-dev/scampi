@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -76,7 +77,11 @@ func cmdApply(ctx context.Context, args []string, log Log) error {
 	if verr := validate(resources); verr != nil {
 		return fmt.Errorf("%w: %w", ErrSnapshotRejected, verr)
 	}
-	if aerr := apply(ctx, resources, log); aerr != nil {
+	sorted, rerr := resolve(resources)
+	if rerr != nil {
+		return fmt.Errorf("%w: %w", ErrSnapshotRejected, rerr)
+	}
+	if aerr := apply(ctx, sorted, log); aerr != nil {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, aerr)
 	}
 	return nil
@@ -115,14 +120,29 @@ func (s slogLog) Error(ctx context.Context, msg string, args ...any) {
 // Resource
 // -----------------------------------------------------------------------------
 
-// Resource is one parsed top-level HCL block.
+// Ref names a resource by Kind + Name. The HCL traversal
+// kind.name.attr is the canonical surface form; this is the
+// machine-side equivalent.
+type Ref struct {
+	Kind string
+	Name string
+}
+
+func (r Ref) String() string { return r.Kind + "." + r.Name }
+
+// Resource is one parsed top-level HCL block. Attrs holds the
+// resolved-literal attrs; ref-bearing attrs live in exprs until the
+// resolve phase folds them back into Attrs.
 type Resource struct {
 	Kind  string
 	Name  string
 	Attrs map[string]string
+
+	exprs map[string]hclsyntax.Expression
+	deps  []Ref
 }
 
-func (r Resource) Ref() string { return r.Kind + "." + r.Name }
+func (r Resource) Ref() Ref { return Ref{Kind: r.Kind, Name: r.Name} }
 
 // Parse
 // -----------------------------------------------------------------------------
@@ -190,7 +210,22 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 		return Resource{}, fmt.Errorf("%s: nested blocks not supported", path)
 	}
 	attrs := make(map[string]string, len(block.Body.Attributes))
+	exprs := map[string]hclsyntax.Expression{}
+	seenDeps := map[Ref]bool{}
+	var deps []Ref
 	for name, attr := range block.Body.Attributes {
+		refs := refsFromExpr(attr.Expr)
+		if len(refs) > 0 {
+			// Defer eval until upstream is resolved.
+			exprs[name] = attr.Expr
+			for _, r := range refs {
+				if !seenDeps[r] {
+					seenDeps[r] = true
+					deps = append(deps, r)
+				}
+			}
+			continue
+		}
 		val, diags := attr.Expr.Value(nil)
 		if diags.HasErrors() {
 			return Resource{}, diags
@@ -201,19 +236,69 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 		}
 		attrs[name] = val.AsString()
 	}
-	return Resource{Kind: block.Type, Name: block.Labels[0], Attrs: attrs}, nil
+	return Resource{
+		Kind:  block.Type,
+		Name:  block.Labels[0],
+		Attrs: attrs,
+		exprs: exprs,
+		deps:  deps,
+	}, nil
+}
+
+// refsFromExpr returns the unique kind.name refs that expr depends
+// on. Anything beyond the kind.name prefix in a traversal stays with
+// HCL, evaluated at resolve time.
+func refsFromExpr(expr hclsyntax.Expression) []Ref {
+	seen := map[Ref]bool{}
+	var refs []Ref
+	for _, trav := range expr.Variables() {
+		r, ok := traversalToRef(trav)
+		if !ok {
+			continue
+		}
+		if !seen[r] {
+			seen[r] = true
+			refs = append(refs, r)
+		}
+	}
+	return refs
+}
+
+func traversalToRef(trav hcl.Traversal) (Ref, bool) {
+	if len(trav) < 2 {
+		return Ref{}, false
+	}
+	root, ok := trav[0].(hcl.TraverseRoot)
+	if !ok {
+		return Ref{}, false
+	}
+	attr, ok := trav[1].(hcl.TraverseAttr)
+	if !ok {
+		return Ref{}, false
+	}
+	return Ref{Kind: root.Name, Name: attr.Name}, true
 }
 
 // Validate
 // -----------------------------------------------------------------------------
 
-// validate runs per-Kind schema checks across the whole snapshot.
-// Aggregates so the operator sees every schema fault in one pass.
+// validate runs per-Kind schema checks across the whole snapshot
+// plus a cross-resource check that every ref points to a declared
+// resource. Aggregates so the operator sees every fault in one pass.
 func validate(resources []Resource) error {
 	var errs []error
+	known := make(map[Ref]bool, len(resources))
+	for _, r := range resources {
+		known[r.Ref()] = true
+	}
 	for _, r := range resources {
 		if err := validateOne(r); err != nil {
 			errs = append(errs, err)
+		}
+		for _, dep := range r.deps {
+			if !known[dep] {
+				errs = append(errs, fmt.Errorf("%s: references unknown resource %q", r.Ref(), dep))
+			}
 		}
 	}
 	return errors.Join(errs...)
@@ -232,20 +317,162 @@ func validateOne(r Resource) error {
 
 func validateFile(r Resource) error {
 	var errs []error
-	if _, ok := r.Attrs["path"]; !ok {
+	if !hasAttr(r, "path") {
 		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "path"))
 	}
-	if _, ok := r.Attrs["content"]; !ok {
+	if !hasAttr(r, "content") {
 		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "content"))
 	}
 	return errors.Join(errs...)
 }
 
 func validateDir(r Resource) error {
-	if _, ok := r.Attrs["path"]; !ok {
+	if !hasAttr(r, "path") {
 		return fmt.Errorf("%s: missing required attr %q", r.Ref(), "path")
 	}
 	return nil
+}
+
+// hasAttr is true if the attr is declared, either as a resolved
+// literal or as a ref-bearing expression.
+func hasAttr(r Resource, name string) bool {
+	if _, ok := r.Attrs[name]; ok {
+		return true
+	}
+	_, ok := r.exprs[name]
+	return ok
+}
+
+// Resolve
+// -----------------------------------------------------------------------------
+
+// resolved is a resource's attrs after the resolve phase folded any
+// upstream references into literal strings.
+type resolved struct {
+	ref   Ref
+	attrs map[string]string
+}
+
+// resolveStore tracks resolved resources in topo order so subsequent
+// expressions can reference their attrs via kind.name.attr.
+type resolveStore []resolved
+
+func (s *resolveStore) put(ref Ref, attrs map[string]string) {
+	*s = append(*s, resolved{ref: ref, attrs: attrs})
+}
+
+// evalContext shapes the store into HCL's kind.name.attr variable
+// scope: vars[kind] is an object whose members are name -> object(attrs).
+func (s resolveStore) evalContext() *hcl.EvalContext {
+	byKind := map[string]map[string]cty.Value{}
+	for _, e := range s {
+		if byKind[e.ref.Kind] == nil {
+			byKind[e.ref.Kind] = map[string]cty.Value{}
+		}
+		byKind[e.ref.Kind][e.ref.Name] = ctyStringObject(e.attrs)
+	}
+	vars := make(map[string]cty.Value, len(byKind))
+	for k, m := range byKind {
+		vars[k] = cty.ObjectVal(m)
+	}
+	return &hcl.EvalContext{Variables: vars}
+}
+
+// ctyStringObject wraps a string map as a cty object of strings.
+func ctyStringObject(attrs map[string]string) cty.Value {
+	out := make(map[string]cty.Value, len(attrs))
+	for k, v := range attrs {
+		out[k] = cty.StringVal(v)
+	}
+	return cty.ObjectVal(out)
+}
+
+// resolve topo-sorts the snapshot then evaluates every ref-bearing
+// attr against the store built up from upstream resources' attrs.
+// Returns the resources in dependency order with all attrs resolved
+// to literal strings. Cycles, unknown references, and type mismatches
+// at eval time are snapshot-level faults.
+func resolve(resources []Resource) ([]Resource, error) {
+	sorted, err := topoSort(resources)
+	if err != nil {
+		return nil, err
+	}
+	var store resolveStore
+	var errs []error
+	for i := range sorted {
+		r := &sorted[i]
+		if len(r.exprs) > 0 {
+			evalCtx := store.evalContext()
+			for name, expr := range r.exprs {
+				val, diags := expr.Value(evalCtx)
+				if diags.HasErrors() {
+					errs = append(errs, fmt.Errorf("%s: eval %q: %w", r.Ref(), name, diags))
+					continue
+				}
+				if val.Type() != cty.String {
+					errs = append(errs, fmt.Errorf("%s: attr %q must resolve to a string", r.Ref(), name))
+					continue
+				}
+				r.Attrs[name] = val.AsString()
+			}
+		}
+		store.put(r.Ref(), r.Attrs)
+	}
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	return sorted, nil
+}
+
+// topoSort orders resources so dependencies come before dependents.
+// Kahn's algorithm; ties preserve input order for stable output.
+// Returns ErrSnapshotRejected-shaped error on cycles.
+func topoSort(resources []Resource) ([]Resource, error) {
+	byRef := make(map[Ref]int, len(resources))
+	for i, r := range resources {
+		byRef[r.Ref()] = i
+	}
+	indeg := make([]int, len(resources))
+	dependents := make(map[int][]int, len(resources))
+	for i, r := range resources {
+		for _, dep := range r.deps {
+			j, ok := byRef[dep]
+			if !ok {
+				continue
+			}
+			indeg[i]++
+			dependents[j] = append(dependents[j], i)
+		}
+	}
+	queue := make([]int, 0, len(resources))
+	for i, d := range indeg {
+		if d == 0 {
+			queue = append(queue, i)
+		}
+	}
+	out := make([]Resource, 0, len(resources))
+	for len(queue) > 0 {
+		i := queue[0]
+		queue = queue[1:]
+		out = append(out, resources[i])
+		for _, j := range dependents[i] {
+			indeg[j]--
+			if indeg[j] == 0 {
+				queue = append(queue, j)
+			}
+		}
+	}
+	if len(out) != len(resources) {
+		var cyclic []string
+		for i, d := range indeg {
+			if d > 0 {
+				cyclic = append(cyclic, resources[i].Ref().String())
+			}
+		}
+		sort.Strings(cyclic)
+		return nil, fmt.Errorf("dependency cycle: %s", strings.Join(cyclic, ", "))
+	}
+	return out, nil
 }
 
 // Apply

@@ -80,6 +80,9 @@ func runGoldenCase(t *testing.T, caseDir string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// {{TMP}} subs apply to both inputs and expected so ref-derived
+	// content can name absolute tempdir paths.
+	expectedYAML = []byte(strings.ReplaceAll(string(expectedYAML), "{{TMP}}", target))
 	var want goldenExpected
 	if yerr := yaml.Unmarshal(expectedYAML, &want); yerr != nil {
 		t.Fatalf("expected.yaml: %v", yerr)
