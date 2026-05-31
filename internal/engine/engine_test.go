@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package engine
 
 import (
 	"bytes"
@@ -25,10 +25,6 @@ func (nopLog) Error(context.Context, string, ...any) {}
 // Golden
 // -----------------------------------------------------------------------------
 
-// goldenExpected is the per-case expectation. Error categorizes the
-// run's return: "" success, "snapshot" rejected, "apply" runtime fail.
-// Files / Dirs / Absent assert post-state of the target tempdir
-// (relative paths).
 type goldenExpected struct {
 	Error  string
 	Files  map[string]string
@@ -36,9 +32,6 @@ type goldenExpected struct {
 	Absent []string
 }
 
-// TestGolden walks testdata/golden/*. Each case is a dir containing
-// any number of *.hcl source files and one expected.yaml. The token
-// {{TMP}} in *.hcl is substituted with a per-test tempdir before apply.
 func TestGolden(t *testing.T) {
 	cases, err := filepath.Glob("testdata/golden/*")
 	if err != nil {
@@ -82,15 +75,15 @@ func runGoldenCase(t *testing.T, caseDir string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// {{TMP}} subs apply to both inputs and expected so ref-derived
-	// content can name absolute tempdir paths.
+	// {{TMP}} subs in both inputs and expected so ref-derived content
+	// can name absolute tempdir paths.
 	expectedYAML = []byte(strings.ReplaceAll(string(expectedYAML), "{{TMP}}", target))
 	var want goldenExpected
 	if yerr := yaml.Unmarshal(expectedYAML, &want); yerr != nil {
 		t.Fatalf("expected.yaml: %v", yerr)
 	}
 
-	gotErr := run(t.Context(), []string{"apply", cfg}, nopLog{})
+	gotErr := Apply(t.Context(), cfg, nopLog{})
 
 	switch want.Error {
 	case "":
@@ -139,9 +132,8 @@ func runGoldenCase(t *testing.T, caseDir string) {
 // Non-golden
 // -----------------------------------------------------------------------------
 
-// In-sync skip can't be asserted by post-state alone (the file is
-// present with the same content before and after either way); the
-// observable is mtime not advancing.
+// In-sync skip can't be asserted by post-state alone; the observable
+// is mtime not advancing.
 func TestApply_FileInSyncSkipsWrite(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
@@ -158,8 +150,8 @@ file "etc" {
   content = "hello"
 }
 `)
-	if err := run(t.Context(), []string{"apply", cfg}, nopLog{}); err != nil {
-		t.Fatalf("run: %v", err)
+	if err := Apply(t.Context(), cfg, nopLog{}); err != nil {
+		t.Fatalf("Apply: %v", err)
 	}
 	after, err := os.Stat(target)
 	if err != nil {
@@ -168,16 +160,6 @@ file "etc" {
 	if !after.ModTime().Equal(before.ModTime()) {
 		t.Errorf("mtime changed from %v to %v; expected no write when in sync",
 			before.ModTime(), after.ModTime())
-	}
-}
-
-func TestRun_NoArgsReturnsUsage(t *testing.T) {
-	err := run(t.Context(), nil, nopLog{})
-	if err == nil {
-		t.Fatal("expected usage error with no args")
-	}
-	if errors.Is(err, ErrSnapshotRejected) || errors.Is(err, ErrApplyFailed) {
-		t.Errorf("usage error should not be in the apply taxonomy, got: %v", err)
 	}
 }
 
@@ -193,9 +175,8 @@ func writeConfig(t *testing.T, hcl string) string {
 // Run mode
 // -----------------------------------------------------------------------------
 
-// Initial reconcile fires before the first tick, so a very long
-// interval plus a short ctx deadline still proves the loop landed
-// the snapshot once.
+// 24h interval + short ctx deadline proves the initial reconcile
+// fires before the first ticker wait.
 func TestRun_AppliesOnceAtStart(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
@@ -207,8 +188,8 @@ file "x" {
 `)
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
-	if err := run(ctx, []string{"run", "--interval=24h", cfg}, nopLog{}); err != nil {
-		t.Fatalf("run: %v", err)
+	if err := Run(ctx, cfg, 24*time.Hour, nopLog{}); err != nil {
+		t.Fatalf("Run: %v", err)
 	}
 	got, err := os.ReadFile(target)
 	if err != nil {
@@ -219,7 +200,6 @@ file "x" {
 	}
 }
 
-// Loop must pick up an in-flight config change.
 func TestRun_PicksUpChanges(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
@@ -245,7 +225,7 @@ file "x" {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- run(ctx, []string{"run", "--interval=20ms", cfg}, nopLog{})
+		done <- Run(ctx, cfg, 20*time.Millisecond, nopLog{})
 	}()
 
 	waitForFile(t, target, []byte("first"), time.Second)
@@ -255,7 +235,7 @@ file "x" {
 
 	cancel()
 	if err := <-done; err != nil {
-		t.Fatalf("run: %v", err)
+		t.Fatalf("Run: %v", err)
 	}
 }
 

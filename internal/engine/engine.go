@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Command scampi is a decentralized reconciler for bare-metal infrastructure.
-package main
+// Package engine reconciles desired-state HCL snapshots against the
+// real filesystem. Apply runs once; Run polls and reconciles
+// continuously.
+package engine
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"flag"
 	"fmt"
 	"io/fs"
-	"log/slog"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -25,76 +23,44 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func main() {
-	log := slogLog{slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	err := run(ctx, os.Args[1:], log)
-	switch {
-	case err == nil:
-		return
-	case errors.Is(err, ErrSnapshotRejected):
-		log.Error(ctx, "snapshot rejected", "err", err)
-		os.Exit(2)
-	case errors.Is(err, ErrApplyFailed):
-		log.Error(ctx, "apply failed", "err", err)
-		os.Exit(1)
-	default:
-		log.Error(ctx, "scampi failed", "err", err)
-		os.Exit(1)
-	}
+// Log
+// -----------------------------------------------------------------------------
+
+type Log interface {
+	Debug(ctx context.Context, msg string, args ...any)
+	Info(ctx context.Context, msg string, args ...any)
+	Warn(ctx context.Context, msg string, args ...any)
+	Error(ctx context.Context, msg string, args ...any)
 }
 
-func run(ctx context.Context, args []string, log Log) error {
-	if len(args) == 0 {
-		return errUsage
-	}
-	switch args[0] {
-	case "apply":
-		return cmdApply(ctx, args[1:], log)
-	case "run":
-		return cmdRun(ctx, args[1:], log)
-	default:
-		return errUsage
-	}
-}
+// Errors
+// -----------------------------------------------------------------------------
 
-var errUsage = errors.New("usage: scampi {apply|run} <dir>")
-
-// ErrSnapshotRejected wraps anything that makes the desired-state
-// snapshot structurally unusable (parse, schema). Nothing applies.
+// ErrSnapshotRejected wraps any structural fault (parse, schema,
+// ref, cycle). Nothing applies when it fires.
 var ErrSnapshotRejected = errors.New("snapshot rejected")
 
 // ErrApplyFailed wraps per-resource runtime failures. Some resources
-// may have landed; the failures aggregate.
+// may have landed; failures aggregate.
 var ErrApplyFailed = errors.New("apply failed")
 
-func cmdApply(ctx context.Context, args []string, log Log) error {
-	fset := flag.NewFlagSet("apply", flag.ContinueOnError)
-	if err := fset.Parse(args); err != nil {
-		return err
-	}
-	if fset.NArg() != 1 {
-		return errUsage
-	}
-	return reconcileOnce(ctx, fset.Arg(0), log)
+// Public API
+// -----------------------------------------------------------------------------
+
+func Apply(ctx context.Context, dir string, log Log) error {
+	return reconcileOnce(ctx, dir, log)
 }
 
-func cmdRun(ctx context.Context, args []string, log Log) error {
-	fset := flag.NewFlagSet("run", flag.ContinueOnError)
-	interval := fset.Duration("interval", 5*time.Second, "poll interval between snapshots")
-	if err := fset.Parse(args); err != nil {
-		return err
-	}
-	if fset.NArg() != 1 {
-		return errUsage
-	}
-	return runLoop(ctx, fset.Arg(0), *interval, log)
+// Run polls dir and reconciles when the inputs change. Reconcile
+// errors log and the loop continues; a snapshot reject does NOT exit
+// the process so the operator can fix the config in place.
+func Run(ctx context.Context, dir string, interval time.Duration, log Log) error {
+	return runLoop(ctx, dir, interval, log)
 }
 
-// reconcileOnce runs one full parse + validate + resolve + apply pass.
-// The four phases are wrapped in their respective sentinel buckets so
-// callers can distinguish "config is bad" from "system misbehaved".
+// Pipeline
+// -----------------------------------------------------------------------------
+
 func reconcileOnce(ctx context.Context, dir string, log Log) error {
 	resources, err := parseDir(ctx, log, dir)
 	if err != nil {
@@ -107,21 +73,16 @@ func reconcileOnce(ctx context.Context, dir string, log Log) error {
 	if rerr != nil {
 		return fmt.Errorf("%w: %w", ErrSnapshotRejected, rerr)
 	}
-	if aerr := apply(ctx, sorted, log); aerr != nil {
+	if aerr := applyAll(ctx, sorted, log); aerr != nil {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, aerr)
 	}
 	return nil
 }
 
-// runLoop polls dir for changes and reconciles whenever the inputs
-// hash differently from the previous tick. Errors during reconcile
-// log and the loop continues; a snapshot reject does not exit the
-// process (the operator gets to fix the config without restarting).
 func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) error {
 	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
 	var lastRev string
 	for {
-		log.Info(ctx, "loop tick", "dir", dir, "interval", interval)
 		rev, hashErr := hashDir(dir)
 		switch {
 		case hashErr != nil:
@@ -133,7 +94,6 @@ func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) e
 			}
 			lastRev = rev
 		}
-		log.Info(ctx, "no changes", "dir", dir, "rev", rev)
 		select {
 		case <-ctx.Done():
 			log.Info(ctx, "shutting down")
@@ -143,8 +103,6 @@ func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) e
 	}
 }
 
-// hashDir returns a stable revision over the inputs (file basenames
-// + contents). Changing any byte in any .hcl file changes the rev.
 func hashDir(dir string) (string, error) {
 	paths, err := filepath.Glob(filepath.Join(dir, "*.hcl"))
 	if err != nil {
@@ -157,7 +115,7 @@ func hashDir(dir string) (string, error) {
 		if rerr != nil {
 			return "", rerr
 		}
-		// Hash basename + null + content so renames bump the rev.
+		// basename + null + content so renames bump the rev
 		_, _ = h.Write([]byte(filepath.Base(p)))
 		_, _ = h.Write([]byte{0})
 		_, _ = h.Write(content)
@@ -165,9 +123,6 @@ func hashDir(dir string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)[:8]), nil
 }
 
-// logReconcileErr routes a reconcile failure to the right severity.
-// Snapshot rejects are operator-actionable config faults; apply
-// failures are runtime issues the operator may need to investigate.
 func logReconcileErr(ctx context.Context, log Log, err error) {
 	switch {
 	case errors.Is(err, ErrSnapshotRejected):
@@ -179,42 +134,9 @@ func logReconcileErr(ctx context.Context, log Log, err error) {
 	}
 }
 
-// Log
-// -----------------------------------------------------------------------------
-
-// Log is the observability shape passed to apply paths. slog-backed
-// today; a richer impl can replace it without changing call sites.
-type Log interface {
-	Debug(ctx context.Context, msg string, args ...any)
-	Info(ctx context.Context, msg string, args ...any)
-	Warn(ctx context.Context, msg string, args ...any)
-	Error(ctx context.Context, msg string, args ...any)
-}
-
-type slogLog struct{ l *slog.Logger }
-
-func (s slogLog) Debug(ctx context.Context, msg string, args ...any) {
-	s.l.DebugContext(ctx, msg, args...)
-}
-
-func (s slogLog) Info(ctx context.Context, msg string, args ...any) {
-	s.l.InfoContext(ctx, msg, args...)
-}
-
-func (s slogLog) Warn(ctx context.Context, msg string, args ...any) {
-	s.l.WarnContext(ctx, msg, args...)
-}
-
-func (s slogLog) Error(ctx context.Context, msg string, args ...any) {
-	s.l.ErrorContext(ctx, msg, args...)
-}
-
 // Resource
 // -----------------------------------------------------------------------------
 
-// Ref names a resource by Kind + Name. The HCL traversal
-// kind.name.attr is the canonical surface form; this is the
-// machine-side equivalent.
 type Ref struct {
 	Kind string
 	Name string
@@ -222,9 +144,9 @@ type Ref struct {
 
 func (r Ref) String() string { return r.Kind + "." + r.Name }
 
-// Resource is one parsed top-level HCL block. Attrs holds the
-// resolved-literal attrs; ref-bearing attrs live in exprs until the
-// resolve phase folds them back into Attrs.
+// Resource is one parsed top-level HCL block. Attrs holds literal
+// values resolved at parse time; ref-bearing attrs live in exprs
+// until the resolve phase folds them back into Attrs.
 type Resource struct {
 	Kind  string
 	Name  string
@@ -293,7 +215,7 @@ func parseFile(ctx context.Context, log Log, path string) ([]Resource, error) {
 }
 
 func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path string) (Resource, error) {
-	log.Debug(ctx, "parsing", "block", block, "path", path)
+	log.Debug(ctx, "parsing", "block", block.Type, "path", path)
 	if len(block.Labels) != 1 {
 		return Resource{}, fmt.Errorf("%s: %s block needs exactly one label, got %d",
 			path, block.Type, len(block.Labels))
@@ -308,7 +230,6 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 	for name, attr := range block.Body.Attributes {
 		refs := refsFromExpr(attr.Expr)
 		if len(refs) > 0 {
-			// Defer eval until upstream is resolved.
 			exprs[name] = attr.Expr
 			for _, r := range refs {
 				if !seenDeps[r] {
@@ -337,9 +258,9 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 	}, nil
 }
 
-// refsFromExpr returns the unique kind.name refs that expr depends
-// on. Anything beyond the kind.name prefix in a traversal stays with
-// HCL, evaluated at resolve time.
+// refsFromExpr collects kind.name refs from a traversal. Anything
+// past the kind.name prefix stays in the HCL expression and gets
+// evaluated against the resolve store later.
 func refsFromExpr(expr hclsyntax.Expression) []Ref {
 	seen := map[Ref]bool{}
 	var refs []Ref
@@ -374,9 +295,8 @@ func traversalToRef(trav hcl.Traversal) (Ref, bool) {
 // Validate
 // -----------------------------------------------------------------------------
 
-// validate runs per-Kind schema checks across the whole snapshot
-// plus a cross-resource check that every ref points to a declared
-// resource. Aggregates so the operator sees every fault in one pass.
+// validate aggregates so the operator sees every fault in one pass
+// instead of trickling them in one reconcile at a time.
 func validate(resources []Resource) error {
 	var errs []error
 	known := make(map[Ref]bool, len(resources))
@@ -425,8 +345,6 @@ func validateDir(r Resource) error {
 	return nil
 }
 
-// hasAttr is true if the attr is declared, either as a resolved
-// literal or as a ref-bearing expression.
 func hasAttr(r Resource, name string) bool {
 	if _, ok := r.Attrs[name]; ok {
 		return true
@@ -438,23 +356,19 @@ func hasAttr(r Resource, name string) bool {
 // Resolve
 // -----------------------------------------------------------------------------
 
-// resolved is a resource's attrs after the resolve phase folded any
-// upstream references into literal strings.
 type resolved struct {
 	ref   Ref
 	attrs map[string]string
 }
 
-// resolveStore tracks resolved resources in topo order so subsequent
-// expressions can reference their attrs via kind.name.attr.
 type resolveStore []resolved
 
 func (s *resolveStore) put(ref Ref, attrs map[string]string) {
 	*s = append(*s, resolved{ref: ref, attrs: attrs})
 }
 
-// evalContext shapes the store into HCL's kind.name.attr variable
-// scope: vars[kind] is an object whose members are name -> object(attrs).
+// evalContext shapes the store into HCL's kind.name.attr scope:
+// vars[kind] is an object whose members are name -> object(attrs).
 func (s resolveStore) evalContext() *hcl.EvalContext {
 	byKind := map[string]map[string]cty.Value{}
 	for _, e := range s {
@@ -470,7 +384,6 @@ func (s resolveStore) evalContext() *hcl.EvalContext {
 	return &hcl.EvalContext{Variables: vars}
 }
 
-// ctyStringObject wraps a string map as a cty object of strings.
 func ctyStringObject(attrs map[string]string) cty.Value {
 	out := make(map[string]cty.Value, len(attrs))
 	for k, v := range attrs {
@@ -479,11 +392,9 @@ func ctyStringObject(attrs map[string]string) cty.Value {
 	return cty.ObjectVal(out)
 }
 
-// resolve topo-sorts the snapshot then evaluates every ref-bearing
-// attr against the store built up from upstream resources' attrs.
-// Returns the resources in dependency order with all attrs resolved
-// to literal strings. Cycles, unknown references, and type mismatches
-// at eval time are snapshot-level faults.
+// resolve topo-sorts then folds ref-bearing attrs in dependency
+// order. Cycles, unknown refs, and type mismatches at eval time are
+// snapshot-level faults; runtime failure of an upstream apply is not.
 func resolve(resources []Resource) ([]Resource, error) {
 	sorted, err := topoSort(resources)
 	if err != nil {
@@ -516,9 +427,8 @@ func resolve(resources []Resource) ([]Resource, error) {
 	return sorted, nil
 }
 
-// topoSort orders resources so dependencies come before dependents.
-// Kahn's algorithm; ties preserve input order for stable output.
-// Returns ErrSnapshotRejected-shaped error on cycles.
+// topoSort uses Kahn's algorithm. Ties preserve input order so output
+// is stable across runs.
 func topoSort(resources []Resource) ([]Resource, error) {
 	byRef := make(map[Ref]int, len(resources))
 	for i, r := range resources {
@@ -570,7 +480,7 @@ func topoSort(resources []Resource) ([]Resource, error) {
 // Apply
 // -----------------------------------------------------------------------------
 
-func apply(ctx context.Context, resources []Resource, log Log) error {
+func applyAll(ctx context.Context, resources []Resource, log Log) error {
 	var errs []error
 	for _, r := range resources {
 		if err := applyOne(ctx, r, log); err != nil {
@@ -592,8 +502,7 @@ func applyOne(ctx context.Context, r Resource, log Log) error {
 }
 
 func applyFile(ctx context.Context, r Resource, log Log) error {
-	// path and content are required; schema validation enforces this
-	// before any apply runs.
+	// path + content guaranteed present by validate
 	path := r.Attrs["path"]
 	content := r.Attrs["content"]
 	current, rerr := os.ReadFile(path)
@@ -612,8 +521,6 @@ func applyFile(ctx context.Context, r Resource, log Log) error {
 }
 
 func applyDir(ctx context.Context, r Resource, log Log) error {
-	// path is required; schema validation enforces this before any
-	// apply runs.
 	path := r.Attrs["path"]
 	info, serr := os.Stat(path)
 	switch {

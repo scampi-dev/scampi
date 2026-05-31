@@ -34,7 +34,7 @@ build:
   set -euo pipefail
   mkdir -p {{bin_dir}}
   out="{{bin_dir}}/scampi${GOOS:+-${GOOS}-${GOARCH}}"
-  CGO_ENABLED=0 go build -trimpath -ldflags '{{ldflags}}' -o "$out" .
+  CGO_ENABLED=0 go build -trimpath -ldflags '{{ldflags}}' -o "$out" ./cmd/scampi
 
 [group('build')]
 [doc("Cross-compile for all supported platforms")]
@@ -62,7 +62,7 @@ cross:
 [group('run')]
 [doc("Build and run scampi locally")]
 scampi *args:
-  go run . {{args}}
+  go run ./cmd/scampi {{args}}
 
 # Code quality
 # -----------------------------------------------------------------------------
