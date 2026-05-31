@@ -10,6 +10,7 @@ tool (
 
 require (
 	github.com/hashicorp/hcl/v2 v2.24.0
+	github.com/spf13/cobra v1.10.2
 	github.com/zclconf/go-cty v1.18.1
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -194,7 +195,6 @@ require (
 	github.com/sourcegraph/go-diff v0.8.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.12.0 // indirect

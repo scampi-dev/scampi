@@ -6,17 +6,17 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"scampi.dev/scampi/internal/engine"
 )
-
-var errUsage = errors.New("usage: scampi {apply|run} <dir>")
 
 type slogLog struct{ l *slog.Logger }
 
@@ -40,7 +40,8 @@ func main() {
 	log := slogLog{slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	err := dispatch(ctx, os.Args[1:], log)
+
+	cmd, err := newRootCmd(log).ExecuteContextC(ctx)
 	switch {
 	case err == nil:
 		return
@@ -51,44 +52,49 @@ func main() {
 		log.Error(ctx, "apply failed", "err", err)
 		os.Exit(1)
 	default:
-		log.Error(ctx, "scampi failed", "err", err)
+		// Cobra-shape error (unknown command, bad args). Render the
+		// resolved command's usage so the user sees the right help.
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %s\n\n%s", err, cmd.UsageString())
 		os.Exit(1)
 	}
 }
 
-func dispatch(ctx context.Context, args []string, log engine.Log) error {
-	if len(args) == 0 {
-		return errUsage
+func newRootCmd(log engine.Log) *cobra.Command {
+	// Silence cobra's own error+usage rendering on every command so
+	// main is the single point that decides what gets shown: sentinel
+	// runtime errors flow through slog; cobra-shape errors get usage
+	// rendered explicitly.
+	root := &cobra.Command{
+		Use:           "scampi",
+		Short:         "Decentralized reconciler for bare-metal infrastructure.",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 	}
-	switch args[0] {
-	case "apply":
-		return cmdApply(ctx, args[1:], log)
-	case "run":
-		return cmdRun(ctx, args[1:], log)
-	default:
-		return errUsage
-	}
-}
 
-func cmdApply(ctx context.Context, args []string, log engine.Log) error {
-	fset := flag.NewFlagSet("apply", flag.ContinueOnError)
-	if err := fset.Parse(args); err != nil {
-		return err
+	apply := &cobra.Command{
+		Use:           "apply <dir>",
+		Short:         "Reconcile the snapshot in <dir> once.",
+		Args:          cobra.ExactArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return engine.Apply(cmd.Context(), args[0], log)
+		},
 	}
-	if fset.NArg() != 1 {
-		return errUsage
-	}
-	return engine.Apply(ctx, fset.Arg(0), log)
-}
 
-func cmdRun(ctx context.Context, args []string, log engine.Log) error {
-	fset := flag.NewFlagSet("run", flag.ContinueOnError)
-	interval := fset.Duration("interval", 5*time.Second, "poll interval between snapshots")
-	if err := fset.Parse(args); err != nil {
-		return err
+	run := &cobra.Command{
+		Use:           "run <dir>",
+		Short:         "Watch <dir> and reconcile on every change.",
+		Args:          cobra.ExactArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			interval, _ := cmd.Flags().GetDuration("interval")
+			return engine.Run(cmd.Context(), args[0], interval, log)
+		},
 	}
-	if fset.NArg() != 1 {
-		return errUsage
-	}
-	return engine.Run(ctx, fset.Arg(0), *interval, log)
+	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")
+
+	root.AddCommand(apply, run)
+	return root
 }
