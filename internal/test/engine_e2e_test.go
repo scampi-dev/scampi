@@ -241,6 +241,42 @@ file "x" {
 	}
 }
 
+// Drift in observed state (the user mutated the target file out from
+// under scampi) must converge back to declared on the next tick.
+func TestRun_ConvergesDriftBack(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out.txt")
+	cfg := writeConfig(t, `
+file "x" {
+  path    = "`+target+`"
+  content = "desired"
+}
+`)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- engine.Run(ctx, cfg, 20*time.Millisecond, nopLog{})
+	}()
+
+	waitForFile(t, target, []byte("desired"), time.Second)
+
+	// Mutate behind scampi's back.
+	if err := os.WriteFile(target, []byte("drifted"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Next tick must converge.
+	waitForFile(t, target, []byte("desired"), time.Second)
+
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+}
+
 func waitForFile(t *testing.T, path string, want []byte, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)

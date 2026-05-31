@@ -58,16 +58,9 @@ func Run(ctx context.Context, dir string, interval time.Duration, log Log) error
 // -----------------------------------------------------------------------------
 
 func reconcileOnce(ctx context.Context, dir string, log Log) error {
-	resources, err := parseDir(ctx, log, dir)
+	sorted, err := snapshot(ctx, dir, log)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
-	}
-	if verr := validate(resources); verr != nil {
-		return fmt.Errorf("%w: %w", ErrSnapshotRejected, verr)
-	}
-	sorted, rerr := resolve(resources)
-	if rerr != nil {
-		return fmt.Errorf("%w: %w", ErrSnapshotRejected, rerr)
+		return err
 	}
 	if aerr := applyAll(ctx, sorted, log); aerr != nil {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, aerr)
@@ -75,9 +68,33 @@ func reconcileOnce(ctx context.Context, dir string, log Log) error {
 	return nil
 }
 
+// snapshot parses + validates + resolves dir into apply-ready
+// resources. All faults bucket as ErrSnapshotRejected.
+func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
+	resources, err := parseDir(ctx, log, dir)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
+	}
+	if verr := validate(resources); verr != nil {
+		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, verr)
+	}
+	sorted, rerr := resolve(resources)
+	if rerr != nil {
+		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, rerr)
+	}
+	return sorted, nil
+}
+
+// runLoop re-parses only when the config hash changes but applies on
+// every tick so drift in observed state gets converged. When a new
+// snapshot is rejected the previous one stays active -- the design
+// doc's "REJECT this snapshot, keep last-good" semantics.
 func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) error {
 	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
-	var lastRev string
+	var (
+		lastRev    string
+		sortedSnap []Resource
+	)
 	for {
 		rev, hashErr := hashDir(dir)
 		switch {
@@ -85,10 +102,18 @@ func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) e
 			log.Error(ctx, "hash dir", "err", hashErr)
 		case rev != lastRev:
 			log.Debug(ctx, "snapshot change", "rev", rev)
-			if rerr := reconcileOnce(ctx, dir, log); rerr != nil {
-				logReconcileErr(ctx, log, rerr)
+			s, serr := snapshot(ctx, dir, log)
+			if serr != nil {
+				logReconcileErr(ctx, log, serr)
+			} else {
+				sortedSnap = s
 			}
 			lastRev = rev
+		}
+		if sortedSnap != nil {
+			if aerr := applyAll(ctx, sortedSnap, log); aerr != nil {
+				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, aerr))
+			}
 		}
 		select {
 		case <-ctx.Done():
