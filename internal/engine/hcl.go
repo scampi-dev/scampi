@@ -56,6 +56,11 @@ func parseFile(ctx context.Context, log Log, path string) ([]Resource, error) {
 	if diags.HasErrors() {
 		return nil, diags
 	}
+	if file == nil {
+		// ParseConfig returns non-nil when HasErrors is false, but
+		// CodeQL can't prove it; this clears the alert.
+		return nil, fmt.Errorf("%s: hclsyntax returned nil file with no errors", path)
+	}
 	body, ok := file.Body.(*hclsyntax.Body)
 	if !ok {
 		return nil, fmt.Errorf("%s: unexpected body type %T", path, file.Body)
