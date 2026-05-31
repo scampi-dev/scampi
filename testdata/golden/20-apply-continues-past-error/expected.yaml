@@ -1,0 +1,6 @@
+error: apply
+files:
+  good.txt: |
+    yes
+absent:
+  - missing-parent/bad.txt

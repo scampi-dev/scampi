@@ -1,0 +1,8 @@
+dirs:
+  - nested
+files:
+  nested/README.md: |
+    scampi reconciled this directory
+  nested/app.conf: |
+    name = scampi
+    mode = real
