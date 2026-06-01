@@ -134,7 +134,7 @@ func reconcileOnce(ctx context.Context, dir string, log Log) error {
 	if err != nil {
 		return err
 	}
-	if aerr := applyAll(ctx, sorted, log); aerr != nil {
+	if aerr := applyAll(ctx, sorted, log, nil); aerr != nil {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, aerr)
 	}
 	return nil
@@ -170,6 +170,7 @@ func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) e
 	var (
 		lastRev    string
 		sortedSnap []Resource
+		bo         = newBackoff()
 	)
 	for {
 		rev, hashErr := hashDir(dir)
@@ -187,7 +188,7 @@ func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) e
 			lastRev = rev
 		}
 		if sortedSnap != nil {
-			if aerr := applyAll(ctx, sortedSnap, log); aerr != nil {
+			if aerr := applyAll(ctx, sortedSnap, log, bo); aerr != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, aerr))
 			}
 		}
@@ -414,14 +415,88 @@ func topoSort(resources []Resource) ([]Resource, error) {
 // Apply
 // -----------------------------------------------------------------------------
 
-func applyAll(ctx context.Context, resources []Resource, log Log) error {
+// applyAll iterates the snapshot. When bo is non-nil, resources past
+// a previous failure get skipped until their backoff expires; success
+// clears the entry, failure extends it. Pass nil for one-shot Apply
+// (no retry pressure to absorb).
+func applyAll(ctx context.Context, resources []Resource, log Log, bo *backoff) error {
 	var errs []error
+	now := time.Now()
 	for _, r := range resources {
+		ref := r.Ref()
+		if !bo.due(ref, now) {
+			log.Debug(ctx, "backoff skip", "ref", ref, "until", bo.entries[ref].nextRetry)
+			continue
+		}
 		if err := applyOne(ctx, r, log); err != nil {
 			errs = append(errs, err)
+			bo.failure(ref, now)
+			continue
 		}
+		bo.success(ref)
 	}
 	return errors.Join(errs...)
+}
+
+// Backoff
+// -----------------------------------------------------------------------------
+
+// backoff tracks per-Ref retry deadlines. Methods are nil-safe so
+// Apply can pass nil and the loop can pass a real one.
+type backoff struct {
+	entries map[Ref]*backoffEntry
+}
+
+type backoffEntry struct {
+	nextRetry time.Time
+	attempts  int
+}
+
+func newBackoff() *backoff { return &backoff{entries: map[Ref]*backoffEntry{}} }
+
+func (b *backoff) due(ref Ref, now time.Time) bool {
+	if b == nil {
+		return true
+	}
+	e, ok := b.entries[ref]
+	if !ok {
+		return true
+	}
+	return !now.Before(e.nextRetry)
+}
+
+func (b *backoff) success(ref Ref) {
+	if b == nil {
+		return
+	}
+	delete(b.entries, ref)
+}
+
+func (b *backoff) failure(ref Ref, now time.Time) {
+	if b == nil {
+		return
+	}
+	e, ok := b.entries[ref]
+	if !ok {
+		e = &backoffEntry{}
+		b.entries[ref] = e
+	}
+	e.attempts++
+	e.nextRetry = now.Add(backoffDelay(e.attempts))
+}
+
+// backoffDelay doubles per attempt starting at 1s, capped at 5 min.
+func backoffDelay(attempts int) time.Duration {
+	if attempts < 1 {
+		return 0
+	}
+	shift := min(attempts-1, 30)
+	d := time.Second << shift
+	const maxDelay = 5 * time.Minute
+	if d > maxDelay || d < 0 {
+		return maxDelay
+	}
+	return d
 }
 
 func applyOne(ctx context.Context, r Resource, log Log) error {

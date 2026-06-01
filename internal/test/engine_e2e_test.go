@@ -346,6 +346,40 @@ file "x" {
 	}
 }
 
+// A persistently-failing resource must not get retried on every
+// tick. With backoff starting at 1s, an 800ms window at 20ms ticks
+// should see ~1 attempt instead of ~40.
+func TestRun_BackoffSkipsPersistentFailure(t *testing.T) {
+	tmp := t.TempDir()
+	bad := filepath.Join(tmp, "missing-parent", "bad.txt")
+	cfg := writeConfig(t, `
+file "bad" {
+  path    = "`+bad+`"
+  content = "nope"
+}
+`)
+
+	log, capture := newCaptureLog()
+	ctx, cancel := context.WithTimeout(t.Context(), 800*time.Millisecond)
+	defer cancel()
+	_ = engine.Run(ctx, cfg, 20*time.Millisecond, log)
+
+	var attempts int
+	for _, e := range capture.events {
+		if e.Code == engine.CodeApplyStart {
+			attempts++
+		}
+	}
+	// Allow some slack for timing variance, but anything above ~3
+	// means backoff isn't working.
+	if attempts > 3 {
+		t.Errorf("got %d apply.start attempts over 800ms; backoff should cap this near 1", attempts)
+	}
+	if attempts == 0 {
+		t.Errorf("got 0 apply.start attempts; the first try should have happened")
+	}
+}
+
 func waitForFile(t *testing.T, path string, want []byte, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
