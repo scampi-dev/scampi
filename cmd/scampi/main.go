@@ -10,15 +10,91 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
 	"scampi.dev/scampi/internal/engine"
 )
 
+// helpTemplate renders the full --help output: tagline (Long or
+// Short) above the usage block. Clone of cobra's default with the
+// tagline routed through our `tagline` func for color.
+const helpTemplate = `{{with (or .Long .Short)}}{{tagline (. | trimTrailingWhitespaces)}}
+
+{{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
+
+// usageTemplate renders cobra help with our basic-ANSI palette when
+// stdout is a tty; falls back to plain text in pipes/redirects.
+// Section headers in yellow+bold, command names in cyan, flag names
+// in green (descriptions stay plain).
+const usageTemplate = `{{header "Usage:"}}{{if .Runnable}}
+  {{cmdName .UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{cmdName .CommandPath}} {{cmdName "[command]"}}{{end}}{{if gt (len .Aliases) 0}}
+
+{{header "Aliases:"}}
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+{{header "Examples:"}}
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+{{header "Available Commands:"}}{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{cmdName (rpad .Name .NamePadding)}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+{{header "Flags:"}}
+{{flagBlock (.LocalFlags.FlagUsages | trimTrailingWhitespaces)}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+{{header "Global Flags:"}}
+{{flagBlock (.InheritedFlags.FlagUsages | trimTrailingWhitespaces)}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{cmdName (printf "%s [command] --help" .CommandPath)}}" for more information about a command.{{end}}
+`
+
+// cobraColored controls whether the help template funcs emit ANSI
+// escapes. main flips it per render target so --help to stdout and
+// usage on stderr each follow their own tty.
+var cobraColored bool
+
+// flagLineRe captures the flag-name + type prefix on one line of
+// pflag's FlagUsages output. Groups: leading indent, flag prefix
+// (possibly with short alias and type), spacing, description.
+var flagLineRe = regexp.MustCompile(`^(\s+)((?:-\S, )?--\S+(?: \S+)?)(\s+)(.*)$`)
+
+func registerCobraHelpFuncs() {
+	wrap := func(open string) func(string) string {
+		return func(s string) string {
+			if !cobraColored {
+				return s
+			}
+			return open + s + ansiReset
+		}
+	}
+	cobra.AddTemplateFunc("header", wrap(ansiYellow))
+	cobra.AddTemplateFunc("tagline", wrap(ansiBlue))
+	cobra.AddTemplateFunc("cmdName", wrap(ansiCyan))
+	cobra.AddTemplateFunc("flagBlock", func(s string) string {
+		if !cobraColored {
+			return s
+		}
+		lines := strings.Split(s, "\n")
+		for i, line := range lines {
+			m := flagLineRe.FindStringSubmatch(line)
+			if m == nil {
+				continue
+			}
+			lines[i] = m[1] + ansiGreen + m[2] + ansiReset + m[3] + m[4]
+		}
+		return strings.Join(lines, "\n")
+	})
+}
+
 func main() {
+	registerCobraHelpFuncs()
+	cobraColored = isatty.IsTerminal(os.Stdout.Fd())
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -35,7 +111,18 @@ func main() {
 	case errors.Is(err, engine.ErrApplyFailed):
 		os.Exit(1)
 	default:
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %s\n\n%s", err, cmd.UsageString())
+		// Error path writes to stderr, so the color decision for
+		// both the Error line and the usage block follows stderr.
+		errColored := isatty.IsTerminal(os.Stderr.Fd())
+		cobraColored = errColored
+		errLine := fmt.Sprintf("Error: %s", err)
+		if errColored {
+			errLine = ansiRed + errLine + ansiReset
+		}
+		// Help flag is normally added inside execute(), which the
+		// error path bypassed; init it so it shows up in the usage.
+		cmd.InitDefaultHelpFlag()
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n\n%s", errLine, cmd.UsageString())
 		os.Exit(1)
 	}
 }
@@ -105,6 +192,10 @@ func newRootCmd() (*cobra.Command, func() error) {
 	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")
 
 	root.AddCommand(apply, run)
+	for _, c := range []*cobra.Command{root, apply, run} {
+		c.SetUsageTemplate(usageTemplate)
+		c.SetHelpTemplate(helpTemplate)
+	}
 	return root, func() error {
 		if actEm == nil {
 			return nil
