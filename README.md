@@ -1,5 +1,10 @@
 # scampi
 
+[![CI](https://github.com/scampi-dev/scampi/actions/workflows/ci.yml/badge.svg)](https://github.com/scampi-dev/scampi/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/scampi-dev/scampi/actions/workflows/codeql.yml/badge.svg)](https://github.com/scampi-dev/scampi/actions/workflows/codeql.yml)
+[![Go](https://img.shields.io/github/go-mod/go-version/scampi-dev/scampi)](go.mod)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL_v3-blue.svg)](LICENSE)
+
 A decentralized reconciler for bare-metal infrastructure.
 
 scampi runs as a peer-to-peer mesh of agents that converge bare metal,
