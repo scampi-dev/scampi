@@ -3,12 +3,13 @@
 package test
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,19 +23,69 @@ type capturedEvent struct {
 	Ref  *engine.Ref
 }
 
-// captureEmitter records every emission for assertions.
+// captureEmitter records every emission and lets tests wait until a
+// predicate over the collected events holds. notify is a coalescing
+// channel: each Emit signals at most one pending waiter; the waiter
+// re-evaluates the whole slice so coalesced signals never lose
+// information.
 type captureEmitter struct {
+	mu     sync.Mutex
 	events []capturedEvent
+	notify chan struct{}
 }
 
 func (c *captureEmitter) Emit(_ context.Context, code engine.Code, ref *engine.Ref, _ ...any) {
+	c.mu.Lock()
 	c.events = append(c.events, capturedEvent{Code: code, Ref: ref})
+	c.mu.Unlock()
+	select {
+	case c.notify <- struct{}{}:
+	default:
+	}
 }
 
-// newCaptureLog returns a Log backed by a captureEmitter and the
-// emitter itself so tests can inspect what was emitted.
+// Events returns a snapshot of recorded events.
+func (c *captureEmitter) Events() []capturedEvent {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return slices.Clone(c.events)
+}
+
+// waitFor blocks until pred(events) is true or timeout expires.
+func (c *captureEmitter) waitFor(pred func([]capturedEvent) bool, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for {
+		if pred(c.Events()) {
+			return true
+		}
+		wait := time.Until(deadline)
+		if wait <= 0 {
+			return false
+		}
+		select {
+		case <-c.notify:
+		case <-time.After(wait):
+			return pred(c.Events())
+		}
+	}
+}
+
+// waitForCount waits until the captured events contain at least n
+// instances of code. Returns true on match.
+func (c *captureEmitter) waitForCount(code engine.Code, n int, timeout time.Duration) bool {
+	return c.waitFor(func(events []capturedEvent) bool {
+		count := 0
+		for _, e := range events {
+			if e.Code == code {
+				count++
+			}
+		}
+		return count >= n
+	}, timeout)
+}
+
 func newCaptureLog() (engine.Log, *captureEmitter) {
-	c := &captureEmitter{}
+	c := &captureEmitter{notify: make(chan struct{}, 1)}
 	return engine.NewLog(c), c
 }
 
@@ -204,8 +255,8 @@ func writeConfig(t *testing.T, hcl string) string {
 // Run mode
 // -----------------------------------------------------------------------------
 
-// 24h interval + short ctx deadline proves the initial reconcile
-// fires before the first ticker wait.
+// The initial reconcile fires before the first ticker wait. Block
+// on apply.success then cancel; verify after the engine returns.
 func TestRun_AppliesOnceAtStart(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
@@ -215,11 +266,21 @@ file "x" {
   content = "hi"
 }
 `)
-	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
+	log, capture := newCaptureLog()
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	if err := engine.Run(ctx, cfg, 24*time.Hour, engine.Discard); err != nil {
+
+	done := make(chan error, 1)
+	go func() { done <- engine.Run(ctx, cfg, 24*time.Hour, log) }()
+
+	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
+		t.Fatal("timed out waiting for apply.success")
+	}
+	cancel()
+	if err := <-done; err != nil {
 		t.Fatalf("Run: %v", err)
 	}
+
 	got, err := os.ReadFile(target)
 	if err != nil {
 		t.Fatal(err)
@@ -229,6 +290,9 @@ file "x" {
 	}
 }
 
+// Loop must pick up an in-flight config change. Synchronize on
+// apply.success events (one before the mutation, two after) rather
+// than polling the filesystem.
 func TestRun_PicksUpChanges(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
@@ -246,25 +310,33 @@ file "x" {
 			t.Fatal(err)
 		}
 	}
-
 	writeHCL("first")
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	log, capture := newCaptureLog()
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() {
-		done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.Discard)
-	}()
+	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, log) }()
 
-	waitForFile(t, target, []byte("first"), time.Second)
-
+	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
+		t.Fatal("timed out waiting for first apply.success")
+	}
 	writeHCL("second")
-	waitForFile(t, target, []byte("second"), time.Second)
-
+	if !capture.waitForCount(engine.CodeApplySuccess, 2, 2*time.Second) {
+		t.Fatal("timed out waiting for second apply.success")
+	}
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("Run: %v", err)
+	}
+
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "second" {
+		t.Errorf("content = %q, want %q", got, "second")
 	}
 }
 
@@ -284,7 +356,7 @@ file "x" {
 	if err := engine.Apply(t.Context(), cfg, log); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
-	got := lifecycleOnly(capture.events)
+	got := lifecycleOnly(capture.Events())
 	want := []engine.Code{
 		engine.CodeSnapshotReceived,
 		engine.CodeApplyStart,
@@ -298,13 +370,13 @@ file "x" {
 			t.Errorf("event[%d] = %q, want %q", i, got[i].Code, w)
 		}
 	}
-	// Second apply on the now-in-sync target only emits snapshot.received
-	// (no apply.* because nothing wrote).
-	capture.events = nil
+	// Cursor between the two applies so we assert only on what the
+	// second one emits.
+	cursor := len(capture.Events())
 	if err := engine.Apply(t.Context(), cfg, log); err != nil {
 		t.Fatalf("Apply (second): %v", err)
 	}
-	got = lifecycleOnly(capture.events)
+	got = lifecycleOnly(capture.Events()[cursor:])
 	if len(got) != 1 || got[0].Code != engine.CodeSnapshotReceived {
 		t.Errorf("second apply lifecycle events = %+v, want only snapshot.received", got)
 	}
@@ -312,6 +384,9 @@ file "x" {
 
 // Drift in observed state (the user mutated the target file out from
 // under scampi) must converge back to declared on the next tick.
+// Synchronize on apply.success: one when the engine plants the
+// initial content, a second after we induce drift and the engine
+// rewrites.
 func TestRun_ConvergesDriftBack(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
@@ -322,33 +397,40 @@ file "x" {
 }
 `)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	log, capture := newCaptureLog()
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() {
-		done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.Discard)
-	}()
+	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, log) }()
 
-	waitForFile(t, target, []byte("desired"), time.Second)
-
-	// Mutate behind scampi's back.
+	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
+		t.Fatal("timed out waiting for initial apply.success")
+	}
 	if err := os.WriteFile(target, []byte("drifted"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-
-	// Next tick must converge.
-	waitForFile(t, target, []byte("desired"), time.Second)
-
+	if !capture.waitForCount(engine.CodeApplySuccess, 2, 2*time.Second) {
+		t.Fatal("timed out waiting for drift-fix apply.success")
+	}
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("Run: %v", err)
 	}
+
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "desired" {
+		t.Errorf("content = %q, want %q after drift fix", got, "desired")
+	}
 }
 
 // A persistently-failing resource must not get retried on every
-// tick. With backoff starting at 1s, an 800ms window at 20ms ticks
-// should see ~1 attempt instead of ~40.
+// tick. Block on the first apply.failed, then wait inside the 1s
+// backoff window to verify no second attempt fires. The sleep is
+// bounded by what backoff means; the test still asserts the count.
 func TestRun_BackoffSkipsPersistentFailure(t *testing.T) {
 	tmp := t.TempDir()
 	bad := filepath.Join(tmp, "missing-parent", "bad.txt")
@@ -360,36 +442,33 @@ file "bad" {
 `)
 
 	log, capture := newCaptureLog()
-	ctx, cancel := context.WithTimeout(t.Context(), 800*time.Millisecond)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	_ = engine.Run(ctx, cfg, 20*time.Millisecond, log)
+
+	done := make(chan error, 1)
+	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, log) }()
+
+	if !capture.waitForCount(engine.CodeApplyFailed, 1, 2*time.Second) {
+		t.Fatal("timed out waiting for first apply.failed")
+	}
+	// Sit inside the backoff window (first delay is 1s) to verify
+	// no retry fires during it.
+	time.Sleep(500 * time.Millisecond)
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("Run: %v", err)
+	}
 
 	var attempts int
-	for _, e := range capture.events {
+	for _, e := range capture.Events() {
 		if e.Code == engine.CodeApplyStart {
 			attempts++
 		}
 	}
-	// Allow some slack for timing variance, but anything above ~3
-	// means backoff isn't working.
 	if attempts > 3 {
-		t.Errorf("got %d apply.start attempts over 800ms; backoff should cap this near 1", attempts)
+		t.Errorf("got %d apply.start attempts; backoff should cap this near 1", attempts)
 	}
 	if attempts == 0 {
 		t.Errorf("got 0 apply.start attempts; the first try should have happened")
 	}
-}
-
-func waitForFile(t *testing.T, path string, want []byte, timeout time.Duration) {
-	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		got, err := os.ReadFile(path)
-		if err == nil && bytes.Equal(got, want) {
-			return
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	got, _ := os.ReadFile(path)
-	t.Fatalf("%s never became %q (last saw %q)", path, want, got)
 }
