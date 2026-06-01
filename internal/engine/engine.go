@@ -32,6 +32,7 @@ const (
 	CodeApplyStart       Code = "apply.start"
 	CodeApplySuccess     Code = "apply.success"
 	CodeApplyFailed      Code = "apply.failed"
+	CodeDestroySuccess   Code = "destroy.success"
 
 	CodeLogDebug Code = "log.debug"
 	CodeLogInfo  Code = "log.info"

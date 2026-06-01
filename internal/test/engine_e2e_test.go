@@ -472,3 +472,42 @@ file "bad" {
 		t.Errorf("got 0 apply.start attempts; the first try should have happened")
 	}
 }
+
+// Inventory
+// -----------------------------------------------------------------------------
+
+func TestInventory_DiffEmptyVsDeclared(t *testing.T) {
+	inv := engine.NewInventory()
+	declared := []engine.Resource{{Kind: "file", Name: "a"}}
+	toApply, toDestroy := inv.Diff(declared)
+	if len(toApply) != 1 || toApply[0] != (engine.Ref{Kind: "file", Name: "a"}) {
+		t.Errorf("toApply = %+v, want [file.a]", toApply)
+	}
+	if len(toDestroy) != 0 {
+		t.Errorf("toDestroy = %+v, want empty", toDestroy)
+	}
+}
+
+func TestInventory_DiffSameSet(t *testing.T) {
+	inv := engine.NewInventory()
+	inv.Add(engine.Ref{Kind: "file", Name: "a"}, map[string]string{"path": "/x"})
+	declared := []engine.Resource{{Kind: "file", Name: "a"}}
+	toApply, toDestroy := inv.Diff(declared)
+	if len(toApply) != 1 || len(toDestroy) != 0 {
+		t.Errorf("got toApply=%+v toDestroy=%+v; want apply [file.a], destroy empty",
+			toApply, toDestroy)
+	}
+}
+
+func TestInventory_DiffOrphan(t *testing.T) {
+	inv := engine.NewInventory()
+	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, map[string]string{"path": "/g"})
+	declared := []engine.Resource{}
+	toApply, toDestroy := inv.Diff(declared)
+	if len(toApply) != 0 {
+		t.Errorf("toApply = %+v, want empty", toApply)
+	}
+	if len(toDestroy) != 1 || toDestroy[0] != (engine.Ref{Kind: "file", Name: "gone"}) {
+		t.Errorf("toDestroy = %+v, want [file.gone]", toDestroy)
+	}
+}
