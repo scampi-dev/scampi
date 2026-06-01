@@ -22,12 +22,84 @@ import (
 // Log
 // -----------------------------------------------------------------------------
 
-type Log interface {
-	Debug(ctx context.Context, msg string, args ...any)
-	Info(ctx context.Context, msg string, args ...any)
-	Warn(ctx context.Context, msg string, args ...any)
-	Error(ctx context.Context, msg string, args ...any)
+// Code is the stable identifier on every emission. Sinks classify by
+// exact match (lifecycle, log severity, etc) and decide what to keep.
+type Code string
+
+const (
+	CodeSnapshotReceived Code = "snapshot.received"
+	CodeSnapshotRejected Code = "snapshot.rejected"
+	CodeApplyStart       Code = "apply.start"
+	CodeApplySuccess     Code = "apply.success"
+	CodeApplyFailed      Code = "apply.failed"
+
+	CodeLogDebug Code = "log.debug"
+	CodeLogInfo  Code = "log.info"
+	CodeLogWarn  Code = "log.warn"
+	CodeLogError Code = "log.error"
+)
+
+// IsLogCode is true for the convenience-logger codes (log.debug et al).
+// Sinks like the action log skip these; only stable lifecycle events
+// belong on disk.
+func IsLogCode(c Code) bool {
+	switch c {
+	case CodeLogDebug, CodeLogInfo, CodeLogWarn, CodeLogError:
+		return true
+	}
+	return false
 }
+
+// Emitter is the sink contract. Implementations: slog (renders to
+// stderr), action (JSONL file), fanout (multiple Emitters), Discard.
+// Log itself implements Emitter by delegating to a wrapped Emitter,
+// so it can be passed wherever an Emitter is expected.
+type Emitter interface {
+	Emit(ctx context.Context, code Code, ref *Ref, args ...any)
+}
+
+// Log wraps an Emitter and adds convenience Debug/Info/Warn/Error
+// helpers that funnel through Emit with the matching CodeLog* tag.
+type Log struct {
+	e Emitter
+}
+
+func NewLog(e Emitter) Log { return Log{e: e} }
+
+func (l Log) Emit(ctx context.Context, code Code, ref *Ref, args ...any) {
+	l.e.Emit(ctx, code, ref, args...)
+}
+
+func (l Log) Debug(ctx context.Context, msg string, args ...any) {
+	l.emitLog(ctx, CodeLogDebug, msg, args)
+}
+
+func (l Log) Info(ctx context.Context, msg string, args ...any) {
+	l.emitLog(ctx, CodeLogInfo, msg, args)
+}
+
+func (l Log) Warn(ctx context.Context, msg string, args ...any) {
+	l.emitLog(ctx, CodeLogWarn, msg, args)
+}
+
+func (l Log) Error(ctx context.Context, msg string, args ...any) {
+	l.emitLog(ctx, CodeLogError, msg, args)
+}
+
+func (l Log) emitLog(ctx context.Context, code Code, msg string, args []any) {
+	full := make([]any, 0, len(args)+2)
+	full = append(full, "msg", msg)
+	full = append(full, args...)
+	l.Emit(ctx, code, nil, full...)
+}
+
+// discardEmitter drops every emission.
+type discardEmitter struct{}
+
+func (discardEmitter) Emit(context.Context, Code, *Ref, ...any) {}
+
+// Discard is a Log that drops every emission.
+var Discard = NewLog(discardEmitter{})
 
 // Errors
 // -----------------------------------------------------------------------------
@@ -73,15 +145,19 @@ func reconcileOnce(ctx context.Context, dir string, log Log) error {
 func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 	resources, err := parseDir(ctx, log, dir)
 	if err != nil {
+		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "parse", "err", err)
 		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
 	}
 	if verr := validate(resources); verr != nil {
+		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", verr)
 		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, verr)
 	}
 	sorted, rerr := resolve(resources)
 	if rerr != nil {
+		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "resolve", "err", rerr)
 		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, rerr)
 	}
+	log.Emit(ctx, CodeSnapshotReceived, nil, "resources", len(sorted))
 	return sorted, nil
 }
 
@@ -361,38 +437,54 @@ func applyOne(ctx context.Context, r Resource, log Log) error {
 
 func applyFile(ctx context.Context, r Resource, log Log) error {
 	// path + content guaranteed present by validate
+	ref := r.Ref()
 	path := r.Attrs["path"]
 	content := r.Attrs["content"]
 	current, rerr := os.ReadFile(path)
 	switch {
 	case rerr == nil && string(current) == content:
-		log.Debug(ctx, "file in sync", "ref", r.Ref(), "path", path)
+		log.Debug(ctx, "file in sync", "ref", ref, "path", path)
 		return nil
 	case rerr != nil && !errors.Is(rerr, fs.ErrNotExist):
-		return fmt.Errorf("%s: read %s: %w", r.Ref(), path, rerr)
+		err := fmt.Errorf("%s: read %s: %w", ref, path, rerr)
+		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
+		return err
 	}
-	log.Info(ctx, "writing file", "ref", r.Ref(), "path", path)
+	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
+	log.Info(ctx, "writing file", "ref", ref, "path", path)
 	if werr := os.WriteFile(path, []byte(content), 0o644); werr != nil {
-		return fmt.Errorf("%s: write %s: %w", r.Ref(), path, werr)
+		err := fmt.Errorf("%s: write %s: %w", ref, path, werr)
+		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
+		return err
 	}
+	log.Emit(ctx, CodeApplySuccess, &ref, "path", path)
 	return nil
 }
 
 func applyDir(ctx context.Context, r Resource, log Log) error {
+	ref := r.Ref()
 	path := r.Attrs["path"]
 	info, serr := os.Stat(path)
 	switch {
 	case serr == nil && info.IsDir():
-		log.Debug(ctx, "dir in sync", "ref", r.Ref(), "path", path)
+		log.Debug(ctx, "dir in sync", "ref", ref, "path", path)
 		return nil
 	case serr == nil:
-		return fmt.Errorf("%s: %s exists but is not a directory", r.Ref(), path)
+		err := fmt.Errorf("%s: %s exists but is not a directory", ref, path)
+		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
+		return err
 	case !errors.Is(serr, fs.ErrNotExist):
-		return fmt.Errorf("%s: stat %s: %w", r.Ref(), path, serr)
+		err := fmt.Errorf("%s: stat %s: %w", ref, path, serr)
+		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
+		return err
 	}
-	log.Info(ctx, "creating dir", "ref", r.Ref(), "path", path)
+	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
+	log.Info(ctx, "creating dir", "ref", ref, "path", path)
 	if merr := os.MkdirAll(path, 0o755); merr != nil {
-		return fmt.Errorf("%s: mkdir %s: %w", r.Ref(), path, merr)
+		err := fmt.Errorf("%s: mkdir %s: %w", ref, path, merr)
+		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
+		return err
 	}
+	log.Emit(ctx, CodeApplySuccess, &ref, "path", path)
 	return nil
 }

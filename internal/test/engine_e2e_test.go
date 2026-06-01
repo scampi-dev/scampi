@@ -17,12 +17,39 @@ import (
 	"scampi.dev/scampi/internal/engine"
 )
 
-type nopLog struct{}
+type capturedEvent struct {
+	Code engine.Code
+	Ref  *engine.Ref
+}
 
-func (nopLog) Debug(context.Context, string, ...any) {}
-func (nopLog) Info(context.Context, string, ...any)  {}
-func (nopLog) Warn(context.Context, string, ...any)  {}
-func (nopLog) Error(context.Context, string, ...any) {}
+// captureEmitter records every emission for assertions.
+type captureEmitter struct {
+	events []capturedEvent
+}
+
+func (c *captureEmitter) Emit(_ context.Context, code engine.Code, ref *engine.Ref, _ ...any) {
+	c.events = append(c.events, capturedEvent{Code: code, Ref: ref})
+}
+
+// newCaptureLog returns a Log backed by a captureEmitter and the
+// emitter itself so tests can inspect what was emitted.
+func newCaptureLog() (engine.Log, *captureEmitter) {
+	c := &captureEmitter{}
+	return engine.NewLog(c), c
+}
+
+// lifecycleOnly drops any log.* convenience events so tests can
+// assert just on the stable lifecycle stream.
+func lifecycleOnly(events []capturedEvent) []capturedEvent {
+	out := events[:0]
+	for _, e := range events {
+		if engine.IsLogCode(e.Code) {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}
 
 // Golden
 // -----------------------------------------------------------------------------
@@ -85,7 +112,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		t.Fatalf("expected.yaml: %v", yerr)
 	}
 
-	gotErr := engine.Apply(t.Context(), cfg, nopLog{})
+	gotErr := engine.Apply(t.Context(), cfg, engine.Discard)
 
 	switch want.Error {
 	case "":
@@ -152,7 +179,7 @@ file "etc" {
   content = "hello"
 }
 `)
-	if err := engine.Apply(t.Context(), cfg, nopLog{}); err != nil {
+	if err := engine.Apply(t.Context(), cfg, engine.Discard); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	after, err := os.Stat(target)
@@ -190,7 +217,7 @@ file "x" {
 `)
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
-	if err := engine.Run(ctx, cfg, 24*time.Hour, nopLog{}); err != nil {
+	if err := engine.Run(ctx, cfg, 24*time.Hour, engine.Discard); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	got, err := os.ReadFile(target)
@@ -227,7 +254,7 @@ file "x" {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- engine.Run(ctx, cfg, 20*time.Millisecond, nopLog{})
+		done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.Discard)
 	}()
 
 	waitForFile(t, target, []byte("first"), time.Second)
@@ -238,6 +265,48 @@ file "x" {
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("Run: %v", err)
+	}
+}
+
+// A successful apply emits the lifecycle codes in order: snapshot
+// received, then apply.start + apply.success per resource that
+// actually wrote (in-sync resources stay silent on the action log).
+func TestApply_EmitsLifecycleEvents(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out.txt")
+	cfg := writeConfig(t, `
+file "x" {
+  path    = "`+target+`"
+  content = "hi"
+}
+`)
+	log, capture := newCaptureLog()
+	if err := engine.Apply(t.Context(), cfg, log); err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	got := lifecycleOnly(capture.events)
+	want := []engine.Code{
+		engine.CodeSnapshotReceived,
+		engine.CodeApplyStart,
+		engine.CodeApplySuccess,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d lifecycle events, want %d: %+v", len(got), len(want), got)
+	}
+	for i, w := range want {
+		if got[i].Code != w {
+			t.Errorf("event[%d] = %q, want %q", i, got[i].Code, w)
+		}
+	}
+	// Second apply on the now-in-sync target only emits snapshot.received
+	// (no apply.* because nothing wrote).
+	capture.events = nil
+	if err := engine.Apply(t.Context(), cfg, log); err != nil {
+		t.Fatalf("Apply (second): %v", err)
+	}
+	got = lifecycleOnly(capture.events)
+	if len(got) != 1 || got[0].Code != engine.CodeSnapshotReceived {
+		t.Errorf("second apply lifecycle events = %+v, want only snapshot.received", got)
 	}
 }
 
@@ -258,7 +327,7 @@ file "x" {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- engine.Run(ctx, cfg, 20*time.Millisecond, nopLog{})
+		done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.Discard)
 	}()
 
 	waitForFile(t, target, []byte("desired"), time.Second)
