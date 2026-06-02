@@ -478,39 +478,22 @@ file "bad" {
 // Inventory
 // -----------------------------------------------------------------------------
 
-func TestInventory_DiffEmptyVsDeclared(t *testing.T) {
+func TestInventory_OrphansNone(t *testing.T) {
 	inv := engine.NewInventory()
+	inv.Add(engine.Ref{Kind: "file", Name: "a"}, map[string]string{"path": "/a"})
 	declared := []engine.Resource{{Kind: "file", Name: "a"}}
-	toApply, toDestroy := inv.Diff(declared)
-	if len(toApply) != 1 || toApply[0] != (engine.Ref{Kind: "file", Name: "a"}) {
-		t.Errorf("toApply = %+v, want [file.a]", toApply)
-	}
-	if len(toDestroy) != 0 {
-		t.Errorf("toDestroy = %+v, want empty", toDestroy)
+	if got := inv.Orphans(declared); len(got) != 0 {
+		t.Errorf("orphans = %+v, want empty", got)
 	}
 }
 
-func TestInventory_DiffSameSet(t *testing.T) {
-	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "a"}, map[string]string{"path": "/x"})
-	declared := []engine.Resource{{Kind: "file", Name: "a"}}
-	toApply, toDestroy := inv.Diff(declared)
-	if len(toApply) != 1 || len(toDestroy) != 0 {
-		t.Errorf("got toApply=%+v toDestroy=%+v; want apply [file.a], destroy empty",
-			toApply, toDestroy)
-	}
-}
-
-func TestInventory_DiffOrphan(t *testing.T) {
+func TestInventory_OrphansOne(t *testing.T) {
 	inv := engine.NewInventory()
 	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, map[string]string{"path": "/g"})
-	declared := []engine.Resource{}
-	toApply, toDestroy := inv.Diff(declared)
-	if len(toApply) != 0 {
-		t.Errorf("toApply = %+v, want empty", toApply)
-	}
-	if len(toDestroy) != 1 || toDestroy[0] != (engine.Ref{Kind: "file", Name: "gone"}) {
-		t.Errorf("toDestroy = %+v, want [file.gone]", toDestroy)
+	got := inv.Orphans(nil)
+	want := engine.Ref{Kind: "file", Name: "gone"}
+	if len(got) != 1 || got[0] != want {
+		t.Errorf("orphans = %+v, want [%s]", got, want)
 	}
 }
 

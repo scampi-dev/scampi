@@ -35,24 +35,20 @@ func (i *Inventory) Get(ref Ref) (map[string]string, bool) {
 	return maps.Clone(a), ok
 }
 
-// Diff returns the apply set (the declared list, every entry) and the
-// destroy set (entries in the inventory but not declared). Apply is
-// always the full declared list because reconcile is idempotent: in-
-// sync resources noop on apply.
-func (i *Inventory) Diff(declared []Resource) (toApply, toDestroy []Ref) {
+// Orphans returns the inventory entries whose refs are not in the
+// declared set. Those are the resources the reconciler should destroy.
+func (i *Inventory) Orphans(declared []Resource) []Ref {
 	declaredSet := make(map[Ref]bool, len(declared))
-	toApply = make([]Ref, 0, len(declared))
 	for _, r := range declared {
-		ref := r.Ref()
-		declaredSet[ref] = true
-		toApply = append(toApply, ref)
+		declaredSet[r.Ref()] = true
 	}
+	var orphans []Ref
 	for ref := range i.entries {
 		if !declaredSet[ref] {
-			toDestroy = append(toDestroy, ref)
+			orphans = append(orphans, ref)
 		}
 	}
-	return toApply, toDestroy
+	return orphans
 }
 
 // Fold mutates the inventory in response to one action-log event. The

@@ -123,8 +123,8 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 		return err
 	}
 	var errs []error
-	_, toDestroy := inv.Diff(snap)
-	if err := destroyAll(ctx, toDestroy, inv, log, nil); err != nil {
+	orphans := inv.Orphans(snap)
+	if err := destroyAll(ctx, orphans, inv, log, nil); err != nil {
 		errs = append(errs, err)
 	}
 	if err := applyAll(ctx, snap, inv, log, nil); err != nil {
@@ -163,8 +163,8 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 			lastRev = rev
 		}
 		if snap != nil {
-			_, toDestroy := inv.Diff(snap)
-			if err := destroyAll(ctx, toDestroy, inv, log, bo); err != nil {
+			orphans := inv.Orphans(snap)
+			if err := destroyAll(ctx, orphans, inv, log, bo); err != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
 			}
 			if err := applyAll(ctx, snap, inv, log, bo); err != nil {
