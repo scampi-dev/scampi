@@ -31,7 +31,9 @@ const (
 	CodeApplyStart       Code = "apply.start"
 	CodeApplySuccess     Code = "apply.success"
 	CodeApplyFailed      Code = "apply.failed"
+	CodeDestroyStart     Code = "destroy.start"
 	CodeDestroySuccess   Code = "destroy.success"
+	CodeDestroyFailed    Code = "destroy.failed"
 
 	CodeLogDebug Code = "log.debug"
 	CodeLogInfo  Code = "log.info"
@@ -120,8 +122,16 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 	if err != nil {
 		return err
 	}
+	var errs []error
+	_, toDestroy := inv.Diff(snap)
+	if err := destroyAll(ctx, toDestroy, inv, log, nil); err != nil {
+		errs = append(errs, err)
+	}
 	if err := applyAll(ctx, snap, inv, log, nil); err != nil {
-		return fmt.Errorf("%w: %w", ErrApplyFailed, err)
+		errs = append(errs, err)
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("%w: %w", ErrApplyFailed, errors.Join(errs...))
 	}
 	return nil
 }
@@ -153,8 +163,12 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 			lastRev = rev
 		}
 		if snap != nil {
-			if aerr := applyAll(ctx, snap, inv, log, bo); aerr != nil {
-				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, aerr))
+			_, toDestroy := inv.Diff(snap)
+			if err := destroyAll(ctx, toDestroy, inv, log, bo); err != nil {
+				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
+			}
+			if err := applyAll(ctx, snap, inv, log, bo); err != nil {
+				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
 			}
 		}
 		select {
@@ -489,4 +503,40 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	log.Emit(ctx, CodeApplySuccess, &ref, "path", path)
 	inv.Add(ref, map[string]string{"path": path})
 	return nil
+}
+
+// destroyAll walks orphan refs and destroys each via its Kind. Shares
+// the same backoff state as applyAll so a flapping resource is paced
+// the same way whether it's failing apply or failing destroy.
+func destroyAll(ctx context.Context, refs []Ref, inv *Inventory, log Log, bo *backoff) error {
+	var errs []error
+	now := time.Now()
+	for _, ref := range refs {
+		if !bo.due(ref, now) {
+			log.Debug(ctx, "backoff skip", "ref", ref, "until", bo.entries[ref].nextRetry)
+			continue
+		}
+		attrs, ok := inv.Get(ref)
+		if !ok {
+			continue
+		}
+		if err := destroyOne(ctx, ref, attrs, log); err != nil {
+			errs = append(errs, err)
+			bo.failure(ref, now)
+			continue
+		}
+		bo.success(ref)
+		inv.Remove(ref)
+	}
+	return errors.Join(errs...)
+}
+
+func destroyOne(ctx context.Context, ref Ref, attrs map[string]string, log Log) error {
+	k, ok := kinds[ref.Kind]
+	if !ok {
+		err := fmt.Errorf("%s: unknown kind", ref)
+		log.Emit(ctx, CodeDestroyFailed, &ref, "err", err)
+		return err
+	}
+	return k.Destroy(ctx, ref, attrs, log)
 }

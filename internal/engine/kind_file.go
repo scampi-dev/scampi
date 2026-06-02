@@ -47,3 +47,20 @@ func (fileKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
 	}
 	return false, nil
 }
+
+func (fileKind) Destroy(ctx context.Context, ref Ref, attrs map[string]string, log Log) error {
+	path := attrs["path"]
+	if _, serr := os.Stat(path); errors.Is(serr, fs.ErrNotExist) {
+		log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)
+		return nil
+	}
+	log.Emit(ctx, CodeDestroyStart, &ref, "path", path)
+	log.Info(ctx, "removing file", "ref", ref, "path", path)
+	if rerr := os.Remove(path); rerr != nil {
+		err := fmt.Errorf("%s: remove %s: %w", ref, path, rerr)
+		log.Emit(ctx, CodeDestroyFailed, &ref, "path", path, "err", err)
+		return err
+	}
+	log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)
+	return nil
+}

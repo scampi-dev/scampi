@@ -45,3 +45,23 @@ func (dirKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
 	}
 	return false, nil
 }
+
+// Destroy uses os.Remove, which refuses non-empty directories. That
+// refusal becomes destroy.failed and the orphan stays in the inventory
+// until the operator either clears the dir or accepts manual cleanup.
+func (dirKind) Destroy(ctx context.Context, ref Ref, attrs map[string]string, log Log) error {
+	path := attrs["path"]
+	if _, serr := os.Stat(path); errors.Is(serr, fs.ErrNotExist) {
+		log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)
+		return nil
+	}
+	log.Emit(ctx, CodeDestroyStart, &ref, "path", path)
+	log.Info(ctx, "removing dir", "ref", ref, "path", path)
+	if rerr := os.Remove(path); rerr != nil {
+		err := fmt.Errorf("%s: remove %s: %w", ref, path, rerr)
+		log.Emit(ctx, CodeDestroyFailed, &ref, "path", path, "err", err)
+		return err
+	}
+	log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)
+	return nil
+}

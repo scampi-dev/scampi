@@ -513,3 +513,60 @@ func TestInventory_DiffOrphan(t *testing.T) {
 		t.Errorf("toDestroy = %+v, want [file.gone]", toDestroy)
 	}
 }
+
+// Orphan handling
+// -----------------------------------------------------------------------------
+
+// Resources that were applied previously and then disappear from the
+// declared snapshot must be destroyed on the next tick. Covers both
+// file and dir Kinds so the dir destroy happy path is exercised end-
+// to-end.
+func TestRun_DestroysOrphan(t *testing.T) {
+	tmp := t.TempDir()
+	fileTarget := filepath.Join(tmp, "ephemeral.txt")
+	dirTarget := filepath.Join(tmp, "ephemeral_dir")
+	cfg := t.TempDir()
+	hclPath := filepath.Join(cfg, "main.hcl")
+	writeHCL := func(content string) {
+		t.Helper()
+		if err := os.WriteFile(hclPath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeHCL(`
+file "x" {
+  path    = "` + fileTarget + `"
+  content = "alive"
+}
+dir "y" {
+  path = "` + dirTarget + `"
+}
+`)
+
+	log, capture := newCaptureLog()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
+
+	if !capture.waitForCount(engine.CodeApplySuccess, 2, 2*time.Second) {
+		t.Fatal("timed out waiting for initial apply.success x2")
+	}
+	writeHCL(`# empty intentionally
+`)
+	if !capture.waitForCount(engine.CodeDestroySuccess, 2, 2*time.Second) {
+		t.Fatal("timed out waiting for destroy.success x2")
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if _, err := os.Stat(fileTarget); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected %s absent after orphan destroy; got %v", fileTarget, err)
+	}
+	if _, err := os.Stat(dirTarget); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected %s absent after orphan destroy; got %v", dirTarget, err)
+	}
+}
