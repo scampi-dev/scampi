@@ -116,30 +116,58 @@ var ErrApplyFailed = errors.New("apply failed")
 // -----------------------------------------------------------------------------
 
 func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
-	return reconcileOnce(ctx, dir, inv, log)
+	snap, err := snapshot(ctx, dir, log)
+	if err != nil {
+		return err
+	}
+	if err := applyAll(ctx, snap, inv, log, nil); err != nil {
+		return fmt.Errorf("%w: %w", ErrApplyFailed, err)
+	}
+	return nil
 }
 
-// Run polls dir and reconciles when the inputs change. Reconcile
-// errors log and the loop continues; a snapshot reject does NOT exit
-// the process so the operator can fix the config in place. The
-// inventory persists across ticks.
+// Run polls dir and reconciles forever. Errors and snapshot rejects
+// do not stop the loop so the operator can fix configs in place while
+// reconciliation continues against the last-good snapshot. Inventory
+// persists across ticks.
 func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory, log Log) error {
-	return runLoop(ctx, dir, interval, inv, log)
+	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
+	var (
+		lastRev string
+		snap    []Resource
+	)
+	bo := newBackoff()
+	for {
+		rev, hashErr := hashDir(dir)
+		switch {
+		case hashErr != nil:
+			log.Error(ctx, "hash dir", "err", hashErr)
+		case rev != lastRev:
+			log.Debug(ctx, "snapshot change", "rev", rev)
+			s, serr := snapshot(ctx, dir, log)
+			if serr != nil {
+				logReconcileErr(ctx, log, serr)
+			} else {
+				snap = s
+			}
+			lastRev = rev
+		}
+		if snap != nil {
+			if aerr := applyAll(ctx, snap, inv, log, bo); aerr != nil {
+				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, aerr))
+			}
+		}
+		select {
+		case <-ctx.Done():
+			log.Info(ctx, "shutting down")
+			return nil
+		case <-time.After(interval):
+		}
+	}
 }
 
 // Pipeline
 // -----------------------------------------------------------------------------
-
-func reconcileOnce(ctx context.Context, dir string, inv *Inventory, log Log) error {
-	sorted, err := snapshot(ctx, dir, log)
-	if err != nil {
-		return err
-	}
-	if aerr := applyAll(ctx, sorted, inv, log, nil); aerr != nil {
-		return fmt.Errorf("%w: %w", ErrApplyFailed, aerr)
-	}
-	return nil
-}
 
 // snapshot parses + validates + resolves dir into apply-ready
 // resources. All faults bucket as ErrSnapshotRejected.
@@ -160,46 +188,6 @@ func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 	}
 	log.Emit(ctx, CodeSnapshotReceived, nil, "resources", len(sorted))
 	return sorted, nil
-}
-
-// runLoop re-parses only when the config hash changes but applies on
-// every tick so drift in observed state gets converged. When a new
-// snapshot is rejected the previous one stays active -- the design
-// doc's "REJECT this snapshot, keep last-good" semantics.
-func runLoop(ctx context.Context, dir string, interval time.Duration, inv *Inventory, log Log) error {
-	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
-	var (
-		lastRev    string
-		sortedSnap []Resource
-		bo         = newBackoff()
-	)
-	for {
-		rev, hashErr := hashDir(dir)
-		switch {
-		case hashErr != nil:
-			log.Error(ctx, "hash dir", "err", hashErr)
-		case rev != lastRev:
-			log.Debug(ctx, "snapshot change", "rev", rev)
-			s, serr := snapshot(ctx, dir, log)
-			if serr != nil {
-				logReconcileErr(ctx, log, serr)
-			} else {
-				sortedSnap = s
-			}
-			lastRev = rev
-		}
-		if sortedSnap != nil {
-			if aerr := applyAll(ctx, sortedSnap, inv, log, bo); aerr != nil {
-				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, aerr))
-			}
-		}
-		select {
-		case <-ctx.Done():
-			log.Info(ctx, "shutting down")
-			return nil
-		case <-time.After(interval):
-		}
-	}
 }
 
 func hashDir(dir string) (string, error) {
