@@ -51,10 +51,8 @@ func (i *Inventory) Orphans(declared []Resource) []Ref {
 	return orphans
 }
 
-// Fold mutates the inventory in response to one action-log event. The
-// caller (action-log replay) parses each line and dispatches here.
-// Unknown codes are ignored so the projection survives future code
-// additions.
+// Fold integrates one event into the inventory. Unknown codes are
+// ignored so the projection survives future code additions.
 func (i *Inventory) Fold(code Code, ref Ref, attrs map[string]string) {
 	switch code {
 	case CodeApplySuccess:

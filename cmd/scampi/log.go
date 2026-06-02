@@ -4,15 +4,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
-	"sort"
-	"sync"
-	"time"
 
 	"github.com/mattn/go-isatty"
 
@@ -173,70 +168,6 @@ func decideColor(mode string, w *os.File) bool {
 	default: // auto and any unknown value
 		return isatty.IsTerminal(w.Fd())
 	}
-}
-
-// actionEmitter writes lifecycle events as JSONL. log.* codes get
-// filtered so the action log stays the stable machine-readable stream.
-type actionEmitter struct {
-	mu  sync.Mutex
-	f   *os.File
-	enc *json.Encoder
-}
-
-func newActionEmitter(dir string) (*actionEmitter, error) {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return nil, fmt.Errorf("action log dir: %w", err)
-	}
-	path, err := activeSegment(dir)
-	if err != nil {
-		return nil, err
-	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return nil, err
-	}
-	enc := json.NewEncoder(f)
-	enc.SetEscapeHTML(false)
-	return &actionEmitter{f: f, enc: enc}, nil
-}
-
-// activeSegment returns the highest-numbered *.jsonl segment in dir,
-// or 0001.jsonl when the dir holds none. 4-digit zero padding makes
-// lexical sort match numeric sort up to 9999 segments.
-func activeSegment(dir string) (string, error) {
-	matches, err := filepath.Glob(filepath.Join(dir, "*.jsonl"))
-	if err != nil {
-		return "", err
-	}
-	if len(matches) == 0 {
-		return filepath.Join(dir, "0001.jsonl"), nil
-	}
-	sort.Strings(matches)
-	return matches[len(matches)-1], nil
-}
-
-func (a *actionEmitter) Close() error { return a.f.Close() }
-
-func (a *actionEmitter) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
-	if engine.IsLogCode(code) {
-		return
-	}
-	rec := map[string]any{"ts": time.Now(), "code": string(code)}
-	if ref != nil {
-		rec["ref"] = ref.String()
-	}
-	for i := 0; i+1 < len(args); i += 2 {
-		k, ok := args[i].(string)
-		if !ok {
-			continue
-		}
-		rec[k] = args[i+1]
-	}
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	// Best-effort: write errors swallowed, propagating would force
-	// every caller into error-handling for telemetry.
-	_ = a.enc.Encode(rec)
 }
 
 // fanoutEmitter fans every emission out to each Emitter in order.

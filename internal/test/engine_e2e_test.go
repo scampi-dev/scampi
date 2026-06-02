@@ -497,6 +497,19 @@ func TestInventory_OrphansOne(t *testing.T) {
 	}
 }
 
+func TestInventory_FoldApplyThenDestroy(t *testing.T) {
+	inv := engine.NewInventory()
+	ref := engine.Ref{Kind: "file", Name: "a"}
+	inv.Fold(engine.CodeApplySuccess, ref, map[string]string{"path": "/x"})
+	if !inv.Has(ref) {
+		t.Fatalf("expected ref present after apply.success fold")
+	}
+	inv.Fold(engine.CodeDestroySuccess, ref, nil)
+	if inv.Has(ref) {
+		t.Errorf("expected ref absent after destroy.success fold")
+	}
+}
+
 // Orphan handling
 // -----------------------------------------------------------------------------
 
@@ -551,5 +564,74 @@ dir "y" {
 	}
 	if _, err := os.Stat(dirTarget); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("expected %s absent after orphan destroy; got %v", dirTarget, err)
+	}
+}
+
+// Action log durability
+// -----------------------------------------------------------------------------
+
+// The replay path is the durability story. Apply writes lifecycle
+// events to the action log; a "restarted" process loads that log into
+// a fresh inventory and continues. With the resource then removed from
+// config, the second apply must treat it as an orphan and destroy it.
+func TestActionLog_PersistsAcrossRuns(t *testing.T) {
+	cfgDir := t.TempDir()
+	targetDir := t.TempDir()
+	alDir := t.TempDir()
+
+	target := filepath.Join(targetDir, "out.txt")
+	cfgPath := filepath.Join(cfgDir, "main.hcl")
+	writeCfg := func(content string) {
+		t.Helper()
+		if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Run 1: declare the file, apply, persist to action log
+	writeCfg(`
+file "x" {
+  path    = "` + target + `"
+  content = "alive"
+}
+`)
+	al1, err := engine.NewActionLog(alDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := engine.Apply(t.Context(), cfgDir, engine.NewInventory(), engine.NewLog(al1)); err != nil {
+		t.Fatalf("first apply: %v", err)
+	}
+	if err := al1.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(target); err != nil {
+		t.Fatalf("after first apply, target should exist: %v", err)
+	}
+
+	// "Restart": rebuild the inventory from the action log alone
+	inv, err := engine.LoadInventory(alDir)
+	if err != nil {
+		t.Fatalf("LoadInventory: %v", err)
+	}
+	if !inv.Has(engine.Ref{Kind: "file", Name: "x"}) {
+		t.Fatalf("inventory should contain file.x after replay")
+	}
+
+	// Run 2: file removed from config; replay-built inventory drives destroy
+	writeCfg(`# intentionally empty`)
+	al2, err := engine.NewActionLog(alDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := engine.Apply(t.Context(), cfgDir, inv, engine.NewLog(al2)); err != nil {
+		t.Fatalf("second apply: %v", err)
+	}
+	if err := al2.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected target absent after replay-driven destroy; got %v", err)
 	}
 }

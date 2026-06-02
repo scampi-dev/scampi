@@ -131,7 +131,8 @@ func newRootCmd() (*cobra.Command, func() error) {
 	var (
 		actionLogPath string
 		colorMode     string
-		actEm         *actionEmitter
+		actLog        *engine.ActionLog
+		inv           *engine.Inventory
 	)
 	pickLog := func() engine.Log {
 		base := slogEmitter{l: slog.New(&slogHandler{
@@ -139,10 +140,10 @@ func newRootCmd() (*cobra.Command, func() error) {
 			colored: decideColor(colorMode, os.Stderr),
 			level:   slog.LevelDebug,
 		})}
-		if actEm == nil {
+		if actLog == nil {
 			return engine.NewLog(base)
 		}
-		return engine.NewLog(fanoutEmitter{base, actEm})
+		return engine.NewLog(fanoutEmitter{base, actLog})
 	}
 
 	root := &cobra.Command{
@@ -152,13 +153,19 @@ func newRootCmd() (*cobra.Command, func() error) {
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			if actionLogPath == "" {
+				inv = engine.NewInventory()
 				return nil
 			}
-			ae, err := newActionEmitter(actionLogPath)
+			loaded, err := engine.LoadInventory(actionLogPath)
+			if err != nil {
+				return fmt.Errorf("action log replay: %w", err)
+			}
+			inv = loaded
+			al, err := engine.NewActionLog(actionLogPath)
 			if err != nil {
 				return fmt.Errorf("action log: %w", err)
 			}
-			actEm = ae
+			actLog = al
 			return nil
 		},
 	}
@@ -174,7 +181,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return engine.Apply(cmd.Context(), args[0], engine.NewInventory(), pickLog())
+			return engine.Apply(cmd.Context(), args[0], inv, pickLog())
 		},
 	}
 
@@ -186,7 +193,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			interval, _ := cmd.Flags().GetDuration("interval")
-			return engine.Run(cmd.Context(), args[0], interval, engine.NewInventory(), pickLog())
+			return engine.Run(cmd.Context(), args[0], interval, inv, pickLog())
 		},
 	}
 	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")
@@ -197,9 +204,9 @@ func newRootCmd() (*cobra.Command, func() error) {
 		c.SetHelpTemplate(helpTemplate)
 	}
 	return root, func() error {
-		if actEm == nil {
+		if actLog == nil {
 			return nil
 		}
-		return actEm.Close()
+		return actLog.Close()
 	}
 }
