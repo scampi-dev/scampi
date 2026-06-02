@@ -23,7 +23,7 @@ func (fileKind) Validate(r Resource) error {
 	return errors.Join(errs...)
 }
 
-func (fileKind) Apply(ctx context.Context, r Resource, log Log) error {
+func (fileKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
 	// path + content guaranteed present by Validate
 	ref := r.Ref()
 	path := r.Attrs["path"]
@@ -32,19 +32,18 @@ func (fileKind) Apply(ctx context.Context, r Resource, log Log) error {
 	switch {
 	case rerr == nil && string(current) == content:
 		log.Debug(ctx, "file in sync", "ref", ref, "path", path)
-		return nil
+		return true, nil
 	case rerr != nil && !errors.Is(rerr, fs.ErrNotExist):
 		err := fmt.Errorf("%s: read %s: %w", ref, path, rerr)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
-		return err
+		return false, err
 	}
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
 	log.Info(ctx, "writing file", "ref", ref, "path", path)
 	if werr := os.WriteFile(path, []byte(content), 0o644); werr != nil {
 		err := fmt.Errorf("%s: write %s: %w", ref, path, werr)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
-		return err
+		return false, err
 	}
-	log.Emit(ctx, CodeApplySuccess, &ref, "path", path)
-	return nil
+	return false, nil
 }

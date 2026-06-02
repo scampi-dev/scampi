@@ -115,26 +115,27 @@ var ErrApplyFailed = errors.New("apply failed")
 // Public API
 // -----------------------------------------------------------------------------
 
-func Apply(ctx context.Context, dir string, log Log) error {
-	return reconcileOnce(ctx, dir, log)
+func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
+	return reconcileOnce(ctx, dir, inv, log)
 }
 
 // Run polls dir and reconciles when the inputs change. Reconcile
 // errors log and the loop continues; a snapshot reject does NOT exit
-// the process so the operator can fix the config in place.
-func Run(ctx context.Context, dir string, interval time.Duration, log Log) error {
-	return runLoop(ctx, dir, interval, log)
+// the process so the operator can fix the config in place. The
+// inventory persists across ticks.
+func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory, log Log) error {
+	return runLoop(ctx, dir, interval, inv, log)
 }
 
 // Pipeline
 // -----------------------------------------------------------------------------
 
-func reconcileOnce(ctx context.Context, dir string, log Log) error {
+func reconcileOnce(ctx context.Context, dir string, inv *Inventory, log Log) error {
 	sorted, err := snapshot(ctx, dir, log)
 	if err != nil {
 		return err
 	}
-	if aerr := applyAll(ctx, sorted, log, nil); aerr != nil {
+	if aerr := applyAll(ctx, sorted, inv, log, nil); aerr != nil {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, aerr)
 	}
 	return nil
@@ -165,7 +166,7 @@ func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 // every tick so drift in observed state gets converged. When a new
 // snapshot is rejected the previous one stays active -- the design
 // doc's "REJECT this snapshot, keep last-good" semantics.
-func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) error {
+func runLoop(ctx context.Context, dir string, interval time.Duration, inv *Inventory, log Log) error {
 	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
 	var (
 		lastRev    string
@@ -188,7 +189,7 @@ func runLoop(ctx context.Context, dir string, interval time.Duration, log Log) e
 			lastRev = rev
 		}
 		if sortedSnap != nil {
-			if aerr := applyAll(ctx, sortedSnap, log, bo); aerr != nil {
+			if aerr := applyAll(ctx, sortedSnap, inv, log, bo); aerr != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, aerr))
 			}
 		}
@@ -398,7 +399,7 @@ func topoSort(resources []Resource) ([]Resource, error) {
 // a previous failure get skipped until their backoff expires; success
 // clears the entry, failure extends it. Pass nil for one-shot Apply
 // (no retry pressure to absorb).
-func applyAll(ctx context.Context, resources []Resource, log Log, bo *backoff) error {
+func applyAll(ctx context.Context, resources []Resource, inv *Inventory, log Log, bo *backoff) error {
 	var errs []error
 	now := time.Now()
 	for _, r := range resources {
@@ -407,7 +408,7 @@ func applyAll(ctx context.Context, resources []Resource, log Log, bo *backoff) e
 			log.Debug(ctx, "backoff skip", "ref", ref, "until", bo.entries[ref].nextRetry)
 			continue
 		}
-		if err := applyOne(ctx, r, log); err != nil {
+		if err := applyOne(ctx, r, inv, log); err != nil {
 			errs = append(errs, err)
 			bo.failure(ref, now)
 			continue
@@ -478,10 +479,26 @@ func backoffDelay(attempts int) time.Duration {
 	return d
 }
 
-func applyOne(ctx context.Context, r Resource, log Log) error {
+// applyOne dispatches to the Kind's Apply and handles inventory
+// effects. apply.success fires when work was done OR on first-sight
+// adoption (in-sync but not yet in inventory). A routine in-sync tick
+// on an already-managed resource is silent.
+func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	k, err := kindFor(r)
 	if err != nil {
 		return err
 	}
-	return k.Apply(ctx, r, log)
+	ref := r.Ref()
+	was := inv.Has(ref)
+	inSync, aerr := k.Apply(ctx, r, log)
+	if aerr != nil {
+		return aerr
+	}
+	if inSync && was {
+		return nil
+	}
+	path := r.Attrs["path"]
+	log.Emit(ctx, CodeApplySuccess, &ref, "path", path)
+	inv.Add(ref, map[string]string{"path": path})
+	return nil
 }

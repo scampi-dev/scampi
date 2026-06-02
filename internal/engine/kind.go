@@ -10,9 +10,13 @@ import (
 // Kind is the per-Kind contract. Each implementation owns its own
 // validation and apply behavior; the engine dispatches via the kinds
 // registry and stays Kind-agnostic.
+//
+// Apply returns inSync=true when the resource was already in the
+// desired state and no work was done. The dispatcher uses this to
+// decide whether to emit apply.success (and adopt into the inventory).
 type Kind interface {
 	Validate(r Resource) error
-	Apply(ctx context.Context, r Resource, log Log) error
+	Apply(ctx context.Context, r Resource, log Log) (inSync bool, err error)
 }
 
 // kinds maps the HCL block name to its behavior. Adding a Kind means

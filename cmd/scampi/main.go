@@ -174,7 +174,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return engine.Apply(cmd.Context(), args[0], pickLog())
+			return engine.Apply(cmd.Context(), args[0], engine.NewInventory(), pickLog())
 		},
 	}
 
@@ -186,7 +186,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			interval, _ := cmd.Flags().GetDuration("interval")
-			return engine.Run(cmd.Context(), args[0], interval, pickLog())
+			return engine.Run(cmd.Context(), args[0], interval, engine.NewInventory(), pickLog())
 		},
 	}
 	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")

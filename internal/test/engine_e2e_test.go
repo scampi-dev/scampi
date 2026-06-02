@@ -163,7 +163,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		t.Fatalf("expected.yaml: %v", yerr)
 	}
 
-	gotErr := engine.Apply(t.Context(), cfg, engine.Discard)
+	gotErr := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
 
 	switch want.Error {
 	case "":
@@ -230,7 +230,7 @@ file "etc" {
   content = "hello"
 }
 `)
-	if err := engine.Apply(t.Context(), cfg, engine.Discard); err != nil {
+	if err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	after, err := os.Stat(target)
@@ -271,7 +271,7 @@ file "x" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- engine.Run(ctx, cfg, 24*time.Hour, log) }()
+	go func() { done <- engine.Run(ctx, cfg, 24*time.Hour, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for apply.success")
@@ -317,7 +317,7 @@ file "x" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, log) }()
+	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for first apply.success")
@@ -353,7 +353,8 @@ file "x" {
 }
 `)
 	log, capture := newCaptureLog()
-	if err := engine.Apply(t.Context(), cfg, log); err != nil {
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfg, inv, log); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	got := lifecycleOnly(capture.Events())
@@ -371,9 +372,10 @@ file "x" {
 		}
 	}
 	// Cursor between the two applies so we assert only on what the
-	// second one emits.
+	// second one emits. Shared inventory: second apply finds file.x
+	// in inventory and in sync, so it stays silent on the action log.
 	cursor := len(capture.Events())
-	if err := engine.Apply(t.Context(), cfg, log); err != nil {
+	if err := engine.Apply(t.Context(), cfg, inv, log); err != nil {
 		t.Fatalf("Apply (second): %v", err)
 	}
 	got = lifecycleOnly(capture.Events()[cursor:])
@@ -402,7 +404,7 @@ file "x" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, log) }()
+	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for initial apply.success")
@@ -446,7 +448,7 @@ file "bad" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, log) }()
+	go func() { done <- engine.Run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplyFailed, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for first apply.failed")
