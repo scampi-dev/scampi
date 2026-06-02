@@ -154,9 +154,9 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 			log.Error(ctx, "hash dir", "err", hashErr)
 		case rev != lastRev:
 			log.Debug(ctx, "snapshot change", "rev", rev)
-			s, serr := snapshot(ctx, dir, log)
-			if serr != nil {
-				logReconcileErr(ctx, log, serr)
+			s, err := snapshot(ctx, dir, log)
+			if err != nil {
+				logReconcileErr(ctx, log, err)
 			} else {
 				snap = s
 			}
@@ -191,14 +191,14 @@ func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "parse", "err", err)
 		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
 	}
-	if verr := validate(resources); verr != nil {
-		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", verr)
-		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, verr)
+	if err := validate(resources); err != nil {
+		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", err)
+		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
 	}
-	sorted, rerr := resolve(resources)
-	if rerr != nil {
-		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "resolve", "err", rerr)
-		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, rerr)
+	sorted, err := resolve(resources)
+	if err != nil {
+		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "resolve", "err", err)
+		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
 	}
 	log.Emit(ctx, CodeSnapshotReceived, nil, "resources", len(sorted))
 	return sorted, nil
@@ -212,9 +212,9 @@ func hashDir(dir string) (string, error) {
 	sort.Strings(paths)
 	h := sha256.New()
 	for _, p := range paths {
-		content, rerr := os.ReadFile(p)
-		if rerr != nil {
-			return "", rerr
+		content, err := os.ReadFile(p)
+		if err != nil {
+			return "", err
 		}
 		// basename + null + content so renames bump the rev
 		_, _ = h.Write([]byte(filepath.Base(p)))
@@ -329,9 +329,9 @@ func resolve(resources []Resource) ([]Resource, error) {
 	for i := range sorted {
 		r := &sorted[i]
 		for name, p := range r.pending {
-			val, perr := p.Resolve(store)
-			if perr != nil {
-				errs = append(errs, fmt.Errorf("%s: eval %q: %w", r.Ref(), name, perr))
+			val, err := p.Resolve(store)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("%s: eval %q: %w", r.Ref(), name, err))
 				continue
 			}
 			r.Attrs[name] = val
@@ -492,9 +492,9 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	}
 	ref := r.Ref()
 	was := inv.Has(ref)
-	inSync, aerr := k.Apply(ctx, r, log)
-	if aerr != nil {
-		return aerr
+	inSync, err := k.Apply(ctx, r, log)
+	if err != nil {
+		return err
 	}
 	if inSync && was {
 		return nil

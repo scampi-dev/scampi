@@ -28,20 +28,20 @@ func (fileKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
 	ref := r.Ref()
 	path := r.Attrs["path"]
 	content := r.Attrs["content"]
-	current, rerr := os.ReadFile(path)
+	current, err := os.ReadFile(path)
 	switch {
-	case rerr == nil && string(current) == content:
+	case err == nil && string(current) == content:
 		log.Debug(ctx, "file in sync", "ref", ref, "path", path)
 		return true, nil
-	case rerr != nil && !errors.Is(rerr, fs.ErrNotExist):
-		err := fmt.Errorf("%s: read %s: %w", ref, path, rerr)
+	case err != nil && !errors.Is(err, fs.ErrNotExist):
+		err = fmt.Errorf("%s: read %s: %w", ref, path, err)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
 		return false, err
 	}
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
 	log.Info(ctx, "writing file", "ref", ref, "path", path)
-	if werr := os.WriteFile(path, []byte(content), 0o644); werr != nil {
-		err := fmt.Errorf("%s: write %s: %w", ref, path, werr)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		err = fmt.Errorf("%s: write %s: %w", ref, path, err)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
 		return false, err
 	}
@@ -50,14 +50,14 @@ func (fileKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
 
 func (fileKind) Destroy(ctx context.Context, ref Ref, attrs map[string]string, log Log) error {
 	path := attrs["path"]
-	if _, serr := os.Stat(path); errors.Is(serr, fs.ErrNotExist) {
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)
 		return nil
 	}
 	log.Emit(ctx, CodeDestroyStart, &ref, "path", path)
 	log.Info(ctx, "removing file", "ref", ref, "path", path)
-	if rerr := os.Remove(path); rerr != nil {
-		err := fmt.Errorf("%s: remove %s: %w", ref, path, rerr)
+	if err := os.Remove(path); err != nil {
+		err = fmt.Errorf("%s: remove %s: %w", ref, path, err)
 		log.Emit(ctx, CodeDestroyFailed, &ref, "path", path, "err", err)
 		return err
 	}

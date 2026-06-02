@@ -140,14 +140,14 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		t.Fatalf("no *.hcl inputs under %s", caseDir)
 	}
 	for _, in := range inputs {
-		src, rerr := os.ReadFile(in)
-		if rerr != nil {
-			t.Fatal(rerr)
+		src, err := os.ReadFile(in)
+		if err != nil {
+			t.Fatal(err)
 		}
 		out := strings.ReplaceAll(string(src), "{{TMP}}", target)
 		dst := filepath.Join(cfg, filepath.Base(in))
-		if werr := os.WriteFile(dst, []byte(out), 0o644); werr != nil {
-			t.Fatal(werr)
+		if err := os.WriteFile(dst, []byte(out), 0o644); err != nil {
+			t.Fatal(err)
 		}
 	}
 
@@ -159,8 +159,8 @@ func runGoldenCase(t *testing.T, caseDir string) {
 	// can name absolute tempdir paths.
 	expectedYAML = []byte(strings.ReplaceAll(string(expectedYAML), "{{TMP}}", target))
 	var want goldenExpected
-	if yerr := yaml.Unmarshal(expectedYAML, &want); yerr != nil {
-		t.Fatalf("expected.yaml: %v", yerr)
+	if err := yaml.Unmarshal(expectedYAML, &want); err != nil {
+		t.Fatalf("expected.yaml: %v", err)
 	}
 
 	gotErr := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
@@ -183,9 +183,9 @@ func runGoldenCase(t *testing.T, caseDir string) {
 	}
 
 	for relPath, wantContent := range want.Files {
-		got, rerr := os.ReadFile(filepath.Join(target, relPath))
-		if rerr != nil {
-			t.Errorf("file %s: %v", relPath, rerr)
+		got, err := os.ReadFile(filepath.Join(target, relPath))
+		if err != nil {
+			t.Errorf("file %s: %v", relPath, err)
 			continue
 		}
 		if string(got) != wantContent {
@@ -193,9 +193,9 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		}
 	}
 	for _, relPath := range want.Dirs {
-		info, serr := os.Stat(filepath.Join(target, relPath))
-		if serr != nil {
-			t.Errorf("dir %s: %v", relPath, serr)
+		info, err := os.Stat(filepath.Join(target, relPath))
+		if err != nil {
+			t.Errorf("dir %s: %v", relPath, err)
 			continue
 		}
 		if !info.IsDir() {
@@ -203,7 +203,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		}
 	}
 	for _, relPath := range want.Absent {
-		if _, serr := os.Stat(filepath.Join(target, relPath)); !errors.Is(serr, os.ErrNotExist) {
+		if _, err := os.Stat(filepath.Join(target, relPath)); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("expected absent: %s exists", relPath)
 		}
 	}

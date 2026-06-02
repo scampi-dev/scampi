@@ -37,9 +37,9 @@ func parseDir(ctx context.Context, log Log, dir string) ([]Resource, error) {
 	sort.Strings(paths)
 	var out []Resource
 	for _, p := range paths {
-		rs, perr := parseFile(ctx, log, p)
-		if perr != nil {
-			return nil, perr
+		rs, err := parseFile(ctx, log, p)
+		if err != nil {
+			return nil, err
 		}
 		out = append(out, rs...)
 	}
@@ -70,9 +70,9 @@ func parseFile(ctx context.Context, log Log, path string) ([]Resource, error) {
 	}
 	out := make([]Resource, 0, len(body.Blocks))
 	for _, block := range body.Blocks {
-		r, perr := parseBlock(ctx, log, block, path)
-		if perr != nil {
-			return nil, perr
+		r, err := parseBlock(ctx, log, block, path)
+		if err != nil {
+			return nil, err
 		}
 		out = append(out, r)
 	}
