@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -127,6 +128,24 @@ func main() {
 	}
 }
 
+// defaultActionLogDir resolves where to write the action log when
+// --action-log is not given. Root gets /var/lib/scampi/actionlog;
+// everyone else gets $XDG_STATE_HOME/scampi/actionlog with the
+// standard XDG fallback to $HOME/.local/state.
+func defaultActionLogDir() (string, error) {
+	if os.Geteuid() == 0 {
+		return "/var/lib/scampi/actionlog", nil
+	}
+	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
+		return filepath.Join(xdg, "scampi", "actionlog"), nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("home dir: %w", err)
+	}
+	return filepath.Join(home, ".local", "state", "scampi", "actionlog"), nil
+}
+
 func newRootCmd() (*cobra.Command, func() error) {
 	var (
 		actionLogPath string
@@ -140,9 +159,6 @@ func newRootCmd() (*cobra.Command, func() error) {
 			colored: decideColor(colorMode, os.Stderr),
 			level:   slog.LevelDebug,
 		})}
-		if actLog == nil {
-			return engine.NewLog(base)
-		}
 		return engine.NewLog(fanoutEmitter{base, actLog})
 	}
 
@@ -152,16 +168,20 @@ func newRootCmd() (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			if actionLogPath == "" {
-				inv = engine.NewInventory()
-				return nil
+			path := actionLogPath
+			if path == "" {
+				d, err := defaultActionLogDir()
+				if err != nil {
+					return err
+				}
+				path = d
 			}
-			loaded, err := engine.LoadInventory(actionLogPath)
+			loaded, err := engine.LoadInventory(path)
 			if err != nil {
 				return fmt.Errorf("action log replay: %w", err)
 			}
 			inv = loaded
-			al, err := engine.NewActionLog(actionLogPath)
+			al, err := engine.NewActionLog(path)
 			if err != nil {
 				return fmt.Errorf("action log: %w", err)
 			}
@@ -170,7 +190,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		},
 	}
 	root.PersistentFlags().StringVar(&actionLogPath, "action-log", "",
-		"directory for the action log (segmented JSONL; lifecycle events only)")
+		"action log directory (default: $XDG_STATE_HOME/scampi/actionlog, or /var/lib/scampi/actionlog as root)")
 	root.PersistentFlags().StringVar(&colorMode, "color", "auto",
 		"colored output: auto|always|never")
 
