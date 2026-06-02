@@ -9,6 +9,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -181,7 +183,14 @@ type actionEmitter struct {
 	enc *json.Encoder
 }
 
-func newActionEmitter(path string) (*actionEmitter, error) {
+func newActionEmitter(dir string) (*actionEmitter, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, fmt.Errorf("action log dir: %w", err)
+	}
+	path, err := activeSegment(dir)
+	if err != nil {
+		return nil, err
+	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, err
@@ -189,6 +198,21 @@ func newActionEmitter(path string) (*actionEmitter, error) {
 	enc := json.NewEncoder(f)
 	enc.SetEscapeHTML(false)
 	return &actionEmitter{f: f, enc: enc}, nil
+}
+
+// activeSegment returns the highest-numbered *.jsonl segment in dir,
+// or 0001.jsonl when the dir holds none. 4-digit zero padding makes
+// lexical sort match numeric sort up to 9999 segments.
+func activeSegment(dir string) (string, error) {
+	matches, err := filepath.Glob(filepath.Join(dir, "*.jsonl"))
+	if err != nil {
+		return "", err
+	}
+	if len(matches) == 0 {
+		return filepath.Join(dir, "0001.jsonl"), nil
+	}
+	sort.Strings(matches)
+	return matches[len(matches)-1], nil
 }
 
 func (a *actionEmitter) Close() error { return a.f.Close() }

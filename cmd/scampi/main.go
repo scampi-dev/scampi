@@ -163,7 +163,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		},
 	}
 	root.PersistentFlags().StringVar(&actionLogPath, "action-log", "",
-		"path to a JSONL action log (lifecycle events only; append-only)")
+		"directory for the action log (segmented JSONL; lifecycle events only)")
 	root.PersistentFlags().StringVar(&colorMode, "color", "auto",
 		"colored output: auto|always|never")
 
