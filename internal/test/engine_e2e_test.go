@@ -808,6 +808,154 @@ file "x" {
 	}
 }
 
+// Plan
+// -----------------------------------------------------------------------------
+
+func TestMakePlan_Categories(t *testing.T) {
+	tmp := t.TempDir()
+	match := filepath.Join(tmp, "match")
+	gone := filepath.Join(tmp, "gone")
+	drift := filepath.Join(tmp, "drift")
+	halt := filepath.Join(tmp, "halt")
+	newPath := filepath.Join(tmp, "new")
+
+	// Pre-existing state that the first apply will adopt.
+	if err := os.WriteFile(match, []byte("right"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(drift, []byte("right"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// First apply: populate the inventory with match, gone, drift.
+	cfg1 := writeConfig(t, fmt.Sprintf(`
+file "match" {
+  path    = %q
+  content = "right"
+  adopt   = true
+}
+file "drift" {
+  path    = %q
+  content = "right"
+  adopt   = true
+}
+file "gone" {
+  path    = %q
+  content = "x"
+}
+`, match, drift, gone))
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfg1, inv, engine.Discard); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+
+	// Provoke each category for the plan:
+	//   drift   -> on-disk content now differs from desired      (update)
+	//   halt    -> exists on disk, NOT in inv, no adopt          (halt)
+	//   new     -> not on disk, not in inv                       (create)
+	//   match   -> on disk, in inv, in-sync                      (in-sync)
+	//   gone    -> in inv, dropped from new config               (destroy)
+	if err := os.WriteFile(drift, []byte("drifted-again"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(halt, []byte("preexisting"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg2 := writeConfig(t, fmt.Sprintf(`
+file "match" {
+  path    = %q
+  content = "right"
+  adopt   = true
+}
+file "drift" {
+  path    = %q
+  content = "right"
+  adopt   = true
+}
+file "new" {
+  path    = %q
+  content = "y"
+}
+file "halt" {
+  path    = %q
+  content = "preexisting"
+}
+`, match, drift, newPath, halt))
+
+	p, err := engine.MakePlan(t.Context(), cfg2, inv, engine.Discard)
+	if err != nil {
+		t.Fatalf("MakePlan: %v", err)
+	}
+
+	want := map[string][]string{
+		"create":  {"file.new"},
+		"update":  {"file.drift"},
+		"halt":    {"file.halt"},
+		"destroy": {"file.gone"},
+		"in-sync": {"file.match"},
+	}
+	got := map[string][]string{
+		"create":  refNames(p.Create),
+		"update":  refNames(p.Update),
+		"halt":    refNames(p.Halt),
+		"destroy": refNames(p.Destroy),
+		"in-sync": refNames(p.InSync),
+	}
+	for k, w := range want {
+		if !slices.Equal(got[k], w) {
+			t.Errorf("%s: got %v, want %v", k, got[k], w)
+		}
+	}
+}
+
+func refNames(refs []engine.Ref) []string {
+	out := make([]string, len(refs))
+	for i, r := range refs {
+		out[i] = r.String()
+	}
+	return out
+}
+
+// Action log replay modes
+// -----------------------------------------------------------------------------
+
+func TestLoadInventory_LenientToleratesPartialTail(t *testing.T) {
+	dir := t.TempDir()
+	seg := filepath.Join(dir, "0001.jsonl")
+	good := `{"ts":"x","code":"apply.success","ref":"file.a","path":"/p","deps":""}` + "\n"
+	partial := `{"ts":"x","code":"apply.suc`
+	if err := os.WriteFile(seg, []byte(good+partial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := engine.LoadInventory(dir); err == nil {
+		t.Error("strict load should reject trailing partial line")
+	}
+	inv, err := engine.LoadInventoryLenient(dir)
+	if err != nil {
+		t.Fatalf("lenient load failed: %v", err)
+	}
+	if !inv.Has(engine.Ref{Kind: "file", Name: "a"}) {
+		t.Error("lenient load should still fold complete lines")
+	}
+}
+
+func TestLoadInventory_StrictRejectsMidStreamCorruption(t *testing.T) {
+	dir := t.TempDir()
+	seg := filepath.Join(dir, "0001.jsonl")
+	good := `{"ts":"x","code":"apply.success","ref":"file.a","path":"/p","deps":""}` + "\n"
+	bad := `not-json` + "\n"
+	more := `{"ts":"x","code":"apply.success","ref":"file.b","path":"/q","deps":""}` + "\n"
+	if err := os.WriteFile(seg, []byte(good+bad+more), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := engine.LoadInventory(dir); err == nil {
+		t.Error("strict load should reject corrupted mid-stream line")
+	}
+	if _, err := engine.LoadInventoryLenient(dir); err == nil {
+		t.Error("lenient load should still reject corrupted mid-stream line (not the trailing partial)")
+	}
+}
+
 // Path validation
 // -----------------------------------------------------------------------------
 

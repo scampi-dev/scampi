@@ -3,6 +3,7 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -102,34 +103,56 @@ func activeSegment(dir string) (string, error) {
 }
 
 // LoadInventory folds the JSONL segments under dir into a fresh
-// inventory. Missing or empty dir yields an empty one.
+// inventory. Strict: every line must decode cleanly. Missing or
+// empty dir yields an empty inventory.
 func LoadInventory(dir string) (*Inventory, error) {
+	return loadInventory(dir, false)
+}
+
+// LoadInventoryLenient is the read-only counterpart for callers
+// observing an action log that another process may be appending to.
+// A single partial trailing line is tolerated; mid-stream corruption
+// still errors.
+func LoadInventoryLenient(dir string) (*Inventory, error) {
+	return loadInventory(dir, true)
+}
+
+func loadInventory(dir string, lenient bool) (*Inventory, error) {
 	inv := NewInventory()
 	segments, err := filepath.Glob(filepath.Join(dir, "*.jsonl"))
 	if err != nil {
 		return nil, err
 	}
 	sort.Strings(segments)
-	for _, seg := range segments {
-		if err := foldSegment(seg, inv); err != nil {
+	for i, seg := range segments {
+		// Only the active (last) segment can have a partial trailing
+		// line under a concurrent writer.
+		segLenient := lenient && i == len(segments)-1
+		if err := foldSegment(seg, inv, segLenient); err != nil {
 			return nil, fmt.Errorf("%s: %w", seg, err)
 		}
 	}
 	return inv, nil
 }
 
-func foldSegment(path string, inv *Inventory) error {
-	f, err := os.Open(path)
+func foldSegment(path string, inv *Inventory, lenient bool) error {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = f.Close() }()
-	dec := json.NewDecoder(f)
+	var complete, trailing []byte
+	if i := bytes.LastIndexByte(data, '\n'); i >= 0 {
+		complete = data[:i+1]
+		trailing = data[i+1:]
+	} else {
+		trailing = data
+	}
+	dec := json.NewDecoder(bytes.NewReader(complete))
 	for {
 		var raw map[string]any
 		if err := dec.Decode(&raw); err != nil {
 			if errors.Is(err, io.EOF) {
-				return nil
+				break
 			}
 			return err
 		}
@@ -146,6 +169,10 @@ func foldSegment(path string, inv *Inventory) error {
 		}
 		inv.Fold(Code(code), parseRef(refStr), attrs)
 	}
+	if len(trailing) > 0 && !lenient {
+		return fmt.Errorf("trailing partial line: %q", trailing)
+	}
+	return nil
 }
 
 func parseRef(s string) Ref {

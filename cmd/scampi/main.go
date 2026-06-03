@@ -151,7 +151,29 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			colored: decideColor(colorMode, os.Stderr),
 			level:   slog.LevelDebug,
 		})}
+		if actLog == nil {
+			return engine.NewLog(base)
+		}
 		return engine.NewLog(fanoutEmitter{base, actLog})
+	}
+
+	acquireMutationLock := func() error {
+		l, err := net.Listen("tcp", instanceAddr)
+		if err != nil {
+			return fmt.Errorf("another scampi is already running on this host (could not bind %s)", instanceAddr)
+		}
+		instance = l
+		loaded, err := engine.LoadInventory(actionLogPath)
+		if err != nil {
+			return fmt.Errorf("action log replay: %w", err)
+		}
+		inv = loaded
+		al, err := engine.NewActionLog(actionLogPath)
+		if err != nil {
+			return fmt.Errorf("action log: %w", err)
+		}
+		actLog = al
+		return nil
 	}
 
 	root := &cobra.Command{
@@ -168,31 +190,13 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return fmt.Errorf("invalid --color value %q; want auto|always|never", colorMode)
 			}
 			runtimeReached = true
-			// Single-instance: bind succeeds for exactly one process
-			// per host; the second scampi never gets past here.
-			l, err := net.Listen("tcp", instanceAddr)
-			if err != nil {
-				return fmt.Errorf("another scampi is already running on this host (could not bind %s)", instanceAddr)
-			}
-			instance = l
-			path := actionLogPath
-			if path == "" {
+			if actionLogPath == "" {
 				d, err := plat.Paths.ActionLogDir()
 				if err != nil {
 					return err
 				}
-				path = d
+				actionLogPath = d
 			}
-			loaded, err := engine.LoadInventory(path)
-			if err != nil {
-				return fmt.Errorf("action log replay: %w", err)
-			}
-			inv = loaded
-			al, err := engine.NewActionLog(path)
-			if err != nil {
-				return fmt.Errorf("action log: %w", err)
-			}
-			actLog = al
 			return nil
 		},
 	}
@@ -217,6 +221,9 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := acquireMutationLock(); err != nil {
+				return err
+			}
 			return engine.Apply(cmd.Context(), args[0], inv, pickLog())
 		},
 	}
@@ -228,14 +235,38 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := acquireMutationLock(); err != nil {
+				return err
+			}
 			interval, _ := cmd.Flags().GetDuration("interval")
 			return engine.Run(cmd.Context(), args[0], interval, inv, pickLog())
 		},
 	}
 	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")
 
-	root.AddCommand(apply, run)
-	for _, c := range []*cobra.Command{root, apply, run} {
+	plan := &cobra.Command{
+		Use:           "plan <dir>",
+		Short:         "Show what apply would do without changing anything.",
+		Args:          cobra.ExactArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			loaded, err := engine.LoadInventoryLenient(actionLogPath)
+			if err != nil {
+				return fmt.Errorf("action log replay: %w", err)
+			}
+			inv = loaded
+			p, err := engine.MakePlan(cmd.Context(), args[0], inv, pickLog())
+			if err != nil {
+				return err
+			}
+			printPlan(os.Stdout, p)
+			return nil
+		},
+	}
+
+	root.AddCommand(apply, run, plan)
+	for _, c := range []*cobra.Command{root, apply, run, plan} {
 		c.SetUsageTemplate(usageTemplate)
 		c.SetHelpTemplate(helpTemplate)
 	}
