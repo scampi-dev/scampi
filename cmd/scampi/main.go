@@ -9,17 +9,15 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/signal"
-	"path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
 	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/platform"
 )
 
 // helpTemplate renders the full --help output: tagline (Long or
@@ -96,10 +94,11 @@ func registerCobraHelpFuncs() {
 func main() {
 	registerCobraHelpFuncs()
 	cobraColored = isatty.IsTerminal(os.Stdout.Fd())
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	plat := platform.New()
+	ctx, stop := plat.Signals.ShutdownContext(context.Background())
 	defer stop()
 
-	root, closeFn := newRootCmd()
+	root, closeFn := newRootCmd(plat)
 	cmd, err := root.ExecuteContextC(ctx)
 	_ = closeFn()
 	switch {
@@ -128,25 +127,7 @@ func main() {
 	}
 }
 
-// defaultActionLogDir resolves where to write the action log when
-// --action-log is not given. Root gets /var/lib/scampi/actionlog;
-// everyone else gets $XDG_STATE_HOME/scampi/actionlog with the
-// standard XDG fallback to $HOME/.local/state.
-func defaultActionLogDir() (string, error) {
-	if os.Geteuid() == 0 {
-		return "/var/lib/scampi/actionlog", nil
-	}
-	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
-		return filepath.Join(xdg, "scampi", "actionlog"), nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("home dir: %w", err)
-	}
-	return filepath.Join(home, ".local", "state", "scampi", "actionlog"), nil
-}
-
-func newRootCmd() (*cobra.Command, func() error) {
+func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 	var (
 		actionLogPath string
 		colorMode     string
@@ -170,7 +151,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			path := actionLogPath
 			if path == "" {
-				d, err := defaultActionLogDir()
+				d, err := plat.Paths.ActionLogDir()
 				if err != nil {
 					return err
 				}
