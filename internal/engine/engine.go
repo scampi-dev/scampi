@@ -262,19 +262,37 @@ type Ref struct {
 
 func (r Ref) String() string { return r.Kind + "." + r.Name }
 
+// Attrs is the bag of attribute name -> value pairs attached to a
+// Resource, an inventory entry, or anything attr-shaped that crosses
+// the engine API. The same shape carries the full declared set on a
+// Resource and the identity-projected subset stored in the inventory;
+// the call site's variable name picks which flavor.
+type Attrs map[string]string
+
 // Resource is one parsed top-level block. Attrs holds literal values
 // resolved at parse time; ref-bearing attrs live in pending until the
 // resolve phase folds them back into Attrs.
 type Resource struct {
 	Kind  string
 	Name  string
-	Attrs map[string]string
+	Attrs Attrs
 
 	pending map[string]resolvable
 	deps    []Ref
 }
 
 func (r Resource) Ref() Ref { return Ref{Kind: r.Kind, Name: r.Name} }
+
+// Has reports whether the resource declared name, either as a literal
+// attr already folded into Attrs or as a still-pending resolvable.
+// Validate runs before resolve, so either source counts.
+func (r Resource) Has(name string) bool {
+	if _, ok := r.Attrs[name]; ok {
+		return true
+	}
+	_, ok := r.pending[name]
+	return ok
+}
 
 // resolvable is the language-agnostic shape of a deferred attr value.
 // HCL's impl lives in hcl.go; swapping the language replaces that
@@ -287,7 +305,7 @@ type resolvable interface {
 // resource's already-folded attrs.
 type resolvedRef struct {
 	Ref   Ref
-	Attrs map[string]string
+	Attrs Attrs
 }
 
 // Validate
@@ -320,14 +338,6 @@ func validateOne(r Resource) error {
 		return err
 	}
 	return k.Validate(r)
-}
-
-func hasAttr(r Resource, name string) bool {
-	if _, ok := r.Attrs[name]; ok {
-		return true
-	}
-	_, ok := r.pending[name]
-	return ok
 }
 
 // Resolve
@@ -475,7 +485,7 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	}
 	keys := k.Identify()
 	sort.Strings(keys)
-	ident := make(map[string]string, len(keys))
+	ident := make(Attrs, len(keys))
 	fields := make([]any, 0, 2*len(keys)+2)
 	for _, key := range keys {
 		v := r.Attrs[key]
@@ -530,7 +540,7 @@ func destroyAll(ctx context.Context, refs []Ref, inv *Inventory, log Log, bo *ba
 	return errors.Join(errs...)
 }
 
-func destroyOne(ctx context.Context, ref Ref, attrs map[string]string, log Log) error {
+func destroyOne(ctx context.Context, ref Ref, attrs Attrs, log Log) error {
 	k, ok := kinds[ref.Kind]
 	if !ok {
 		err := fmt.Errorf("%s: unknown kind", ref)

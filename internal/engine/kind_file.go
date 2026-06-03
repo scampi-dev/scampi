@@ -16,10 +16,10 @@ func (fileKind) Identify() Identity { return Identity{"path"} }
 
 func (fileKind) Validate(r Resource) error {
 	var errs []error
-	if !hasAttr(r, "path") {
+	if !r.Has("path") {
 		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "path"))
 	}
-	if !hasAttr(r, "content") {
+	if !r.Has("content") {
 		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "content"))
 	}
 	return errors.Join(errs...)
@@ -50,7 +50,7 @@ func (fileKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
 	return false, nil
 }
 
-func (fileKind) Destroy(ctx context.Context, ref Ref, attrs map[string]string, log Log) error {
+func (fileKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error {
 	path := attrs["path"]
 	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)

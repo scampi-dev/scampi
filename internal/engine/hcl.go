@@ -88,7 +88,7 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 	if len(block.Body.Blocks) > 0 {
 		return Resource{}, fmt.Errorf("%s: nested blocks not supported", path)
 	}
-	attrs := make(map[string]string, len(block.Body.Attributes))
+	attrs := make(Attrs, len(block.Body.Attributes))
 	pending := map[string]resolvable{}
 	seenDeps := map[Ref]bool{}
 	var deps []Ref
@@ -193,7 +193,7 @@ func buildEvalContext(store []resolvedRef) *hcl.EvalContext {
 	return &hcl.EvalContext{Variables: vars}
 }
 
-func ctyStringObject(attrs map[string]string) cty.Value {
+func ctyStringObject(attrs Attrs) cty.Value {
 	out := make(map[string]cty.Value, len(attrs))
 	for k, v := range attrs {
 		out[k] = cty.StringVal(v)

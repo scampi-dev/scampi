@@ -15,7 +15,7 @@ type dirKind struct{}
 func (dirKind) Identify() Identity { return Identity{"path"} }
 
 func (dirKind) Validate(r Resource) error {
-	if !hasAttr(r, "path") {
+	if !r.Has("path") {
 		return fmt.Errorf("%s: missing required attr %q", r.Ref(), "path")
 	}
 	return nil
@@ -51,7 +51,7 @@ func (dirKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
 // Destroy uses os.Remove, which refuses non-empty directories. That
 // refusal becomes destroy.failed and the orphan stays in the inventory
 // until the operator either clears the dir or accepts manual cleanup.
-func (dirKind) Destroy(ctx context.Context, ref Ref, attrs map[string]string, log Log) error {
+func (dirKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error {
 	path := attrs["path"]
 	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)

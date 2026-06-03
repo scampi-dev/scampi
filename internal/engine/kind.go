@@ -16,7 +16,7 @@ type Kind interface {
 	// Apply returns inSync=true when the resource was already in the
 	// desired state and no work was done.
 	Apply(ctx context.Context, r Resource, log Log) (inSync bool, err error)
-	Destroy(ctx context.Context, ref Ref, attrs map[string]string, log Log) error
+	Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error
 }
 
 // Identity is a Kind's identifying attr names - the keys whose values

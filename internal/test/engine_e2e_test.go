@@ -482,7 +482,7 @@ file "bad" {
 
 func TestInventory_OrphansNone(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "a"}, map[string]string{"path": "/a"}, nil)
+	inv.Add(engine.Ref{Kind: "file", Name: "a"}, engine.Attrs{"path": "/a"}, nil)
 	declared := []engine.Resource{{Kind: "file", Name: "a"}}
 	if got := inv.Orphans(declared); len(got) != 0 {
 		t.Errorf("orphans = %+v, want empty", got)
@@ -491,7 +491,7 @@ func TestInventory_OrphansNone(t *testing.T) {
 
 func TestInventory_OrphansOne(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, map[string]string{"path": "/g"}, nil)
+	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, engine.Attrs{"path": "/g"}, nil)
 	got := inv.Orphans(nil)
 	want := engine.Ref{Kind: "file", Name: "gone"}
 	if len(got) != 1 || got[0] != want {
@@ -502,7 +502,7 @@ func TestInventory_OrphansOne(t *testing.T) {
 func TestInventory_FoldApplyThenDestroy(t *testing.T) {
 	inv := engine.NewInventory()
 	ref := engine.Ref{Kind: "file", Name: "a"}
-	inv.Fold(engine.CodeApplySuccess, ref, map[string]string{"path": "/x"})
+	inv.Fold(engine.CodeApplySuccess, ref, engine.Attrs{"path": "/x"})
 	if !inv.Has(ref) {
 		t.Fatalf("expected ref present after apply.success fold")
 	}

@@ -142,7 +142,7 @@ func foldSegment(path string, inv *Inventory) error {
 		delete(raw, "code")
 		delete(raw, "ts")
 		delete(raw, "ref")
-		attrs := make(map[string]string, len(raw))
+		attrs := make(Attrs, len(raw))
 		for k, v := range raw {
 			if s, ok := v.(string); ok {
 				attrs[k] = s

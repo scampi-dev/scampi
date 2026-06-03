@@ -19,7 +19,7 @@ type Inventory struct {
 }
 
 type inventoryEntry struct {
-	attrs map[string]string
+	attrs Attrs
 	deps  []Ref
 }
 
@@ -27,7 +27,7 @@ func NewInventory() *Inventory {
 	return &Inventory{entries: map[Ref]inventoryEntry{}}
 }
 
-func (i *Inventory) Add(ref Ref, attrs map[string]string, deps []Ref) {
+func (i *Inventory) Add(ref Ref, attrs Attrs, deps []Ref) {
 	i.entries[ref] = inventoryEntry{
 		attrs: maps.Clone(attrs),
 		deps:  slices.Clone(deps),
@@ -44,7 +44,7 @@ func (i *Inventory) Has(ref Ref) bool {
 // Get returns copies of the stored attrs and deps so callers can pass
 // them onward (e.g. into Kind.Destroy) without holding a handle to the
 // inventory's internal state.
-func (i *Inventory) Get(ref Ref) (attrs map[string]string, deps []Ref, ok bool) {
+func (i *Inventory) Get(ref Ref) (attrs Attrs, deps []Ref, ok bool) {
 	e, ok := i.entries[ref]
 	if !ok {
 		return nil, nil, false
@@ -72,7 +72,7 @@ func (i *Inventory) Orphans(declared []Resource) []Ref {
 // ignored so the projection survives future code additions. `deps`
 // is pulled out of the attrs as a comma-separated `kind.name,...`
 // string; missing or empty means no deps.
-func (i *Inventory) Fold(code Code, ref Ref, attrs map[string]string) {
+func (i *Inventory) Fold(code Code, ref Ref, attrs Attrs) {
 	switch code {
 	case CodeApplySuccess:
 		deps := parseDeps(attrs["deps"])
