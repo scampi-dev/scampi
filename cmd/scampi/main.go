@@ -162,7 +162,7 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return fmt.Errorf("action log replay: %w", err)
 			}
 			inv = loaded
-			al, err := engine.NewActionLog(path)
+			al, err := engine.NewActionLog(path, plat.Locker)
 			if err != nil {
 				return fmt.Errorf("action log: %w", err)
 			}
