@@ -208,6 +208,10 @@ func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", err)
 		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
 	}
+	if err := validateIdentities(sorted); err != nil {
+		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", err)
+		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
+	}
 	log.Emit(ctx, CodeSnapshotReceived, nil, "resources", len(sorted))
 	return sorted, nil
 }
@@ -302,17 +306,23 @@ type resolvedRef struct {
 // Pre-resolve phase: cross-resource structural checks only.
 func validate(resources []Resource) error {
 	var errs []error
-	known := make(map[Ref]bool, len(resources))
+	counts := make(map[Ref]int, len(resources))
 	for _, r := range resources {
-		known[r.Ref()] = true
+		counts[r.Ref()]++
 	}
+	reported := make(map[Ref]bool, len(resources))
 	for _, r := range resources {
+		ref := r.Ref()
+		if counts[ref] > 1 && !reported[ref] {
+			errs = append(errs, fmt.Errorf("%s: declared %d times", ref, counts[ref]))
+			reported[ref] = true
+		}
 		if _, err := kindFor(r); err != nil {
 			errs = append(errs, err)
 		}
 		for _, dep := range r.deps {
-			if !known[dep] {
-				errs = append(errs, fmt.Errorf("%s: references unknown resource %q", r.Ref(), dep))
+			if counts[dep] == 0 {
+				errs = append(errs, fmt.Errorf("%s: references unknown resource %q", ref, dep))
 			}
 		}
 	}
@@ -331,6 +341,35 @@ func validateKinds(resources []Resource) error {
 		if err := k.Validate(r); err != nil {
 			errs = append(errs, err)
 		}
+	}
+	return errors.Join(errs...)
+}
+
+// validateIdentities catches two distinct refs that would claim the
+// same live resource. Without this, the inventory would flip-flop
+// between them every tick.
+func validateIdentities(resources []Resource) error {
+	type bucket struct{ kind, ident string }
+	first := map[bucket]Ref{}
+	var errs []error
+	for _, r := range resources {
+		k, err := kindFor(r)
+		if err != nil {
+			continue
+		}
+		keys := k.Identify()
+		sort.Strings(keys)
+		parts := make([]string, len(keys))
+		for i, key := range keys {
+			parts[i] = key + "=" + r.Attrs[key]
+		}
+		ident := strings.Join(parts, ",")
+		b := bucket{kind: r.Kind, ident: ident}
+		if prev, ok := first[b]; ok {
+			errs = append(errs, fmt.Errorf("%s and %s declare the same identity (%s)", prev, r.Ref(), ident))
+			continue
+		}
+		first[b] = r.Ref()
 	}
 	return errors.Join(errs...)
 }

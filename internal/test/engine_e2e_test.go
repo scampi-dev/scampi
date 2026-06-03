@@ -811,6 +811,65 @@ file "x" {
 // Path validation
 // -----------------------------------------------------------------------------
 
+// Duplicate detection
+// -----------------------------------------------------------------------------
+
+func TestSnapshot_DuplicateRef(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "dup" {
+  path    = "%s/a"
+  content = "1"
+}
+file "dup" {
+  path    = "%s/b"
+  content = "2"
+}
+`, tmp, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Errorf("expected snapshot rejection; got %v", err)
+	}
+}
+
+func TestSnapshot_DuplicateIdentity(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "x")
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "a" {
+  path    = "%s"
+  content = "from-a"
+}
+file "b" {
+  path    = "%s"
+  content = "from-b"
+}
+`, path, path))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Errorf("expected snapshot rejection; got %v", err)
+	}
+}
+
+// Identity collision still fires when the colliding attr arrives
+// through a ref expression rather than a literal duplicate.
+func TestSnapshot_DuplicateIdentityViaRef(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "shared")
+	cfg := writeConfig(t, fmt.Sprintf(`
+dir "a" {
+  path = "%s"
+}
+dir "b" {
+  path = dir.a.path
+}
+`, path))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Errorf("expected snapshot rejection; got %v", err)
+	}
+}
+
 func TestSnapshot_PathValidation(t *testing.T) {
 	tmp := t.TempDir()
 	good := filepath.Join(tmp, "ok.txt")
