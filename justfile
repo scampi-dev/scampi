@@ -82,6 +82,14 @@ lint:
 license-check:
   @./scripts/license-check.sh
 
+# GitHub
+# -----------------------------------------------------------------------------
+
+[group('gh')]
+[doc("Push an issue draft (.issues/<name>.md) to GitHub")]
+@issue name:
+  ./scripts/gh-issue.sh {{name}}
+
 # Dependencies
 # -----------------------------------------------------------------------------
 

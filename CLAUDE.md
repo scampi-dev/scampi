@@ -96,13 +96,11 @@ Before starting work on an issue, assign it:
 `gh issue edit N --add-assignee pskry`. Do this before planning, not at
 commit time.
 
-Labels (lowercase, slash-namespaced):
-`kind/bug`, `kind/feature`, `kind/enhancement`, `kind/optimization`,
-`kind/testing`, `kind/documentation`, `compat/breaking`,
-`priority/critical|high|medium|low`, `impact/high|medium|low`,
-`reviewed/confirmed|duplicate|invalid|won't fix`,
-`status/abandoned|blocked|need more info|parked`,
-`good first issue`, `help wanted`.
+Labels: stick to GitHub's defaults (`bug`, `documentation`,
+`duplicate`, `enhancement`, `good first issue`, `help wanted`,
+`invalid`, `question`, `wontfix`). Add a custom label only when
+filtering by it would actually inform a decision; solo project
+without users hasn't earned a richer taxonomy.
 
 When to file: if the change is worth showing up in the changelog
 (user-facing features, bugs that affect behavior, design decisions
