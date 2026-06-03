@@ -31,6 +31,7 @@ const (
 	CodeApplyStart       Code = "apply.start"
 	CodeApplySuccess     Code = "apply.success"
 	CodeApplyFailed      Code = "apply.failed"
+	CodeApplyHalted      Code = "apply.halted"
 	CodeDestroyStart     Code = "destroy.start"
 	CodeDestroySuccess   Code = "destroy.success"
 	CodeDestroyFailed    Code = "destroy.failed"
@@ -276,6 +277,7 @@ type Resource struct {
 	Kind  string
 	Name  string
 	Attrs Attrs
+	Adopt bool
 
 	pending map[string]resolvable
 	deps    []Ref
@@ -465,10 +467,6 @@ func backoffDelay(attempts int) time.Duration {
 	return d
 }
 
-// applyOne dispatches to the Kind's Apply and handles inventory
-// effects. apply.success fires when work was done OR on first-sight
-// adoption (in-sync but not yet in inventory). A routine in-sync tick
-// on an already-managed resource is silent.
 func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	k, err := kindFor(r)
 	if err != nil {
@@ -476,13 +474,28 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	}
 	ref := r.Ref()
 	was := inv.Has(ref)
-	inSync, err := k.Apply(ctx, r, log)
+
+	state, err := k.Check(ctx, r)
 	if err != nil {
 		return err
 	}
-	if inSync && was {
+
+	if was && state == StateMatching {
+		log.Debug(ctx, "in sync", "ref", ref)
 		return nil
 	}
+
+	if !was && state != StateMissing && !r.Adopt {
+		log.Emit(ctx, CodeApplyHalted, &ref, "state", state.String())
+		return nil
+	}
+
+	if state != StateMatching {
+		if err := k.Apply(ctx, r, log); err != nil {
+			return err
+		}
+	}
+
 	keys := k.Identify()
 	sort.Strings(keys)
 	ident := make(Attrs, len(keys))

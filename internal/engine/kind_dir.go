@@ -21,31 +21,31 @@ func (dirKind) Validate(r Resource) error {
 	return nil
 }
 
-func (dirKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
-	ref := r.Ref()
+func (dirKind) Check(_ context.Context, r Resource) (State, error) {
 	path := r.Attrs["path"]
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && info.IsDir():
-		log.Debug(ctx, "dir in sync", "ref", ref, "path", path)
-		return true, nil
+		return StateMatching, nil
 	case err == nil:
-		err = fmt.Errorf("%s: %s exists but is not a directory", ref, path)
-		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
-		return false, err
-	case !errors.Is(err, fs.ErrNotExist):
-		err = fmt.Errorf("%s: stat %s: %w", ref, path, err)
-		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
-		return false, err
+		return StateDiverging, nil
+	case errors.Is(err, fs.ErrNotExist):
+		return StateMissing, nil
 	}
+	return 0, fmt.Errorf("%s: stat %s: %w", r.Ref(), path, err)
+}
+
+func (dirKind) Apply(ctx context.Context, r Resource, log Log) error {
+	ref := r.Ref()
+	path := r.Attrs["path"]
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
 	log.Info(ctx, "creating dir", "ref", ref, "path", path)
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		err = fmt.Errorf("%s: mkdir %s: %w", ref, path, err)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
-		return false, err
+		return err
 	}
-	return false, nil
+	return nil
 }
 
 // Destroy uses os.Remove, which refuses non-empty directories. That

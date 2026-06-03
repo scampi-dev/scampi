@@ -61,7 +61,7 @@ func slogLevel(c engine.Code) slog.Level {
 	switch c {
 	case engine.CodeLogDebug:
 		return slog.LevelDebug
-	case engine.CodeLogWarn, engine.CodeSnapshotRejected, engine.CodeApplyFailed:
+	case engine.CodeLogWarn, engine.CodeSnapshotRejected, engine.CodeApplyFailed, engine.CodeApplyHalted:
 		return slog.LevelWarn
 	case engine.CodeLogError:
 		return slog.LevelError

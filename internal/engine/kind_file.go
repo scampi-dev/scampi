@@ -25,29 +25,33 @@ func (fileKind) Validate(r Resource) error {
 	return errors.Join(errs...)
 }
 
-func (fileKind) Apply(ctx context.Context, r Resource, log Log) (bool, error) {
-	// path + content guaranteed present by Validate
-	ref := r.Ref()
+func (fileKind) Check(_ context.Context, r Resource) (State, error) {
 	path := r.Attrs["path"]
 	content := r.Attrs["content"]
 	current, err := os.ReadFile(path)
 	switch {
 	case err == nil && string(current) == content:
-		log.Debug(ctx, "file in sync", "ref", ref, "path", path)
-		return true, nil
-	case err != nil && !errors.Is(err, fs.ErrNotExist):
-		err = fmt.Errorf("%s: read %s: %w", ref, path, err)
-		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
-		return false, err
+		return StateMatching, nil
+	case err == nil:
+		return StateDiverging, nil
+	case errors.Is(err, fs.ErrNotExist):
+		return StateMissing, nil
 	}
+	return 0, fmt.Errorf("%s: read %s: %w", r.Ref(), path, err)
+}
+
+func (fileKind) Apply(ctx context.Context, r Resource, log Log) error {
+	ref := r.Ref()
+	path := r.Attrs["path"]
+	content := r.Attrs["content"]
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
 	log.Info(ctx, "writing file", "ref", ref, "path", path)
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		err = fmt.Errorf("%s: write %s: %w", ref, path, err)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
-		return false, err
+		return err
 	}
-	return false, nil
+	return nil
 }
 
 func (fileKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error {

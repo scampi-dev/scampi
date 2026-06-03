@@ -92,7 +92,20 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 	pending := map[string]resolvable{}
 	seenDeps := map[Ref]bool{}
 	var deps []Ref
+	var adopt bool
 	for name, attr := range block.Body.Attributes {
+		if name == "adopt" {
+			val, diags := attr.Expr.Value(nil)
+			if diags.HasErrors() {
+				return Resource{}, diags
+			}
+			if val.Type() != cty.Bool {
+				return Resource{}, fmt.Errorf("%s:%d: attr %q must be a bool",
+					path, attr.Range().Start.Line, name)
+			}
+			adopt = val.True()
+			continue
+		}
 		refs := refsFromExpr(attr.Expr)
 		if len(refs) > 0 {
 			pending[name] = hclResolvable{expr: attr.Expr}
@@ -118,6 +131,7 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 		Kind:    block.Type,
 		Name:    block.Labels[0],
 		Attrs:   attrs,
+		Adopt:   adopt,
 		pending: pending,
 		deps:    deps,
 	}, nil

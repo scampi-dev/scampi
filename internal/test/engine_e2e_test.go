@@ -72,6 +72,24 @@ func (c *captureEmitter) waitFor(pred func([]capturedEvent) bool, timeout time.D
 	}
 }
 
+func (c *captureEmitter) has(code engine.Code) bool {
+	for _, e := range c.Events() {
+		if e.Code == code {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *captureEmitter) codes() []engine.Code {
+	events := c.Events()
+	out := make([]engine.Code, len(events))
+	for i, e := range events {
+		out[i] = e.Code
+	}
+	return out
+}
+
 // waitForCount waits until the captured events contain at least n
 // instances of code. Returns true on match.
 func (c *captureEmitter) waitForCount(code engine.Code, n int, timeout time.Duration) bool {
@@ -216,7 +234,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 
 // In-sync skip can't be asserted by post-state alone; the observable
 // is mtime not advancing.
-func TestApply_FileInSyncSkipsWrite(t *testing.T) {
+func TestApply_AdoptMatchingSkipsWrite(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
 	if err := os.WriteFile(target, []byte("hello"), 0o644); err != nil {
@@ -230,6 +248,7 @@ func TestApply_FileInSyncSkipsWrite(t *testing.T) {
 file "etc" {
   path    = "`+target+`"
   content = "hello"
+  adopt   = true
 }
 `)
 	if err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard); err != nil {
@@ -240,8 +259,96 @@ file "etc" {
 		t.Fatal(err)
 	}
 	if !after.ModTime().Equal(before.ModTime()) {
-		t.Errorf("mtime changed from %v to %v; expected no write when in sync",
+		t.Errorf("mtime changed from %v to %v; expected no write on matching adopt",
 			before.ModTime(), after.ModTime())
+	}
+}
+
+func TestApply_HaltsMatchingWithoutAdopt(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out.txt")
+	if err := os.WriteFile(target, []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := writeConfig(t, `
+file "etc" {
+  path    = "`+target+`"
+  content = "hello"
+}
+`)
+	log, capture := newCaptureLog()
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfg, inv, log); err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if !capture.has(engine.CodeApplyHalted) {
+		t.Errorf("expected apply.halted; got codes %v", capture.codes())
+	}
+	if inv.Has(engine.Ref{Kind: "file", Name: "etc"}) {
+		t.Error("expected resource NOT in inventory after halt")
+	}
+}
+
+func TestApply_HaltsDivergingWithoutAdopt(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out.txt")
+	if err := os.WriteFile(target, []byte("on-disk"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := writeConfig(t, `
+file "etc" {
+  path    = "`+target+`"
+  content = "desired"
+}
+`)
+	log, capture := newCaptureLog()
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfg, inv, log); err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if !capture.has(engine.CodeApplyHalted) {
+		t.Errorf("expected apply.halted; got codes %v", capture.codes())
+	}
+	if inv.Has(engine.Ref{Kind: "file", Name: "etc"}) {
+		t.Error("expected resource NOT in inventory after halt")
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "on-disk" {
+		t.Errorf("file content = %q, want %q; halt must not write",
+			got, "on-disk")
+	}
+}
+
+func TestApply_AdoptTakesOverDiverging(t *testing.T) {
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "out.txt")
+	if err := os.WriteFile(target, []byte("on-disk"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := writeConfig(t, `
+file "etc" {
+  path    = "`+target+`"
+  content = "desired"
+  adopt   = true
+}
+`)
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfg, inv, engine.Discard); err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "desired" {
+		t.Errorf("file content = %q, want %q after adopt takeover",
+			got, "desired")
+	}
+	if !inv.Has(engine.Ref{Kind: "file", Name: "etc"}) {
+		t.Error("expected resource in inventory after adopt takeover")
 	}
 }
 
