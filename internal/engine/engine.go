@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package engine reconciles desired-state snapshots against the
-// real filesystem. Apply runs once; Run polls and reconciles
-// continuously.
+// Package engine reconciles desired state against live observation.
 package engine
 
 import (
@@ -21,8 +19,8 @@ import (
 // Log
 // -----------------------------------------------------------------------------
 
-// Code is the stable identifier on every emission. Sinks classify by
-// exact match (lifecycle, log severity, etc) and decide what to keep.
+// Code is the stable identifier on every emission. Sinks classify
+// by exact match.
 type Code string
 
 const (
@@ -42,9 +40,8 @@ const (
 	CodeLogError Code = "log.error"
 )
 
-// IsLogCode is true for the convenience-logger codes (log.debug et al).
-// Sinks like the action log skip these; only stable lifecycle events
-// belong on disk.
+// IsLogCode reports whether c is a convenience-logger code rather
+// than a lifecycle event.
 func IsLogCode(c Code) bool {
 	switch c {
 	case CodeLogDebug, CodeLogInfo, CodeLogWarn, CodeLogError:
@@ -53,22 +50,14 @@ func IsLogCode(c Code) bool {
 	return false
 }
 
-// Emitter is the sink contract. Implementations: slog (renders to
-// stderr), action (JSONL file), fanout (multiple Emitters), Discard.
-// Log itself implements Emitter by delegating to a wrapped Emitter,
-// so it can be passed wherever an Emitter is expected.
-//
-// Err returns a sticky error: once a sink fails (e.g. the action log
-// can't write or fsync), it stays failed. The reconcile loop polls
-// this between resources and aborts the pass on first failure so we
-// never act without recording.
+// Emitter is the sink contract. Err is sticky: once a sink fails it
+// stays failed, so the reconcile loop can abort the pass on first
+// failure instead of acting without recording.
 type Emitter interface {
 	Emit(ctx context.Context, code Code, ref *Ref, args ...any)
 	Err() error
 }
 
-// Log wraps an Emitter and adds convenience Debug/Info/Warn/Error
-// helpers that funnel through Emit with the matching CodeLog* tag.
 type Log struct {
 	e Emitter
 }
@@ -104,13 +93,11 @@ func (l Log) emitLog(ctx context.Context, code Code, msg string, args []any) {
 	l.Emit(ctx, code, nil, full...)
 }
 
-// discardEmitter drops every emission.
 type discardEmitter struct{}
 
 func (discardEmitter) Emit(context.Context, Code, *Ref, ...any) {}
 func (discardEmitter) Err() error                               { return nil }
 
-// Discard is a Log that drops every emission.
 var Discard = NewLog(discardEmitter{})
 
 // Errors
@@ -149,10 +136,9 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 	return nil
 }
 
-// Run polls dir and reconciles forever. Errors and snapshot rejects
-// do not stop the loop so the operator can fix configs in place while
-// reconciliation continues against the last-good snapshot. Inventory
-// persists across ticks.
+// Run polls dir and reconciles forever. Snapshot rejects do not
+// stop the loop so the operator can fix configs in place while
+// reconciliation continues against the last-good snapshot.
 func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory, log Log) error {
 	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
 	var (
@@ -201,8 +187,8 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 // Pipeline
 // -----------------------------------------------------------------------------
 
-// snapshot parses + validates + resolves dir into apply-ready
-// resources. All faults bucket as ErrSnapshotRejected.
+// snapshot parses, validates, and resolves dir. All faults bucket
+// as ErrSnapshotRejected.
 func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 	resources, err := parseDir(ctx, log, dir)
 	if err != nil {
@@ -234,7 +220,7 @@ func hashDir(dir string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		// basename + null + content so renames bump the rev
+		// basename + NUL + content so renames bump the rev
 		_, _ = h.Write([]byte(filepath.Base(p)))
 		_, _ = h.Write([]byte{0})
 		_, _ = h.Write(content)
@@ -263,16 +249,15 @@ type Ref struct {
 
 func (r Ref) String() string { return r.Kind + "." + r.Name }
 
-// Attrs is the bag of attribute name -> value pairs attached to a
-// Resource, an inventory entry, or anything attr-shaped that crosses
-// the engine API. The same shape carries the full declared set on a
-// Resource and the identity-projected subset stored in the inventory;
-// the call site's variable name picks which flavor.
+// Attrs holds attribute name -> value pairs. The same shape carries
+// the full declared set on a Resource and the identity-projected
+// subset stored in the inventory; call-site variable name picks
+// which flavor.
 type Attrs map[string]string
 
-// Resource is one parsed top-level block. Attrs holds literal values
-// resolved at parse time; ref-bearing attrs live in pending until the
-// resolve phase folds them back into Attrs.
+// Resource is one parsed block. Attrs holds literal values resolved
+// at parse time; ref-bearing attrs live in pending until resolve
+// folds them back into Attrs.
 type Resource struct {
 	Kind  string
 	Name  string
@@ -285,9 +270,8 @@ type Resource struct {
 
 func (r Resource) Ref() Ref { return Ref{Kind: r.Kind, Name: r.Name} }
 
-// Has reports whether the resource declared name, either as a literal
-// attr already folded into Attrs or as a still-pending resolvable.
-// Validate runs before resolve, so either source counts.
+// Has reports whether the resource declared name. Validate runs
+// before resolve, so pending counts too.
 func (r Resource) Has(name string) bool {
 	if _, ok := r.Attrs[name]; ok {
 		return true
@@ -296,15 +280,12 @@ func (r Resource) Has(name string) bool {
 	return ok
 }
 
-// resolvable is the language-agnostic shape of a deferred attr value.
-// HCL's impl lives in hcl.go; swapping the language replaces that
-// file without touching the rest of the engine.
+// resolvable is the language-agnostic shape of a deferred attr
+// value.
 type resolvable interface {
 	Resolve(store []resolvedRef) (string, error)
 }
 
-// resolvedRef is one entry in the resolve store: a Ref plus the
-// resource's already-folded attrs.
 type resolvedRef struct {
 	Ref   Ref
 	Attrs Attrs
@@ -313,8 +294,7 @@ type resolvedRef struct {
 // Validate
 // -----------------------------------------------------------------------------
 
-// validate aggregates so the operator sees every fault in one pass
-// instead of trickling them in one reconcile at a time.
+// validate aggregates so the operator sees every fault at once.
 func validate(resources []Resource) error {
 	var errs []error
 	known := make(map[Ref]bool, len(resources))
@@ -345,9 +325,9 @@ func validateOne(r Resource) error {
 // Resolve
 // -----------------------------------------------------------------------------
 
-// resolve topo-sorts then folds ref-bearing attrs in dependency
-// order. Cycles, unknown refs, and type mismatches at eval time are
-// snapshot-level faults; runtime failure of an upstream apply is not.
+// resolve folds ref-bearing attrs in dependency order. Cycles,
+// unknown refs, and type mismatches at eval time are snapshot-level
+// faults; runtime failure of an upstream apply is not.
 func resolve(resources []Resource) ([]Resource, error) {
 	sorted, err := topoSortResources(resources)
 	if err != nil {
@@ -376,10 +356,9 @@ func resolve(resources []Resource) ([]Resource, error) {
 // Apply
 // -----------------------------------------------------------------------------
 
-// applyAll iterates the snapshot. When bo is non-nil, resources past
-// a previous failure get skipped until their backoff expires; success
-// clears the entry, failure extends it. Pass nil for one-shot Apply
-// (no retry pressure to absorb).
+// applyAll iterates the snapshot. When bo is non-nil, failing
+// resources get skipped until their backoff expires. Pass nil for
+// one-shot Apply.
 func applyAll(ctx context.Context, resources []Resource, inv *Inventory, log Log, bo *backoff) error {
 	var errs []error
 	now := time.Now()
@@ -396,9 +375,8 @@ func applyAll(ctx context.Context, resources []Resource, inv *Inventory, log Log
 		}
 		bo.success(ref)
 		if err := log.Err(); err != nil {
-			// Action log went broken mid-pass. Aborting now keeps the
-			// audit gap to a single resource instead of running 9
-			// more without recording them.
+			// Aborting on sink failure caps the audit gap at one
+			// resource instead of acting without recording.
 			errs = append(errs, err)
 			return errors.Join(errs...)
 		}
@@ -409,8 +387,7 @@ func applyAll(ctx context.Context, resources []Resource, inv *Inventory, log Log
 // Backoff
 // -----------------------------------------------------------------------------
 
-// backoff tracks per-Ref retry deadlines. Methods are nil-safe so
-// Apply can pass nil and the loop can pass a real one.
+// backoff tracks per-Ref retry deadlines. Methods are nil-safe.
 type backoff struct {
 	entries map[Ref]*backoffEntry
 }
@@ -523,9 +500,8 @@ func refsToString(refs []Ref) string {
 }
 
 // destroyAll walks orphans in reverse-topo order (dependents before
-// their deps) and destroys each via its Kind. Shares the same backoff
-// state as applyAll so a flapping resource is paced the same way
-// whether it's failing apply or failing destroy.
+// deps). Shares backoff with applyAll so a flapping resource is
+// paced the same whether it's failing apply or destroy.
 func destroyAll(ctx context.Context, refs []Ref, inv *Inventory, log Log, bo *backoff) error {
 	var errs []error
 	now := time.Now()

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// HCL frontend: parses *.hcl into Resources and implements the
-// engine.resolvable interface via hclResolvable. All HCL+cty types
-// stay in this file; engine.go imports neither.
+// HCL+cty types stay in this file; engine.go imports neither.
 
 package engine
 
@@ -137,9 +135,8 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 	}, nil
 }
 
-// refsFromExpr collects kind.name refs from a traversal. Anything
-// past the kind.name prefix stays in the HCL expression and gets
-// evaluated against the resolve store later.
+// refsFromExpr collects kind.name refs from an expression. Anything
+// past the kind.name prefix stays in the expression for later eval.
 func refsFromExpr(expr hclsyntax.Expression) []Ref {
 	seen := map[Ref]bool{}
 	var refs []Ref
@@ -190,8 +187,7 @@ func (h hclResolvable) Resolve(store []resolvedRef) (string, error) {
 	return val.AsString(), nil
 }
 
-// buildEvalContext shapes the store into HCL's kind.name.attr scope:
-// vars[kind] is an object whose members are name -> object(attrs).
+// buildEvalContext shapes the store into HCL's kind.name.attr scope.
 func buildEvalContext(store []resolvedRef) *hcl.EvalContext {
 	byKind := map[string]map[string]cty.Value{}
 	for _, e := range store {

@@ -13,7 +13,6 @@ import (
 	"syscall"
 )
 
-// New returns the Unix Platform implementation (Linux, Darwin, BSD).
 func New() Platform {
 	return Platform{
 		Signals:   unixSignals{},
@@ -30,9 +29,6 @@ func (unixSignals) ShutdownContext(parent context.Context) (context.Context, con
 
 type unixPaths struct{}
 
-// ActionLogDir: root gets /var/lib/scampi/actionlog; everyone else
-// gets $XDG_STATE_HOME/scampi/actionlog with the standard XDG
-// fallback to $HOME/.local/state.
 func (unixPaths) ActionLogDir() (string, error) {
 	if os.Geteuid() == 0 {
 		return "/var/lib/scampi/actionlog", nil

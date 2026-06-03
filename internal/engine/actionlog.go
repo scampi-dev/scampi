@@ -16,15 +16,12 @@ import (
 	"time"
 )
 
-// ActionLog writes lifecycle events as JSONL to a segmented directory.
-// log.* codes get filtered so the action log stays the stable
-// machine-readable stream. Concurrent writers are prevented by the
-// CLI's single-instance port bind at startup.
+// ActionLog writes lifecycle events as JSONL to a segmented dir.
+// log.* codes get filtered out so the on-disk stream stays the
+// stable machine-readable record.
 //
-// failed is sticky: the first Encode or Sync error captures here and
-// every subsequent Emit short-circuits. The engine polls Err() so it
-// can abort the reconcile pass on first failure instead of acting
-// without recording.
+// failed is sticky: the first Encode or Sync error captures here
+// and every subsequent Emit short-circuits.
 type ActionLog struct {
 	mu     sync.Mutex
 	f      *os.File
@@ -77,8 +74,8 @@ func (a *ActionLog) Emit(_ context.Context, code Code, ref *Ref, args ...any) {
 	if a.failed != nil {
 		return
 	}
-	// fsync after each event so a crash mid-tick leaves no buffered
-	// events stranded; replay sees exactly what disk has.
+	// fsync each event so a mid-tick crash leaves nothing buffered;
+	// replay sees exactly what disk has.
 	if err := a.enc.Encode(rec); err != nil {
 		a.failed = fmt.Errorf("action log encode: %w", err)
 		return
@@ -89,9 +86,9 @@ func (a *ActionLog) Emit(_ context.Context, code Code, ref *Ref, args ...any) {
 	}
 }
 
-// activeSegment returns the highest-numbered *.jsonl segment in dir,
-// or 0001.jsonl when the dir holds none. 4-digit zero padding makes
-// lexical sort match numeric sort up to 9999 segments.
+// activeSegment returns the highest-numbered *.jsonl segment in dir.
+// 4-digit zero padding makes lexical sort match numeric sort up to
+// 9999 segments.
 func activeSegment(dir string) (string, error) {
 	matches, err := filepath.Glob(filepath.Join(dir, "*.jsonl"))
 	if err != nil {
@@ -104,9 +101,8 @@ func activeSegment(dir string) (string, error) {
 	return matches[len(matches)-1], nil
 }
 
-// LoadInventory replays *.jsonl segments under dir in lexical order
-// and folds the events into a fresh Inventory. A missing or empty
-// dir yields an empty inventory.
+// LoadInventory folds the JSONL segments under dir into a fresh
+// inventory. Missing or empty dir yields an empty one.
 func LoadInventory(dir string) (*Inventory, error) {
 	inv := NewInventory()
 	segments, err := filepath.Glob(filepath.Join(dir, "*.jsonl"))

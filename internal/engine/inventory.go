@@ -8,12 +8,8 @@ import (
 	"strings"
 )
 
-// Inventory is the set of refs scampi currently manages, along with
-// the attrs needed to destroy each one and the deps recorded at apply
-// time (used to order destroys: reverse of apply order means a file
-// inside a dir gets removed before its parent). Built up by Fold over
-// an event stream (action log replay) or by direct Add/Remove during
-// reconcile. Not safe for concurrent use.
+// Inventory tracks the refs scampi manages and the data needed to
+// destroy them. Not safe for concurrent use.
 type Inventory struct {
 	entries map[Ref]inventoryEntry
 }
@@ -41,9 +37,7 @@ func (i *Inventory) Has(ref Ref) bool {
 	return ok
 }
 
-// Get returns copies of the stored attrs and deps so callers can pass
-// them onward (e.g. into Kind.Destroy) without holding a handle to the
-// inventory's internal state.
+// Get returns defensive copies of the stored attrs and deps.
 func (i *Inventory) Get(ref Ref) (attrs Attrs, deps []Ref, ok bool) {
 	e, ok := i.entries[ref]
 	if !ok {
@@ -52,8 +46,7 @@ func (i *Inventory) Get(ref Ref) (attrs Attrs, deps []Ref, ok bool) {
 	return maps.Clone(e.attrs), slices.Clone(e.deps), true
 }
 
-// Orphans returns the inventory entries whose refs are not in the
-// declared set. Those are the resources the reconciler should destroy.
+// Orphans returns refs in the inventory but not in declared.
 func (i *Inventory) Orphans(declared []Resource) []Ref {
 	declaredSet := make(map[Ref]bool, len(declared))
 	for _, r := range declared {
@@ -68,10 +61,8 @@ func (i *Inventory) Orphans(declared []Resource) []Ref {
 	return orphans
 }
 
-// Fold integrates one event into the inventory. Unknown codes are
-// ignored so the projection survives future code additions. `deps`
-// is pulled out of the attrs as a comma-separated `kind.name,...`
-// string; missing or empty means no deps.
+// Fold integrates one event. Unknown codes are ignored so the
+// projection survives new code additions.
 func (i *Inventory) Fold(code Code, ref Ref, attrs Attrs) {
 	switch code {
 	case CodeApplySuccess:

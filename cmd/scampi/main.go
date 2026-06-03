@@ -20,25 +20,19 @@ import (
 	"scampi.dev/scampi/internal/platform"
 )
 
-// instanceAddr is the loopback address scampi binds at startup to
-// guarantee a single instance per host. Binding succeeds atomically
-// for exactly one process; subsequent processes get "address already
-// in use" and exit. The port doubles as the future gossip listener
-// when the mesh layer lands. 0xFEED (65261) is high in the IANA
-// dynamic range so ephemeral collisions are rare.
+// instanceAddr is the loopback bind that gates single-instance per
+// host. 0xFEED (65261) is high in the IANA dynamic range so
+// ephemeral collisions are rare.
 const instanceAddr = "127.0.0.1:65261"
 
-// helpTemplate renders the full --help output: tagline (Long or
-// Short) above the usage block. Clone of cobra's default with the
-// tagline routed through our `tagline` func for color.
+// helpTemplate is cobra's default with the tagline routed through
+// the `tagline` func for color.
 const helpTemplate = `{{with (or .Long .Short)}}{{tagline (. | trimTrailingWhitespaces)}}
 
 {{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-// usageTemplate renders cobra help with our basic-ANSI palette when
-// stdout is a tty; falls back to plain text in pipes/redirects.
-// Section headers in yellow+bold, command names in cyan, flag names
-// in green (descriptions stay plain).
+// usageTemplate routes section headers, command names, and flag
+// names through color funcs.
 const usageTemplate = `{{header "Usage:"}}{{if .Runnable}}
   {{cmdName .UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{cmdName .CommandPath}} {{cmdName "[command]"}}{{end}}{{if gt (len .Aliases) 0}}
@@ -61,25 +55,21 @@ const usageTemplate = `{{header "Usage:"}}{{if .Runnable}}
 Use "{{cmdName (printf "%s [command] --help" .CommandPath)}}" for more information about a command.{{end}}
 `
 
-// cobraColored controls whether the help template funcs emit ANSI
-// escapes. main flips it per render target so --help to stdout and
-// usage on stderr each follow their own tty.
+// cobraColored gates ANSI from the help template funcs. main flips
+// it per render target.
 var cobraColored bool
 
-// colorMode is the parsed value of the --color flag. Package-level so
-// decideColor can be called from main() and from the help hook before
-// any closure'd state would exist. Defaulted to "auto" so pre-parse
-// reads (e.g. very early panics) get sensible behavior.
+// colorMode mirrors --color. Package-level so decideColor reaches
+// it from main and from the help hook.
 var colorMode = "auto"
 
-// runtimeReached flips to true once cobra has finished parsing flags
-// and validating args. Errors after that point are runtime failures
-// (lock contention, file write, ...) and don't earn the usage block.
+// runtimeReached flips to true once cobra has parsed flags and args.
+// Errors after that point don't earn the usage block.
 var runtimeReached bool
 
-// flagLineRe captures the flag-name + type prefix on one line of
-// pflag's FlagUsages output. Groups: leading indent, flag prefix
-// (possibly with short alias and type), spacing, description.
+// flagLineRe captures one pflag FlagUsages line. Groups: leading
+// indent, flag prefix (optional short alias + type), spacing,
+// description.
 var flagLineRe = regexp.MustCompile(`^(\s+)((?:-\S, )?--\S+(?: \S+)?)(\s+)(.*)$`)
 
 func registerCobraHelpFuncs() {
@@ -124,8 +114,7 @@ func main() {
 	case err == nil:
 		return
 	case errors.Is(err, engine.ErrSnapshotRejected):
-		// Engine already emitted snapshot.rejected via the log; we
-		// just translate it to an exit code here.
+		// Engine already emitted snapshot.rejected; just exit-code.
 		os.Exit(2)
 	case errors.Is(err, engine.ErrApplyFailed):
 		os.Exit(1)
@@ -141,8 +130,7 @@ func main() {
 			// Runtime failure - usage block is noise.
 			_, _ = fmt.Fprintln(os.Stderr, errLine)
 		} else {
-			// CLI-level failure (bad args, unknown flag): show usage
-			// for the command the user was actually trying to run.
+			// CLI-level failure: show usage for the leaf command.
 			cmd.InitDefaultHelpFlag()
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n\n%s", errLine, cmd.UsageString())
 		}
@@ -172,19 +160,16 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			// Validate --color BEFORE marking runtimeReached so a bad
-			// value gets the usage block treatment, like other CLI
-			// mistakes.
+			// Validate --color BEFORE runtimeReached so a bad value
+			// gets the usage block treatment.
 			switch colorMode {
 			case "auto", "always", "never":
 			default:
 				return fmt.Errorf("invalid --color value %q; want auto|always|never", colorMode)
 			}
 			runtimeReached = true
-			// Single-instance enforcement: the bind succeeds for
-			// exactly one process per host. Concurrent reconciles
-			// can't race because the second scampi never gets past
-			// here.
+			// Single-instance: bind succeeds for exactly one process
+			// per host; the second scampi never gets past here.
 			l, err := net.Listen("tcp", instanceAddr)
 			if err != nil {
 				return fmt.Errorf("another scampi is already running on this host (could not bind %s)", instanceAddr)
@@ -216,10 +201,9 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 	root.PersistentFlags().StringVar(&colorMode, "color", "auto",
 		"colored output: auto|always|never (also honors SCAMPI_COLOR and NO_COLOR env vars)")
 
-	// Help output uses the same color decision as the rest of scampi.
 	// SetHelpFunc fires after flag parsing but before the template
-	// renders, so colorMode is current by the time we sample it.
-	// Children inherit this hook.
+	// renders, so colorMode is current when we sample it. Children
+	// inherit the hook.
 	defaultHelp := root.HelpFunc()
 	root.SetHelpFunc(func(cmd *cobra.Command, args []string) {
 		cobraColored = decideColor(colorMode, os.Stdout)

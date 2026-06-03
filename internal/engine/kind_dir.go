@@ -48,9 +48,8 @@ func (dirKind) Apply(ctx context.Context, r Resource, log Log) error {
 	return nil
 }
 
-// Destroy uses os.Remove, which refuses non-empty directories. That
-// refusal becomes destroy.failed and the orphan stays in the inventory
-// until the operator either clears the dir or accepts manual cleanup.
+// Destroy uses os.Remove, which refuses non-empty directories.
+// Non-empty stays orphaned until the operator clears it.
 func (dirKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error {
 	path := attrs["path"]
 	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {

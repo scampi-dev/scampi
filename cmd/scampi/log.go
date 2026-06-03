@@ -14,8 +14,8 @@ import (
 	"scampi.dev/scampi/internal/engine"
 )
 
-// Basic 8/16 ANSI escapes used by slogHandler. Stay in this palette
-// so the operator's terminal theme decides the actual shades.
+// Basic 8/16 ANSI only so the operator's terminal theme decides the
+// actual shades.
 const (
 	ansiDim    = "\x1b[2m"
 	ansiUndim  = "\x1b[22m"
@@ -29,9 +29,9 @@ const (
 	ansiReset  = "\x1b[39m"
 )
 
-// slogEmitter renders every emission through slog: log.* codes map
-// to the matching level and pull "msg" out as the message; lifecycle
-// codes use the code itself as the message.
+// slogEmitter renders every emission through slog. log.* codes
+// take their message from the "msg" key; lifecycle codes use the
+// code itself.
 type slogEmitter struct {
 	l *slog.Logger
 }
@@ -70,8 +70,6 @@ func slogLevel(c engine.Code) slog.Level {
 	}
 }
 
-// popMsg extracts the leading "msg":<string> pair injected by the
-// Log struct's Debug/Info/Warn/Error helpers.
 func popMsg(args []any) (string, []any) {
 	if len(args) >= 2 {
 		if k, ok := args[0].(string); ok && k == "msg" {
@@ -86,12 +84,6 @@ func popMsg(args []any) (string, []any) {
 // slogHandler renders each slog record as a single line:
 //
 //	TIME LVL message key=value ...
-//
-// When colored: console-slog-ish styling. Debug lines are fully dim
-// (except cyan attr keys); Info is plain text with a green level
-// keyword and dim timestamp; Warn / Error get bold yellow / red
-// messages. Basic 8/16 ANSI only so the operator's terminal theme
-// decides actual shades.
 type slogHandler struct {
 	out     io.Writer
 	colored bool
@@ -135,8 +127,6 @@ func (h *slogHandler) Handle(_ context.Context, r slog.Record) error {
 	return err
 }
 
-// levelTagAndMsg returns the styled level keyword and message for
-// the per-element (non-debug) rendering path.
 func levelTagAndMsg(l slog.Level, msg string) (string, string) {
 	switch {
 	case l >= slog.LevelError:
@@ -183,7 +173,6 @@ func decideColor(mode string, w *os.File) bool {
 	return isatty.IsTerminal(w.Fd())
 }
 
-// fanoutEmitter fans every emission out to each Emitter in order.
 type fanoutEmitter []engine.Emitter
 
 func (f fanoutEmitter) Emit(ctx context.Context, code engine.Code, ref *engine.Ref, args ...any) {
@@ -192,9 +181,6 @@ func (f fanoutEmitter) Emit(ctx context.Context, code engine.Code, ref *engine.R
 	}
 }
 
-// Err returns the first non-nil sticky error across the fanned-out
-// sinks. The action log's sticky failure shows up here first; slog
-// always reports nil.
 func (f fanoutEmitter) Err() error {
 	for _, e := range f {
 		if err := e.Err(); err != nil {

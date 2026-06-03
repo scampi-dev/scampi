@@ -63,7 +63,6 @@ func topoSort(refs []Ref, depsOf func(Ref) []Ref) ([]Ref, error) {
 	return out, nil
 }
 
-// topoSortResources wraps topoSort for the snapshot apply path.
 func topoSortResources(resources []Resource) ([]Resource, error) {
 	refs := make([]Ref, len(resources))
 	byRef := make(map[Ref]Resource, len(resources))
@@ -84,11 +83,9 @@ func topoSortResources(resources []Resource) ([]Resource, error) {
 	return out, nil
 }
 
-// destroyOrder sorts orphans so dependents come before their deps
-// (file before its parent dir). Uses topoSort with the inventory's
-// recorded deps and reverses the apply order. A cycle here is taken
-// as defensive fallback - validate catches cycles in declared state,
-// so the inventory shouldn't carry one.
+// destroyOrder sorts orphans so dependents come before their deps:
+// reverse of apply order. A cycle here is defensive fallback;
+// validate catches cycles in declared state.
 func destroyOrder(orphans []Ref, inv *Inventory) []Ref {
 	sorted, err := topoSort(orphans, func(r Ref) []Ref {
 		_, deps, _ := inv.Get(r)
