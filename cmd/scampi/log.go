@@ -161,15 +161,26 @@ func levelStr(l slog.Level) string {
 	}
 }
 
+// decideColor resolves the final color decision in this priority:
+//
+//  1. --color=always or SCAMPI_COLOR=always wins everything. Both are
+//     intentional opt-ins; --color=always is per invocation,
+//     SCAMPI_COLOR=always is per user. Either beats NO_COLOR.
+//  2. NO_COLOR (any non-empty value) disables - per no-color.org.
+//  3. --color=never or SCAMPI_COLOR=never disables.
+//  4. Otherwise: tty detect on the target writer.
 func decideColor(mode string, w *os.File) bool {
-	switch mode {
-	case "always":
+	env := os.Getenv("SCAMPI_COLOR")
+	if mode == "always" || env == "always" {
 		return true
-	case "never":
-		return false
-	default: // auto and any unknown value
-		return isatty.IsTerminal(w.Fd())
 	}
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+	if mode == "never" || env == "never" {
+		return false
+	}
+	return isatty.IsTerminal(w.Fd())
 }
 
 // fanoutEmitter fans every emission out to each Emitter in order.

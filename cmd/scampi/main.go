@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
 	"scampi.dev/scampi/internal/engine"
@@ -67,6 +66,12 @@ Use "{{cmdName (printf "%s [command] --help" .CommandPath)}}" for more informati
 // usage on stderr each follow their own tty.
 var cobraColored bool
 
+// colorMode is the parsed value of the --color flag. Package-level so
+// decideColor can be called from main() and from the help hook before
+// any closure'd state would exist. Defaulted to "auto" so pre-parse
+// reads (e.g. very early panics) get sensible behavior.
+var colorMode = "auto"
+
 // runtimeReached flips to true once cobra has finished parsing flags
 // and validating args. Errors after that point are runtime failures
 // (lock contention, file write, ...) and don't earn the usage block.
@@ -107,7 +112,7 @@ func registerCobraHelpFuncs() {
 
 func main() {
 	registerCobraHelpFuncs()
-	cobraColored = isatty.IsTerminal(os.Stdout.Fd())
+	cobraColored = decideColor(colorMode, os.Stdout)
 	plat := platform.New()
 	ctx, stop := plat.Signals.ShutdownContext(context.Background())
 	defer stop()
@@ -126,7 +131,7 @@ func main() {
 		os.Exit(1)
 	default:
 		// Error path writes to stderr; color decision follows stderr.
-		errColored := isatty.IsTerminal(os.Stderr.Fd())
+		errColored := decideColor(colorMode, os.Stderr)
 		cobraColored = errColored
 		errLine := fmt.Sprintf("Error: %s", err)
 		if errColored {
@@ -148,7 +153,6 @@ func main() {
 func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 	var (
 		actionLogPath string
-		colorMode     string
 		actLog        *engine.ActionLog
 		inv           *engine.Inventory
 		instance      net.Listener
@@ -168,6 +172,14 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
+			// Validate --color BEFORE marking runtimeReached so a bad
+			// value gets the usage block treatment, like other CLI
+			// mistakes.
+			switch colorMode {
+			case "auto", "always", "never":
+			default:
+				return fmt.Errorf("invalid --color value %q; want auto|always|never", colorMode)
+			}
 			runtimeReached = true
 			// Single-instance enforcement: the bind succeeds for
 			// exactly one process per host. Concurrent reconciles
@@ -202,7 +214,17 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 	root.PersistentFlags().StringVar(&actionLogPath, "action-log", "",
 		"action log directory (default: $XDG_STATE_HOME/scampi/actionlog, or /var/lib/scampi/actionlog as root)")
 	root.PersistentFlags().StringVar(&colorMode, "color", "auto",
-		"colored output: auto|always|never")
+		"colored output: auto|always|never (also honors SCAMPI_COLOR and NO_COLOR env vars)")
+
+	// Help output uses the same color decision as the rest of scampi.
+	// SetHelpFunc fires after flag parsing but before the template
+	// renders, so colorMode is current by the time we sample it.
+	// Children inherit this hook.
+	defaultHelp := root.HelpFunc()
+	root.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		cobraColored = decideColor(colorMode, os.Stdout)
+		defaultHelp(cmd, args)
+	})
 
 	apply := &cobra.Command{
 		Use:           "apply <dir>",
