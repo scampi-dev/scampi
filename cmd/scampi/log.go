@@ -41,11 +41,11 @@ func (s slogEmitter) Emit(ctx context.Context, code engine.Code, ref *engine.Ref
 		msg  string
 		rest []any
 	)
-	if engine.IsLogCode(code) {
-		msg, rest = popMsg(args)
-	} else {
+	if code.IsLifecycle() {
 		msg = string(code)
 		rest = args
+	} else {
+		msg, rest = popMsg(args)
 	}
 	kv := make([]any, 0, len(rest)+2)
 	if ref != nil {

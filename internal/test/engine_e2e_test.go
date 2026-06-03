@@ -114,10 +114,9 @@ func newCaptureLog() (engine.Log, *captureEmitter) {
 func lifecycleOnly(events []capturedEvent) []capturedEvent {
 	out := events[:0]
 	for _, e := range events {
-		if engine.IsLogCode(e.Code) {
-			continue
+		if e.Code.IsLifecycle() {
+			out = append(out, e)
 		}
-		out = append(out, e)
 	}
 	return out
 }

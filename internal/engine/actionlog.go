@@ -55,7 +55,7 @@ func (a *ActionLog) Err() error {
 }
 
 func (a *ActionLog) Emit(_ context.Context, code Code, ref *Ref, args ...any) {
-	if IsLogCode(code) {
+	if !code.IsLifecycle() {
 		return
 	}
 	rec := map[string]any{"ts": time.Now(), "code": string(code)}

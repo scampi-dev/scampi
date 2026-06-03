@@ -40,14 +40,14 @@ const (
 	CodeLogError Code = "log.error"
 )
 
-// IsLogCode reports whether c is a convenience-logger code rather
-// than a lifecycle event.
-func IsLogCode(c Code) bool {
+// IsLifecycle reports whether c is a structural lifecycle event
+// rather than a convenience log emission.
+func (c Code) IsLifecycle() bool {
 	switch c {
 	case CodeLogDebug, CodeLogInfo, CodeLogWarn, CodeLogError:
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 // Emitter is the sink contract. Err is sticky: once a sink fails it
