@@ -58,6 +58,11 @@ Use "{{cmdName (printf "%s [command] --help" .CommandPath)}}" for more informati
 // usage on stderr each follow their own tty.
 var cobraColored bool
 
+// runtimeReached flips to true once cobra has finished parsing flags
+// and validating args. Errors after that point are runtime failures
+// (lock contention, file write, ...) and don't earn the usage block.
+var runtimeReached bool
+
 // flagLineRe captures the flag-name + type prefix on one line of
 // pflag's FlagUsages output. Groups: leading indent, flag prefix
 // (possibly with short alias and type), spacing, description.
@@ -111,18 +116,22 @@ func main() {
 	case errors.Is(err, engine.ErrApplyFailed):
 		os.Exit(1)
 	default:
-		// Error path writes to stderr, so the color decision for
-		// both the Error line and the usage block follows stderr.
+		// Error path writes to stderr; color decision follows stderr.
 		errColored := isatty.IsTerminal(os.Stderr.Fd())
 		cobraColored = errColored
 		errLine := fmt.Sprintf("Error: %s", err)
 		if errColored {
 			errLine = ansiRed + errLine + ansiReset
 		}
-		// Help flag is normally added inside execute(), which the
-		// error path bypassed; init it so it shows up in the usage.
-		cmd.InitDefaultHelpFlag()
-		_, _ = fmt.Fprintf(os.Stderr, "%s\n\n%s", errLine, cmd.UsageString())
+		if runtimeReached {
+			// Runtime failure - usage block is noise.
+			_, _ = fmt.Fprintln(os.Stderr, errLine)
+		} else {
+			// CLI-level failure (bad args, unknown flag): show usage
+			// for the command the user was actually trying to run.
+			cmd.InitDefaultHelpFlag()
+			_, _ = fmt.Fprintf(os.Stderr, "%s\n\n%s", errLine, cmd.UsageString())
+		}
 		os.Exit(1)
 	}
 }
@@ -149,6 +158,7 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
+			runtimeReached = true
 			path := actionLogPath
 			if path == "" {
 				d, err := plat.Paths.ActionLogDir()
