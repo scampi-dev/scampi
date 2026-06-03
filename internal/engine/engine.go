@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -320,7 +321,7 @@ func hasAttr(r Resource, name string) bool {
 // order. Cycles, unknown refs, and type mismatches at eval time are
 // snapshot-level faults; runtime failure of an upstream apply is not.
 func resolve(resources []Resource) ([]Resource, error) {
-	sorted, err := topoSort(resources)
+	sorted, err := topoSortResources(resources)
 	if err != nil {
 		return nil, err
 	}
@@ -344,52 +345,77 @@ func resolve(resources []Resource) ([]Resource, error) {
 	return sorted, nil
 }
 
-// topoSort uses Kahn's algorithm. Ties preserve input order so output
-// is stable across runs.
-func topoSort(resources []Resource) ([]Resource, error) {
-	byRef := make(map[Ref]int, len(resources))
-	for i, r := range resources {
-		byRef[r.Ref()] = i
+// topoSort runs Kahn's algorithm on a ref set with a per-ref dep
+// lookup. Edges pointing outside the input set are ignored, so the
+// result for orphan subsets is still well-defined. Ties preserve
+// input order so output is stable across runs.
+func topoSort(refs []Ref, depsOf func(Ref) []Ref) ([]Ref, error) {
+	refSet := make(map[Ref]bool, len(refs))
+	for _, r := range refs {
+		refSet[r] = true
 	}
-	indeg := make([]int, len(resources))
-	dependents := make(map[int][]int, len(resources))
-	for i, r := range resources {
-		for _, dep := range r.deps {
-			j, ok := byRef[dep]
-			if !ok {
+	indeg := make(map[Ref]int, len(refs))
+	dependents := make(map[Ref][]Ref, len(refs))
+	for _, r := range refs {
+		indeg[r] = 0
+	}
+	for _, r := range refs {
+		for _, dep := range depsOf(r) {
+			if !refSet[dep] {
 				continue
 			}
-			indeg[i]++
-			dependents[j] = append(dependents[j], i)
+			indeg[r]++
+			dependents[dep] = append(dependents[dep], r)
 		}
 	}
-	queue := make([]int, 0, len(resources))
-	for i, d := range indeg {
-		if d == 0 {
-			queue = append(queue, i)
+	queue := make([]Ref, 0, len(refs))
+	for _, r := range refs {
+		if indeg[r] == 0 {
+			queue = append(queue, r)
 		}
 	}
-	out := make([]Resource, 0, len(resources))
+	out := make([]Ref, 0, len(refs))
 	for len(queue) > 0 {
-		i := queue[0]
+		r := queue[0]
 		queue = queue[1:]
-		out = append(out, resources[i])
-		for _, j := range dependents[i] {
-			indeg[j]--
-			if indeg[j] == 0 {
-				queue = append(queue, j)
+		out = append(out, r)
+		for _, d := range dependents[r] {
+			indeg[d]--
+			if indeg[d] == 0 {
+				queue = append(queue, d)
 			}
 		}
 	}
-	if len(out) != len(resources) {
+	if len(out) != len(refs) {
 		var cyclic []string
-		for i, d := range indeg {
-			if d > 0 {
-				cyclic = append(cyclic, resources[i].Ref().String())
+		for _, r := range refs {
+			if indeg[r] > 0 {
+				cyclic = append(cyclic, r.String())
 			}
 		}
 		sort.Strings(cyclic)
 		return nil, fmt.Errorf("dependency cycle: %s", strings.Join(cyclic, ", "))
+	}
+	return out, nil
+}
+
+// topoSortResources wraps topoSort for the snapshot apply path.
+func topoSortResources(resources []Resource) ([]Resource, error) {
+	refs := make([]Ref, len(resources))
+	byRef := make(map[Ref]Resource, len(resources))
+	for i, r := range resources {
+		refs[i] = r.Ref()
+		byRef[r.Ref()] = r
+	}
+	sorted, err := topoSort(refs, func(r Ref) []Ref {
+		return byRef[r].deps
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Resource, len(sorted))
+	for i, r := range sorted {
+		out[i] = byRef[r]
 	}
 	return out, nil
 }
@@ -500,23 +526,53 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 		return nil
 	}
 	path := r.Attrs["path"]
-	log.Emit(ctx, CodeApplySuccess, &ref, "path", path)
-	inv.Add(ref, map[string]string{"path": path})
+	depsStr := refsToString(r.deps)
+	log.Emit(ctx, CodeApplySuccess, &ref, "path", path, "deps", depsStr)
+	inv.Add(ref, map[string]string{"path": path}, r.deps)
 	return nil
 }
 
-// destroyAll walks orphan refs and destroys each via its Kind. Shares
-// the same backoff state as applyAll so a flapping resource is paced
-// the same way whether it's failing apply or failing destroy.
+func refsToString(refs []Ref) string {
+	if len(refs) == 0 {
+		return ""
+	}
+	parts := make([]string, len(refs))
+	for i, r := range refs {
+		parts[i] = r.String()
+	}
+	return strings.Join(parts, ",")
+}
+
+// destroyOrder sorts orphans so dependents come before their deps
+// (file before its parent dir). Uses topoSortRefs with the inventory's
+// recorded deps and reverses the apply order. A cycle here is taken
+// as defensive fallback - validate catches cycles in declared state,
+// so the inventory shouldn't carry one.
+func destroyOrder(orphans []Ref, inv *Inventory) []Ref {
+	sorted, err := topoSort(orphans, func(r Ref) []Ref {
+		_, deps, _ := inv.Get(r)
+		return deps
+	})
+	if err != nil {
+		return slices.Clone(orphans)
+	}
+	slices.Reverse(sorted)
+	return sorted
+}
+
+// destroyAll walks orphans in reverse-topo order (dependents before
+// their deps) and destroys each via its Kind. Shares the same backoff
+// state as applyAll so a flapping resource is paced the same way
+// whether it's failing apply or failing destroy.
 func destroyAll(ctx context.Context, refs []Ref, inv *Inventory, log Log, bo *backoff) error {
 	var errs []error
 	now := time.Now()
-	for _, ref := range refs {
+	for _, ref := range destroyOrder(refs, inv) {
 		if !bo.due(ref, now) {
 			log.Debug(ctx, "backoff skip", "ref", ref, "until", bo.entries[ref].nextRetry)
 			continue
 		}
-		attrs, ok := inv.Get(ref)
+		attrs, _, ok := inv.Get(ref)
 		if !ok {
 			continue
 		}

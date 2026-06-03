@@ -480,7 +480,7 @@ file "bad" {
 
 func TestInventory_OrphansNone(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "a"}, map[string]string{"path": "/a"})
+	inv.Add(engine.Ref{Kind: "file", Name: "a"}, map[string]string{"path": "/a"}, nil)
 	declared := []engine.Resource{{Kind: "file", Name: "a"}}
 	if got := inv.Orphans(declared); len(got) != 0 {
 		t.Errorf("orphans = %+v, want empty", got)
@@ -489,7 +489,7 @@ func TestInventory_OrphansNone(t *testing.T) {
 
 func TestInventory_OrphansOne(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, map[string]string{"path": "/g"})
+	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, map[string]string{"path": "/g"}, nil)
 	got := inv.Orphans(nil)
 	want := engine.Ref{Kind: "file", Name: "gone"}
 	if len(got) != 1 || got[0] != want {
@@ -519,8 +519,8 @@ func TestInventory_FoldApplyThenDestroy(t *testing.T) {
 // to-end.
 func TestRun_DestroysOrphan(t *testing.T) {
 	tmp := t.TempDir()
-	fileTarget := filepath.Join(tmp, "ephemeral.txt")
-	dirTarget := filepath.Join(tmp, "ephemeral_dir")
+	dirTarget := filepath.Join(tmp, "outdir")
+	fileTarget := filepath.Join(dirTarget, "out.txt")
 	cfg := t.TempDir()
 	hclPath := filepath.Join(cfg, "main.hcl")
 	writeHCL := func(content string) {
@@ -529,13 +529,16 @@ func TestRun_DestroysOrphan(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// file.x depends on dir.y by referencing dir.y.path. That edge is
+	// what destroyOrder uses to remove the file before its parent dir
+	// in a single tick.
 	writeHCL(`
-file "x" {
-  path    = "` + fileTarget + `"
-  content = "alive"
-}
 dir "y" {
   path = "` + dirTarget + `"
+}
+file "x" {
+  path    = "${dir.y.path}/out.txt"
+  content = "alive"
 }
 `)
 
@@ -564,6 +567,30 @@ dir "y" {
 	}
 	if _, err := os.Stat(dirTarget); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("expected %s absent after orphan destroy; got %v", dirTarget, err)
+	}
+
+	// file destroy must come before dir destroy (otherwise dir is non-
+	// empty and the destroy fails on the first attempt, taking a second
+	// tick to converge).
+	fileRef := engine.Ref{Kind: "file", Name: "x"}
+	dirRef := engine.Ref{Kind: "dir", Name: "y"}
+	var fileAt, dirAt int
+	for i, e := range lifecycleOnly(capture.Events()) {
+		if e.Code != engine.CodeDestroySuccess || e.Ref == nil {
+			continue
+		}
+		switch *e.Ref {
+		case fileRef:
+			fileAt = i
+		case dirRef:
+			dirAt = i
+		}
+	}
+	if fileAt == 0 || dirAt == 0 {
+		t.Fatalf("could not find destroy.success for both refs; fileAt=%d dirAt=%d", fileAt, dirAt)
+	}
+	if fileAt > dirAt {
+		t.Errorf("expected file destroy before dir destroy; fileAt=%d dirAt=%d", fileAt, dirAt)
 	}
 }
 
