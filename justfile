@@ -21,6 +21,10 @@ cross_targets   := "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/am
 [doc("Run tests")]
 mod test
 
+[group('modules')]
+[doc("Manage GitHub issues")]
+mod issue
+
 # Build
 # -----------------------------------------------------------------------------
 
@@ -81,14 +85,6 @@ lint:
 [doc("Check SPDX license headers")]
 license-check:
   @./scripts/license-check.sh
-
-# GitHub
-# -----------------------------------------------------------------------------
-
-[group('gh')]
-[doc("Push a draft markdown file (issue or comment) to GitHub")]
-@issue file:
-  ./scripts/gh-issue.sh {{file}}
 
 # Dependencies
 # -----------------------------------------------------------------------------
