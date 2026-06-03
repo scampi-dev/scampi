@@ -86,9 +86,9 @@ license-check:
 # -----------------------------------------------------------------------------
 
 [group('gh')]
-[doc("Push an issue draft (.issues/<name>.md) to GitHub")]
-@issue name:
-  ./scripts/gh-issue.sh {{name}}
+[doc("Push a draft markdown file (issue or comment) to GitHub")]
+@issue file:
+  ./scripts/gh-issue.sh {{file}}
 
 # Dependencies
 # -----------------------------------------------------------------------------

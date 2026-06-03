@@ -1,39 +1,68 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-only
 
-# gh-issue.sh - push an issue draft from .issues/<name>.md
+# gh-issue.sh - push a draft markdown file to GitHub.
 #
-# The markdown file carries YAML frontmatter with `title:` and
-# `labels:` fields. Body is everything after the second `---`.
+# The frontmatter's type field is required and decides what to do:
+#   type: issue    -> gh issue create with title + body + labels
+#   type: comment  -> gh issue comment <issue> with body
+#
+# Issue drafts carry title and labels. Comment drafts carry issue
+# (the target issue number). On success the file is deleted.
 
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
-    printf 'usage: %s <issue-name>\n' "$0" >&2
+    printf 'usage: %s <draft-file>\n' "$0" >&2
     exit 1
 fi
 
-name="$1"
-file=".issues/${name}.md"
+file="$1"
 
 if [[ ! -f "$file" ]]; then
     printf 'error: %s not found\n' "$file" >&2
     exit 1
 fi
 
-title=$(awk '/^title: / { sub(/^title: */, ""); gsub(/^"|"$/, ""); print; exit }' "$file")
-labels=$(awk '/^labels: / { sub(/^labels: */, ""); gsub(/^"|"$/, ""); print; exit }' "$file")
-body=$(awk '/^---$/{c++; next} c>=2' "$file")
+# Frontmatter scan. Default type is `issue` so legacy drafts without
+# the field keep working.
+field() {
+    awk -v key="$1" 'BEGIN{p="^" key ": "} $0 ~ p {sub(p, ""); gsub(/^"|"$/, ""); print; exit}' "$file"
+}
 
-if [[ -z "$title" ]]; then
-    printf 'error: no title in frontmatter\n' >&2
+type=$(field type)
+if [[ -z "$type" ]]; then
+    printf 'error: draft missing type field (issue or comment)\n' >&2
     exit 1
 fi
+body=$(awk '/^---$/{c++; next} c>=2' "$file")
 
-label_arg=()
-if [[ -n "$labels" ]]; then
-    label_arg=(--label "$labels")
-fi
+case "$type" in
+    comment)
+        issue=$(field issue)
+        if [[ -z "$issue" ]]; then
+            printf 'error: comment draft missing issue field\n' >&2
+            exit 1
+        fi
+        gh issue comment "$issue" --body "$body"
+        ;;
+    issue)
+        title=$(field title)
+        labels=$(field labels)
+        if [[ -z "$title" ]]; then
+            printf 'error: issue draft missing title field\n' >&2
+            exit 1
+        fi
+        label_arg=()
+        if [[ -n "$labels" ]]; then
+            label_arg=(--label "$labels")
+        fi
+        gh issue create --title "$title" --body "$body" "${label_arg[@]}"
+        ;;
+    *)
+        printf 'error: unknown draft type %q\n' "$type" >&2
+        exit 1
+        ;;
+esac
 
-gh issue create --title "$title" --body "$body" "${label_arg[@]}"
 rm "$file"
