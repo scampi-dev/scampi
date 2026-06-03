@@ -45,6 +45,8 @@ func (c *captureEmitter) Emit(_ context.Context, code engine.Code, ref *engine.R
 	}
 }
 
+func (*captureEmitter) Err() error { return nil }
+
 // Events returns a snapshot of recorded events.
 func (c *captureEmitter) Events() []capturedEvent {
 	c.mu.Lock()
@@ -662,6 +664,42 @@ file "x" {
 
 	if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("expected target absent after replay-driven destroy; got %v", err)
+	}
+}
+
+// brokenEmitter reports a sticky failure via Err. Used to verify the
+// engine aborts a reconcile pass on first action-log breakage.
+type brokenEmitter struct{ err error }
+
+func (b *brokenEmitter) Emit(context.Context, engine.Code, *engine.Ref, ...any) {}
+func (b *brokenEmitter) Err() error                                             { return b.err }
+
+// Apply must surface and propagate a sticky action-log failure rather
+// than acting blind. The wrapped emitter error must show up under
+// ErrApplyFailed so main exits cleanly.
+func TestApply_AbortsOnActionLogFailure(t *testing.T) {
+	cfg := t.TempDir()
+	tmp := t.TempDir()
+	target := filepath.Join(tmp, "f.txt")
+	if err := os.WriteFile(filepath.Join(cfg, "main.hcl"), []byte(`
+file "x" {
+  path    = "`+target+`"
+  content = "alive"
+}
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	bad := &brokenEmitter{err: errors.New("simulated action log failure")}
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.NewLog(bad))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, engine.ErrApplyFailed) {
+		t.Errorf("expected ErrApplyFailed; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "simulated action log failure") {
+		t.Errorf("expected wrapped emitter error; got %v", err)
 	}
 }
 

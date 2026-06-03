@@ -56,8 +56,14 @@ func IsLogCode(c Code) bool {
 // stderr), action (JSONL file), fanout (multiple Emitters), Discard.
 // Log itself implements Emitter by delegating to a wrapped Emitter,
 // so it can be passed wherever an Emitter is expected.
+//
+// Err returns a sticky error: once a sink fails (e.g. the action log
+// can't write or fsync), it stays failed. The reconcile loop polls
+// this between resources and aborts the pass on first failure so we
+// never act without recording.
 type Emitter interface {
 	Emit(ctx context.Context, code Code, ref *Ref, args ...any)
+	Err() error
 }
 
 // Log wraps an Emitter and adds convenience Debug/Info/Warn/Error
@@ -71,6 +77,8 @@ func NewLog(e Emitter) Log { return Log{e: e} }
 func (l Log) Emit(ctx context.Context, code Code, ref *Ref, args ...any) {
 	l.e.Emit(ctx, code, ref, args...)
 }
+
+func (l Log) Err() error { return l.e.Err() }
 
 func (l Log) Debug(ctx context.Context, msg string, args ...any) {
 	l.emitLog(ctx, CodeLogDebug, msg, args)
@@ -99,6 +107,7 @@ func (l Log) emitLog(ctx context.Context, code Code, msg string, args []any) {
 type discardEmitter struct{}
 
 func (discardEmitter) Emit(context.Context, Code, *Ref, ...any) {}
+func (discardEmitter) Err() error                               { return nil }
 
 // Discard is a Log that drops every emission.
 var Discard = NewLog(discardEmitter{})
@@ -129,6 +138,9 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 	}
 	if err := applyAll(ctx, snap, inv, log, nil); err != nil {
 		errs = append(errs, err)
+	}
+	if err := log.Err(); err != nil {
+		errs = append(errs, fmt.Errorf("action log: %w", err))
 	}
 	if len(errs) > 0 {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, errors.Join(errs...))
@@ -170,6 +182,11 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 			if err := applyAll(ctx, snap, inv, log, bo); err != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
 			}
+		}
+		// Action log failure is fatal: persistence is broken, so we
+		// stop reconciling rather than acting blind.
+		if err := log.Err(); err != nil {
+			return fmt.Errorf("action log: %w", err)
 		}
 		select {
 		case <-ctx.Done():
@@ -366,6 +383,13 @@ func applyAll(ctx context.Context, resources []Resource, inv *Inventory, log Log
 			continue
 		}
 		bo.success(ref)
+		if err := log.Err(); err != nil {
+			// Action log went broken mid-pass. Aborting now keeps the
+			// audit gap to a single resource instead of running 9
+			// more without recording them.
+			errs = append(errs, err)
+			return errors.Join(errs...)
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -490,6 +514,10 @@ func destroyAll(ctx context.Context, refs []Ref, inv *Inventory, log Log, bo *ba
 		}
 		bo.success(ref)
 		inv.Remove(ref)
+		if err := log.Err(); err != nil {
+			errs = append(errs, err)
+			return errors.Join(errs...)
+		}
 	}
 	return errors.Join(errs...)
 }

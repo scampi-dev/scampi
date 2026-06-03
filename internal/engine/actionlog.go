@@ -23,11 +23,17 @@ import (
 // machine-readable stream. The dir is held under an exclusive
 // process-level lock so two scampis pointed at the same dir can't
 // interleave writes.
+//
+// failed is sticky: the first Encode or Sync error captures here and
+// every subsequent Emit short-circuits. The engine polls Err() so it
+// can abort the reconcile pass on first failure instead of acting
+// without recording.
 type ActionLog struct {
-	mu   sync.Mutex
-	f    *os.File
-	enc  *json.Encoder
-	lock platform.Lock
+	mu     sync.Mutex
+	f      *os.File
+	enc    *json.Encoder
+	lock   platform.Lock
+	failed error
 }
 
 func NewActionLog(dir string, locker platform.Locker) (*ActionLog, error) {
@@ -62,6 +68,12 @@ func (a *ActionLog) Close() error {
 	return lerr
 }
 
+func (a *ActionLog) Err() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.failed
+}
+
 func (a *ActionLog) Emit(_ context.Context, code Code, ref *Ref, args ...any) {
 	if IsLogCode(code) {
 		return
@@ -79,9 +91,19 @@ func (a *ActionLog) Emit(_ context.Context, code Code, ref *Ref, args ...any) {
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	// Write errors are swallowed: propagating would force every
-	// caller into error-handling for telemetry.
-	_ = a.enc.Encode(rec)
+	if a.failed != nil {
+		return
+	}
+	// fsync after each event so a crash mid-tick leaves no buffered
+	// events stranded; replay sees exactly what disk has.
+	if err := a.enc.Encode(rec); err != nil {
+		a.failed = fmt.Errorf("action log encode: %w", err)
+		return
+	}
+	if err := a.f.Sync(); err != nil {
+		a.failed = fmt.Errorf("action log fsync: %w", err)
+		return
+	}
 }
 
 // activeSegment returns the highest-numbered *.jsonl segment in dir,

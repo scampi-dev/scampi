@@ -55,6 +55,8 @@ func (s slogEmitter) Emit(ctx context.Context, code engine.Code, ref *engine.Ref
 	s.l.Log(ctx, slogLevel(code), msg, kv...)
 }
 
+func (slogEmitter) Err() error { return nil }
+
 func slogLevel(c engine.Code) slog.Level {
 	switch c {
 	case engine.CodeLogDebug:
@@ -177,4 +179,16 @@ func (f fanoutEmitter) Emit(ctx context.Context, code engine.Code, ref *engine.R
 	for _, e := range f {
 		e.Emit(ctx, code, ref, args...)
 	}
+}
+
+// Err returns the first non-nil sticky error across the fanned-out
+// sinks. The action log's sticky failure shows up here first; slog
+// always reports nil.
+func (f fanoutEmitter) Err() error {
+	for _, e := range f {
+		if err := e.Err(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
