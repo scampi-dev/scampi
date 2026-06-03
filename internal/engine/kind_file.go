@@ -18,6 +18,8 @@ func (fileKind) Validate(r Resource) error {
 	var errs []error
 	if !r.Has("path") {
 		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "path"))
+	} else if err := ValidatePath(r.Attrs["path"]); err != nil {
+		errs = append(errs, fmt.Errorf("%s: %w", r.Ref(), err))
 	}
 	if !r.Has("content") {
 		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "content"))

@@ -5,6 +5,7 @@ package test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -804,5 +805,43 @@ file "x" {
 	}
 	if !strings.Contains(err.Error(), "simulated action log failure") {
 		t.Errorf("expected wrapped emitter error; got %v", err)
+	}
+}
+
+// Path validation
+// -----------------------------------------------------------------------------
+
+func TestSnapshot_PathValidation(t *testing.T) {
+	tmp := t.TempDir()
+	good := filepath.Join(tmp, "ok.txt")
+
+	cases := []struct {
+		name   string
+		path   string
+		reject bool
+	}{
+		{"absolute", good, false},
+		{"relative", "etc/foo", true},
+		{"traversal", "/etc/../tmp/foo", true},
+		{"double-slash", "/etc//foo", true},
+		{"trailing-slash", "/etc/foo/", true},
+		{"shell-home", "$HOME/foo", true},
+		{"tilde", "~/foo", true},
+		{"root-only", "/", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path    = %q
+  content = "y"
+}
+`, c.path))
+			err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+			rejected := errors.Is(err, engine.ErrSnapshotRejected)
+			if rejected != c.reject {
+				t.Errorf("path %q: rejected=%v want %v (err=%v)", c.path, rejected, c.reject, err)
+			}
+		})
 	}
 }

@@ -18,6 +18,9 @@ func (dirKind) Validate(r Resource) error {
 	if !r.Has("path") {
 		return fmt.Errorf("%s: missing required attr %q", r.Ref(), "path")
 	}
+	if err := ValidatePath(r.Attrs["path"]); err != nil {
+		return fmt.Errorf("%s: %w", r.Ref(), err)
+	}
 	return nil
 }
 

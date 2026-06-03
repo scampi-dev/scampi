@@ -204,6 +204,10 @@ func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "resolve", "err", err)
 		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
 	}
+	if err := validateKinds(sorted); err != nil {
+		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", err)
+		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
+	}
 	log.Emit(ctx, CodeSnapshotReceived, nil, "resources", len(sorted))
 	return sorted, nil
 }
@@ -295,6 +299,7 @@ type resolvedRef struct {
 // -----------------------------------------------------------------------------
 
 // validate aggregates so the operator sees every fault at once.
+// Pre-resolve phase: cross-resource structural checks only.
 func validate(resources []Resource) error {
 	var errs []error
 	known := make(map[Ref]bool, len(resources))
@@ -302,7 +307,7 @@ func validate(resources []Resource) error {
 		known[r.Ref()] = true
 	}
 	for _, r := range resources {
-		if err := validateOne(r); err != nil {
+		if _, err := kindFor(r); err != nil {
 			errs = append(errs, err)
 		}
 		for _, dep := range r.deps {
@@ -314,12 +319,33 @@ func validate(resources []Resource) error {
 	return errors.Join(errs...)
 }
 
-func validateOne(r Resource) error {
-	k, err := kindFor(r)
-	if err != nil {
-		return err
+// validateKinds runs after resolve so each Kind.Validate sees the
+// fully-folded Attrs.
+func validateKinds(resources []Resource) error {
+	var errs []error
+	for _, r := range resources {
+		k, err := kindFor(r)
+		if err != nil {
+			continue
+		}
+		if err := k.Validate(r); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return k.Validate(r)
+	return errors.Join(errs...)
+}
+
+// ValidatePath is the shared toolbox check Kinds use for any
+// filesystem-path attr. Absolute and already-normalized; verbatim
+// from there (no shell expansion, no symlink chasing).
+func ValidatePath(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("path %q must be absolute", path)
+	}
+	if filepath.Clean(path) != path {
+		return fmt.Errorf("path %q must be normalized (no .., //, trailing /)", path)
+	}
+	return nil
 }
 
 // Resolve
