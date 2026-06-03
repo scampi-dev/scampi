@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -19,6 +20,14 @@ import (
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/platform"
 )
+
+// instanceAddr is the loopback address scampi binds at startup to
+// guarantee a single instance per host. Binding succeeds atomically
+// for exactly one process; subsequent processes get "address already
+// in use" and exit. The port doubles as the future gossip listener
+// when the mesh layer lands. 0xFEED (65261) is high in the IANA
+// dynamic range so ephemeral collisions are rare.
+const instanceAddr = "127.0.0.1:65261"
 
 // helpTemplate renders the full --help output: tagline (Long or
 // Short) above the usage block. Clone of cobra's default with the
@@ -142,6 +151,7 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		colorMode     string
 		actLog        *engine.ActionLog
 		inv           *engine.Inventory
+		instance      net.Listener
 	)
 	pickLog := func() engine.Log {
 		base := slogEmitter{l: slog.New(&slogHandler{
@@ -159,6 +169,15 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			runtimeReached = true
+			// Single-instance enforcement: the bind succeeds for
+			// exactly one process per host. Concurrent reconciles
+			// can't race because the second scampi never gets past
+			// here.
+			l, err := net.Listen("tcp", instanceAddr)
+			if err != nil {
+				return fmt.Errorf("another scampi is already running on this host (could not bind %s)", instanceAddr)
+			}
+			instance = l
 			path := actionLogPath
 			if path == "" {
 				d, err := plat.Paths.ActionLogDir()
@@ -172,7 +191,7 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return fmt.Errorf("action log replay: %w", err)
 			}
 			inv = loaded
-			al, err := engine.NewActionLog(path, plat.Locker)
+			al, err := engine.NewActionLog(path)
 			if err != nil {
 				return fmt.Errorf("action log: %w", err)
 			}
@@ -215,9 +234,16 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		c.SetHelpTemplate(helpTemplate)
 	}
 	return root, func() error {
-		if actLog == nil {
-			return nil
+		var ferr, lerr error
+		if actLog != nil {
+			ferr = actLog.Close()
 		}
-		return actLog.Close()
+		if instance != nil {
+			lerr = instance.Close()
+		}
+		if ferr != nil {
+			return ferr
+		}
+		return lerr
 	}
 }

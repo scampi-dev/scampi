@@ -14,15 +14,12 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"scampi.dev/scampi/internal/platform"
 )
 
 // ActionLog writes lifecycle events as JSONL to a segmented directory.
 // log.* codes get filtered so the action log stays the stable
-// machine-readable stream. The dir is held under an exclusive
-// process-level lock so two scampis pointed at the same dir can't
-// interleave writes.
+// machine-readable stream. Concurrent writers are prevented by the
+// CLI's single-instance port bind at startup.
 //
 // failed is sticky: the first Encode or Sync error captures here and
 // every subsequent Emit short-circuits. The engine polls Err() so it
@@ -32,41 +29,27 @@ type ActionLog struct {
 	mu     sync.Mutex
 	f      *os.File
 	enc    *json.Encoder
-	lock   platform.Lock
 	failed error
 }
 
-func NewActionLog(dir string, locker platform.Locker) (*ActionLog, error) {
+func NewActionLog(dir string) (*ActionLog, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("action log dir: %w", err)
 	}
-	lock, err := locker.Acquire(filepath.Join(dir, ".lock"))
-	if err != nil {
-		return nil, fmt.Errorf("action log lock: %w", err)
-	}
 	path, err := activeSegment(dir)
 	if err != nil {
-		_ = lock.Release()
 		return nil, err
 	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		_ = lock.Release()
 		return nil, err
 	}
 	enc := json.NewEncoder(f)
 	enc.SetEscapeHTML(false)
-	return &ActionLog{f: f, enc: enc, lock: lock}, nil
+	return &ActionLog{f: f, enc: enc}, nil
 }
 
-func (a *ActionLog) Close() error {
-	ferr := a.f.Close()
-	lerr := a.lock.Release()
-	if ferr != nil {
-		return ferr
-	}
-	return lerr
-}
+func (a *ActionLog) Close() error { return a.f.Close() }
 
 func (a *ActionLog) Err() error {
 	a.mu.Lock()

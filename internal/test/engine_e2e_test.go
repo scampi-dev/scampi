@@ -16,7 +16,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/platform"
 )
 
 type capturedEvent struct {
@@ -625,8 +624,7 @@ file "x" {
   content = "alive"
 }
 `)
-	plat := platform.New()
-	al1, err := engine.NewActionLog(alDir, plat.Locker)
+	al1, err := engine.NewActionLog(alDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -651,7 +649,7 @@ file "x" {
 
 	// Run 2: file removed from config; replay-built inventory drives destroy
 	writeCfg(`# intentionally empty`)
-	al2, err := engine.NewActionLog(alDir, plat.Locker)
+	al2, err := engine.NewActionLog(alDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -700,35 +698,5 @@ file "x" {
 	}
 	if !strings.Contains(err.Error(), "simulated action log failure") {
 		t.Errorf("expected wrapped emitter error; got %v", err)
-	}
-}
-
-// Two scampis pointed at the same action log dir corrupt it silently
-// without an exclusive process lock. NewActionLog must refuse the
-// second open until the first one closes.
-func TestActionLog_RejectsConcurrentOpen(t *testing.T) {
-	dir := t.TempDir()
-	plat := platform.New()
-
-	al1, err := engine.NewActionLog(dir, plat.Locker)
-	if err != nil {
-		t.Fatalf("first NewActionLog: %v", err)
-	}
-
-	if _, err := engine.NewActionLog(dir, plat.Locker); err == nil {
-		t.Fatal("expected second NewActionLog to fail, got nil")
-	}
-
-	if err := al1.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	// After close the lock is released and a fresh open should work.
-	al3, err := engine.NewActionLog(dir, plat.Locker)
-	if err != nil {
-		t.Fatalf("NewActionLog after release: %v", err)
-	}
-	if err := al3.Close(); err != nil {
-		t.Fatal(err)
 	}
 }
