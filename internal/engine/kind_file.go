@@ -12,6 +12,8 @@ import (
 
 type fileKind struct{}
 
+func (fileKind) Identify() Identity { return Identity{"path"} }
+
 func (fileKind) Validate(r Resource) error {
 	var errs []error
 	if !hasAttr(r, "path") {

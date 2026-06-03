@@ -473,10 +473,18 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	if inSync && was {
 		return nil
 	}
-	path := r.Attrs["path"]
-	depsStr := refsToString(r.deps)
-	log.Emit(ctx, CodeApplySuccess, &ref, "path", path, "deps", depsStr)
-	inv.Add(ref, map[string]string{"path": path}, r.deps)
+	keys := k.Identify()
+	sort.Strings(keys)
+	ident := make(map[string]string, len(keys))
+	fields := make([]any, 0, 2*len(keys)+2)
+	for _, key := range keys {
+		v := r.Attrs[key]
+		ident[key] = v
+		fields = append(fields, key, v)
+	}
+	fields = append(fields, "deps", refsToString(r.deps))
+	log.Emit(ctx, CodeApplySuccess, &ref, fields...)
+	inv.Add(ref, ident, r.deps)
 	return nil
 }
 

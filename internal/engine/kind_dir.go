@@ -12,6 +12,8 @@ import (
 
 type dirKind struct{}
 
+func (dirKind) Identify() Identity { return Identity{"path"} }
+
 func (dirKind) Validate(r Resource) error {
 	if !hasAttr(r, "path") {
 		return fmt.Errorf("%s: missing required attr %q", r.Ref(), "path")
