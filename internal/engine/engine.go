@@ -237,28 +237,25 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 	resources, err := parseDir(ctx, log, dir)
 	if err != nil {
-		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "parse", "err", err)
-		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
+		return nil, rejected(ctx, log, "parse", err)
 	}
 	if err := validate(resources); err != nil {
-		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", err)
-		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
+		return nil, rejected(ctx, log, "validate", err)
 	}
 	sorted, err := resolve(resources)
 	if err != nil {
-		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "resolve", "err", err)
-		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
+		return nil, rejected(ctx, log, "resolve", err)
 	}
-	if err := validateKinds(sorted); err != nil {
-		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", err)
-		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
-	}
-	if err := validateIdentities(sorted); err != nil {
-		log.Emit(ctx, CodeSnapshotRejected, nil, "phase", "validate", "err", err)
-		return nil, fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
+	if err := validateResolved(sorted); err != nil {
+		return nil, rejected(ctx, log, "validate", err)
 	}
 	log.Emit(ctx, CodeSnapshotReceived, nil, "resources", len(sorted))
 	return sorted, nil
+}
+
+func rejected(ctx context.Context, log Log, phase string, err error) error {
+	log.Emit(ctx, CodeSnapshotRejected, nil, "phase", phase, "err", err)
+	return fmt.Errorf("%w: %w", ErrSnapshotRejected, err)
 }
 
 func hashDir(dir string) (string, error) {
@@ -348,13 +345,21 @@ type resolvedRef struct {
 // -----------------------------------------------------------------------------
 
 // validate aggregates so the operator sees every fault at once.
-// Pre-resolve phase: cross-resource structural checks only.
+// Pre-resolve: structural and attr-name schema checks.
 func validate(resources []Resource) error {
-	var errs []error
 	counts := make(map[Ref]int, len(resources))
 	for _, r := range resources {
 		counts[r.Ref()]++
 	}
+	var errs []error
+	errs = append(errs, duplicateRefErrors(resources, counts)...)
+	errs = append(errs, kindAndSchemaErrors(resources)...)
+	errs = append(errs, unknownDepErrors(resources, counts)...)
+	return errors.Join(errs...)
+}
+
+func duplicateRefErrors(resources []Resource, counts map[Ref]int) []error {
+	var errs []error
 	reported := make(map[Ref]bool, len(resources))
 	for _, r := range resources {
 		ref := r.Ref()
@@ -362,21 +367,77 @@ func validate(resources []Resource) error {
 			errs = append(errs, fmt.Errorf("%s: declared %d times", ref, counts[ref]))
 			reported[ref] = true
 		}
-		if _, err := kindFor(r); err != nil {
+	}
+	return errs
+}
+
+func kindAndSchemaErrors(resources []Resource) []error {
+	var errs []error
+	for _, r := range resources {
+		k, err := kindFor(r)
+		if err != nil {
 			errs = append(errs, err)
+			continue
 		}
+		errs = append(errs, schemaErrors(r, k.Schema())...)
+	}
+	return errs
+}
+
+func unknownDepErrors(resources []Resource, counts map[Ref]int) []error {
+	var errs []error
+	for _, r := range resources {
 		for _, dep := range r.deps {
 			if counts[dep] == 0 {
-				errs = append(errs, fmt.Errorf("%s: references unknown resource %q", ref, dep))
+				errs = append(errs, fmt.Errorf("%s: references unknown resource %q", r.Ref(), dep))
 			}
 		}
 	}
+	return errs
+}
+
+// Pending names count as declared; a typo'd attr is a typo whether
+// the RHS is literal or a ref.
+func schemaErrors(r Resource, sch KindSchema) []error {
+	known := make(map[string]bool, len(sch.Required)+len(sch.Optional))
+	for _, n := range sch.Required {
+		known[n] = true
+	}
+	for _, n := range sch.Optional {
+		known[n] = true
+	}
+	var errs []error
+	for _, req := range sch.Required {
+		if !r.Has(req) {
+			errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), req))
+		}
+	}
+	names := make([]string, 0, len(r.Attrs)+len(r.pending))
+	for n := range r.Attrs {
+		names = append(names, n)
+	}
+	for n := range r.pending {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if !known[name] {
+			errs = append(errs, fmt.Errorf("%s: unknown attr %q", r.Ref(), name))
+		}
+	}
+	return errs
+}
+
+// validateResolved aggregates so the operator sees every fault at once.
+// Post-resolve: per-Kind value validation and cross-resource identity.
+func validateResolved(resources []Resource) error {
+	var errs []error
+	errs = append(errs, kindValueErrors(resources)...)
+	errs = append(errs, identityCollisionErrors(resources)...)
 	return errors.Join(errs...)
 }
 
-// validateKinds runs after resolve so each Kind.Validate sees the
-// fully-folded Attrs.
-func validateKinds(resources []Resource) error {
+func kindValueErrors(resources []Resource) []error {
 	var errs []error
 	for _, r := range resources {
 		k, err := kindFor(r)
@@ -387,13 +448,12 @@ func validateKinds(resources []Resource) error {
 			errs = append(errs, err)
 		}
 	}
-	return errors.Join(errs...)
+	return errs
 }
 
-// validateIdentities catches two distinct refs that would claim the
-// same live resource. Without this, the inventory would flip-flop
-// between them every tick.
-func validateIdentities(resources []Resource) error {
+// Two distinct refs claiming the same live resource would flip-flop
+// the inventory every tick.
+func identityCollisionErrors(resources []Resource) []error {
 	type bucket struct{ kind, ident string }
 	first := map[bucket]Ref{}
 	var errs []error
@@ -416,7 +476,7 @@ func validateIdentities(resources []Resource) error {
 		}
 		first[b] = r.Ref()
 	}
-	return errors.Join(errs...)
+	return errs
 }
 
 // ValidatePath is the shared toolbox check Kinds use for any

@@ -8,6 +8,7 @@ import (
 )
 
 type Kind interface {
+	Schema() KindSchema
 	Validate(r Resource) error
 	// Identify names the attrs that survive into the inventory so
 	// Destroy can still address the live resource.
@@ -15,6 +16,11 @@ type Kind interface {
 	Check(ctx context.Context, r Resource) (State, error)
 	Apply(ctx context.Context, r Resource, log Log) error
 	Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error
+}
+
+type KindSchema struct {
+	Required []string
+	Optional []string
 }
 
 type Identity []string

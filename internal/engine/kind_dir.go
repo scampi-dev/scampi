@@ -12,12 +12,13 @@ import (
 
 type dirKind struct{}
 
+func (dirKind) Schema() KindSchema {
+	return KindSchema{Required: []string{"path"}}
+}
+
 func (dirKind) Identify() Identity { return Identity{"path"} }
 
 func (dirKind) Validate(r Resource) error {
-	if !r.Has("path") {
-		return fmt.Errorf("%s: missing required attr %q", r.Ref(), "path")
-	}
 	if err := ValidatePath(r.Attrs["path"]); err != nil {
 		return fmt.Errorf("%s: %w", r.Ref(), err)
 	}

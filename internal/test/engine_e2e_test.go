@@ -1018,6 +1018,91 @@ dir "b" {
 	}
 }
 
+// Schema validation
+// -----------------------------------------------------------------------------
+
+func TestSnapshot_SchemaMissingRequired(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path = "%s/x"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `file.x: missing required attr "content"`) {
+		t.Errorf("expected missing-required message; got %v", err)
+	}
+}
+
+func TestSnapshot_SchemaUnknownAttr(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path    = "%s/x"
+  content = "y"
+  contnet = "z"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `file.x: unknown attr "contnet"`) {
+		t.Errorf("expected unknown-attr message; got %v", err)
+	}
+}
+
+// Typos with a ref-bearing RHS sit in pending pre-resolve. They must
+// still be flagged before any resolution work runs.
+func TestSnapshot_SchemaUnknownAttrInPending(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+dir "d" {
+  path = "%s/d"
+}
+file "x" {
+  path    = "%s/x"
+  content = "y"
+  contnet = dir.d.path
+}
+`, tmp, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `file.x: unknown attr "contnet"`) {
+		t.Errorf("expected unknown-attr message; got %v", err)
+	}
+}
+
+func TestSnapshot_SchemaAggregatesAcrossResources(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "a" {
+  path = "%s/a"
+}
+file "b" {
+  path    = "%s/b"
+  content = "y"
+  bogus   = "z"
+}
+`, tmp, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, `file.a: missing required attr "content"`) {
+		t.Errorf("missing file.a error in %v", err)
+	}
+	if !strings.Contains(msg, `file.b: unknown attr "bogus"`) {
+		t.Errorf("missing file.b error in %v", err)
+	}
+}
+
 func TestSnapshot_PathValidation(t *testing.T) {
 	tmp := t.TempDir()
 	good := filepath.Join(tmp, "ok.txt")

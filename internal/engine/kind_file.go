@@ -12,19 +12,17 @@ import (
 
 type fileKind struct{}
 
+func (fileKind) Schema() KindSchema {
+	return KindSchema{Required: []string{"path", "content"}}
+}
+
 func (fileKind) Identify() Identity { return Identity{"path"} }
 
 func (fileKind) Validate(r Resource) error {
-	var errs []error
-	if !r.Has("path") {
-		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "path"))
-	} else if err := ValidatePath(r.Attrs["path"]); err != nil {
-		errs = append(errs, fmt.Errorf("%s: %w", r.Ref(), err))
+	if err := ValidatePath(r.Attrs["path"]); err != nil {
+		return fmt.Errorf("%s: %w", r.Ref(), err)
 	}
-	if !r.Has("content") {
-		errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), "content"))
-	}
-	return errors.Join(errs...)
+	return nil
 }
 
 func (fileKind) Check(_ context.Context, r Resource) (State, error) {
