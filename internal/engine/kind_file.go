@@ -13,21 +13,24 @@ import (
 type fileKind struct{}
 
 func (fileKind) Schema() KindSchema {
-	return KindSchema{Required: []string{"path", "content"}}
+	return KindSchema{
+		Required("path", ValueString),
+		Required("content", ValueString),
+	}
 }
 
 func (fileKind) Identify() Identity { return Identity{"path"} }
 
 func (fileKind) Validate(r Resource) error {
-	if err := ValidatePath(r.Attrs["path"]); err != nil {
+	if err := ValidatePath(r.Attrs.GetString("path")); err != nil {
 		return fmt.Errorf("%s: %w", r.Ref(), err)
 	}
 	return nil
 }
 
 func (fileKind) Check(_ context.Context, r Resource) (State, error) {
-	path := r.Attrs["path"]
-	content := r.Attrs["content"]
+	path := r.Attrs.GetString("path")
+	content := r.Attrs.GetString("content")
 	current, err := os.ReadFile(path)
 	switch {
 	case err == nil && string(current) == content:
@@ -42,8 +45,8 @@ func (fileKind) Check(_ context.Context, r Resource) (State, error) {
 
 func (fileKind) Apply(ctx context.Context, r Resource, log Log) error {
 	ref := r.Ref()
-	path := r.Attrs["path"]
-	content := r.Attrs["content"]
+	path := r.Attrs.GetString("path")
+	content := r.Attrs.GetString("content")
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
 	log.Info(ctx, "writing file", "ref", ref, "path", path)
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -55,7 +58,7 @@ func (fileKind) Apply(ctx context.Context, r Resource, log Log) error {
 }
 
 func (fileKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error {
-	path := attrs["path"]
+	path := attrs.GetString("path")
 	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)
 		return nil

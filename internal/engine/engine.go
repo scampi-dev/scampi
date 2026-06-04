@@ -145,7 +145,7 @@ func MakePlan(ctx context.Context, dir string, inv *Inventory, log Log) (*Plan, 
 		switch {
 		case was && state == StateMatching:
 			p.InSync = append(p.InSync, ref)
-		case !was && state != StateMissing && !r.Adopt:
+		case !was && state != StateMissing && !r.Attrs.GetBool("adopt"):
 			p.Halt = append(p.Halt, ref)
 		case state == StateMissing:
 			p.Create = append(p.Create, ref)
@@ -239,15 +239,18 @@ func snapshot(ctx context.Context, dir string, log Log) ([]Resource, error) {
 	if err != nil {
 		return nil, rejected(ctx, log, "parse", err)
 	}
-	if err := validate(resources); err != nil {
-		return nil, rejected(ctx, log, "validate", err)
+	if err := typecheck(resources); err != nil {
+		return nil, rejected(ctx, log, "typecheck", err)
+	}
+	if err := analyze(resources); err != nil {
+		return nil, rejected(ctx, log, "analyze", err)
 	}
 	sorted, err := resolve(resources)
 	if err != nil {
 		return nil, rejected(ctx, log, "resolve", err)
 	}
-	if err := validateResolved(sorted); err != nil {
-		return nil, rejected(ctx, log, "validate", err)
+	if err := verify(sorted); err != nil {
+		return nil, rejected(ctx, log, "verify", err)
 	}
 	log.Emit(ctx, CodeSnapshotReceived, nil, "resources", len(sorted))
 	return sorted, nil
@@ -299,35 +302,41 @@ type Ref struct {
 
 func (r Ref) String() string { return r.Kind + "." + r.Name }
 
-// Attrs holds attribute name -> value pairs. The same shape carries
-// the full declared set on a Resource and the identity-projected
-// subset stored in the inventory; call-site variable name picks
-// which flavor.
-type Attrs map[string]string
+type Attrs map[string]Value
 
-// Resource is one parsed block. Attrs holds literal values resolved
-// at parse time; ref-bearing attrs live in pending until resolve
-// folds them back into Attrs.
+func (a Attrs) GetString(name string) string { return a[name].Str }
+func (a Attrs) GetBool(name string) bool     { return a[name].Bool }
+
 type Resource struct {
 	Kind  string
 	Name  string
 	Attrs Attrs
-	Adopt bool
 
+	// raw holds cty values from parse until typecheck coerces them.
+	raw     map[string]rawValue
 	pending map[string]resolvable
 	deps    []Ref
 }
 
 func (r Resource) Ref() Ref { return Ref{Kind: r.Kind, Name: r.Name} }
 
-// Has reports whether the resource declared name. Validate runs
-// before resolve, so pending counts too.
+// Has reports presence across all attr stages so it works pre- and
+// post-typecheck.
 func (r Resource) Has(name string) bool {
 	if _, ok := r.Attrs[name]; ok {
 		return true
 	}
+	if _, ok := r.raw[name]; ok {
+		return true
+	}
 	_, ok := r.pending[name]
 	return ok
+}
+
+// rawValue hides the language-specific value type behind a single
+// coercion hook so engine.go stays free of HCL/cty.
+type rawValue interface {
+	Coerce(target ValueKind) (Value, error)
 }
 
 // resolvable is the language-agnostic shape of a deferred attr
@@ -341,19 +350,95 @@ type resolvedRef struct {
 	Attrs Attrs
 }
 
-// Validate
+// Typecheck
 // -----------------------------------------------------------------------------
 
-// validate aggregates so the operator sees every fault at once.
-// Pre-resolve: structural and attr-name schema checks.
-func validate(resources []Resource) error {
+// typecheck applies the effective schema per resource, populating
+// typed Attrs. Aggregates within phase.
+func typecheck(resources []Resource) error {
+	var errs []error
+	for i := range resources {
+		errs = append(errs, typecheckOne(&resources[i])...)
+	}
+	return errors.Join(errs...)
+}
+
+func typecheckOne(r *Resource) []error {
+	k, err := kindFor(*r)
+	if err != nil {
+		return []error{err}
+	}
+	sch := effectiveSchema(k)
+	var errs []error
+	for _, name := range sortedKeys(r.raw) {
+		spec := sch.Find(name)
+		if spec == nil {
+			errs = append(errs, fmt.Errorf("%s: unknown attr %q", r.Ref(), name))
+			continue
+		}
+		v, err := r.raw[name].Coerce(spec.Type)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: attr %q: %w", r.Ref(), name, err))
+			continue
+		}
+		r.Attrs[name] = v
+	}
+	r.raw = nil
+	for _, name := range sortedPending(r.pending) {
+		spec := sch.Find(name)
+		if spec == nil {
+			errs = append(errs, fmt.Errorf("%s: unknown attr %q", r.Ref(), name))
+			continue
+		}
+		if spec.Type != ValueString {
+			errs = append(errs, fmt.Errorf(
+				"%s: attr %q: refs only supported for string attrs (target is %s)",
+				r.Ref(), name, spec.Type,
+			))
+		}
+	}
+	for _, spec := range sch {
+		if r.Has(spec.Name) {
+			continue
+		}
+		if spec.Required {
+			errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), spec.Name))
+			continue
+		}
+		r.Attrs[spec.Name] = spec.Default
+	}
+	return errs
+}
+
+func sortedKeys(m map[string]rawValue) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedPending(m map[string]resolvable) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// Analyze
+// -----------------------------------------------------------------------------
+
+// analyze runs cross-resource structural checks. Aggregates within phase.
+func analyze(resources []Resource) error {
 	counts := make(map[Ref]int, len(resources))
 	for _, r := range resources {
 		counts[r.Ref()]++
 	}
 	var errs []error
 	errs = append(errs, duplicateRefErrors(resources, counts)...)
-	errs = append(errs, kindAndSchemaErrors(resources)...)
 	errs = append(errs, unknownDepErrors(resources, counts)...)
 	return errors.Join(errs...)
 }
@@ -371,19 +456,6 @@ func duplicateRefErrors(resources []Resource, counts map[Ref]int) []error {
 	return errs
 }
 
-func kindAndSchemaErrors(resources []Resource) []error {
-	var errs []error
-	for _, r := range resources {
-		k, err := kindFor(r)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		errs = append(errs, schemaErrors(r, k.Schema())...)
-	}
-	return errs
-}
-
 func unknownDepErrors(resources []Resource, counts map[Ref]int) []error {
 	var errs []error
 	for _, r := range resources {
@@ -396,41 +468,11 @@ func unknownDepErrors(resources []Resource, counts map[Ref]int) []error {
 	return errs
 }
 
-// Pending names count as declared; a typo'd attr is a typo whether
-// the RHS is literal or a ref.
-func schemaErrors(r Resource, sch KindSchema) []error {
-	known := make(map[string]bool, len(sch.Required)+len(sch.Optional))
-	for _, n := range sch.Required {
-		known[n] = true
-	}
-	for _, n := range sch.Optional {
-		known[n] = true
-	}
-	var errs []error
-	for _, req := range sch.Required {
-		if !r.Has(req) {
-			errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), req))
-		}
-	}
-	names := make([]string, 0, len(r.Attrs)+len(r.pending))
-	for n := range r.Attrs {
-		names = append(names, n)
-	}
-	for n := range r.pending {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		if !known[name] {
-			errs = append(errs, fmt.Errorf("%s: unknown attr %q", r.Ref(), name))
-		}
-	}
-	return errs
-}
+// Verify
+// -----------------------------------------------------------------------------
 
-// validateResolved aggregates so the operator sees every fault at once.
-// Post-resolve: per-Kind value validation and cross-resource identity.
-func validateResolved(resources []Resource) error {
+// verify runs post-resolve semantic checks. Aggregates within phase.
+func verify(resources []Resource) error {
 	var errs []error
 	errs = append(errs, kindValueErrors(resources)...)
 	errs = append(errs, identityCollisionErrors(resources)...)
@@ -466,7 +508,7 @@ func identityCollisionErrors(resources []Resource) []error {
 		sort.Strings(keys)
 		parts := make([]string, len(keys))
 		for i, key := range keys {
-			parts[i] = key + "=" + r.Attrs[key]
+			parts[i] = key + "=" + r.Attrs.GetString(key)
 		}
 		ident := strings.Join(parts, ",")
 		b := bucket{kind: r.Kind, ident: ident}
@@ -513,7 +555,7 @@ func resolve(resources []Resource) ([]Resource, error) {
 				errs = append(errs, fmt.Errorf("%s: eval %q: %w", r.Ref(), name, err))
 				continue
 			}
-			r.Attrs[name] = val
+			r.Attrs[name] = StringValue(val)
 		}
 		store = append(store, resolvedRef{Ref: r.Ref(), Attrs: r.Attrs})
 	}
@@ -632,7 +674,7 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 		return nil
 	}
 
-	if !was && state != StateMissing && !r.Adopt {
+	if !was && state != StateMissing && !r.Attrs.GetBool("adopt") {
 		log.Emit(ctx, CodeApplyHalted, &ref, "state", state.String())
 		return nil
 	}
@@ -650,7 +692,7 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	for _, key := range keys {
 		v := r.Attrs[key]
 		ident[key] = v
-		fields = append(fields, key, v)
+		fields = append(fields, key, v.Str)
 	}
 	fields = append(fields, "deps", refsToString(r.deps))
 	log.Emit(ctx, CodeApplySuccess, &ref, fields...)

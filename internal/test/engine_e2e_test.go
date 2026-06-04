@@ -589,7 +589,7 @@ file "bad" {
 
 func TestInventory_OrphansNone(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "a"}, engine.Attrs{"path": "/a"}, nil)
+	inv.Add(engine.Ref{Kind: "file", Name: "a"}, engine.Attrs{"path": engine.StringValue("/a")}, nil)
 	declared := []engine.Resource{{Kind: "file", Name: "a"}}
 	if got := inv.Orphans(declared); len(got) != 0 {
 		t.Errorf("orphans = %+v, want empty", got)
@@ -598,7 +598,7 @@ func TestInventory_OrphansNone(t *testing.T) {
 
 func TestInventory_OrphansOne(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, engine.Attrs{"path": "/g"}, nil)
+	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, engine.Attrs{"path": engine.StringValue("/g")}, nil)
 	got := inv.Orphans(nil)
 	want := engine.Ref{Kind: "file", Name: "gone"}
 	if len(got) != 1 || got[0] != want {
@@ -609,7 +609,7 @@ func TestInventory_OrphansOne(t *testing.T) {
 func TestInventory_FoldApplyThenDestroy(t *testing.T) {
 	inv := engine.NewInventory()
 	ref := engine.Ref{Kind: "file", Name: "a"}
-	inv.Fold(engine.CodeApplySuccess, ref, engine.Attrs{"path": "/x"})
+	inv.Fold(engine.CodeApplySuccess, ref, engine.Attrs{"path": engine.StringValue("/x")})
 	if !inv.Has(ref) {
 		t.Fatalf("expected ref present after apply.success fold")
 	}
@@ -1100,6 +1100,67 @@ file "b" {
 	}
 	if !strings.Contains(msg, `file.b: unknown attr "bogus"`) {
 		t.Errorf("missing file.b error in %v", err)
+	}
+}
+
+// Typed schema
+// -----------------------------------------------------------------------------
+
+func TestSnapshot_BoolAttrRejectsString(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path    = "%s/x"
+  content = "y"
+  adopt   = "true"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `attr "adopt"`) || !strings.Contains(err.Error(), "bool") {
+		t.Errorf("expected bool-type error mentioning attr; got %v", err)
+	}
+}
+
+func TestSnapshot_StringAttrRejectsBool(t *testing.T) {
+	cfg := writeConfig(t, `
+file "x" {
+  path    = true
+  content = "y"
+}
+`)
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `attr "path"`) || !strings.Contains(err.Error(), "string") {
+		t.Errorf("expected string-type error mentioning attr; got %v", err)
+	}
+}
+
+// Refs evaluate to strings today. A ref-bearing RHS on a bool attr
+// (or any non-string) must reject at typecheck before resolve runs.
+func TestSnapshot_RefRejectedOnBoolAttr(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "src" {
+  path    = "%s/src"
+  content = "hi"
+}
+file "tgt" {
+  path    = "%s/tgt"
+  content = "hi"
+  adopt   = file.src.path
+}
+`, tmp, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `attr "adopt"`) {
+		t.Errorf("expected error mentioning adopt; got %v", err)
 	}
 }
 

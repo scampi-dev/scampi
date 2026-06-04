@@ -66,7 +66,7 @@ func (i *Inventory) Orphans(declared []Resource) []Ref {
 func (i *Inventory) Fold(code Code, ref Ref, attrs Attrs) {
 	switch code {
 	case CodeApplySuccess:
-		deps := parseDeps(attrs["deps"])
+		deps := parseDeps(attrs.GetString("deps"))
 		delete(attrs, "deps")
 		i.Add(ref, attrs, deps)
 	case CodeDestroySuccess:

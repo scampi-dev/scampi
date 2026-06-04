@@ -13,20 +13,22 @@ import (
 type dirKind struct{}
 
 func (dirKind) Schema() KindSchema {
-	return KindSchema{Required: []string{"path"}}
+	return KindSchema{
+		Required("path", ValueString),
+	}
 }
 
 func (dirKind) Identify() Identity { return Identity{"path"} }
 
 func (dirKind) Validate(r Resource) error {
-	if err := ValidatePath(r.Attrs["path"]); err != nil {
+	if err := ValidatePath(r.Attrs.GetString("path")); err != nil {
 		return fmt.Errorf("%s: %w", r.Ref(), err)
 	}
 	return nil
 }
 
 func (dirKind) Check(_ context.Context, r Resource) (State, error) {
-	path := r.Attrs["path"]
+	path := r.Attrs.GetString("path")
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && info.IsDir():
@@ -41,7 +43,7 @@ func (dirKind) Check(_ context.Context, r Resource) (State, error) {
 
 func (dirKind) Apply(ctx context.Context, r Resource, log Log) error {
 	ref := r.Ref()
-	path := r.Attrs["path"]
+	path := r.Attrs.GetString("path")
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
 	log.Info(ctx, "creating dir", "ref", ref, "path", path)
 	if err := os.MkdirAll(path, 0o755); err != nil {
@@ -55,7 +57,7 @@ func (dirKind) Apply(ctx context.Context, r Resource, log Log) error {
 // Destroy uses os.Remove, which refuses non-empty directories.
 // Non-empty stays orphaned until the operator clears it.
 func (dirKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error {
-	path := attrs["path"]
+	path := attrs.GetString("path")
 	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
 		log.Emit(ctx, CodeDestroySuccess, &ref, "path", path)
 		return nil

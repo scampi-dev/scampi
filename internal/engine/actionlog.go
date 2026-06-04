@@ -164,7 +164,7 @@ func foldSegment(path string, inv *Inventory, lenient bool) error {
 		attrs := make(Attrs, len(raw))
 		for k, v := range raw {
 			if s, ok := v.(string); ok {
-				attrs[k] = s
+				attrs[k] = StringValue(s)
 			}
 		}
 		inv.Fold(Code(code), parseRef(refStr), attrs)

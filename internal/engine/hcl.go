@@ -86,24 +86,11 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 	if len(block.Body.Blocks) > 0 {
 		return Resource{}, fmt.Errorf("%s: nested blocks not supported", path)
 	}
-	attrs := make(Attrs, len(block.Body.Attributes))
+	raw := map[string]rawValue{}
 	pending := map[string]resolvable{}
 	seenDeps := map[Ref]bool{}
 	var deps []Ref
-	var adopt bool
 	for name, attr := range block.Body.Attributes {
-		if name == "adopt" {
-			val, diags := attr.Expr.Value(nil)
-			if diags.HasErrors() {
-				return Resource{}, diags
-			}
-			if val.Type() != cty.Bool {
-				return Resource{}, fmt.Errorf("%s:%d: attr %q must be a bool",
-					path, attr.Range().Start.Line, name)
-			}
-			adopt = val.True()
-			continue
-		}
 		refs := refsFromExpr(attr.Expr)
 		if len(refs) > 0 {
 			pending[name] = hclResolvable{expr: attr.Expr}
@@ -119,20 +106,34 @@ func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path strin
 		if diags.HasErrors() {
 			return Resource{}, diags
 		}
-		if val.Type() != cty.String {
-			return Resource{}, fmt.Errorf("%s:%d: attr %q must be a string",
-				path, attr.Range().Start.Line, name)
-		}
-		attrs[name] = val.AsString()
+		raw[name] = hclRaw{val: val}
 	}
 	return Resource{
 		Kind:    block.Type,
 		Name:    block.Labels[0],
-		Attrs:   attrs,
-		Adopt:   adopt,
+		Attrs:   Attrs{},
+		raw:     raw,
 		pending: pending,
 		deps:    deps,
 	}, nil
+}
+
+type hclRaw struct{ val cty.Value }
+
+func (h hclRaw) Coerce(target ValueKind) (Value, error) {
+	switch target {
+	case ValueString:
+		if h.val.Type() != cty.String {
+			return Value{}, fmt.Errorf("must be string, got %s", h.val.Type().FriendlyName())
+		}
+		return StringValue(h.val.AsString()), nil
+	case ValueBool:
+		if h.val.Type() != cty.Bool {
+			return Value{}, fmt.Errorf("must be bool, got %s", h.val.Type().FriendlyName())
+		}
+		return BoolValue(h.val.True()), nil
+	}
+	return Value{}, fmt.Errorf("unsupported target type %s", target)
 }
 
 // refsFromExpr collects kind.name refs from an expression. Anything
@@ -206,7 +207,7 @@ func buildEvalContext(store []resolvedRef) *hcl.EvalContext {
 func ctyStringObject(attrs Attrs) cty.Value {
 	out := make(map[string]cty.Value, len(attrs))
 	for k, v := range attrs {
-		out[k] = cty.StringVal(v)
+		out[k] = cty.StringVal(v.Str)
 	}
 	return cty.ObjectVal(out)
 }

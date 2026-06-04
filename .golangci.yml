@@ -15,12 +15,19 @@ linters:
 
     # BUG prevention: correctness and safety
     - errcheck #    [BUG]    ensure errors are checked and not silently ignored
+    - exhaustive #  [BUG]    enforce closed-enum switch coverage
     - govet #       [BUG]    compiler-level correctness and suspicious constructs
     - ineffassign # [BUG]    detect assignments whose values are never used
     - staticcheck # [BUG]    deep static analysis (SA*, ST*, correctness issues)
     - unused #      [BUG]    find unused vars, funcs, consts hiding logic errors
 
   settings:
+    exhaustive:
+      default-signifies-exhaustive: false
+      # Code is deliberately open: new emission codes land over time and
+      # sinks (slog renderer, Inventory.Fold) match only the slice they
+      # care about. Enforce exhaustiveness on real closed enums only.
+      ignore-enum-types: 'engine\.Code'
     staticcheck:
       checks:
         - all
