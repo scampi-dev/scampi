@@ -32,6 +32,17 @@ func (i *Inventory) Add(ref Ref, attrs Attrs, deps []Ref) {
 
 func (i *Inventory) Remove(ref Ref) { delete(i.entries, ref) }
 
+// Rename moves an entry to a new ref while preserving its attrs
+// and deps. No-op if from is absent.
+func (i *Inventory) Rename(from, to Ref) {
+	e, ok := i.entries[from]
+	if !ok {
+		return
+	}
+	delete(i.entries, from)
+	i.entries[to] = e
+}
+
 func (i *Inventory) Has(ref Ref) bool {
 	_, ok := i.entries[ref]
 	return ok
@@ -69,6 +80,13 @@ func (i *Inventory) Fold(code Code, ref Ref, attrs Attrs) {
 		deps := parseDeps(attrs.GetString("deps"))
 		delete(attrs, "deps")
 		delete(attrs, "action")
+		i.Add(ref, attrs, deps)
+	case CodeApplyRenamed:
+		from := parseRef(attrs.GetString("from"))
+		delete(attrs, "from")
+		deps := parseDeps(attrs.GetString("deps"))
+		delete(attrs, "deps")
+		i.Remove(from)
 		i.Add(ref, attrs, deps)
 	case CodeDestroySuccess:
 		i.Remove(ref)

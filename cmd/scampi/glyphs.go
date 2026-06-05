@@ -15,6 +15,7 @@ type Glyphs struct {
 	Halt    string
 	Adopt   string
 	Failed  string
+	Rename  string
 }
 
 var (
@@ -26,6 +27,7 @@ var (
 		Halt:    "⊘", // circled division slash
 		Adopt:   "⊕", // circled plus
 		Failed:  "✗", // ballot x
+		Rename:  "⇄", // rightwards arrow over leftwards arrow
 	}
 	ASCIIGlyphs = Glyphs{
 		Create:  "+",
@@ -35,6 +37,7 @@ var (
 		Halt:    "!",
 		Adopt:   "@",
 		Failed:  "x",
+		Rename:  ">",
 	}
 )
 

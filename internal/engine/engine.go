@@ -30,6 +30,7 @@ const (
 	CodeApplySuccess     Code = "apply.success"
 	CodeApplyFailed      Code = "apply.failed"
 	CodeApplyHalted      Code = "apply.halted"
+	CodeApplyRenamed     Code = "apply.renamed"
 	CodeDestroyStart     Code = "destroy.start"
 	CodeDestroySuccess   Code = "destroy.success"
 	CodeDestroyFailed    Code = "destroy.failed"
@@ -165,6 +166,7 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 		return err
 	}
 	var errs []error
+	reconcileRenames(ctx, snap, inv, log)
 	orphans := inv.Orphans(snap)
 	if err := destroyAll(ctx, orphans, inv, log, nil); err != nil {
 		errs = append(errs, err)
@@ -207,6 +209,7 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 			lastRev = rev
 		}
 		if snap != nil {
+			reconcileRenames(ctx, snap, inv, log)
 			orphans := inv.Orphans(snap)
 			if err := destroyAll(ctx, orphans, inv, log, bo); err != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
@@ -497,24 +500,16 @@ func kindValueErrors(resources []Resource) []error {
 // Two distinct refs claiming the same live resource would flip-flop
 // the inventory every tick.
 func identityCollisionErrors(resources []Resource) []error {
-	type bucket struct{ kind, ident string }
-	first := map[bucket]Ref{}
+	first := map[identityBucket]Ref{}
 	var errs []error
 	for _, r := range resources {
 		k, err := kindFor(r)
 		if err != nil {
 			continue
 		}
-		keys := k.Identify()
-		sort.Strings(keys)
-		parts := make([]string, len(keys))
-		for i, key := range keys {
-			parts[i] = key + "=" + r.Attrs.GetString(key)
-		}
-		ident := strings.Join(parts, ",")
-		b := bucket{kind: r.Kind, ident: ident}
+		b := identityBucketFor(r.Kind, r.Attrs, k.Identify())
 		if prev, ok := first[b]; ok {
-			errs = append(errs, fmt.Errorf("%s and %s declare the same identity (%s)", prev, r.Ref(), ident))
+			errs = append(errs, fmt.Errorf("%s and %s declare the same identity (%s)", prev, r.Ref(), b.ident))
 			continue
 		}
 		first[b] = r.Ref()
@@ -713,6 +708,70 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	log.Emit(ctx, CodeApplySuccess, &ref, fields...)
 	inv.Add(ref, ident, r.deps)
 	return nil
+}
+
+// reconcileRenames detects refs whose identity attrs match between
+// the prior inventory and the new snapshot under a different name,
+// and moves the inventory entry in place of churning destroy+create.
+// Emits CodeApplyRenamed for each move so the action log preserves
+// it across restarts.
+func reconcileRenames(ctx context.Context, snap []Resource, inv *Inventory, log Log) {
+	type snapHit struct {
+		ref      Ref
+		resource Resource
+		kind     Kind
+	}
+	snapByIdent := map[identityBucket]snapHit{}
+	for _, r := range snap {
+		k, err := kindFor(r)
+		if err != nil {
+			continue
+		}
+		snapByIdent[identityBucketFor(r.Kind, r.Attrs, k.Identify())] = snapHit{
+			ref: r.Ref(), resource: r, kind: k,
+		}
+	}
+	for _, oldRef := range inv.Orphans(snap) {
+		attrs, _, ok := inv.Get(oldRef)
+		if !ok {
+			continue
+		}
+		k, ok := kinds[oldRef.Kind]
+		if !ok {
+			continue
+		}
+		ib := identityBucketFor(oldRef.Kind, attrs, k.Identify())
+		hit, ok := snapByIdent[ib]
+		if !ok {
+			continue
+		}
+		emitRenamed(ctx, log, oldRef, hit.ref, hit.resource, hit.kind)
+		inv.Rename(oldRef, hit.ref)
+	}
+}
+
+func emitRenamed(ctx context.Context, log Log, from, to Ref, r Resource, k Kind) {
+	keys := k.Identify()
+	sort.Strings(keys)
+	fields := make([]any, 0, 2*len(keys)+4)
+	fields = append(fields, "from", from.String())
+	for _, key := range keys {
+		fields = append(fields, key, r.Attrs[key].Str)
+	}
+	fields = append(fields, "deps", refsToString(r.deps))
+	log.Emit(ctx, CodeApplyRenamed, &to, fields...)
+}
+
+type identityBucket struct{ kind, ident string }
+
+func identityBucketFor(kind string, attrs Attrs, identityKeys []string) identityBucket {
+	keys := append([]string{}, identityKeys...)
+	sort.Strings(keys)
+	parts := make([]string, len(keys))
+	for i, key := range keys {
+		parts[i] = key + "=" + attrs.GetString(key)
+	}
+	return identityBucket{kind: kind, ident: strings.Join(parts, ",")}
 }
 
 // sameIdentity reports whether two attr sets agree on every identity

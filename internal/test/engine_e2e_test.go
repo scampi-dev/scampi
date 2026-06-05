@@ -819,6 +819,72 @@ dir "tmp" {
 	}
 }
 
+// Renaming a resource (changing its HCL block label while keeping
+// its identity attrs the same) must move the inventory entry rather
+// than destroy + create. Otherwise destroy on a non-empty dir fails
+// and even where it succeeds the live state churns needlessly.
+func TestApply_RenameSwapsInventoryNotDestroyCreate(t *testing.T) {
+	tmp := t.TempDir()
+	dirPath := filepath.Join(tmp, "shared")
+	filePath := filepath.Join(dirPath, "yolo")
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "main.hcl")
+	writeCfg := func(content string) {
+		t.Helper()
+		if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// rev 1: dir "tmp" + file "yolo" inside it.
+	writeCfg(`
+dir "tmp" {
+  path = "` + dirPath + `"
+}
+file "yolo" {
+  path    = "${dir.tmp.path}/yolo"
+  content = "hi"
+}
+`)
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+		t.Fatalf("first apply: %v", err)
+	}
+	if !inv.Has(engine.Ref{Kind: "dir", Name: "tmp"}) {
+		t.Fatalf("inventory should have dir.tmp after first apply")
+	}
+
+	// rev 2: rename dir.tmp -> dir.tmp2 (same path). file.yolo references
+	// the renamed dir but otherwise unchanged.
+	writeCfg(`
+dir "tmp2" {
+  path = "` + dirPath + `"
+}
+file "yolo" {
+  path    = "${dir.tmp2.path}/yolo"
+  content = "hi"
+}
+`)
+	if err := engine.Apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+		t.Fatalf("second apply (rename): %v", err)
+	}
+
+	// Inventory moved.
+	if inv.Has(engine.Ref{Kind: "dir", Name: "tmp"}) {
+		t.Error("dir.tmp should no longer be in inventory after rename")
+	}
+	if !inv.Has(engine.Ref{Kind: "dir", Name: "tmp2"}) {
+		t.Error("dir.tmp2 should be in inventory after rename")
+	}
+	// Live state preserved: the dir and the file it contains still exist.
+	if info, err := os.Stat(dirPath); err != nil || !info.IsDir() {
+		t.Errorf("shared dir should still exist: %v", err)
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		t.Errorf("file inside should still exist: %v", err)
+	}
+}
+
 // brokenEmitter reports a sticky failure via Err. Used to verify the
 // engine aborts a reconcile pass on first action-log breakage.
 type brokenEmitter struct{ err error }

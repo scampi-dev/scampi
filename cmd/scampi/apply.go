@@ -29,6 +29,7 @@ type applyCounts struct {
 	created   int
 	updated   int
 	adopted   int
+	renamed   int
 	destroyed int
 	halted    int
 	failed    int
@@ -53,6 +54,8 @@ func (r *applyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Re
 		r.handleApplyFailed(ref, args)
 	case engine.CodeApplyHalted:
 		r.handleHalted(ref, args)
+	case engine.CodeApplyRenamed:
+		r.handleRenamed(ref, args)
 	case engine.CodeDestroySuccess:
 		r.handleDestroySuccess(ref)
 	case engine.CodeDestroyFailed:
@@ -86,6 +89,9 @@ func (r *applyRenderer) Finalize(_ error) {
 	}
 	if r.counts.adopted > 0 {
 		bits = append(bits, fmt.Sprintf("%d adopted", r.counts.adopted))
+	}
+	if r.counts.renamed > 0 {
+		bits = append(bits, fmt.Sprintf("%d renamed", r.counts.renamed))
 	}
 	if r.counts.destroyed > 0 {
 		bits = append(bits, fmt.Sprintf("%d destroyed", r.counts.destroyed))
@@ -137,6 +143,13 @@ func (r *applyRenderer) handleApplyFailed(ref *engine.Ref, args []any) {
 	errMsg := attrString(args, "err")
 	r.counts.failed++
 	r.writeLine(r.glyphs.Failed, "failed", ref.String(), errMsg, ansiRed)
+}
+
+func (r *applyRenderer) handleRenamed(ref *engine.Ref, args []any) {
+	from := attrString(args, "from")
+	r.counts.renamed++
+	detail := "from " + from
+	r.writeLine(r.glyphs.Rename, "rename", ref.String(), detail, ansiCyan)
 }
 
 func (r *applyRenderer) handleHalted(ref *engine.Ref, args []any) {
