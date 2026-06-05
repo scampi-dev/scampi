@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -75,7 +76,7 @@ func (r *applyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Re
 	}
 }
 
-func (r *applyRenderer) Finalize(_ error) {
+func (r *applyRenderer) Finalize(err error) {
 	if r.rejected {
 		// renderSnapshotRejected already told the operator everything.
 		return
@@ -109,6 +110,9 @@ func (r *applyRenderer) Finalize(_ error) {
 	label := "Applied"
 	if r.counts.failed > 0 {
 		label = "Apply incomplete"
+	}
+	if errors.Is(err, context.Canceled) {
+		label = "Apply interrupted"
 	}
 	elapsed := time.Since(r.start).Round(time.Millisecond)
 	if r.colored {

@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
 	"time"
@@ -103,12 +104,27 @@ func registerCobraHelpFuncs() {
 	})
 }
 
+// armForceExit listens for a second SIGINT after the platform's
+// graceful-shutdown signal handler has consumed the first. On second
+// press, scampi exits immediately; no further draining.
+func armForceExit() {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	go func() {
+		<-ch // first press, already handled by ShutdownContext
+		<-ch // second press, escalate
+		_, _ = fmt.Fprintln(os.Stderr, "force shutdown")
+		os.Exit(130)
+	}()
+}
+
 func main() {
 	registerCobraHelpFuncs()
 	cobraColored = decideColor(colorMode, os.Stdout)
 	plat := platform.New()
 	ctx, stop := plat.Signals.ShutdownContext(context.Background())
 	defer stop()
+	armForceExit()
 
 	root, closeFn := newRootCmd(plat)
 	cmd, err := root.ExecuteContextC(ctx)
@@ -116,6 +132,9 @@ func main() {
 	switch {
 	case err == nil:
 		return
+	case errors.Is(err, context.Canceled):
+		// Graceful shutdown via SIGINT; engine already announced it.
+		os.Exit(130)
 	case errors.Is(err, engine.ErrSnapshotRejected):
 		// Engine already emitted snapshot.rejected; just exit-code.
 		os.Exit(2)

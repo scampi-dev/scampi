@@ -885,6 +885,44 @@ file "yolo" {
 	}
 }
 
+// Apply must return ctx.Err and stop iterating resources when the
+// caller cancels mid-pass. Otherwise long-running applies can't be
+// aborted gracefully.
+func TestApply_AbortsOnContextCancellation(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "a" {
+  path    = "%s/a"
+  content = "1"
+}
+file "b" {
+  path    = "%s/b"
+  content = "2"
+}
+file "c" {
+  path    = "%s/c"
+  content = "3"
+}
+`, tmp, tmp, tmp))
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel() // cancel before Apply runs
+	err := engine.Apply(ctx, cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context.Canceled; got %v", err)
+	}
+	// At least one resource may have been applied before the loop
+	// noticed cancellation, but not all three.
+	applied := 0
+	for _, name := range []string{"a", "b", "c"} {
+		if _, err := os.Stat(filepath.Join(tmp, name)); err == nil {
+			applied++
+		}
+	}
+	if applied == 3 {
+		t.Errorf("expected at least one resource skipped; all 3 applied")
+	}
+}
+
 // brokenEmitter reports a sticky failure via Err. Used to verify the
 // engine aborts a reconcile pass on first action-log breakage.
 type brokenEmitter struct{ err error }

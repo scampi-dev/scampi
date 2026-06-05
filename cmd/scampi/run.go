@@ -161,13 +161,24 @@ func (r *runRenderer) logLine(tag, color string, args []any) {
 	attrs := formatAttrs(rest, r.colored)
 	ts := time.Now().Format("15:04:05.000")
 	ind := padCol(tag, indicatorWidth)
+	// Overwrite the TTY-echoed ^C with CR+clear so the shutdown
+	// announcement starts at column 0.
+	prefix := ""
+	if r.colored && msg == shutdownMsg {
+		prefix = "\r\x1b[K"
+	}
 	if !r.colored {
-		_, _ = fmt.Fprintf(r.out, "%s  %s  %s%s\n", ts, ind, msg, attrs)
+		_, _ = fmt.Fprintf(r.out, "%s%s  %s  %s%s\n", prefix, ts, ind, msg, attrs)
 		return
 	}
-	_, _ = fmt.Fprintf(r.out, "%s%s%s  %s%s%s  %s%s\n",
-		ansiDark, ts, ansiReset, color, ind, ansiReset, msg, attrs)
+	_, _ = fmt.Fprintf(r.out, "%s%s%s%s  %s%s%s  %s%s\n",
+		prefix, ansiDark, ts, ansiReset, color, ind, ansiReset, msg, attrs)
 }
+
+// shutdownMsg is the engine's log.Info line emitted on graceful
+// shutdown; the renderer keys off it to overwrite the TTY's echoed
+// ^C in the same Write as the announcement.
+const shutdownMsg = "received shutdown signal, exiting at next safe point"
 
 func formatAttrs(args []any, colored bool) string {
 	var b strings.Builder

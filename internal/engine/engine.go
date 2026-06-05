@@ -178,6 +178,10 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 	if err := log.Err(); err != nil {
 		errs = append(errs, fmt.Errorf("action log: %w", err))
 	}
+	if ctx.Err() != nil {
+		log.Info(ctx, "received shutdown signal, exiting at next safe point")
+		return ctx.Err()
+	}
 	if len(errs) > 0 {
 		return fmt.Errorf("%w: %w", ErrApplyFailed, errors.Join(errs...))
 	}
@@ -585,6 +589,9 @@ func applyAll(ctx context.Context, resources []Resource, inv *Inventory, log Log
 	var errs []error
 	now := time.Now()
 	for _, r := range resources {
+		if ctx.Err() != nil {
+			return errors.Join(errs...)
+		}
 		ref := r.Ref()
 		if !bo.due(ref, now) {
 			log.Debug(ctx, "backoff skip", "ref", ref, "until", bo.entries[ref].nextRetry)
@@ -832,6 +839,9 @@ func destroyAll(ctx context.Context, refs []Ref, inv *Inventory, log Log, bo *ba
 	var errs []error
 	now := time.Now()
 	for _, ref := range destroyOrder(refs, inv) {
+		if ctx.Err() != nil {
+			return errors.Join(errs...)
+		}
 		if !bo.due(ref, now) {
 			log.Debug(ctx, "backoff skip", "ref", ref, "until", bo.entries[ref].nextRetry)
 			continue
