@@ -116,7 +116,16 @@ var kinds = map[string]Kind{
 func kindFor(r Resource) (Kind, error) {
 	k, ok := kinds[r.Kind]
 	if !ok {
-		return nil, fmt.Errorf("%s: unknown kind", r.Ref())
+		return nil, fmt.Errorf("%s: unknown kind %q%s",
+			r.Ref(), r.Kind, hintSuffix(r.Kind, kindNames()))
 	}
 	return k, nil
+}
+
+func kindNames() []string {
+	out := make([]string, 0, len(kinds))
+	for name := range kinds {
+		out = append(out, name)
+	}
+	return out
 }

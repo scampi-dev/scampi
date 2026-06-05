@@ -391,11 +391,13 @@ func typecheckOne(r *Resource) []error {
 		return []error{err}
 	}
 	sch := effectiveSchema(k)
+	candidates := schemaAttrNames(sch)
 	var errs []error
 	for _, name := range sortedKeys(r.raw) {
 		spec := sch.Find(name)
 		if spec == nil {
-			errs = append(errs, fmt.Errorf("%s: unknown attr %q", r.Ref(), name))
+			errs = append(errs, fmt.Errorf("%s: unknown attr %q%s",
+				r.Ref(), name, hintSuffix(name, candidates)))
 			continue
 		}
 		v, err := r.raw[name].Coerce(spec.Type)
@@ -409,7 +411,8 @@ func typecheckOne(r *Resource) []error {
 	for _, name := range sortedPending(r.pending) {
 		spec := sch.Find(name)
 		if spec == nil {
-			errs = append(errs, fmt.Errorf("%s: unknown attr %q", r.Ref(), name))
+			errs = append(errs, fmt.Errorf("%s: unknown attr %q%s",
+				r.Ref(), name, hintSuffix(name, candidates)))
 			continue
 		}
 		if spec.Type != ValueString {
@@ -482,9 +485,17 @@ func unknownDepErrors(resources []Resource, counts map[Ref]int) []error {
 	var errs []error
 	for _, r := range resources {
 		for _, dep := range r.deps {
-			if counts[dep] == 0 {
-				errs = append(errs, fmt.Errorf("%s: references unknown resource %q", r.Ref(), dep))
+			if counts[dep] != 0 {
+				continue
 			}
+			same := make([]string, 0, len(counts))
+			for ref := range counts {
+				if ref.Kind == dep.Kind {
+					same = append(same, ref.String())
+				}
+			}
+			errs = append(errs, fmt.Errorf("%s: references unknown resource %q%s",
+				r.Ref(), dep.String(), hintSuffix(dep.String(), same)))
 		}
 	}
 	return errs
@@ -868,7 +879,8 @@ func destroyAll(ctx context.Context, refs []Ref, inv *Inventory, log Log, bo *ba
 func destroyOne(ctx context.Context, ref Ref, attrs Attrs, log Log) error {
 	k, ok := kinds[ref.Kind]
 	if !ok {
-		err := fmt.Errorf("%s: unknown kind", ref)
+		err := fmt.Errorf("%s: unknown kind %q%s",
+			ref, ref.Kind, hintSuffix(ref.Kind, kindNames()))
 		log.Emit(ctx, CodeDestroyFailed, &ref, "err", err)
 		return err
 	}

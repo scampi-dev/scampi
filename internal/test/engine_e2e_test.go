@@ -1254,6 +1254,82 @@ file "b" {
 	}
 }
 
+// Did you mean
+// -----------------------------------------------------------------------------
+
+func TestSnapshot_DidYouMeanForUnknownAttr(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path    = "%s/x"
+  content = "y"
+  contnet = "oops"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `did you mean "content"`) {
+		t.Errorf("expected did-you-mean hint; got %v", err)
+	}
+}
+
+func TestSnapshot_DidYouMeanForUnknownRefSameKind(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+dir "data" {
+  path = "%s/data"
+}
+file "x" {
+  path    = "${dir.dat.path}/x"
+  content = "hi"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `did you mean "dir.data"`) {
+		t.Errorf("expected did-you-mean hint; got %v", err)
+	}
+}
+
+func TestSnapshot_DidYouMeanForUnknownKind(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+fil "x" {
+  path    = "%s/x"
+  content = "y"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), `did you mean "file"`) {
+		t.Errorf("expected did-you-mean hint; got %v", err)
+	}
+}
+
+func TestSnapshot_NoHintWhenNothingClose(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path    = "%s/x"
+  content = "y"
+  blah_unrelated = "oops"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if strings.Contains(err.Error(), "did you mean") {
+		t.Errorf("unexpected hint for unrelated typo; got %v", err)
+	}
+}
+
 // Typed schema
 // -----------------------------------------------------------------------------
 
