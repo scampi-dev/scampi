@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"fmt"
@@ -36,7 +36,7 @@ func collectPlanEntries(p *engine.Plan, g Glyphs) []planEntry {
 	return entries
 }
 
-func printPlan(w io.Writer, p *engine.Plan, g Glyphs, colored bool) {
+func PrintPlan(w io.Writer, p *engine.Plan, g Glyphs, colored bool) {
 	entries := collectPlanEntries(p, g)
 	if len(entries) == 0 {
 		_, _ = fmt.Fprintln(w, "plan: empty")
@@ -77,9 +77,9 @@ func planColor(label string) string {
 		return ansiGreen
 	case "update", "halt":
 		return ansiYellow
-	case "destroy":
+	case "destroy", "failed":
 		return ansiRed
-	case "adopt":
+	case "adopt", "rename":
 		return ansiCyan
 	case "in sync":
 		return ansiDark

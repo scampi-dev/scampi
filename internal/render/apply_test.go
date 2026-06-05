@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/engine"
 )
 
-func emit(r *applyRenderer, code engine.Code, kind, name string, args ...any) {
+func emit(r *ApplyRenderer, code engine.Code, kind, name string, args ...any) {
 	ref := &engine.Ref{Kind: kind, Name: name}
 	r.Emit(context.Background(), code, ref, args...)
 }
@@ -32,42 +32,42 @@ func assertLine(t *testing.T, out, sigil, ref, label string) {
 
 func TestApplyRenderer_CreateLine(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	emit(r, engine.CodeApplySuccess, "file", "x", "action", "create", "path", "/p")
 	assertLine(t, buf.String(), "+", "file.x", "create")
 }
 
 func TestApplyRenderer_UpdateLine(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	emit(r, engine.CodeApplySuccess, "file", "y", "action", "update", "path", "/p")
 	assertLine(t, buf.String(), "~", "file.y", "update")
 }
 
 func TestApplyRenderer_AdoptLine(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	emit(r, engine.CodeApplySuccess, "file", "z", "action", "adopt", "path", "/p")
 	assertLine(t, buf.String(), "@", "file.z", "adopt")
 }
 
 func TestApplyRenderer_DestroyLine(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	emit(r, engine.CodeDestroySuccess, "file", "old", "path", "/p")
 	assertLine(t, buf.String(), "-", "file.old", "destroy")
 }
 
 func TestApplyRenderer_HaltLine(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	emit(r, engine.CodeApplyHalted, "file", "claim", "state", "matching")
 	assertLine(t, buf.String(), "!", "file.claim", "halt")
 }
 
 func TestApplyRenderer_FailedLineCarriesErr(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	emit(r, engine.CodeApplyFailed, "file", "boom", "err", errors.New("permission denied"))
 	out := buf.String()
 	assertLine(t, out, "x", "file.boom", "failed")
@@ -78,7 +78,7 @@ func TestApplyRenderer_FailedLineCarriesErr(t *testing.T) {
 
 func TestApplyRenderer_SuppressesLogDebugAndInfo(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Emit(context.Background(), engine.CodeLogDebug, nil, "msg", "noise")
 	r.Emit(context.Background(), engine.CodeLogInfo, nil, "msg", "lifecycle chatter")
 	r.Emit(context.Background(), engine.CodeSnapshotReceived, nil, "resources", 3)
@@ -89,7 +89,7 @@ func TestApplyRenderer_SuppressesLogDebugAndInfo(t *testing.T) {
 
 func TestApplyRenderer_PassesLogWarn(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Emit(context.Background(), engine.CodeLogWarn, nil, "msg", "something weird")
 	if !strings.Contains(buf.String(), "something weird") {
 		t.Errorf("warn should pass through; got %q", buf.String())
@@ -98,7 +98,7 @@ func TestApplyRenderer_PassesLogWarn(t *testing.T) {
 
 func TestApplyRenderer_FinalizeShowsCounts(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	emit(r, engine.CodeApplySuccess, "file", "a", "action", "create")
 	emit(r, engine.CodeApplySuccess, "file", "b", "action", "create")
 	emit(r, engine.CodeApplySuccess, "file", "c", "action", "update")
@@ -121,7 +121,7 @@ func TestApplyRenderer_FinalizeShowsCounts(t *testing.T) {
 
 func TestApplyRenderer_FinalizeNothingToDo(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Finalize(nil)
 	if !strings.Contains(buf.String(), "nothing to do") {
 		t.Errorf("expected nothing-to-do message; got:\n%s", buf.String())
@@ -130,7 +130,7 @@ func TestApplyRenderer_FinalizeNothingToDo(t *testing.T) {
 
 func TestApplyRenderer_FinalizeSkippedAfterRejection(t *testing.T) {
 	var buf bytes.Buffer
-	r := newApplyRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewApplyRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Emit(context.Background(), engine.CodeSnapshotRejected, nil,
 		"phase", "typecheck", "err", errors.New("file.x: missing required attr \"content\""))
 	cursor := buf.Len()

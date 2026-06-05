@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -19,21 +18,16 @@ import (
 
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/platform"
+	"scampi.dev/scampi/internal/render"
 )
 
-// instanceAddr is the loopback bind that gates single-instance per
-// host. 0xFEED (65261) is high in the IANA dynamic range so
-// ephemeral collisions are rare.
+// 0xFEED is high in the IANA dynamic range; ephemeral collisions are rare.
 const instanceAddr = "127.0.0.1:65261"
 
-// helpTemplate is cobra's default with the tagline routed through
-// the `tagline` func for color.
 const helpTemplate = `{{with (or .Long .Short)}}{{tagline (. | trimTrailingWhitespaces)}}
 
 {{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-// usageTemplate routes section headers, command names, and flag
-// names through color funcs.
 const usageTemplate = `{{header "Usage:"}}{{if .Runnable}}
   {{cmdName .UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{cmdName .CommandPath}} {{cmdName "[command]"}}{{end}}{{if gt (len .Aliases) 0}}
@@ -56,34 +50,22 @@ const usageTemplate = `{{header "Usage:"}}{{if .Runnable}}
 Use "{{cmdName (printf "%s [command] --help" .CommandPath)}}" for more information about a command.{{end}}
 `
 
-// cobraColored gates ANSI from the help template funcs. main flips
-// it per render target.
-var cobraColored bool
-
-// colorMode mirrors --color. Package-level so decideColor reaches
-// it from main and from the help hook.
-var colorMode = "auto"
-
-// asciiFlag mirrors --ascii. Forces ASCII glyphs over Unicode.
-var asciiFlag bool
-
-// verboseCount mirrors repeated -v flags. quietFlag mirrors --quiet.
-// resolveVerbosity composes them into a single signed level.
 var (
-	verboseCount int
-	quietFlag    bool
+	cobraColored   bool
+	colorMode      = "auto"
+	asciiFlag      bool
+	verboseCount   int
+	quietFlag      bool
+	outputFormat   = "text"
+	runtimeReached bool
 )
 
-func resolveVerbosity() Verbosity {
+func resolveVerbosity() render.Verbosity {
 	if quietFlag {
-		return VerbosityQuiet
+		return render.VerbosityQuiet
 	}
-	return Verbosity(verboseCount)
+	return render.Verbosity(verboseCount)
 }
-
-// outputFormat mirrors --output-format / -o. Default is "text"; "json"
-// swaps the renderer to JSONL for log forwarders.
-var outputFormat = "text"
 
 func resolveOutputFormat() string {
 	if env := os.Getenv("SCAMPI_OUTPUT_FORMAT"); env != "" {
@@ -92,13 +74,6 @@ func resolveOutputFormat() string {
 	return outputFormat
 }
 
-// runtimeReached flips to true once cobra has parsed flags and args.
-// Errors after that point don't earn the usage block.
-var runtimeReached bool
-
-// flagLineRe captures one pflag FlagUsages line. Groups: leading
-// indent, flag prefix (optional short alias + type), spacing,
-// description.
 var flagLineRe = regexp.MustCompile(`^(\s+)((?:-\S, )?--\S+(?: \S+)?)(\s+)(.*)$`)
 
 func registerCobraHelpFuncs() {
@@ -107,12 +82,12 @@ func registerCobraHelpFuncs() {
 			if !cobraColored {
 				return s
 			}
-			return open + s + ansiReset
+			return open + s + render.AnsiReset
 		}
 	}
-	cobra.AddTemplateFunc("header", wrap(ansiYellow))
-	cobra.AddTemplateFunc("tagline", wrap(ansiBlue))
-	cobra.AddTemplateFunc("cmdName", wrap(ansiCyan))
+	cobra.AddTemplateFunc("header", wrap(render.AnsiYellow))
+	cobra.AddTemplateFunc("tagline", wrap(render.AnsiBlue))
+	cobra.AddTemplateFunc("cmdName", wrap(render.AnsiCyan))
 	cobra.AddTemplateFunc("flagBlock", func(s string) string {
 		if !cobraColored {
 			return s
@@ -123,41 +98,41 @@ func registerCobraHelpFuncs() {
 			if m == nil {
 				continue
 			}
-			lines[i] = m[1] + ansiGreen + m[2] + ansiReset + m[3] + m[4]
+			lines[i] = m[1] + render.AnsiGreen + m[2] + render.AnsiReset + m[3] + m[4]
 		}
 		return strings.Join(lines, "\n")
 	})
 }
 
-// pickApplyRenderer returns the emitter the apply command writes
-// through, plus a finalize callback to run after engine.Apply
-// returns. JSON mode has no finalize.
-func pickApplyRenderer() (engine.Emitter, func(error)) {
+// pickApplyEmitter returns the renderer + a finalize callback (json
+// mode has no finalize).
+func pickApplyEmitter() (engine.Emitter, func(error)) {
+	v := resolveVerbosity()
 	if resolveOutputFormat() == "json" {
-		return newJSONRenderer(os.Stdout, resolveVerbosity()), func(error) {}
+		return render.NewJSONRenderer(os.Stdout, v), func(error) {}
 	}
-	ar := newApplyRenderer(os.Stdout,
-		decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
+	ar := render.NewApplyRenderer(os.Stdout,
+		render.DecideGlyphs(asciiFlag), render.DecideColor(colorMode, os.Stdout), v)
 	return ar, ar.Finalize
 }
 
-func pickRunRenderer() engine.Emitter {
+func pickRunEmitter() engine.Emitter {
+	v := resolveVerbosity()
 	if resolveOutputFormat() == "json" {
-		return newJSONRenderer(os.Stdout, resolveVerbosity())
+		return render.NewJSONRenderer(os.Stdout, v)
 	}
-	return newRunRenderer(os.Stdout,
-		decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
+	return render.NewRunRenderer(os.Stdout,
+		render.DecideGlyphs(asciiFlag), render.DecideColor(colorMode, os.Stdout), v)
 }
 
-// armForceExit listens for a second SIGINT after the platform's
-// graceful-shutdown signal handler has consumed the first. On second
-// press, scampi exits immediately; no further draining.
+// armForceExit: first SIGINT goes to the platform's ShutdownContext;
+// a second one within the same process lifetime force-exits.
 func armForceExit() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
-		<-ch // first press, already handled by ShutdownContext
-		<-ch // second press, escalate
+		<-ch
+		<-ch
 		_, _ = fmt.Fprintln(os.Stderr, "force shutdown")
 		os.Exit(130)
 	}()
@@ -165,7 +140,7 @@ func armForceExit() {
 
 func main() {
 	registerCobraHelpFuncs()
-	cobraColored = decideColor(colorMode, os.Stdout)
+	cobraColored = render.DecideColor(colorMode, os.Stdout)
 	plat := platform.New()
 	ctx, stop := plat.Signals.ShutdownContext(context.Background())
 	defer stop()
@@ -178,26 +153,21 @@ func main() {
 	case err == nil:
 		return
 	case errors.Is(err, context.Canceled):
-		// Graceful shutdown via SIGINT; engine already announced it.
 		os.Exit(130)
 	case errors.Is(err, engine.ErrSnapshotRejected):
-		// Engine already emitted snapshot.rejected; just exit-code.
 		os.Exit(2)
 	case errors.Is(err, engine.ErrApplyFailed):
 		os.Exit(1)
 	default:
-		// Error path writes to stderr; color decision follows stderr.
-		errColored := decideColor(colorMode, os.Stderr)
+		errColored := render.DecideColor(colorMode, os.Stderr)
 		cobraColored = errColored
 		errLine := fmt.Sprintf("Error: %s", err)
 		if errColored {
-			errLine = ansiRed + errLine + ansiReset
+			errLine = render.AnsiRed + errLine + render.AnsiReset
 		}
 		if runtimeReached {
-			// Runtime failure - usage block is noise.
 			_, _ = fmt.Fprintln(os.Stderr, errLine)
 		} else {
-			// CLI-level failure: show usage for the leaf command.
 			cmd.InitDefaultHelpFlag()
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n\n%s", errLine, cmd.UsageString())
 		}
@@ -212,16 +182,12 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		inv           *engine.Inventory
 		instance      net.Listener
 	)
-	pickLog := func() engine.Log {
-		base := slogEmitter{l: slog.New(&slogHandler{
-			out:     os.Stderr,
-			colored: decideColor(colorMode, os.Stderr),
-			level:   slog.LevelDebug,
-		})}
+
+	sinkWith := func(r engine.Emitter) engine.Emitter {
 		if actLog == nil {
-			return engine.NewLog(base)
+			return r
 		}
-		return engine.NewLog(fanoutEmitter{base, actLog})
+		return render.FanoutEmitter{r, actLog}
 	}
 
 	acquireMutationLock := func() error {
@@ -249,8 +215,7 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			// Validate --color and --output-format BEFORE runtimeReached
-			// so a bad value gets the usage block treatment.
+			// Validate before runtimeReached so bad values get the usage block.
 			switch colorMode {
 			case "auto", "always", "never":
 			default:
@@ -287,11 +252,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		"output format: text|json (also honors SCAMPI_OUTPUT_FORMAT)")
 
 	// SetHelpFunc fires after flag parsing but before the template
-	// renders, so colorMode is current when we sample it. Children
-	// inherit the hook.
+	// renders; sample colorMode here so flags take effect.
 	defaultHelp := root.HelpFunc()
 	root.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		cobraColored = decideColor(colorMode, os.Stdout)
+		cobraColored = render.DecideColor(colorMode, os.Stdout)
 		defaultHelp(cmd, args)
 	})
 
@@ -305,12 +269,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			if err := acquireMutationLock(); err != nil {
 				return err
 			}
-			renderer, finalize := pickApplyRenderer()
-			sink := renderer
-			if actLog != nil {
-				sink = fanoutEmitter{renderer, actLog}
-			}
-			err := engine.Apply(cmd.Context(), args[0], inv, engine.NewLog(sink))
+			renderer, finalize := pickApplyEmitter()
+			err := engine.Apply(cmd.Context(), engine.ApplyConfig{
+				Dir: args[0], Inventory: inv, Log: engine.NewLog(sinkWith(renderer)),
+			})
 			finalize(err)
 			return err
 		},
@@ -327,12 +289,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return err
 			}
 			interval, _ := cmd.Flags().GetDuration("interval")
-			renderer := pickRunRenderer()
-			sink := renderer
-			if actLog != nil {
-				sink = fanoutEmitter{renderer, actLog}
-			}
-			return engine.Run(cmd.Context(), args[0], interval, inv, engine.NewLog(sink))
+			renderer := pickRunEmitter()
+			return engine.Run(cmd.Context(), engine.RunConfig{
+				Dir: args[0], Interval: interval, Inventory: inv, Log: engine.NewLog(sinkWith(renderer)),
+			})
 		},
 	}
 	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")
@@ -349,11 +309,15 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return fmt.Errorf("action log replay: %w", err)
 			}
 			inv = loaded
-			p, err := engine.MakePlan(cmd.Context(), args[0], inv, pickLog())
+			renderer := pickRunEmitter()
+			p, err := engine.MakePlan(cmd.Context(), engine.PlanConfig{
+				Dir: args[0], Inventory: inv, Log: engine.NewLog(renderer),
+			})
 			if err != nil {
 				return err
 			}
-			printPlan(os.Stdout, p, decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout))
+			render.PrintPlan(os.Stdout, p,
+				render.DecideGlyphs(asciiFlag), render.DecideColor(colorMode, os.Stdout))
 			return nil
 		},
 	}

@@ -1,22 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"scampi.dev/scampi/internal/engine"
 )
 
-// runRenderer streams lifecycle events forever with a wall-clock
-// timestamp prefix on every line. No finalization since run doesn't
-// end on its own; instead a per-tick summary lands after each
-// reconcile pass that did something.
-type runRenderer struct {
+type RunRenderer struct {
 	out        io.Writer
 	glyphs     Glyphs
 	colored    bool
@@ -24,13 +19,13 @@ type runRenderer struct {
 	tickEvents int
 }
 
-func newRunRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *runRenderer {
-	return &runRenderer{out: out, glyphs: g, colored: colored, verbosity: v}
+func NewRunRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *RunRenderer {
+	return &RunRenderer{out: out, glyphs: g, colored: colored, verbosity: v}
 }
 
-func (r *runRenderer) Err() error { return nil }
+func (*RunRenderer) Err() error { return nil }
 
-func (r *runRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
+func (r *RunRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
 	switch code {
 	case engine.CodeApplySuccess:
 		r.applyLine(ref, args)
@@ -71,12 +66,11 @@ func (r *runRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref,
 			r.logLine("DBG", ansiDark, args)
 		}
 	case engine.CodeApplyStart, engine.CodeDestroyStart, engine.CodeSnapshotReceived:
-		// suppressed at all verbosities; lifecycle wrapper events,
-		// not narration the operator wants in the stream.
+		// lifecycle wrappers; sigil lines convey the meaningful work
 	}
 }
 
-func (r *runRenderer) tickSummary(args []any) {
+func (r *RunRenderer) tickSummary(args []any) {
 	duration := attrString(args, "duration")
 	status := attrString(args, "status")
 	ts := time.Now().Format("15:04:05.000")
@@ -98,7 +92,7 @@ func (r *runRenderer) tickSummary(args []any) {
 	)
 }
 
-func (r *runRenderer) applyLine(ref *engine.Ref, args []any) {
+func (r *RunRenderer) applyLine(ref *engine.Ref, args []any) {
 	action := attrString(args, "action")
 	switch action {
 	case "create":
@@ -112,12 +106,12 @@ func (r *runRenderer) applyLine(ref *engine.Ref, args []any) {
 	}
 }
 
-func (r *runRenderer) failedLine(ref *engine.Ref, args []any) {
+func (r *RunRenderer) failedLine(ref *engine.Ref, args []any) {
 	errMsg := attrString(args, "err")
 	r.eventLine(r.glyphs.Failed, "failed", ref.String(), errMsg, ansiRed)
 }
 
-func (r *runRenderer) haltedLine(ref *engine.Ref, args []any) {
+func (r *RunRenderer) haltedLine(ref *engine.Ref, args []any) {
 	state := attrString(args, "state")
 	detail := ""
 	if state != "" {
@@ -126,16 +120,16 @@ func (r *runRenderer) haltedLine(ref *engine.Ref, args []any) {
 	r.eventLine(r.glyphs.Halt, "halt", ref.String(), detail, ansiYellow)
 }
 
-func (r *runRenderer) renamedLine(ref *engine.Ref, args []any) {
+func (r *RunRenderer) renamedLine(ref *engine.Ref, args []any) {
 	from := attrString(args, "from")
 	r.eventLine(r.glyphs.Rename, "rename", ref.String(), "from "+from, ansiCyan)
 }
 
-func (r *runRenderer) destroyLine(ref *engine.Ref) {
+func (r *RunRenderer) destroyLine(ref *engine.Ref) {
 	r.eventLine(r.glyphs.Destroy, "destroy", ref.String(), "", ansiRed)
 }
 
-func (r *runRenderer) eventLine(glyph, label, ref, detail, color string) {
+func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
 	ts := time.Now().Format("15:04:05.000")
 	ind := padCol(glyph, indicatorWidth)
 	if !r.colored {
@@ -163,13 +157,13 @@ func (r *runRenderer) eventLine(glyph, label, ref, detail, color string) {
 	)
 }
 
-func (r *runRenderer) logLine(tag, color string, args []any) {
+func (r *RunRenderer) logLine(tag, color string, args []any) {
 	msg, rest := popMsg(args)
 	attrs := formatAttrs(rest, r.colored)
 	ts := time.Now().Format("15:04:05.000")
 	ind := padCol(tag, indicatorWidth)
-	// Overwrite the TTY-echoed ^C with CR+clear so the shutdown
-	// announcement starts at column 0.
+	// CR+clear so the engine's shutdown announce overwrites the
+	// TTY-echoed ^C in the same Write.
 	prefix := ""
 	if r.colored && msg == shutdownMsg {
 		prefix = "\r\x1b[K"
@@ -182,24 +176,4 @@ func (r *runRenderer) logLine(tag, color string, args []any) {
 		prefix, ansiDark, ts, ansiReset, color, ind, ansiReset, msg, attrs)
 }
 
-// shutdownMsg is the engine's log.Info line emitted on graceful
-// shutdown; the renderer keys off it to overwrite the TTY's echoed
-// ^C in the same Write as the announcement.
 const shutdownMsg = "received shutdown signal, exiting at next safe point"
-
-func formatAttrs(args []any, colored bool) string {
-	var b strings.Builder
-	for i := 0; i+1 < len(args); i += 2 {
-		k, ok := args[i].(string)
-		if !ok {
-			continue
-		}
-		v := args[i+1]
-		if colored {
-			_, _ = fmt.Fprintf(&b, " %s%s=%s%v", ansiCyan, k, ansiReset, v)
-		} else {
-			_, _ = fmt.Fprintf(&b, " %s=%v", k, v)
-		}
-	}
-	return b.String()
-}

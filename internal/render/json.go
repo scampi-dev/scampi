@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"context"
@@ -12,25 +12,21 @@ import (
 	"scampi.dev/scampi/internal/engine"
 )
 
-// jsonRenderer serializes every emission as one JSON object per
-// line. Pairs well with log forwarders (logstash, fluentd) and ad-hoc
-// jq queries. No event suppression: the consumer decides what to
-// surface.
-type jsonRenderer struct {
+type JSONRenderer struct {
 	mu        sync.Mutex
 	enc       *json.Encoder
 	verbosity Verbosity
 }
 
-func newJSONRenderer(out io.Writer, v Verbosity) *jsonRenderer {
+func NewJSONRenderer(out io.Writer, v Verbosity) *JSONRenderer {
 	enc := json.NewEncoder(out)
 	enc.SetEscapeHTML(false)
-	return &jsonRenderer{enc: enc, verbosity: v}
+	return &JSONRenderer{enc: enc, verbosity: v}
 }
 
-func (*jsonRenderer) Err() error { return nil }
+func (*JSONRenderer) Err() error { return nil }
 
-func (r *jsonRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
+func (r *JSONRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
 	if !r.admit(code) {
 		return
 	}
@@ -57,9 +53,8 @@ func (r *jsonRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref
 	_ = r.enc.Encode(rec)
 }
 
-// admit gates log.* codes by verbosity. Lifecycle codes always pass
-// since they're the meaningful event stream.
-func (r *jsonRenderer) admit(code engine.Code) bool {
+// admit gates log.* by verbosity; lifecycle always passes.
+func (r *JSONRenderer) admit(code engine.Code) bool {
 	switch code {
 	case engine.CodeLogInfo:
 		return r.verbosity >= VerbosityDefault

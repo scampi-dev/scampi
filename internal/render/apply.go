@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"context"
@@ -13,11 +13,7 @@ import (
 	"scampi.dev/scampi/internal/engine"
 )
 
-// applyRenderer is the Emitter the apply command uses in place of
-// the streaming slog handler. Per-resource lifecycle events become
-// sigil-prefixed lines; log.* at debug/info gets suppressed so the
-// operator only sees what actually changed.
-type applyRenderer struct {
+type ApplyRenderer struct {
 	out       io.Writer
 	glyphs    Glyphs
 	colored   bool
@@ -37,8 +33,8 @@ type applyCounts struct {
 	failed    int
 }
 
-func newApplyRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *applyRenderer {
-	return &applyRenderer{
+func NewApplyRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *ApplyRenderer {
+	return &ApplyRenderer{
 		out:       out,
 		glyphs:    g,
 		colored:   colored,
@@ -47,9 +43,9 @@ func newApplyRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *apply
 	}
 }
 
-func (r *applyRenderer) Err() error { return nil }
+func (*ApplyRenderer) Err() error { return nil }
 
-func (r *applyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
+func (r *ApplyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
 	switch code {
 	case engine.CodeApplySuccess:
 		r.handleApplySuccess(ref, args)
@@ -84,7 +80,7 @@ func (r *applyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Re
 	}
 }
 
-func (r *applyRenderer) Finalize(err error) {
+func (r *ApplyRenderer) Finalize(err error) {
 	if r.rejected {
 		// renderSnapshotRejected already told the operator everything.
 		return
@@ -130,7 +126,7 @@ func (r *applyRenderer) Finalize(err error) {
 	}
 }
 
-func (r *applyRenderer) handleApplySuccess(ref *engine.Ref, args []any) {
+func (r *ApplyRenderer) handleApplySuccess(ref *engine.Ref, args []any) {
 	action := attrString(args, "action")
 	var glyph, label string
 	switch action {
@@ -151,20 +147,20 @@ func (r *applyRenderer) handleApplySuccess(ref *engine.Ref, args []any) {
 	r.writeLine(glyph, label, ref.String(), "", planColor(label))
 }
 
-func (r *applyRenderer) handleApplyFailed(ref *engine.Ref, args []any) {
+func (r *ApplyRenderer) handleApplyFailed(ref *engine.Ref, args []any) {
 	errMsg := attrString(args, "err")
 	r.counts.failed++
 	r.writeLine(r.glyphs.Failed, "failed", ref.String(), errMsg, ansiRed)
 }
 
-func (r *applyRenderer) handleRenamed(ref *engine.Ref, args []any) {
+func (r *ApplyRenderer) handleRenamed(ref *engine.Ref, args []any) {
 	from := attrString(args, "from")
 	r.counts.renamed++
 	detail := "from " + from
 	r.writeLine(r.glyphs.Rename, "rename", ref.String(), detail, ansiCyan)
 }
 
-func (r *applyRenderer) handleHalted(ref *engine.Ref, args []any) {
+func (r *ApplyRenderer) handleHalted(ref *engine.Ref, args []any) {
 	state := attrString(args, "state")
 	r.counts.halted++
 	detail := ""
@@ -174,12 +170,12 @@ func (r *applyRenderer) handleHalted(ref *engine.Ref, args []any) {
 	r.writeLine(r.glyphs.Halt, "halt", ref.String(), detail, ansiYellow)
 }
 
-func (r *applyRenderer) handleDestroySuccess(ref *engine.Ref) {
+func (r *ApplyRenderer) handleDestroySuccess(ref *engine.Ref) {
 	r.counts.destroyed++
 	r.writeLine(r.glyphs.Destroy, "destroy", ref.String(), "", ansiRed)
 }
 
-func (r *applyRenderer) handleLog(code engine.Code, args []any) {
+func (r *ApplyRenderer) handleLog(code engine.Code, args []any) {
 	msg, _ := popMsg(args)
 	tag := "WRN"
 	color := ansiYellow
@@ -195,7 +191,7 @@ func (r *applyRenderer) handleLog(code engine.Code, args []any) {
 	}
 }
 
-func (r *applyRenderer) writeLine(glyph, label, ref, detail, color string) {
+func (r *ApplyRenderer) writeLine(glyph, label, ref, detail, color string) {
 	ind := padCol(glyph, indicatorWidth)
 	if !r.colored {
 		if detail != "" {
@@ -218,19 +214,4 @@ func (r *applyRenderer) writeLine(glyph, label, ref, detail, color string) {
 		ref,
 		ansiDim, label, ansiUndim,
 	)
-}
-
-func attrString(args []any, key string) string {
-	for i := 0; i+1 < len(args); i += 2 {
-		k, ok := args[i].(string)
-		if !ok || k != key {
-			continue
-		}
-		v := args[i+1]
-		if e, ok := v.(error); ok {
-			return e.Error()
-		}
-		return fmt.Sprint(v)
-	}
-	return ""
 }

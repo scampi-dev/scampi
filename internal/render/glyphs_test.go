@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import "testing"
 
@@ -20,7 +20,7 @@ func TestDecideGlyphs(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Setenv("SCAMPI_ASCII", c.env)
-			got := decideGlyphs(c.flag)
+			got := DecideGlyphs(c.flag)
 			gotASCII := got == ASCIIGlyphs
 			if gotASCII != c.wantASCII {
 				t.Errorf("got ascii=%v, want %v", gotASCII, c.wantASCII)

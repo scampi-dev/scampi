@@ -127,7 +127,27 @@ type Plan struct {
 	InSync  []Ref // owned and matching - no action
 }
 
-func MakePlan(ctx context.Context, dir string, inv *Inventory, log Log) (*Plan, error) {
+type ApplyConfig struct {
+	Dir       string
+	Inventory *Inventory
+	Log       Log
+}
+
+type RunConfig struct {
+	Dir       string
+	Inventory *Inventory
+	Log       Log
+	Interval  time.Duration
+}
+
+type PlanConfig struct {
+	Dir       string
+	Inventory *Inventory
+	Log       Log
+}
+
+func MakePlan(ctx context.Context, cfg PlanConfig) (*Plan, error) {
+	dir, inv, log := cfg.Dir, cfg.Inventory, cfg.Log
 	snap, err := snapshot(ctx, dir, log)
 	if err != nil {
 		return nil, err
@@ -161,7 +181,8 @@ func MakePlan(ctx context.Context, dir string, inv *Inventory, log Log) (*Plan, 
 	return p, nil
 }
 
-func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
+func Apply(ctx context.Context, cfg ApplyConfig) error {
+	dir, inv, log := cfg.Dir, cfg.Inventory, cfg.Log
 	snap, err := snapshot(ctx, dir, log)
 	if err != nil {
 		return err
@@ -188,10 +209,10 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 	return nil
 }
 
-// Run polls dir and reconciles forever. Snapshot rejects do not
-// stop the loop so the operator can fix configs in place while
-// reconciliation continues against the last-good snapshot.
-func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory, log Log) error {
+// Run keeps reconciling after a snapshot reject so operators can fix
+// configs in place against the last-good snapshot.
+func Run(ctx context.Context, cfg RunConfig) error {
+	dir, inv, log, interval := cfg.Dir, cfg.Inventory, cfg.Log, cfg.Interval
 	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
 	var (
 		lastRev string

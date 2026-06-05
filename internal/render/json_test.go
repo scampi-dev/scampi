@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 
 func TestJSONRenderer_EmitsOneObjectPerLine(t *testing.T) {
 	var buf bytes.Buffer
-	r := newJSONRenderer(&buf, VerbosityDefault)
+	r := NewJSONRenderer(&buf, VerbosityDefault)
 	ref := &engine.Ref{Kind: "file", Name: "a"}
 	r.Emit(context.Background(), engine.CodeApplySuccess, ref, "action", "create", "path", "/x")
 	r.Emit(context.Background(), engine.CodeTickComplete, nil, "duration", "5ms", "status", "ok")
@@ -34,7 +34,7 @@ func TestJSONRenderer_EmitsOneObjectPerLine(t *testing.T) {
 
 func TestJSONRenderer_IncludesCodeRefAndAttrs(t *testing.T) {
 	var buf bytes.Buffer
-	r := newJSONRenderer(&buf, VerbosityDefault)
+	r := NewJSONRenderer(&buf, VerbosityDefault)
 	ref := &engine.Ref{Kind: "file", Name: "x"}
 	r.Emit(context.Background(), engine.CodeApplySuccess, ref,
 		"action", "create", "path", "/p")
@@ -62,7 +62,7 @@ func TestJSONRenderer_IncludesCodeRefAndAttrs(t *testing.T) {
 
 func TestJSONRenderer_ErrSerializesAsString(t *testing.T) {
 	var buf bytes.Buffer
-	r := newJSONRenderer(&buf, VerbosityDefault)
+	r := NewJSONRenderer(&buf, VerbosityDefault)
 	r.Emit(context.Background(), engine.CodeSnapshotRejected, nil,
 		"phase", "typecheck",
 		"err", errors.New(`file.x: missing required attr "content"`),
@@ -82,7 +82,7 @@ func TestJSONRenderer_ErrSerializesAsString(t *testing.T) {
 
 func TestJSONRenderer_DefaultSuppressesDebug(t *testing.T) {
 	var buf bytes.Buffer
-	r := newJSONRenderer(&buf, VerbosityDefault)
+	r := NewJSONRenderer(&buf, VerbosityDefault)
 	r.Emit(context.Background(), engine.CodeLogDebug, nil, "msg", "noise")
 	r.Emit(context.Background(), engine.CodeLogInfo, nil, "msg", "starting")
 	r.Emit(context.Background(), engine.CodeSnapshotReceived, nil, "resources", 3)
@@ -93,7 +93,7 @@ func TestJSONRenderer_DefaultSuppressesDebug(t *testing.T) {
 
 func TestJSONRenderer_QuietSuppressesInfo(t *testing.T) {
 	var buf bytes.Buffer
-	r := newJSONRenderer(&buf, VerbosityQuiet)
+	r := NewJSONRenderer(&buf, VerbosityQuiet)
 	r.Emit(context.Background(), engine.CodeLogInfo, nil, "msg", "starting")
 	r.Emit(context.Background(), engine.CodeSnapshotReceived, nil, "resources", 3)
 	if strings.Count(buf.String(), "\n") != 1 {
@@ -103,7 +103,7 @@ func TestJSONRenderer_QuietSuppressesInfo(t *testing.T) {
 
 func TestJSONRenderer_VerbosePassesDebug(t *testing.T) {
 	var buf bytes.Buffer
-	r := newJSONRenderer(&buf, VerbosityVerbose)
+	r := NewJSONRenderer(&buf, VerbosityVerbose)
 	r.Emit(context.Background(), engine.CodeLogDebug, nil, "msg", "noise")
 	if !strings.Contains(buf.String(), "noise") {
 		t.Errorf("expected debug passed at -v; got: %q", buf.String())

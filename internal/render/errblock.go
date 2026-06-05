@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"fmt"
@@ -8,12 +8,8 @@ import (
 	"strings"
 )
 
-// renderSnapshotRejected writes a multi-line block for a snapshot
-// rejection: a header naming the phase and error count, then one
-// indented line per joined error. Engine aggregates via errors.Join,
-// which separates with "\n"; the block keeps those errors readable
-// without breaking the per-line stream contract for the rest of the
-// log.
+// Header + indented per-error lines. errors.Join uses "\n"; the
+// block keeps it readable instead of one ugly multi-line key=value.
 func renderSnapshotRejected(w io.Writer, ts, phase, joined string, colored bool) error {
 	errs := splitErrors(joined)
 	n := len(errs)
@@ -26,15 +22,6 @@ func renderSnapshotRejected(w io.Writer, ts, phase, joined string, colored bool)
 		}
 	}
 	return nil
-}
-
-func writeErrorLine(w io.Writer, msg string, colored bool) error {
-	if !colored {
-		_, err := fmt.Fprintf(w, "    %s\n", msg)
-		return err
-	}
-	_, err := fmt.Fprintf(w, "%s    %s%s\n", ansiDim, msg, ansiUndim)
-	return err
 }
 
 func splitErrors(joined string) []string {
@@ -58,5 +45,14 @@ func writeRejectedHeader(w io.Writer, ts, phase string, n int, colored bool) err
 		ansiDark, ts, ansiReset,
 		ansiYellow, ansiReset,
 		ansiBold, ansiYellow, phase, n, noun, ansiReset, ansiUndim)
+	return err
+}
+
+func writeErrorLine(w io.Writer, msg string, colored bool) error {
+	if !colored {
+		_, err := fmt.Fprintf(w, "    %s\n", msg)
+		return err
+	}
+	_, err := fmt.Fprintf(w, "%s    %s%s\n", ansiDim, msg, ansiUndim)
 	return err
 }

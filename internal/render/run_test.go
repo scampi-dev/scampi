@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package main
+package render
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 
 func TestRunRenderer_TimestampPrefix(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	ref := &engine.Ref{Kind: "file", Name: "a"}
 	r.Emit(context.Background(), engine.CodeApplySuccess, ref, "action", "create")
 	out := buf.String()
@@ -29,7 +29,7 @@ func TestRunRenderer_TimestampPrefix(t *testing.T) {
 
 func TestRunRenderer_QuietSuppressesInfo(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, -1)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, -1)
 	r.Emit(context.Background(), engine.CodeLogInfo, nil, "msg", "starting run loop")
 	if buf.Len() != 0 {
 		t.Errorf("expected info suppressed at quiet; got %q", buf.String())
@@ -38,7 +38,7 @@ func TestRunRenderer_QuietSuppressesInfo(t *testing.T) {
 
 func TestRunRenderer_VerboseShowsDebug(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 1)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 1)
 	r.Emit(context.Background(), engine.CodeLogDebug, nil, "msg", "snapshot change", "rev", "abc")
 	if !strings.Contains(buf.String(), "snapshot change") {
 		t.Errorf("expected debug shown at -v; got %q", buf.String())
@@ -47,7 +47,7 @@ func TestRunRenderer_VerboseShowsDebug(t *testing.T) {
 
 func TestRunRenderer_SigilForApplySuccess(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	ref := &engine.Ref{Kind: "file", Name: "a"}
 	r.Emit(context.Background(), engine.CodeApplySuccess, ref, "action", "create")
 	out := buf.String()
@@ -64,7 +64,7 @@ func TestRunRenderer_SigilForApplySuccess(t *testing.T) {
 
 func TestRunRenderer_SuppressesDebugAndSnapshotReceived(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Emit(context.Background(), engine.CodeLogDebug, nil, "msg", "parsing")
 	r.Emit(context.Background(), engine.CodeSnapshotReceived, nil, "resources", 3)
 	if buf.Len() != 0 {
@@ -85,7 +85,7 @@ func TestRunRenderer_PassesInfoWarnError(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+			r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 			r.Emit(context.Background(), c.code, nil, "msg", c.msg)
 			out := buf.String()
 			if !strings.Contains(out, c.tag) {
@@ -100,7 +100,7 @@ func TestRunRenderer_PassesInfoWarnError(t *testing.T) {
 
 func TestRunRenderer_InfoKeepsAttrs(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Emit(context.Background(), engine.CodeLogInfo, nil,
 		"msg", "starting run loop", "dir", "/cfg", "interval", "500ms")
 	out := buf.String()
@@ -114,7 +114,7 @@ func TestRunRenderer_InfoKeepsAttrs(t *testing.T) {
 
 func TestRunRenderer_TickSummaryAfterEvents(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	ref := &engine.Ref{Kind: "file", Name: "a"}
 	r.Emit(context.Background(), engine.CodeApplySuccess, ref, "action", "create")
 	r.Emit(context.Background(), engine.CodeTickComplete, nil, "duration", "12ms", "status", "ok")
@@ -129,7 +129,7 @@ func TestRunRenderer_TickSummaryAfterEvents(t *testing.T) {
 
 func TestRunRenderer_NoSummaryWhenSilentTick(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Emit(context.Background(), engine.CodeTickComplete, nil, "duration", "1ms", "status", "ok")
 	if buf.Len() != 0 {
 		t.Errorf("expected silent on tick with no events; got %q", buf.String())
@@ -138,7 +138,7 @@ func TestRunRenderer_NoSummaryWhenSilentTick(t *testing.T) {
 
 func TestRunRenderer_TickSummaryFailedTag(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	ref := &engine.Ref{Kind: "file", Name: "boom"}
 	r.Emit(context.Background(), engine.CodeApplyFailed, ref, "err", "permission denied")
 	r.Emit(context.Background(), engine.CodeTickComplete, nil, "duration", "5ms", "status", "failed")
@@ -153,7 +153,7 @@ func TestRunRenderer_TickSummaryFailedTag(t *testing.T) {
 
 func TestRunRenderer_SnapshotRejectedAsBlock(t *testing.T) {
 	var buf bytes.Buffer
-	r := newRunRenderer(&buf, ASCIIGlyphs, false, 0)
+	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	r.Emit(context.Background(), engine.CodeSnapshotRejected, nil,
 		"phase", "typecheck",
 		"err", errors.New(`file.x: missing required attr "content"`),
