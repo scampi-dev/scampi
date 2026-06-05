@@ -670,6 +670,20 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 		return err
 	}
 
+	// Identity drift on the same ref: the prior live state would be
+	// abandoned if we just applied the new identity. Destroy the old
+	// first, then continue as a fresh create.
+	if was {
+		prior, _, _ := inv.Get(ref)
+		if !sameIdentity(prior, r.Attrs, k.Identify()) {
+			if err := k.Destroy(ctx, ref, prior, log); err != nil {
+				return err
+			}
+			inv.Remove(ref)
+			was = false
+		}
+	}
+
 	if was && state == StateMatching {
 		log.Debug(ctx, "in sync", "ref", ref)
 		return nil
@@ -699,6 +713,18 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	log.Emit(ctx, CodeApplySuccess, &ref, fields...)
 	inv.Add(ref, ident, r.deps)
 	return nil
+}
+
+// sameIdentity reports whether two attr sets agree on every identity
+// key. Identity attrs are string-typed by constraint, so Value equality
+// is byte-for-byte.
+func sameIdentity(prior, current Attrs, keys []string) bool {
+	for _, k := range keys {
+		if prior[k] != current[k] {
+			return false
+		}
+	}
+	return true
 }
 
 // actionFor classifies a successful apply for the operator-facing

@@ -772,6 +772,53 @@ file "x" {
 	}
 }
 
+// A resource keeping its ref but changing its identity attrs (e.g.
+// dir.tmp's path moves) must destroy the prior live resource and
+// create the new one. Otherwise the old live state lingers untracked.
+func TestApply_IdentityDriftOnSameRefDestroysOld(t *testing.T) {
+	tmp := t.TempDir()
+	oldPath := filepath.Join(tmp, "old")
+	newPath := filepath.Join(tmp, "new")
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "main.hcl")
+	writeCfg := func(content string) {
+		t.Helper()
+		if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Apply 1: dir.tmp at oldPath.
+	writeCfg(`
+dir "tmp" {
+  path = "` + oldPath + `"
+}
+`)
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+		t.Fatalf("first apply: %v", err)
+	}
+	if _, err := os.Stat(oldPath); err != nil {
+		t.Fatalf("old dir should exist after first apply: %v", err)
+	}
+
+	// Apply 2: dir.tmp moves to newPath while keeping the same ref.
+	writeCfg(`
+dir "tmp" {
+  path = "` + newPath + `"
+}
+`)
+	if err := engine.Apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+		t.Fatalf("second apply: %v", err)
+	}
+	if _, err := os.Stat(newPath); err != nil {
+		t.Errorf("new dir should exist after second apply: %v", err)
+	}
+	if _, err := os.Stat(oldPath); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected old dir destroyed after identity drift; got %v", err)
+	}
+}
+
 // brokenEmitter reports a sticky failure via Err. Used to verify the
 // engine aborts a reconcile pass on first action-log breakage.
 type brokenEmitter struct{ err error }
