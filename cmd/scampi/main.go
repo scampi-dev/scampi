@@ -81,6 +81,17 @@ func resolveVerbosity() Verbosity {
 	return Verbosity(verboseCount)
 }
 
+// outputFormat mirrors --output-format / -o. Default is "text"; "json"
+// swaps the renderer to JSONL for log forwarders.
+var outputFormat = "text"
+
+func resolveOutputFormat() string {
+	if env := os.Getenv("SCAMPI_OUTPUT_FORMAT"); env != "" {
+		return env
+	}
+	return outputFormat
+}
+
 // runtimeReached flips to true once cobra has parsed flags and args.
 // Errors after that point don't earn the usage block.
 var runtimeReached bool
@@ -116,6 +127,26 @@ func registerCobraHelpFuncs() {
 		}
 		return strings.Join(lines, "\n")
 	})
+}
+
+// pickApplyRenderer returns the emitter the apply command writes
+// through, plus a finalize callback to run after engine.Apply
+// returns. JSON mode has no finalize.
+func pickApplyRenderer() (engine.Emitter, func(error)) {
+	if resolveOutputFormat() == "json" {
+		return newJSONRenderer(os.Stdout, resolveVerbosity()), func(error) {}
+	}
+	ar := newApplyRenderer(os.Stdout,
+		decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
+	return ar, ar.Finalize
+}
+
+func pickRunRenderer() engine.Emitter {
+	if resolveOutputFormat() == "json" {
+		return newJSONRenderer(os.Stdout, resolveVerbosity())
+	}
+	return newRunRenderer(os.Stdout,
+		decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
 }
 
 // armForceExit listens for a second SIGINT after the platform's
@@ -218,12 +249,18 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			// Validate --color BEFORE runtimeReached so a bad value
-			// gets the usage block treatment.
+			// Validate --color and --output-format BEFORE runtimeReached
+			// so a bad value gets the usage block treatment.
 			switch colorMode {
 			case "auto", "always", "never":
 			default:
 				return fmt.Errorf("invalid --color value %q; want auto|always|never", colorMode)
+			}
+			switch resolveOutputFormat() {
+			case "text", "json":
+			default:
+				return fmt.Errorf("invalid --output-format value %q; want text|json",
+					resolveOutputFormat())
 			}
 			runtimeReached = true
 			if actionLogPath == "" {
@@ -246,6 +283,8 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		"increase verbosity (-v shows info, -vv shows debug)")
 	root.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false,
 		"suppress non-essential output")
+	root.PersistentFlags().StringVarP(&outputFormat, "output-format", "o", "text",
+		"output format: text|json (also honors SCAMPI_OUTPUT_FORMAT)")
 
 	// SetHelpFunc fires after flag parsing but before the template
 	// renders, so colorMode is current when we sample it. Children
@@ -266,14 +305,13 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			if err := acquireMutationLock(); err != nil {
 				return err
 			}
-			ar := newApplyRenderer(os.Stdout,
-				decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
-			var sink engine.Emitter = ar
+			renderer, finalize := pickApplyRenderer()
+			sink := renderer
 			if actLog != nil {
-				sink = fanoutEmitter{ar, actLog}
+				sink = fanoutEmitter{renderer, actLog}
 			}
 			err := engine.Apply(cmd.Context(), args[0], inv, engine.NewLog(sink))
-			ar.Finalize(err)
+			finalize(err)
 			return err
 		},
 	}
@@ -289,11 +327,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return err
 			}
 			interval, _ := cmd.Flags().GetDuration("interval")
-			rr := newRunRenderer(os.Stdout,
-				decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
-			var sink engine.Emitter = rr
+			renderer := pickRunRenderer()
+			sink := renderer
 			if actLog != nil {
-				sink = fanoutEmitter{rr, actLog}
+				sink = fanoutEmitter{renderer, actLog}
 			}
 			return engine.Run(cmd.Context(), args[0], interval, inv, engine.NewLog(sink))
 		},
