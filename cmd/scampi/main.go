@@ -67,6 +67,20 @@ var colorMode = "auto"
 // asciiFlag mirrors --ascii. Forces ASCII glyphs over Unicode.
 var asciiFlag bool
 
+// verboseCount mirrors repeated -v flags. quietFlag mirrors --quiet.
+// resolveVerbosity composes them into a single signed level.
+var (
+	verboseCount int
+	quietFlag    bool
+)
+
+func resolveVerbosity() Verbosity {
+	if quietFlag {
+		return VerbosityQuiet
+	}
+	return Verbosity(verboseCount)
+}
+
 // runtimeReached flips to true once cobra has parsed flags and args.
 // Errors after that point don't earn the usage block.
 var runtimeReached bool
@@ -228,6 +242,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		"colored output: auto|always|never (also honors SCAMPI_COLOR and NO_COLOR env vars)")
 	root.PersistentFlags().BoolVar(&asciiFlag, "ascii", false,
 		"use ASCII glyphs instead of Unicode (also honors SCAMPI_ASCII=1)")
+	root.PersistentFlags().CountVarP(&verboseCount, "verbose", "v",
+		"increase verbosity (-v shows info, -vv shows debug)")
+	root.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false,
+		"suppress non-essential output")
 
 	// SetHelpFunc fires after flag parsing but before the template
 	// renders, so colorMode is current when we sample it. Children
@@ -248,7 +266,8 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			if err := acquireMutationLock(); err != nil {
 				return err
 			}
-			ar := newApplyRenderer(os.Stdout, decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout))
+			ar := newApplyRenderer(os.Stdout,
+				decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
 			var sink engine.Emitter = ar
 			if actLog != nil {
 				sink = fanoutEmitter{ar, actLog}
@@ -270,7 +289,8 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return err
 			}
 			interval, _ := cmd.Flags().GetDuration("interval")
-			rr := newRunRenderer(os.Stdout, decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout))
+			rr := newRunRenderer(os.Stdout,
+				decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout), resolveVerbosity())
 			var sink engine.Emitter = rr
 			if actLog != nil {
 				sink = fanoutEmitter{rr, actLog}

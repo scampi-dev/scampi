@@ -18,12 +18,13 @@ import (
 // sigil-prefixed lines; log.* at debug/info gets suppressed so the
 // operator only sees what actually changed.
 type applyRenderer struct {
-	out      io.Writer
-	glyphs   Glyphs
-	colored  bool
-	start    time.Time
-	counts   applyCounts
-	rejected bool
+	out       io.Writer
+	glyphs    Glyphs
+	colored   bool
+	verbosity Verbosity
+	start     time.Time
+	counts    applyCounts
+	rejected  bool
 }
 
 type applyCounts struct {
@@ -36,12 +37,13 @@ type applyCounts struct {
 	failed    int
 }
 
-func newApplyRenderer(out io.Writer, g Glyphs, colored bool) *applyRenderer {
+func newApplyRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *applyRenderer {
 	return &applyRenderer{
-		out:     out,
-		glyphs:  g,
-		colored: colored,
-		start:   time.Now(),
+		out:       out,
+		glyphs:    g,
+		colored:   colored,
+		verbosity: v,
+		start:     time.Now(),
 	}
 }
 
@@ -67,10 +69,16 @@ func (r *applyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Re
 		errMsg := attrString(args, "err")
 		_ = renderSnapshotRejected(r.out, ts, phase, errMsg, r.colored)
 		r.rejected = true
-	case engine.CodeApplyStart, engine.CodeDestroyStart,
-		engine.CodeSnapshotReceived,
-		engine.CodeLogDebug, engine.CodeLogInfo:
-		// suppressed at default verbosity
+	case engine.CodeLogInfo:
+		if r.verbosity >= VerbosityVerbose {
+			r.handleLog(code, args)
+		}
+	case engine.CodeLogDebug:
+		if r.verbosity >= VerbosityTrace {
+			r.handleLog(code, args)
+		}
+	case engine.CodeApplyStart, engine.CodeDestroyStart, engine.CodeSnapshotReceived:
+		// lifecycle wrappers; sigil lines convey the meaningful work
 	case engine.CodeLogWarn, engine.CodeLogError:
 		r.handleLog(code, args)
 	}

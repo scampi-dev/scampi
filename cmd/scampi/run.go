@@ -20,11 +20,12 @@ type runRenderer struct {
 	out        io.Writer
 	glyphs     Glyphs
 	colored    bool
+	verbosity  Verbosity
 	tickEvents int
 }
 
-func newRunRenderer(out io.Writer, g Glyphs, colored bool) *runRenderer {
-	return &runRenderer{out: out, glyphs: g, colored: colored}
+func newRunRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *runRenderer {
+	return &runRenderer{out: out, glyphs: g, colored: colored, verbosity: v}
 }
 
 func (r *runRenderer) Err() error { return nil }
@@ -58,14 +59,20 @@ func (r *runRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref,
 		}
 		r.tickEvents = 0
 	case engine.CodeLogInfo:
-		r.logLine("INF", ansiGreen, args)
+		if r.verbosity >= VerbosityDefault {
+			r.logLine("INF", ansiGreen, args)
+		}
 	case engine.CodeLogWarn:
 		r.logLine("WRN", ansiYellow, args)
 	case engine.CodeLogError:
 		r.logLine("ERR", ansiRed, args)
-	case engine.CodeApplyStart, engine.CodeDestroyStart,
-		engine.CodeSnapshotReceived, engine.CodeLogDebug:
-		// suppressed at default verbosity
+	case engine.CodeLogDebug:
+		if r.verbosity >= VerbosityVerbose {
+			r.logLine("DBG", ansiDark, args)
+		}
+	case engine.CodeApplyStart, engine.CodeDestroyStart, engine.CodeSnapshotReceived:
+		// suppressed at all verbosities; lifecycle wrapper events,
+		// not narration the operator wants in the stream.
 	}
 }
 
