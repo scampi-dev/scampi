@@ -120,7 +120,15 @@ func (r *ApplyRenderer) Finalize(err error) {
 	}
 	elapsed := time.Since(r.start).Round(time.Millisecond)
 	if r.colored {
-		_, _ = fmt.Fprintf(r.out, "\n  %s%s:%s %s in %s\n", ansiBold, label, ansiUndim, body, elapsed)
+		_, _ = fmt.Fprintf(
+			r.out,
+			"\n  %s%s:%s %s in %s\n",
+			ansiBold,
+			label,
+			ansiUndim,
+			body,
+			elapsed,
+		)
 	} else {
 		_, _ = fmt.Fprintf(r.out, "\n  %s: %s in %s\n", label, body, elapsed)
 	}
@@ -202,14 +210,16 @@ func (r *ApplyRenderer) writeLine(glyph, label, ref, detail, color string) {
 		return
 	}
 	if detail != "" {
-		_, _ = fmt.Fprintf(r.out, "  %s%s%s  %-20s  %s%s: %s%s\n",
+		_, _ = fmt.Fprintf(
+			r.out, "  %s%s%s  %-20s  %s%s: %s%s\n",
 			color, ind, ansiReset,
 			ref,
 			ansiDim, label, detail, ansiUndim,
 		)
 		return
 	}
-	_, _ = fmt.Fprintf(r.out, "  %s%s%s  %-20s  %s%s%s\n",
+	_, _ = fmt.Fprintf(
+		r.out, "  %s%s%s  %-20s  %s%s%s\n",
 		color, ind, ansiReset,
 		ref,
 		ansiDim, label, ansiUndim,

@@ -30,7 +30,9 @@ func TestRenderSnapshotRejected_MultipleErrorsAllShown(t *testing.T) {
 	joined := `file.x: missing required attr "content"` + "\n" +
 		`file.x: unknown attr "contnet"`
 	var buf bytes.Buffer
-	if err := renderSnapshotRejected(&buf, "2026-06-05 10:00:00", "typecheck", joined, false); err != nil {
+	if err := renderSnapshotRejected(
+		&buf, "2026-06-05 10:00:00", "typecheck", joined, false,
+	); err != nil {
 		t.Fatal(err)
 	}
 	out := buf.String()

@@ -84,7 +84,8 @@ func (r *RunRenderer) tickSummary(args []any) {
 		_, _ = fmt.Fprintf(r.out, "%s  %s  reconcile %s in %s\n", ts, tag, status, duration)
 		return
 	}
-	_, _ = fmt.Fprintf(r.out, "%s%s%s  %s%s%s  %sreconcile %s%s in %s\n",
+	_, _ = fmt.Fprintf(
+		r.out, "%s%s%s  %s%s%s  %sreconcile %s%s in %s\n",
 		ansiDark, ts, ansiReset,
 		color, tag, ansiReset,
 		ansiDim, status, ansiUndim,
@@ -141,7 +142,8 @@ func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
 		return
 	}
 	if detail != "" {
-		_, _ = fmt.Fprintf(r.out, "%s%s%s  %s%s%s  %-20s  %s%s: %s%s\n",
+		_, _ = fmt.Fprintf(
+			r.out, "%s%s%s  %s%s%s  %-20s  %s%s: %s%s\n",
 			ansiDark, ts, ansiReset,
 			color, ind, ansiReset,
 			ref,
@@ -149,7 +151,8 @@ func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
 		)
 		return
 	}
-	_, _ = fmt.Fprintf(r.out, "%s%s%s  %s%s%s  %-20s  %s%s%s\n",
+	_, _ = fmt.Fprintf(
+		r.out, "%s%s%s  %s%s%s  %-20s  %s%s%s\n",
 		ansiDark, ts, ansiReset,
 		color, ind, ansiReset,
 		ref,

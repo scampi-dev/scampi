@@ -77,7 +77,12 @@ func parseFile(ctx context.Context, log Log, path string) ([]Resource, error) {
 	return out, nil
 }
 
-func parseBlock(ctx context.Context, log Log, block *hclsyntax.Block, path string) (Resource, error) {
+func parseBlock(
+	ctx context.Context,
+	log Log,
+	block *hclsyntax.Block,
+	path string,
+) (Resource, error) {
 	log.Debug(ctx, "parsing", "block", block.Type, "path", path)
 	if len(block.Labels) != 1 {
 		return Resource{}, fmt.Errorf("%s: %s block needs exactly one label, got %d",

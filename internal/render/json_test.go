@@ -63,7 +63,8 @@ func TestJSONRenderer_IncludesCodeRefAndAttrs(t *testing.T) {
 func TestJSONRenderer_ErrSerializesAsString(t *testing.T) {
 	var buf bytes.Buffer
 	r := NewJSONRenderer(&buf, VerbosityDefault)
-	r.Emit(context.Background(), engine.CodeSnapshotRejected, nil,
+	r.Emit(
+		context.Background(), engine.CodeSnapshotRejected, nil,
 		"phase", "typecheck",
 		"err", errors.New(`file.x: missing required attr "content"`),
 	)

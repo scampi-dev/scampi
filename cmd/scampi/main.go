@@ -24,10 +24,12 @@ import (
 // 0xFEED is high in the IANA dynamic range; ephemeral collisions are rare.
 const instanceAddr = "127.0.0.1:65261"
 
+//nolint:revive // cobra template; lines are template syntax, not source lines
 const helpTemplate = `{{with (or .Long .Short)}}{{tagline (. | trimTrailingWhitespaces)}}
 
 {{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
+//nolint:revive // cobra template; lines are template syntax, not source lines
 const usageTemplate = `{{header "Usage:"}}{{if .Runnable}}
   {{cmdName .UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{cmdName .CommandPath}} {{cmdName "[command]"}}{{end}}{{if gt (len .Aliases) 0}}
@@ -52,12 +54,15 @@ Use "{{cmdName (printf "%s [command] --help" .CommandPath)}}" for more informati
 
 var (
 	cobraColored   bool
-	colorMode      = "auto"
 	asciiFlag      bool
 	verboseCount   int
 	quietFlag      bool
-	outputFormat   = "text"
 	runtimeReached bool
+)
+
+var (
+	colorMode    = "auto"
+	outputFormat = "text"
 )
 
 func resolveVerbosity() render.Verbosity {
@@ -104,15 +109,17 @@ func registerCobraHelpFuncs() {
 	})
 }
 
-// pickApplyEmitter returns the renderer + a finalize callback (json
-// mode has no finalize).
 func pickApplyEmitter() (engine.Emitter, func(error)) {
 	v := resolveVerbosity()
 	if resolveOutputFormat() == "json" {
 		return render.NewJSONRenderer(os.Stdout, v), func(error) {}
 	}
-	ar := render.NewApplyRenderer(os.Stdout,
-		render.DecideGlyphs(asciiFlag), render.DecideColor(colorMode, os.Stdout), v)
+	ar := render.NewApplyRenderer(
+		os.Stdout,
+		render.DecideGlyphs(asciiFlag),
+		render.DecideColor(colorMode, os.Stdout),
+		v,
+	)
 	return ar, ar.Finalize
 }
 
@@ -121,12 +128,16 @@ func pickRunEmitter() engine.Emitter {
 	if resolveOutputFormat() == "json" {
 		return render.NewJSONRenderer(os.Stdout, v)
 	}
-	return render.NewRunRenderer(os.Stdout,
-		render.DecideGlyphs(asciiFlag), render.DecideColor(colorMode, os.Stdout), v)
+	return render.NewRunRenderer(
+		os.Stdout,
+		render.DecideGlyphs(asciiFlag),
+		render.DecideColor(colorMode, os.Stdout),
+		v,
+	)
 }
 
-// armForceExit: first SIGINT goes to the platform's ShutdownContext;
-// a second one within the same process lifetime force-exits.
+// First SIGINT goes to the platform's ShutdownContext; a second one
+// within the same process lifetime force-exits.
 func armForceExit() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
@@ -193,7 +204,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 	acquireMutationLock := func() error {
 		l, err := net.Listen("tcp", instanceAddr)
 		if err != nil {
-			return fmt.Errorf("another scampi is already running on this host (could not bind %s)", instanceAddr)
+			return fmt.Errorf(
+				"another scampi is already running on this host (could not bind %s)",
+				instanceAddr,
+			)
 		}
 		instance = l
 		loaded, err := engine.LoadInventory(actionLogPath)
@@ -224,8 +238,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			switch resolveOutputFormat() {
 			case "text", "json":
 			default:
-				return fmt.Errorf("invalid --output-format value %q; want text|json",
-					resolveOutputFormat())
+				return fmt.Errorf(
+					"invalid --output-format value %q; want text|json",
+					resolveOutputFormat(),
+				)
 			}
 			runtimeReached = true
 			if actionLogPath == "" {
@@ -238,18 +254,44 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			return nil
 		},
 	}
-	root.PersistentFlags().StringVar(&actionLogPath, "action-log", "",
-		"action log directory (default: $XDG_STATE_HOME/scampi/actionlog, or /var/lib/scampi/actionlog as root)")
-	root.PersistentFlags().StringVar(&colorMode, "color", "auto",
-		"colored output: auto|always|never (also honors SCAMPI_COLOR and NO_COLOR env vars)")
-	root.PersistentFlags().BoolVar(&asciiFlag, "ascii", false,
-		"use ASCII glyphs instead of Unicode (also honors SCAMPI_ASCII=1)")
-	root.PersistentFlags().CountVarP(&verboseCount, "verbose", "v",
-		"increase verbosity (-v shows info, -vv shows debug)")
-	root.PersistentFlags().BoolVarP(&quietFlag, "quiet", "q", false,
-		"suppress non-essential output")
-	root.PersistentFlags().StringVarP(&outputFormat, "output-format", "o", "text",
-		"output format: text|json (also honors SCAMPI_OUTPUT_FORMAT)")
+	root.PersistentFlags().StringVar(
+		&actionLogPath,
+		"action-log",
+		"",
+		"action log dir ($XDG_STATE_HOME/scampi/actionlog; /var/lib/scampi/actionlog as root)",
+	)
+	root.PersistentFlags().StringVar(
+		&colorMode,
+		"color",
+		"auto",
+		"colored output: auto|always|never (also honors SCAMPI_COLOR and NO_COLOR env vars)",
+	)
+	root.PersistentFlags().BoolVar(
+		&asciiFlag,
+		"ascii",
+		false,
+		"use ASCII glyphs instead of Unicode (also honors SCAMPI_ASCII=1)",
+	)
+	root.PersistentFlags().CountVarP(
+		&verboseCount,
+		"verbose",
+		"v",
+		"increase verbosity (-v shows info, -vv shows debug)",
+	)
+	root.PersistentFlags().BoolVarP(
+		&quietFlag,
+		"quiet",
+		"q",
+		false,
+		"suppress non-essential output",
+	)
+	root.PersistentFlags().StringVarP(
+		&outputFormat,
+		"output-format",
+		"o",
+		"text",
+		"output format: text|json (also honors SCAMPI_OUTPUT_FORMAT)",
+	)
 
 	// SetHelpFunc fires after flag parsing but before the template
 	// renders; sample colorMode here so flags take effect.
@@ -271,7 +313,9 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			}
 			renderer, finalize := pickApplyEmitter()
 			err := engine.Apply(cmd.Context(), engine.ApplyConfig{
-				Dir: args[0], Inventory: inv, Log: engine.NewLog(sinkWith(renderer)),
+				Dir:       args[0],
+				Inventory: inv,
+				Log:       engine.NewLog(sinkWith(renderer)),
 			})
 			finalize(err)
 			return err
@@ -291,7 +335,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			interval, _ := cmd.Flags().GetDuration("interval")
 			renderer := pickRunEmitter()
 			return engine.Run(cmd.Context(), engine.RunConfig{
-				Dir: args[0], Interval: interval, Inventory: inv, Log: engine.NewLog(sinkWith(renderer)),
+				Dir:       args[0],
+				Interval:  interval,
+				Inventory: inv,
+				Log:       engine.NewLog(sinkWith(renderer)),
 			})
 		},
 	}
@@ -311,13 +358,19 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			inv = loaded
 			renderer := pickRunEmitter()
 			p, err := engine.MakePlan(cmd.Context(), engine.PlanConfig{
-				Dir: args[0], Inventory: inv, Log: engine.NewLog(renderer),
+				Dir:       args[0],
+				Inventory: inv,
+				Log:       engine.NewLog(renderer),
 			})
 			if err != nil {
 				return err
 			}
-			render.PrintPlan(os.Stdout, p,
-				render.DecideGlyphs(asciiFlag), render.DecideColor(colorMode, os.Stdout))
+			render.PrintPlan(
+				os.Stdout,
+				p,
+				render.DecideGlyphs(asciiFlag),
+				render.DecideColor(colorMode, os.Stdout),
+			)
 			return nil
 		},
 	}

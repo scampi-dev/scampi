@@ -45,7 +45,7 @@ linters:
         - name: increment-decrement #  [POLICY] prefer i++ / i-- idioms
         - name: line-length-limit
           severity: error
-          arguments: [120]
+          arguments: [100]
         - name: package-comments #     [POLICY] require package-level docs
         - name: receiver-naming #      [POLICY] enforce consistent receiver names
         - name: superfluous-else #     [POLICY] reduce unnecessary branching

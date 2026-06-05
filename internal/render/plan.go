@@ -64,7 +64,8 @@ func writePlanEntry(w io.Writer, e planEntry, refWidth int, colored bool) {
 		return
 	}
 	col := planColor(e.label)
-	_, _ = fmt.Fprintf(w, "  %s%s%s  %-*s  %s%s%s\n",
+	_, _ = fmt.Fprintf(
+		w, "  %s%s%s  %-*s  %s%s%s\n",
 		col, ind, ansiReset,
 		refWidth, ref,
 		ansiDim, e.label, ansiUndim,

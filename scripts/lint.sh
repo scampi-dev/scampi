@@ -28,5 +28,6 @@ section gomarklint    go tool gomarklint
 section gopls-hints   ./scripts/gopls-hints.sh
 section shellcheck    shellcheck ./**/*.sh
 section license-check ./scripts/license-check.sh
+section fmt-check     ./scripts/fmt-check.sh
 
 exit "$fail"

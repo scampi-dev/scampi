@@ -136,6 +136,9 @@ func TestApplyRenderer_FinalizeSkippedAfterRejection(t *testing.T) {
 	cursor := buf.Len()
 	r.Finalize(errors.New("snapshot rejected"))
 	if buf.Len() != cursor {
-		t.Errorf("Finalize should be a no-op after snapshot rejection; got extra: %q", buf.String()[cursor:])
+		t.Errorf(
+			"Finalize should be a no-op after snapshot rejection; got extra: %q",
+			buf.String()[cursor:],
+		)
 	}
 }

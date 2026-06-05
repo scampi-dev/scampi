@@ -19,7 +19,8 @@ func TestActionLog_RecordsErrorAsString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	al.Emit(context.Background(), CodeSnapshotRejected, nil,
+	al.Emit(
+		context.Background(), CodeSnapshotRejected, nil,
 		"phase", "typecheck",
 		"err", errors.New(`file.x: missing required attr "content"`),
 	)

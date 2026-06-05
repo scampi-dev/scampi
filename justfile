@@ -76,9 +76,11 @@ scampi *args:
 # -----------------------------------------------------------------------------
 
 [group('quality')]
-[doc("Format all code")]
+[doc("Format all code (gofmt + gofumpt + golines -m 100)")]
 fmt:
   go fmt ./...
+  go tool gofumpt -w .
+  go tool golines -m 100 -w .
 
 [group("quality")]
 [doc("Lint project")]

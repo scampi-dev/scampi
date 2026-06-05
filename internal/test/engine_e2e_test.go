@@ -24,11 +24,22 @@ func apply(ctx context.Context, dir string, inv *engine.Inventory, log engine.Lo
 	return engine.Apply(ctx, engine.ApplyConfig{Dir: dir, Inventory: inv, Log: log})
 }
 
-func run(ctx context.Context, dir string, interval time.Duration, inv *engine.Inventory, log engine.Log) error {
+func run(
+	ctx context.Context,
+	dir string,
+	interval time.Duration,
+	inv *engine.Inventory,
+	log engine.Log,
+) error {
 	return engine.Run(ctx, engine.RunConfig{Dir: dir, Interval: interval, Inventory: inv, Log: log})
 }
 
-func makePlan(ctx context.Context, dir string, inv *engine.Inventory, log engine.Log) (*engine.Plan, error) {
+func makePlan(
+	ctx context.Context,
+	dir string,
+	inv *engine.Inventory,
+	log engine.Log,
+) (*engine.Plan, error) {
 	return engine.MakePlan(ctx, engine.PlanConfig{Dir: dir, Inventory: inv, Log: log})
 }
 
@@ -602,7 +613,11 @@ file "bad" {
 
 func TestInventory_OrphansNone(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "a"}, engine.Attrs{"path": engine.StringValue("/a")}, nil)
+	inv.Add(
+		engine.Ref{Kind: "file", Name: "a"},
+		engine.Attrs{"path": engine.StringValue("/a")},
+		nil,
+	)
 	declared := []engine.Resource{{Kind: "file", Name: "a"}}
 	if got := inv.Orphans(declared); len(got) != 0 {
 		t.Errorf("orphans = %+v, want empty", got)
@@ -611,7 +626,11 @@ func TestInventory_OrphansNone(t *testing.T) {
 
 func TestInventory_OrphansOne(t *testing.T) {
 	inv := engine.NewInventory()
-	inv.Add(engine.Ref{Kind: "file", Name: "gone"}, engine.Attrs{"path": engine.StringValue("/g")}, nil)
+	inv.Add(
+		engine.Ref{Kind: "file", Name: "gone"},
+		engine.Attrs{"path": engine.StringValue("/g")},
+		nil,
+	)
 	got := inv.Orphans(nil)
 	want := engine.Ref{Kind: "file", Name: "gone"}
 	if len(got) != 1 || got[0] != want {
@@ -1175,7 +1194,9 @@ func TestLoadInventory_StrictRejectsMidStreamCorruption(t *testing.T) {
 		t.Error("strict load should reject corrupted mid-stream line")
 	}
 	if _, err := engine.LoadInventoryLenient(dir); err == nil {
-		t.Error("lenient load should still reject corrupted mid-stream line (not the trailing partial)")
+		t.Error(
+			"lenient load should still reject corrupted mid-stream line (not the trailing partial)",
+		)
 	}
 }
 

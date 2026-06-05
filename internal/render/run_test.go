@@ -141,7 +141,15 @@ func TestRunRenderer_TickSummaryFailedTag(t *testing.T) {
 	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
 	ref := &engine.Ref{Kind: "file", Name: "boom"}
 	r.Emit(context.Background(), engine.CodeApplyFailed, ref, "err", "permission denied")
-	r.Emit(context.Background(), engine.CodeTickComplete, nil, "duration", "5ms", "status", "failed")
+	r.Emit(
+		context.Background(),
+		engine.CodeTickComplete,
+		nil,
+		"duration",
+		"5ms",
+		"status",
+		"failed",
+	)
 	out := buf.String()
 	if !strings.Contains(out, "ERR") {
 		t.Errorf("expected ERR tag for failed tick; got %q", out)
@@ -154,7 +162,8 @@ func TestRunRenderer_TickSummaryFailedTag(t *testing.T) {
 func TestRunRenderer_SnapshotRejectedAsBlock(t *testing.T) {
 	var buf bytes.Buffer
 	r := NewRunRenderer(&buf, ASCIIGlyphs, false, 0)
-	r.Emit(context.Background(), engine.CodeSnapshotRejected, nil,
+	r.Emit(
+		context.Background(), engine.CodeSnapshotRejected, nil,
 		"phase", "typecheck",
 		"err", errors.New(`file.x: missing required attr "content"`),
 	)

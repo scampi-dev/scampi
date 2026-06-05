@@ -251,7 +251,8 @@ func Run(ctx context.Context, cfg RunConfig) error {
 			if !tickOk {
 				status = "failed"
 			}
-			log.Emit(ctx, CodeTickComplete, nil,
+			log.Emit(
+				ctx, CodeTickComplete, nil,
 				"duration", time.Since(tickStart).Round(time.Millisecond).String(),
 				"status", status,
 			)
@@ -559,7 +560,10 @@ func identityCollisionErrors(resources []Resource) []error {
 		}
 		b := identityBucketFor(r.Kind, r.Attrs, k.Identify())
 		if prev, ok := first[b]; ok {
-			errs = append(errs, fmt.Errorf("%s and %s declare the same identity (%s)", prev, r.Ref(), b.ident))
+			errs = append(
+				errs,
+				fmt.Errorf("%s and %s declare the same identity (%s)", prev, r.Ref(), b.ident),
+			)
 			continue
 		}
 		first[b] = r.Ref()
@@ -617,7 +621,13 @@ func resolve(resources []Resource) ([]Resource, error) {
 // applyAll iterates the snapshot. When bo is non-nil, failing
 // resources get skipped until their backoff expires. Pass nil for
 // one-shot Apply.
-func applyAll(ctx context.Context, resources []Resource, inv *Inventory, log Log, bo *backoff) error {
+func applyAll(
+	ctx context.Context,
+	resources []Resource,
+	inv *Inventory,
+	log Log,
+	bo *backoff,
+) error {
 	var errs []error
 	now := time.Now()
 	for _, r := range resources {
