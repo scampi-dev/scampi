@@ -17,53 +17,52 @@ func emit(r *applyRenderer, code engine.Code, kind, name string, args ...any) {
 	r.Emit(context.Background(), code, ref, args...)
 }
 
+func assertLine(t *testing.T, out, sigil, ref, label string) {
+	t.Helper()
+	if !strings.Contains(out, sigil) {
+		t.Errorf("expected sigil %q; got %q", sigil, out)
+	}
+	if !strings.Contains(out, ref) {
+		t.Errorf("expected ref %q; got %q", ref, out)
+	}
+	if !strings.Contains(out, label) {
+		t.Errorf("expected label %q; got %q", label, out)
+	}
+}
+
 func TestApplyRenderer_CreateLine(t *testing.T) {
 	var buf bytes.Buffer
 	r := newApplyRenderer(&buf, ASCIIGlyphs, false)
 	emit(r, engine.CodeApplySuccess, "file", "x", "action", "create", "path", "/p")
-	out := buf.String()
-	if !strings.Contains(out, "+ file.x") {
-		t.Errorf("expected create sigil + ref; got %q", out)
-	}
-	if !strings.Contains(out, "create") {
-		t.Errorf("expected 'create' label; got %q", out)
-	}
+	assertLine(t, buf.String(), "+", "file.x", "create")
 }
 
 func TestApplyRenderer_UpdateLine(t *testing.T) {
 	var buf bytes.Buffer
 	r := newApplyRenderer(&buf, ASCIIGlyphs, false)
 	emit(r, engine.CodeApplySuccess, "file", "y", "action", "update", "path", "/p")
-	if !strings.Contains(buf.String(), "~ file.y") {
-		t.Errorf("expected update sigil + ref; got %q", buf.String())
-	}
+	assertLine(t, buf.String(), "~", "file.y", "update")
 }
 
 func TestApplyRenderer_AdoptLine(t *testing.T) {
 	var buf bytes.Buffer
 	r := newApplyRenderer(&buf, ASCIIGlyphs, false)
 	emit(r, engine.CodeApplySuccess, "file", "z", "action", "adopt", "path", "/p")
-	if !strings.Contains(buf.String(), "@ file.z") {
-		t.Errorf("expected adopt sigil + ref; got %q", buf.String())
-	}
+	assertLine(t, buf.String(), "@", "file.z", "adopt")
 }
 
 func TestApplyRenderer_DestroyLine(t *testing.T) {
 	var buf bytes.Buffer
 	r := newApplyRenderer(&buf, ASCIIGlyphs, false)
 	emit(r, engine.CodeDestroySuccess, "file", "old", "path", "/p")
-	if !strings.Contains(buf.String(), "- file.old") {
-		t.Errorf("expected destroy sigil + ref; got %q", buf.String())
-	}
+	assertLine(t, buf.String(), "-", "file.old", "destroy")
 }
 
 func TestApplyRenderer_HaltLine(t *testing.T) {
 	var buf bytes.Buffer
 	r := newApplyRenderer(&buf, ASCIIGlyphs, false)
 	emit(r, engine.CodeApplyHalted, "file", "claim", "state", "matching")
-	if !strings.Contains(buf.String(), "! file.claim") {
-		t.Errorf("expected halt sigil + ref; got %q", buf.String())
-	}
+	assertLine(t, buf.String(), "!", "file.claim", "halt")
 }
 
 func TestApplyRenderer_FailedLineCarriesErr(t *testing.T) {
@@ -71,9 +70,7 @@ func TestApplyRenderer_FailedLineCarriesErr(t *testing.T) {
 	r := newApplyRenderer(&buf, ASCIIGlyphs, false)
 	emit(r, engine.CodeApplyFailed, "file", "boom", "err", errors.New("permission denied"))
 	out := buf.String()
-	if !strings.Contains(out, "x file.boom") {
-		t.Errorf("expected failed sigil + ref; got %q", out)
-	}
+	assertLine(t, out, "x", "file.boom", "failed")
 	if !strings.Contains(out, "permission denied") {
 		t.Errorf("expected err message; got %q", out)
 	}

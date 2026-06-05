@@ -251,7 +251,12 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 				return err
 			}
 			interval, _ := cmd.Flags().GetDuration("interval")
-			return engine.Run(cmd.Context(), args[0], interval, inv, pickLog())
+			rr := newRunRenderer(os.Stdout, decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout))
+			var sink engine.Emitter = rr
+			if actLog != nil {
+				sink = fanoutEmitter{rr, actLog}
+			}
+			return engine.Run(cmd.Context(), args[0], interval, inv, engine.NewLog(sink))
 		},
 	}
 	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")

@@ -45,7 +45,7 @@ func (dirKind) Apply(ctx context.Context, r Resource, log Log) error {
 	ref := r.Ref()
 	path := r.Attrs.GetString("path")
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
-	log.Info(ctx, "creating dir", "ref", ref, "path", path)
+	log.Debug(ctx, "creating dir", "ref", ref, "path", path)
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		err = fmt.Errorf("%s: mkdir %s: %w", ref, path, err)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
@@ -63,7 +63,7 @@ func (dirKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) error
 		return nil
 	}
 	log.Emit(ctx, CodeDestroyStart, &ref, "path", path)
-	log.Info(ctx, "removing dir", "ref", ref, "path", path)
+	log.Debug(ctx, "removing dir", "ref", ref, "path", path)
 	if err := os.Remove(path); err != nil {
 		err = fmt.Errorf("%s: remove %s: %w", ref, path, err)
 		log.Emit(ctx, CodeDestroyFailed, &ref, "path", path, "err", err)

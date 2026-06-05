@@ -31,6 +31,7 @@ const (
 	CodeApplyFailed      Code = "apply.failed"
 	CodeApplyHalted      Code = "apply.halted"
 	CodeApplyRenamed     Code = "apply.renamed"
+	CodeTickComplete     Code = "tick.complete"
 	CodeDestroyStart     Code = "destroy.start"
 	CodeDestroySuccess   Code = "destroy.success"
 	CodeDestroyFailed    Code = "destroy.failed"
@@ -209,14 +210,26 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 			lastRev = rev
 		}
 		if snap != nil {
+			tickStart := time.Now()
+			tickOk := true
 			reconcileRenames(ctx, snap, inv, log)
 			orphans := inv.Orphans(snap)
 			if err := destroyAll(ctx, orphans, inv, log, bo); err != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
+				tickOk = false
 			}
 			if err := applyAll(ctx, snap, inv, log, bo); err != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
+				tickOk = false
 			}
+			status := "ok"
+			if !tickOk {
+				status = "failed"
+			}
+			log.Emit(ctx, CodeTickComplete, nil,
+				"duration", time.Since(tickStart).Round(time.Millisecond).String(),
+				"status", status,
+			)
 		}
 		// Action log failure is fatal: persistence is broken, so we
 		// stop reconciling rather than acting blind.
@@ -225,7 +238,7 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 		}
 		select {
 		case <-ctx.Done():
-			log.Info(ctx, "shutting down")
+			log.Info(ctx, "received shutdown signal, exiting at next safe point")
 			return nil
 		case <-time.After(interval):
 		}
@@ -290,7 +303,8 @@ func logReconcileErr(ctx context.Context, log Log, err error) {
 		// rejected() already emitted CodeSnapshotRejected at the
 		// rejection site; logging here would double-report.
 	case errors.Is(err, ErrApplyFailed):
-		log.Warn(ctx, "apply failed", "err", err)
+		// Per-resource apply.failed events already convey the
+		// failure with detail; an aggregated warn is redundant.
 	default:
 		log.Error(ctx, "reconcile failed", "err", err)
 	}

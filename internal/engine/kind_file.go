@@ -48,7 +48,7 @@ func (fileKind) Apply(ctx context.Context, r Resource, log Log) error {
 	path := r.Attrs.GetString("path")
 	content := r.Attrs.GetString("content")
 	log.Emit(ctx, CodeApplyStart, &ref, "path", path)
-	log.Info(ctx, "writing file", "ref", ref, "path", path)
+	log.Debug(ctx, "writing file", "ref", ref, "path", path)
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		err = fmt.Errorf("%s: write %s: %w", ref, path, err)
 		log.Emit(ctx, CodeApplyFailed, &ref, "path", path, "err", err)
@@ -64,7 +64,7 @@ func (fileKind) Destroy(ctx context.Context, ref Ref, attrs Attrs, log Log) erro
 		return nil
 	}
 	log.Emit(ctx, CodeDestroyStart, &ref, "path", path)
-	log.Info(ctx, "removing file", "ref", ref, "path", path)
+	log.Debug(ctx, "removing file", "ref", ref, "path", path)
 	if err := os.Remove(path); err != nil {
 		err = fmt.Errorf("%s: remove %s: %w", ref, path, err)
 		log.Emit(ctx, CodeDestroyFailed, &ref, "path", path, "err", err)

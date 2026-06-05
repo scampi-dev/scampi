@@ -175,32 +175,34 @@ func (r *applyRenderer) handleLog(code engine.Code, args []any) {
 		tag = "ERR"
 		color = ansiRed
 	}
+	ind := padCol(tag, indicatorWidth)
 	if r.colored {
-		_, _ = fmt.Fprintf(r.out, "  %s%s%s %s\n", color, tag, ansiReset, msg)
+		_, _ = fmt.Fprintf(r.out, "  %s%s%s  %s\n", color, ind, ansiReset, msg)
 	} else {
-		_, _ = fmt.Fprintf(r.out, "  %s %s\n", tag, msg)
+		_, _ = fmt.Fprintf(r.out, "  %s  %s\n", ind, msg)
 	}
 }
 
 func (r *applyRenderer) writeLine(glyph, label, ref, detail, color string) {
+	ind := padCol(glyph, indicatorWidth)
 	if !r.colored {
 		if detail != "" {
-			_, _ = fmt.Fprintf(r.out, "  %s %-20s  %s: %s\n", glyph, ref, label, detail)
+			_, _ = fmt.Fprintf(r.out, "  %s  %-20s  %s: %s\n", ind, ref, label, detail)
 		} else {
-			_, _ = fmt.Fprintf(r.out, "  %s %-20s  %s\n", glyph, ref, label)
+			_, _ = fmt.Fprintf(r.out, "  %s  %-20s  %s\n", ind, ref, label)
 		}
 		return
 	}
 	if detail != "" {
-		_, _ = fmt.Fprintf(r.out, "  %s%s%s %-20s  %s%s: %s%s\n",
-			color, glyph, ansiReset,
+		_, _ = fmt.Fprintf(r.out, "  %s%s%s  %-20s  %s%s: %s%s\n",
+			color, ind, ansiReset,
 			ref,
 			ansiDim, label, detail, ansiUndim,
 		)
 		return
 	}
-	_, _ = fmt.Fprintf(r.out, "  %s%s%s %-20s  %s%s%s\n",
-		color, glyph, ansiReset,
+	_, _ = fmt.Fprintf(r.out, "  %s%s%s  %-20s  %s%s%s\n",
+		color, ind, ansiReset,
 		ref,
 		ansiDim, label, ansiUndim,
 	)
