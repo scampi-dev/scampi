@@ -1347,6 +1347,89 @@ file "b" {
 	}
 }
 
+// Source positions in error messages
+// -----------------------------------------------------------------------------
+
+func TestSnapshot_ErrorIncludesFileLine_UnknownAttr(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path    = "%s/x"
+  content = "y"
+  contnet = "oops"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), engine.ApplyConfig{
+		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
+	})
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "main.hcl:5:") {
+		t.Errorf("expected main.hcl:5: (line of typo'd attr); got %v", err)
+	}
+}
+
+func TestSnapshot_ErrorIncludesFileLine_MissingRequired(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path = "%s/x"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), engine.ApplyConfig{
+		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
+	})
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "main.hcl:2:") {
+		t.Errorf("expected main.hcl:2: (line of file block); got %v", err)
+	}
+}
+
+func TestSnapshot_ErrorIncludesFileLine_UnknownResource(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "x" {
+  path    = "${dir.gone.path}/x"
+  content = "%s"
+}
+`, tmp))
+	err := engine.Apply(t.Context(), engine.ApplyConfig{
+		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
+	})
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "main.hcl:3:") {
+		t.Errorf("expected main.hcl:3: (line of ref'ing attr); got %v", err)
+	}
+}
+
+func TestSnapshot_ErrorIncludesFileLine_DuplicateRef(t *testing.T) {
+	tmp := t.TempDir()
+	cfg := writeConfig(t, fmt.Sprintf(`
+file "dup" {
+  path    = "%s/a"
+  content = "1"
+}
+file "dup" {
+  path    = "%s/b"
+  content = "2"
+}
+`, tmp, tmp))
+	err := engine.Apply(t.Context(), engine.ApplyConfig{
+		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
+	})
+	if !errors.Is(err, engine.ErrSnapshotRejected) {
+		t.Fatalf("expected snapshot rejection; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "main.hcl:") {
+		t.Errorf("expected main.hcl: in dup error; got %v", err)
+	}
+}
+
 // Did you mean
 // -----------------------------------------------------------------------------
 

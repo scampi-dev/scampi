@@ -116,8 +116,8 @@ var kinds = map[string]Kind{
 func kindFor(r Resource) (Kind, error) {
 	k, ok := kinds[r.Kind]
 	if !ok {
-		return nil, fmt.Errorf("%s: unknown kind %q%s",
-			r.Ref(), r.Kind, hintSuffix(r.Kind, kindNames()))
+		return nil, fmt.Errorf("%s%s: unknown kind %q%s",
+			r.Source.prefix(), r.Ref(), r.Kind, hintSuffix(r.Kind, kindNames()))
 	}
 	return k, nil
 }

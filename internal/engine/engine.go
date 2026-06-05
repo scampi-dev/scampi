@@ -351,10 +351,36 @@ type Attrs map[string]Value
 func (a Attrs) GetString(name string) string { return a[name].Str }
 func (a Attrs) GetBool(name string) bool     { return a[name].Bool }
 
+type Position struct {
+	Path string
+	Line int
+	Col  int
+}
+
+func (p Position) String() string {
+	if p.Path == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s:%d:%d", p.Path, p.Line, p.Col)
+}
+
+// prefix returns "Position: " or "" when empty, so error sites can
+// drop the prefix uniformly when no source is known (in-memory tests).
+func (p Position) prefix() string {
+	if p.Path == "" {
+		return ""
+	}
+	return p.String() + ": "
+}
+
 type Resource struct {
 	Kind  string
 	Name  string
 	Attrs Attrs
+
+	Source      Position
+	AttrSources map[string]Position
+	depSources  map[Ref]Position
 
 	// raw holds cty values from parse until typecheck coerces them.
 	raw     map[string]rawValue
@@ -416,31 +442,34 @@ func typecheckOne(r *Resource) []error {
 	candidates := schemaAttrNames(sch)
 	var errs []error
 	for _, name := range sortedKeys(r.raw) {
+		pos := r.AttrSources[name]
 		spec := sch.Find(name)
 		if spec == nil {
-			errs = append(errs, fmt.Errorf("%s: unknown attr %q%s",
-				r.Ref(), name, hintSuffix(name, candidates)))
+			errs = append(errs, fmt.Errorf("%s%s: unknown attr %q%s",
+				pos.prefix(), r.Ref(), name, hintSuffix(name, candidates)))
 			continue
 		}
 		v, err := r.raw[name].Coerce(spec.Type)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("%s: attr %q: %w", r.Ref(), name, err))
+			errs = append(errs, fmt.Errorf("%s%s: attr %q: %w",
+				pos.prefix(), r.Ref(), name, err))
 			continue
 		}
 		r.Attrs[name] = v
 	}
 	r.raw = nil
 	for _, name := range sortedPending(r.pending) {
+		pos := r.AttrSources[name]
 		spec := sch.Find(name)
 		if spec == nil {
-			errs = append(errs, fmt.Errorf("%s: unknown attr %q%s",
-				r.Ref(), name, hintSuffix(name, candidates)))
+			errs = append(errs, fmt.Errorf("%s%s: unknown attr %q%s",
+				pos.prefix(), r.Ref(), name, hintSuffix(name, candidates)))
 			continue
 		}
 		if spec.Type != ValueString {
 			errs = append(errs, fmt.Errorf(
-				"%s: attr %q: refs only supported for string attrs (target is %s)",
-				r.Ref(), name, spec.Type,
+				"%s%s: attr %q: refs only supported for string attrs (target is %s)",
+				pos.prefix(), r.Ref(), name, spec.Type,
 			))
 		}
 	}
@@ -449,7 +478,8 @@ func typecheckOne(r *Resource) []error {
 			continue
 		}
 		if spec.Required {
-			errs = append(errs, fmt.Errorf("%s: missing required attr %q", r.Ref(), spec.Name))
+			errs = append(errs, fmt.Errorf("%s%s: missing required attr %q",
+				r.Source.prefix(), r.Ref(), spec.Name))
 			continue
 		}
 		r.Attrs[spec.Name] = spec.Default
@@ -496,7 +526,8 @@ func duplicateRefErrors(resources []Resource, counts map[Ref]int) []error {
 	for _, r := range resources {
 		ref := r.Ref()
 		if counts[ref] > 1 && !reported[ref] {
-			errs = append(errs, fmt.Errorf("%s: declared %d times", ref, counts[ref]))
+			errs = append(errs, fmt.Errorf("%s%s: declared %d times",
+				r.Source.prefix(), ref, counts[ref]))
 			reported[ref] = true
 		}
 	}
@@ -516,8 +547,12 @@ func unknownDepErrors(resources []Resource, counts map[Ref]int) []error {
 					same = append(same, ref.String())
 				}
 			}
-			errs = append(errs, fmt.Errorf("%s: references unknown resource %q%s",
-				r.Ref(), dep.String(), hintSuffix(dep.String(), same)))
+			pos := r.depSources[dep]
+			if pos.Path == "" {
+				pos = r.Source
+			}
+			errs = append(errs, fmt.Errorf("%s%s: references unknown resource %q%s",
+				pos.prefix(), r.Ref(), dep.String(), hintSuffix(dep.String(), same)))
 		}
 	}
 	return errs

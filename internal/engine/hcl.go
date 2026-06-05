@@ -6,6 +6,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -52,7 +53,7 @@ func parseFile(ctx context.Context, log Log, path string) ([]Resource, error) {
 	}
 	file, diags := hclsyntax.ParseConfig(src, path, hcl.Pos{Line: 1, Column: 1})
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, normalizeDiags(diags)
 	}
 	if file == nil {
 		// ParseConfig returns non-nil when HasErrors is false, but
@@ -95,7 +96,11 @@ func parseBlock(
 	pending := map[string]resolvable{}
 	seenDeps := map[Ref]bool{}
 	var deps []Ref
+	attrSrc := map[string]Position{}
+	depSrc := map[Ref]Position{}
 	for name, attr := range block.Body.Attributes {
+		attrPos := positionOf(attr.NameRange)
+		attrSrc[name] = attrPos
 		refs := refsFromExpr(attr.Expr)
 		if len(refs) > 0 {
 			pending[name] = hclResolvable{expr: attr.Expr}
@@ -103,24 +108,50 @@ func parseBlock(
 				if !seenDeps[r] {
 					seenDeps[r] = true
 					deps = append(deps, r)
+					depSrc[r] = attrPos
 				}
 			}
 			continue
 		}
 		val, diags := attr.Expr.Value(nil)
 		if diags.HasErrors() {
-			return Resource{}, diags
+			return Resource{}, normalizeDiags(diags)
 		}
 		raw[name] = hclRaw{val: val}
 	}
 	return Resource{
-		Kind:    block.Type,
-		Name:    block.Labels[0],
-		Attrs:   Attrs{},
-		raw:     raw,
-		pending: pending,
-		deps:    deps,
+		Kind:        block.Type,
+		Name:        block.Labels[0],
+		Attrs:       Attrs{},
+		Source:      positionOf(block.DefRange()),
+		AttrSources: attrSrc,
+		depSources:  depSrc,
+		raw:         raw,
+		pending:     pending,
+		deps:        deps,
 	}, nil
+}
+
+func positionOf(r hcl.Range) Position {
+	return Position{Path: r.Filename, Line: r.Start.Line, Col: r.Start.Column}
+}
+
+// normalizeDiags rewrites hcl.Diagnostics to our path:line:col format
+// so HCL's own parse errors look identical to scampi's schema errors.
+func normalizeDiags(diags hcl.Diagnostics) error {
+	var errs []error
+	for _, d := range diags {
+		var pos Position
+		if d.Subject != nil {
+			pos = positionOf(*d.Subject)
+		}
+		msg := d.Summary
+		if d.Detail != "" {
+			msg = d.Summary + "; " + d.Detail
+		}
+		errs = append(errs, fmt.Errorf("%s%s", pos.prefix(), msg))
+	}
+	return errors.Join(errs...)
 }
 
 type hclRaw struct{ val cty.Value }
@@ -185,7 +216,7 @@ func (h hclResolvable) Resolve(store []resolvedRef) (string, error) {
 	ctx := buildEvalContext(store)
 	val, diags := h.expr.Value(ctx)
 	if diags.HasErrors() {
-		return "", diags
+		return "", normalizeDiags(diags)
 	}
 	if val.Type() != cty.String {
 		return "", fmt.Errorf("must resolve to a string")
