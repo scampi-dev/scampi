@@ -689,16 +689,30 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 	keys := k.Identify()
 	sort.Strings(keys)
 	ident := make(Attrs, len(keys))
-	fields := make([]any, 0, 2*len(keys)+2)
+	fields := make([]any, 0, 2*len(keys)+4)
 	for _, key := range keys {
 		v := r.Attrs[key]
 		ident[key] = v
 		fields = append(fields, key, v.Str)
 	}
-	fields = append(fields, "deps", refsToString(r.deps))
+	fields = append(fields, "action", actionFor(was, state), "deps", refsToString(r.deps))
 	log.Emit(ctx, CodeApplySuccess, &ref, fields...)
 	inv.Add(ref, ident, r.deps)
 	return nil
+}
+
+// actionFor classifies a successful apply for the operator-facing
+// renderers. By the time applyOne reaches the emit, in-sync and halt
+// cases are already filtered out, so the remaining states map cleanly.
+func actionFor(was bool, state State) string {
+	switch {
+	case state == StateMissing:
+		return "create"
+	case !was:
+		return "adopt"
+	default:
+		return "update"
+	}
 }
 
 func refsToString(refs []Ref) string {

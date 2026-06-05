@@ -229,7 +229,14 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			if err := acquireMutationLock(); err != nil {
 				return err
 			}
-			return engine.Apply(cmd.Context(), args[0], inv, pickLog())
+			ar := newApplyRenderer(os.Stdout, decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout))
+			var sink engine.Emitter = ar
+			if actLog != nil {
+				sink = fanoutEmitter{ar, actLog}
+			}
+			err := engine.Apply(cmd.Context(), args[0], inv, engine.NewLog(sink))
+			ar.Finalize(err)
+			return err
 		},
 	}
 

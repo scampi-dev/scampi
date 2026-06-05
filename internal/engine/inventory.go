@@ -68,6 +68,7 @@ func (i *Inventory) Fold(code Code, ref Ref, attrs Attrs) {
 	case CodeApplySuccess:
 		deps := parseDeps(attrs.GetString("deps"))
 		delete(attrs, "deps")
+		delete(attrs, "action")
 		i.Add(ref, attrs, deps)
 	case CodeDestroySuccess:
 		i.Remove(ref)

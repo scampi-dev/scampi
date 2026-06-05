@@ -14,6 +14,7 @@ type Glyphs struct {
 	InSync  string
 	Halt    string
 	Adopt   string
+	Failed  string
 }
 
 var (
@@ -24,6 +25,7 @@ var (
 		InSync:  "✓", // check mark
 		Halt:    "⊘", // circled division slash
 		Adopt:   "⊕", // circled plus
+		Failed:  "✗", // ballot x
 	}
 	ASCIIGlyphs = Glyphs{
 		Create:  "+",
@@ -32,6 +34,7 @@ var (
 		InSync:  "=",
 		Halt:    "!",
 		Adopt:   "@",
+		Failed:  "x",
 	}
 )
 
