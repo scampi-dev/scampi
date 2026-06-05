@@ -99,6 +99,10 @@ func (h *slogHandler) WithGroup(string) slog.Handler      { return h }
 
 func (h *slogHandler) Handle(_ context.Context, r slog.Record) error {
 	ts := r.Time.Format("2006-01-02 15:04:05")
+	if r.Message == string(engine.CodeSnapshotRejected) {
+		phase, errMsg := pullPhaseAndErr(r)
+		return renderSnapshotRejected(h.out, ts, phase, errMsg, h.colored)
+	}
 	lvl := levelStr(r.Level)
 
 	attrs := ""
@@ -125,6 +129,19 @@ func (h *slogHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 	_, err := h.out.Write([]byte(line))
 	return err
+}
+
+func pullPhaseAndErr(r slog.Record) (phase, errMsg string) {
+	r.Attrs(func(a slog.Attr) bool {
+		switch a.Key {
+		case "phase":
+			phase = a.Value.String()
+		case "err":
+			errMsg = a.Value.String()
+		}
+		return true
+	})
+	return phase, errMsg
 }
 
 func levelTagAndMsg(l slog.Level, msg string) (string, string) {

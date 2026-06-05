@@ -284,7 +284,8 @@ func hashDir(dir string) (string, error) {
 func logReconcileErr(ctx context.Context, log Log, err error) {
 	switch {
 	case errors.Is(err, ErrSnapshotRejected):
-		log.Warn(ctx, "snapshot rejected", "err", err)
+		// rejected() already emitted CodeSnapshotRejected at the
+		// rejection site; logging here would double-report.
 	case errors.Is(err, ErrApplyFailed):
 		log.Warn(ctx, "apply failed", "err", err)
 	default:

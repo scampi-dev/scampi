@@ -68,7 +68,13 @@ func (a *ActionLog) Emit(_ context.Context, code Code, ref *Ref, args ...any) {
 		if !ok {
 			continue
 		}
-		rec[k] = args[i+1]
+		v := args[i+1]
+		// error values JSON-encode to {} because the interface has no
+		// exported fields; persist the message instead.
+		if e, ok := v.(error); ok {
+			v = e.Error()
+		}
+		rec[k] = v
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
