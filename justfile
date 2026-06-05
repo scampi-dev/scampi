@@ -25,6 +25,10 @@ mod test
 [doc("Manage GitHub issues")]
 mod issue
 
+[group('modules')]
+[doc("Dev one-offs (sandbox reset, scampi runs against .sandbox/)")]
+mod debug
+
 # Build
 # -----------------------------------------------------------------------------
 
