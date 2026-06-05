@@ -63,6 +63,9 @@ var cobraColored bool
 // it from main and from the help hook.
 var colorMode = "auto"
 
+// asciiFlag mirrors --ascii. Forces ASCII glyphs over Unicode.
+var asciiFlag bool
+
 // runtimeReached flips to true once cobra has parsed flags and args.
 // Errors after that point don't earn the usage block.
 var runtimeReached bool
@@ -204,6 +207,8 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		"action log directory (default: $XDG_STATE_HOME/scampi/actionlog, or /var/lib/scampi/actionlog as root)")
 	root.PersistentFlags().StringVar(&colorMode, "color", "auto",
 		"colored output: auto|always|never (also honors SCAMPI_COLOR and NO_COLOR env vars)")
+	root.PersistentFlags().BoolVar(&asciiFlag, "ascii", false,
+		"use ASCII glyphs instead of Unicode (also honors SCAMPI_ASCII=1)")
 
 	// SetHelpFunc fires after flag parsing but before the template
 	// renders, so colorMode is current when we sample it. Children
@@ -260,7 +265,7 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 			if err != nil {
 				return err
 			}
-			printPlan(os.Stdout, p)
+			printPlan(os.Stdout, p, decideGlyphs(asciiFlag), decideColor(colorMode, os.Stdout))
 			return nil
 		},
 	}

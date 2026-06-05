@@ -5,39 +5,110 @@ package main
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"scampi.dev/scampi/internal/engine"
 )
 
-func printPlan(w io.Writer, p *engine.Plan) {
-	sections := []struct {
-		label string
-		refs  []engine.Ref
-	}{
-		{"create", p.Create},
-		{"update", p.Update},
-		{"adopt", p.Adopt},
-		{"halt", p.Halt},
-		{"destroy", p.Destroy},
+type planEntry struct {
+	ref   engine.Ref
+	glyph string
+	label string
+}
+
+func collectPlanEntries(p *engine.Plan, g Glyphs) []planEntry {
+	var entries []planEntry
+	add := func(refs []engine.Ref, glyph, label string) {
+		for _, r := range refs {
+			entries = append(entries, planEntry{ref: r, glyph: glyph, label: label})
+		}
 	}
-	wrote := false
-	for _, s := range sections {
-		if len(s.refs) == 0 {
+	add(p.Create, g.Create, "create")
+	add(p.Update, g.Update, "update")
+	add(p.Adopt, g.Adopt, "adopt")
+	add(p.Halt, g.Halt, "halt")
+	add(p.Destroy, g.Destroy, "destroy")
+	add(p.InSync, g.InSync, "in sync")
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].ref.String() < entries[j].ref.String()
+	})
+	return entries
+}
+
+func printPlan(w io.Writer, p *engine.Plan, g Glyphs, colored bool) {
+	entries := collectPlanEntries(p, g)
+	if len(entries) == 0 {
+		_, _ = fmt.Fprintln(w, "plan: empty")
+		return
+	}
+	maxRef := 0
+	for _, e := range entries {
+		if l := len(e.ref.String()); l > maxRef {
+			maxRef = l
+		}
+	}
+	_, _ = fmt.Fprintln(w)
+	for _, e := range entries {
+		writePlanEntry(w, e, maxRef, colored)
+	}
+	_, _ = fmt.Fprintln(w)
+	writePlanSummary(w, p, colored)
+}
+
+func writePlanEntry(w io.Writer, e planEntry, refWidth int, colored bool) {
+	ref := e.ref.String()
+	if !colored {
+		_, _ = fmt.Fprintf(w, "  %s %-*s  %s\n", e.glyph, refWidth, ref, e.label)
+		return
+	}
+	col := planColor(e.label)
+	_, _ = fmt.Fprintf(w, "  %s%s%s %-*s  %s%s%s\n",
+		col, e.glyph, ansiReset,
+		refWidth, ref,
+		ansiDim, e.label, ansiUndim,
+	)
+}
+
+func planColor(label string) string {
+	switch label {
+	case "create":
+		return ansiGreen
+	case "update", "halt":
+		return ansiYellow
+	case "destroy":
+		return ansiRed
+	case "adopt":
+		return ansiCyan
+	case "in sync":
+		return ansiDark
+	}
+	return ""
+}
+
+func writePlanSummary(w io.Writer, p *engine.Plan, colored bool) {
+	parts := []struct {
+		label string
+		n     int
+	}{
+		{"create", len(p.Create)},
+		{"update", len(p.Update)},
+		{"adopt", len(p.Adopt)},
+		{"halt", len(p.Halt)},
+		{"destroy", len(p.Destroy)},
+		{"in sync", len(p.InSync)},
+	}
+	var bits []string
+	for _, p := range parts {
+		if p.n == 0 {
 			continue
 		}
-		wrote = true
-		names := make([]string, len(s.refs))
-		for i, r := range s.refs {
-			names[i] = r.String()
-		}
-		_, _ = fmt.Fprintf(w, "%-9s %s\n", s.label+":", strings.Join(names, ", "))
+		bits = append(bits, fmt.Sprintf("%d %s", p.n, p.label))
 	}
-	if len(p.InSync) > 0 {
-		_, _ = fmt.Fprintf(w, "%-9s %d resources\n", "in-sync:", len(p.InSync))
-		wrote = true
-	}
-	if !wrote {
-		_, _ = fmt.Fprintln(w, "plan: empty")
+	body := strings.Join(bits, ", ")
+	if colored {
+		_, _ = fmt.Fprintf(w, "  %sPlan:%s %s\n", ansiBold, ansiUndim, body)
+	} else {
+		_, _ = fmt.Fprintf(w, "  Plan: %s\n", body)
 	}
 }
