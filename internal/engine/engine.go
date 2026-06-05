@@ -168,7 +168,7 @@ func Apply(ctx context.Context, dir string, inv *Inventory, log Log) error {
 	}
 	var errs []error
 	reconcileRenames(ctx, snap, inv, log)
-	orphans := inv.Orphans(snap)
+	orphans := append(inv.Orphans(snap), identityDrifts(snap, inv)...)
 	if err := destroyAll(ctx, orphans, inv, log, nil); err != nil {
 		errs = append(errs, err)
 	}
@@ -217,7 +217,7 @@ func Run(ctx context.Context, dir string, interval time.Duration, inv *Inventory
 			tickStart := time.Now()
 			tickOk := true
 			reconcileRenames(ctx, snap, inv, log)
-			orphans := inv.Orphans(snap)
+			orphans := append(inv.Orphans(snap), identityDrifts(snap, inv)...)
 			if err := destroyAll(ctx, orphans, inv, log, bo); err != nil {
 				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
 				tickOk = false
@@ -697,20 +697,6 @@ func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {
 		return err
 	}
 
-	// Identity drift on the same ref: the prior live state would be
-	// abandoned if we just applied the new identity. Destroy the old
-	// first, then continue as a fresh create.
-	if was {
-		prior, _, _ := inv.Get(ref)
-		if !sameIdentity(prior, r.Attrs, k.Identify()) {
-			if err := k.Destroy(ctx, ref, prior, log); err != nil {
-				return err
-			}
-			inv.Remove(ref)
-			was = false
-		}
-	}
-
 	if was && state == StateMatching {
 		log.Debug(ctx, "in sync", "ref", ref)
 		return nil
@@ -804,6 +790,29 @@ func identityBucketFor(kind string, attrs Attrs, identityKeys []string) identity
 		parts[i] = key + "=" + attrs.GetString(key)
 	}
 	return identityBucket{kind: kind, ident: strings.Join(parts, ",")}
+}
+
+// identityDrifts returns refs present in both snap and inv whose
+// identity attrs differ. The old live state under those refs needs to
+// be destroyed alongside ordinary orphans so destroyOrder can route
+// children-before-parents cleanup uniformly.
+func identityDrifts(snap []Resource, inv *Inventory) []Ref {
+	var drifts []Ref
+	for _, r := range snap {
+		ref := r.Ref()
+		prior, _, ok := inv.Get(ref)
+		if !ok {
+			continue
+		}
+		k, err := kindFor(r)
+		if err != nil {
+			continue
+		}
+		if !sameIdentity(prior, r.Attrs, k.Identify()) {
+			drifts = append(drifts, ref)
+		}
+	}
+	return drifts
 }
 
 // sameIdentity reports whether two attr sets agree on every identity

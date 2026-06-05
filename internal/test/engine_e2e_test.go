@@ -772,6 +772,65 @@ file "x" {
 	}
 }
 
+// When multiple resources drift their identity at once, the prior
+// live state must be destroyed in dependency-aware order (children
+// before parents). Otherwise dir.tmp tries to remove /old while
+// file.yolo at /old/yolo is still there, failing once.
+func TestApply_IdentityDriftRespectsReverseTopo(t *testing.T) {
+	tmp := t.TempDir()
+	oldRoot := filepath.Join(tmp, "old")
+	newRoot := filepath.Join(tmp, "new")
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "main.hcl")
+	writeCfg := func(content string) {
+		t.Helper()
+		if err := os.WriteFile(cfgPath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	writeCfg(`
+dir "tmp" {
+  path = "` + oldRoot + `"
+}
+file "yolo" {
+  path    = "${dir.tmp.path}/yolo"
+  content = "hi"
+}
+`)
+	inv := engine.NewInventory()
+	if err := engine.Apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+		t.Fatalf("first apply: %v", err)
+	}
+
+	// Move BOTH resources to newRoot in one shot.
+	writeCfg(`
+dir "tmp" {
+  path = "` + newRoot + `"
+}
+file "yolo" {
+  path    = "${dir.tmp.path}/yolo"
+  content = "hi"
+}
+`)
+	log, capture := newCaptureLog()
+	if err := engine.Apply(t.Context(), cfgDir, inv, log); err != nil {
+		t.Fatalf("second apply: %v", err)
+	}
+
+	for _, e := range capture.Events() {
+		if e.Code == engine.CodeApplyFailed || e.Code == engine.CodeDestroyFailed {
+			t.Errorf("unexpected failure event: %+v", e)
+		}
+	}
+	if _, err := os.Stat(oldRoot); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("old root should be destroyed; got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(newRoot, "yolo")); err != nil {
+		t.Errorf("new file should exist: %v", err)
+	}
+}
+
 // A resource keeping its ref but changing its identity attrs (e.g.
 // dir.tmp's path moves) must destroy the prior live resource and
 // create the new one. Otherwise the old live state lingers untracked.
