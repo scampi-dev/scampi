@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,8 +22,20 @@ import (
 	"scampi.dev/scampi/internal/render"
 )
 
-// 0xFEED is high in the IANA dynamic range; ephemeral collisions are rare.
-const instanceAddr = "127.0.0.1:65261"
+// 0xfeed is high in the IANA dynamic range; ephemeral collisions are
+// rare. Overridable via --instance-port / SCAMPI_INSTANCE_PORT so
+// multiple peers can run on one host for dev and mesh testing.
+const defaultInstancePort = 0xfeed
+
+func resolveInstanceAddr() string {
+	port := instancePort
+	if env := os.Getenv("SCAMPI_INSTANCE_PORT"); env != "" {
+		if p, err := strconv.Atoi(env); err == nil {
+			port = p
+		}
+	}
+	return fmt.Sprintf("127.0.0.1:%d", port)
+}
 
 //nolint:revive // cobra template; lines are template syntax, not source lines
 const helpTemplate = `{{with (or .Long .Short)}}{{tagline (. | trimTrailingWhitespaces)}}
@@ -58,6 +71,7 @@ var (
 	verboseCount   int
 	quietFlag      bool
 	runtimeReached bool
+	instancePort   int
 )
 
 var (
@@ -202,11 +216,12 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 	}
 
 	acquireMutationLock := func() error {
-		l, err := net.Listen("tcp", instanceAddr)
+		addr := resolveInstanceAddr()
+		l, err := net.Listen("tcp", addr)
 		if err != nil {
 			return fmt.Errorf(
 				"another scampi is already running on this host (could not bind %s)",
-				instanceAddr,
+				addr,
 			)
 		}
 		instance = l
@@ -291,6 +306,12 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		"o",
 		"text",
 		"output format: text|json (also honors SCAMPI_OUTPUT_FORMAT)",
+	)
+	root.PersistentFlags().IntVar(
+		&instancePort,
+		"instance-port",
+		defaultInstancePort,
+		"loopback port for the single-instance lock (also honors SCAMPI_INSTANCE_PORT)",
 	)
 
 	// SetHelpFunc fires after flag parsing but before the template
