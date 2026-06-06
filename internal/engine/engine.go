@@ -16,99 +16,6 @@ import (
 	"time"
 )
 
-// Log
-// -----------------------------------------------------------------------------
-
-// Code is the stable identifier on every emission. Sinks classify
-// by exact match.
-type Code string
-
-const (
-	CodeSnapshotReceived Code = "snapshot.received"
-	CodeSnapshotRejected Code = "snapshot.rejected"
-	CodeApplyStart       Code = "apply.start"
-	CodeApplySuccess     Code = "apply.success"
-	CodeApplyFailed      Code = "apply.failed"
-	CodeApplyHalted      Code = "apply.halted"
-	CodeApplyRenamed     Code = "apply.renamed"
-	CodeTickComplete     Code = "tick.complete"
-	CodeDestroyStart     Code = "destroy.start"
-	CodeDestroySuccess   Code = "destroy.success"
-	CodeDestroyFailed    Code = "destroy.failed"
-
-	CodeMeshUp          Code = "mesh.up"
-	CodeMeshDown        Code = "mesh.down"
-	CodeMeshUnavailable Code = "mesh.unavailable"
-	CodeMeshPeerJoined  Code = "mesh.peer.joined"
-	CodeMeshPeerLeft    Code = "mesh.peer.left"
-	CodeMeshPeerUpdated Code = "mesh.peer.updated"
-
-	CodeLogDebug Code = "log.debug"
-	CodeLogInfo  Code = "log.info"
-	CodeLogWarn  Code = "log.warn"
-	CodeLogError Code = "log.error"
-)
-
-// IsLifecycle reports whether c is a structural lifecycle event
-// rather than a convenience log emission.
-func (c Code) IsLifecycle() bool {
-	switch c {
-	case CodeLogDebug, CodeLogInfo, CodeLogWarn, CodeLogError:
-		return false
-	}
-	return true
-}
-
-// Emitter is the sink contract. Err is sticky: once a sink fails it
-// stays failed, so the reconcile loop can abort the pass on first
-// failure instead of acting without recording.
-type Emitter interface {
-	Emit(ctx context.Context, code Code, ref *Ref, args ...any)
-	Err() error
-}
-
-type Log struct {
-	e Emitter
-}
-
-func NewLog(e Emitter) Log { return Log{e: e} }
-
-func (l Log) Emit(ctx context.Context, code Code, ref *Ref, args ...any) {
-	l.e.Emit(ctx, code, ref, args...)
-}
-
-func (l Log) Err() error { return l.e.Err() }
-
-func (l Log) Debug(ctx context.Context, msg string, args ...any) {
-	l.emitLog(ctx, CodeLogDebug, msg, args)
-}
-
-func (l Log) Info(ctx context.Context, msg string, args ...any) {
-	l.emitLog(ctx, CodeLogInfo, msg, args)
-}
-
-func (l Log) Warn(ctx context.Context, msg string, args ...any) {
-	l.emitLog(ctx, CodeLogWarn, msg, args)
-}
-
-func (l Log) Error(ctx context.Context, msg string, args ...any) {
-	l.emitLog(ctx, CodeLogError, msg, args)
-}
-
-func (l Log) emitLog(ctx context.Context, code Code, msg string, args []any) {
-	full := make([]any, 0, len(args)+2)
-	full = append(full, "msg", msg)
-	full = append(full, args...)
-	l.Emit(ctx, code, nil, full...)
-}
-
-type discardEmitter struct{}
-
-func (discardEmitter) Emit(context.Context, Code, *Ref, ...any) {}
-func (discardEmitter) Err() error                               { return nil }
-
-var Discard = NewLog(discardEmitter{})
-
 // Errors
 // -----------------------------------------------------------------------------
 
@@ -135,26 +42,29 @@ type Plan struct {
 }
 
 type ApplyConfig struct {
-	Dir       string
-	Inventory *Inventory
-	Log       Log
+	Dir          string
+	ActionLogDir string
+	Inventory    *Inventory // optional; loaded from ActionLogDir if nil
+	Emitter      Emitter
 }
 
 type RunConfig struct {
-	Dir       string
-	Inventory *Inventory
-	Log       Log
-	Interval  time.Duration
+	Dir          string
+	ActionLogDir string
+	Inventory    *Inventory // optional; loaded from ActionLogDir if nil
+	Emitter      Emitter
+	Interval     time.Duration
 }
 
 type PlanConfig struct {
 	Dir       string
 	Inventory *Inventory
-	Log       Log
+	Emitter   Emitter
 }
 
 func MakePlan(ctx context.Context, cfg PlanConfig) (*Plan, error) {
-	dir, inv, log := cfg.Dir, cfg.Inventory, cfg.Log
+	dir, inv := cfg.Dir, cfg.Inventory
+	log := NewLog(cfg.Emitter)
 	snap, err := snapshot(ctx, dir, log)
 	if err != nil {
 		return nil, err
@@ -189,8 +99,14 @@ func MakePlan(ctx context.Context, cfg PlanConfig) (*Plan, error) {
 }
 
 func Apply(ctx context.Context, cfg ApplyConfig) error {
-	dir, inv, log := cfg.Dir, cfg.Inventory, cfg.Log
-	snap, err := snapshot(ctx, dir, log)
+	inv, actLog, err := openSinkAndInventory(cfg.ActionLogDir, cfg.Inventory)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = actLog.Close() }()
+	log := NewLog(FanoutEmitter{cfg.Emitter, actLog})
+
+	snap, err := snapshot(ctx, cfg.Dir, log)
 	if err != nil {
 		return err
 	}
@@ -216,10 +132,34 @@ func Apply(ctx context.Context, cfg ApplyConfig) error {
 	return nil
 }
 
+// openSinkAndInventory opens the action log writer rooted at dir
+// and resolves the starting inventory. inv is used as-is if
+// non-nil; otherwise it's loaded (strict replay) from dir.
+func openSinkAndInventory(dir string, inv *Inventory) (*Inventory, *ActionLog, error) {
+	if inv == nil {
+		loaded, err := LoadInventory(dir)
+		if err != nil {
+			return nil, nil, fmt.Errorf("action log replay: %w", err)
+		}
+		inv = loaded
+	}
+	actLog, err := NewActionLog(dir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("action log: %w", err)
+	}
+	return inv, actLog, nil
+}
+
 // Run keeps reconciling after a snapshot reject so operators can fix
 // configs in place against the last-good snapshot.
 func Run(ctx context.Context, cfg RunConfig) error {
-	dir, inv, log, interval := cfg.Dir, cfg.Inventory, cfg.Log, cfg.Interval
+	inv, actLog, err := openSinkAndInventory(cfg.ActionLogDir, cfg.Inventory)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = actLog.Close() }()
+	log := NewLog(FanoutEmitter{cfg.Emitter, actLog})
+	dir, interval := cfg.Dir, cfg.Interval
 	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
 	var (
 		lastRev string

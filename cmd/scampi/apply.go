@@ -33,14 +33,11 @@ func newApplyCmd() *cobra.Command {
 				return err
 			}
 			instance = l
-			if err := setupActionLog(); err != nil {
-				return err
-			}
 			renderer, finalize := pickApplyEmitter()
 			err = engine.Apply(cmd.Context(), engine.ApplyConfig{
-				Dir:       args[0],
-				Inventory: inv,
-				Log:       engine.NewLog(sinkWith(renderer)),
+				Dir:          args[0],
+				ActionLogDir: actionLogPath,
+				Emitter:      renderer,
 			})
 			finalize(err)
 			return err

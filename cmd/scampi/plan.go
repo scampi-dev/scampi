@@ -12,6 +12,14 @@ import (
 	"scampi.dev/scampi/internal/render"
 )
 
+func pickPlanEmitter() engine.Emitter {
+	v := resolveVerbosity()
+	if outputFormat == "json" {
+		return render.NewJSONRenderer(os.Stdout, v)
+	}
+	return render.NewApplyRenderer(os.Stdout, decideGlyphs(), decideColor(os.Stdout), v)
+}
+
 func newPlanCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:           "plan <dir>",
@@ -20,16 +28,15 @@ func newPlanCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			loaded, err := engine.LoadInventoryLenient(actionLogPath)
+			inv, err := engine.LoadInventoryLenient(actionLogPath)
 			if err != nil {
 				return fmt.Errorf("action log replay: %w", err)
 			}
-			inv = loaded
-			renderer, _ := pickApplyEmitter()
+			renderer := pickPlanEmitter()
 			p, err := engine.MakePlan(cmd.Context(), engine.PlanConfig{
 				Dir:       args[0],
 				Inventory: inv,
-				Log:       engine.NewLog(renderer),
+				Emitter:   renderer,
 			})
 			if err != nil {
 				return err

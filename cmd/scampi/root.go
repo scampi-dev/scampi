@@ -11,7 +11,6 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
-	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/render"
 )
 
@@ -21,8 +20,6 @@ const defaultInstancePort = 0xfeed
 
 var (
 	actionLogPath string
-	actLog        *engine.ActionLog
-	inv           *engine.Inventory
 	instance      net.Listener
 
 	asciiFlag    bool
@@ -91,13 +88,6 @@ func decideGlyphs() render.Glyphs {
 	return render.UnicodeGlyphs
 }
 
-func sinkWith(r engine.Emitter) engine.Emitter {
-	if actLog == nil {
-		return r
-	}
-	return render.FanoutEmitter{r, actLog}
-}
-
 func instanceAddr() string {
 	return net.JoinHostPort(meshBind, strconv.Itoa(instancePort))
 }
@@ -112,20 +102,6 @@ func acquireInstanceListener() (net.Listener, error) {
 		)
 	}
 	return l, nil
-}
-
-func setupActionLog() error {
-	loaded, err := engine.LoadInventory(actionLogPath)
-	if err != nil {
-		return fmt.Errorf("action log replay: %w", err)
-	}
-	inv = loaded
-	al, err := engine.NewActionLog(actionLogPath)
-	if err != nil {
-		return fmt.Errorf("action log: %w", err)
-	}
-	actLog = al
-	return nil
 }
 
 func newRootCmd() (*cobra.Command, func() error) {
@@ -231,16 +207,9 @@ func newRootCmd() (*cobra.Command, func() error) {
 	}
 
 	return root, func() error {
-		var ferr, lerr error
-		if actLog != nil {
-			ferr = actLog.Close()
-		}
 		if instance != nil {
-			lerr = instance.Close()
+			return instance.Close()
 		}
-		if ferr != nil {
-			return ferr
-		}
-		return lerr
+		return nil
 	}
 }

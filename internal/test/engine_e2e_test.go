@@ -20,27 +20,49 @@ import (
 )
 
 // Test helpers for the engine.{Apply,Run,MakePlan}Config style.
-func apply(ctx context.Context, dir string, inv *engine.Inventory, log engine.Log) error {
-	return engine.Apply(ctx, engine.ApplyConfig{Dir: dir, Inventory: inv, Log: log})
+// Each helper sources its action log dir from t.TempDir so the
+// engine can write its lifecycle stream somewhere disposable.
+func apply(
+	ctx context.Context,
+	t *testing.T,
+	dir string,
+	inv *engine.Inventory,
+	em engine.Emitter,
+) error {
+	t.Helper()
+	return engine.Apply(ctx, engine.ApplyConfig{
+		Dir:          dir,
+		ActionLogDir: t.TempDir(),
+		Inventory:    inv,
+		Emitter:      em,
+	})
 }
 
 func run(
 	ctx context.Context,
+	t *testing.T,
 	dir string,
 	interval time.Duration,
 	inv *engine.Inventory,
-	log engine.Log,
+	em engine.Emitter,
 ) error {
-	return engine.Run(ctx, engine.RunConfig{Dir: dir, Interval: interval, Inventory: inv, Log: log})
+	t.Helper()
+	return engine.Run(ctx, engine.RunConfig{
+		Dir:          dir,
+		ActionLogDir: t.TempDir(),
+		Inventory:    inv,
+		Emitter:      em,
+		Interval:     interval,
+	})
 }
 
 func makePlan(
 	ctx context.Context,
 	dir string,
 	inv *engine.Inventory,
-	log engine.Log,
+	em engine.Emitter,
 ) (*engine.Plan, error) {
-	return engine.MakePlan(ctx, engine.PlanConfig{Dir: dir, Inventory: inv, Log: log})
+	return engine.MakePlan(ctx, engine.PlanConfig{Dir: dir, Inventory: inv, Emitter: em})
 }
 
 type capturedEvent struct {
@@ -207,7 +229,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		t.Fatalf("expected.yaml: %v", err)
 	}
 
-	gotErr := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	gotErr := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 
 	switch want.Error {
 	case "":
@@ -275,7 +297,7 @@ file "etc" {
   adopt   = true
 }
 `)
-	if err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	after, err := os.Stat(target)
@@ -302,7 +324,7 @@ file "etc" {
 `)
 	log, capture := newCaptureLog()
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfg, inv, log); err != nil {
+	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	if !capture.has(engine.CodeApplyHalted) {
@@ -327,7 +349,7 @@ file "etc" {
 `)
 	log, capture := newCaptureLog()
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfg, inv, log); err != nil {
+	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	if !capture.has(engine.CodeApplyHalted) {
@@ -360,7 +382,7 @@ file "etc" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfg, inv, engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfg, inv, engine.Discard); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	got, err := os.ReadFile(target)
@@ -404,7 +426,7 @@ file "x" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, cfg, 24*time.Hour, engine.NewInventory(), log) }()
+	go func() { done <- run(ctx, t, cfg, 24*time.Hour, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for apply.success")
@@ -450,7 +472,7 @@ file "x" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
+	go func() { done <- run(ctx, t, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for first apply.success")
@@ -487,7 +509,7 @@ file "x" {
 `)
 	log, capture := newCaptureLog()
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfg, inv, log); err != nil {
+	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	got := lifecycleOnly(capture.Events())
@@ -508,7 +530,7 @@ file "x" {
 	// second one emits. Shared inventory: second apply finds file.x
 	// in inventory and in sync, so it stays silent on the action log.
 	cursor := len(capture.Events())
-	if err := apply(t.Context(), cfg, inv, log); err != nil {
+	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
 		t.Fatalf("Apply (second): %v", err)
 	}
 	got = lifecycleOnly(capture.Events()[cursor:])
@@ -537,7 +559,7 @@ file "x" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
+	go func() { done <- run(ctx, t, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplySuccess, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for initial apply.success")
@@ -581,7 +603,7 @@ file "bad" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
+	go func() { done <- run(ctx, t, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplyFailed, 1, 2*time.Second) {
 		t.Fatal("timed out waiting for first apply.failed")
@@ -688,7 +710,7 @@ file "x" {
 	defer cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
+	go func() { done <- run(ctx, t, cfg, 20*time.Millisecond, engine.NewInventory(), log) }()
 
 	if !capture.waitForCount(engine.CodeApplySuccess, 2, 2*time.Second) {
 		t.Fatal("timed out waiting for initial apply.success x2")
@@ -767,7 +789,7 @@ file "x" {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := apply(t.Context(), cfgDir, engine.NewInventory(), engine.NewLog(al1)); err != nil {
+	if err := apply(t.Context(), t, cfgDir, engine.NewInventory(), engine.NewLog(al1)); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 	if err := al1.Close(); err != nil {
@@ -792,7 +814,7 @@ file "x" {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := apply(t.Context(), cfgDir, inv, engine.NewLog(al2)); err != nil {
+	if err := apply(t.Context(), t, cfgDir, inv, engine.NewLog(al2)); err != nil {
 		t.Fatalf("second apply: %v", err)
 	}
 	if err := al2.Close(); err != nil {
@@ -831,7 +853,7 @@ file "yolo" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 
@@ -846,7 +868,7 @@ file "yolo" {
 }
 `)
 	log, capture := newCaptureLog()
-	if err := apply(t.Context(), cfgDir, inv, log); err != nil {
+	if err := apply(t.Context(), t, cfgDir, inv, log); err != nil {
 		t.Fatalf("second apply: %v", err)
 	}
 
@@ -886,7 +908,7 @@ dir "tmp" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 	if _, err := os.Stat(oldPath); err != nil {
@@ -899,7 +921,7 @@ dir "tmp" {
   path = "` + newPath + `"
 }
 `)
-	if err := apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("second apply: %v", err)
 	}
 	if _, err := os.Stat(newPath); err != nil {
@@ -938,7 +960,7 @@ file "yolo" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 	if !inv.Has(engine.Ref{Kind: "dir", Name: "tmp"}) {
@@ -956,7 +978,7 @@ file "yolo" {
   content = "hi"
 }
 `)
-	if err := apply(t.Context(), cfgDir, inv, engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("second apply (rename): %v", err)
 	}
 
@@ -997,7 +1019,7 @@ file "c" {
 `, tmp, tmp, tmp))
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // cancel before Apply runs
-	err := apply(ctx, cfg, engine.NewInventory(), engine.Discard)
+	err := apply(ctx, t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context.Canceled; got %v", err)
 	}
@@ -1038,7 +1060,7 @@ file "x" {
 	}
 
 	bad := &brokenEmitter{err: errors.New("simulated action log failure")}
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.NewLog(bad))
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.NewLog(bad))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -1087,7 +1109,7 @@ file "gone" {
 }
 `, match, drift, gone))
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), cfg1, inv, engine.Discard); err != nil {
+	if err := apply(t.Context(), t, cfg1, inv, engine.Discard); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 
@@ -1218,7 +1240,7 @@ file "dup" {
   content = "2"
 }
 `, tmp, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Errorf("expected snapshot rejection; got %v", err)
 	}
@@ -1237,7 +1259,7 @@ file "b" {
   content = "from-b"
 }
 `, path, path))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Errorf("expected snapshot rejection; got %v", err)
 	}
@@ -1256,7 +1278,7 @@ dir "b" {
   path = dir.a.path
 }
 `, path))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Errorf("expected snapshot rejection; got %v", err)
 	}
@@ -1272,7 +1294,7 @@ file "x" {
   path = "%s/x"
 }
 `, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1290,7 +1312,7 @@ file "x" {
   contnet = "z"
 }
 `, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1313,7 +1335,7 @@ file "x" {
   contnet = dir.d.path
 }
 `, tmp, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1334,7 +1356,7 @@ file "b" {
   bogus   = "z"
 }
 `, tmp, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1359,9 +1381,7 @@ file "x" {
   contnet = "oops"
 }
 `, tmp))
-	err := engine.Apply(t.Context(), engine.ApplyConfig{
-		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
-	})
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1377,9 +1397,7 @@ file "x" {
   path = "%s/x"
 }
 `, tmp))
-	err := engine.Apply(t.Context(), engine.ApplyConfig{
-		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
-	})
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1396,9 +1414,7 @@ file "x" {
   content = "%s"
 }
 `, tmp))
-	err := engine.Apply(t.Context(), engine.ApplyConfig{
-		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
-	})
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1419,9 +1435,7 @@ file "dup" {
   content = "2"
 }
 `, tmp, tmp))
-	err := engine.Apply(t.Context(), engine.ApplyConfig{
-		Dir: cfg, Inventory: engine.NewInventory(), Log: engine.Discard,
-	})
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1442,7 +1456,7 @@ file "x" {
   contnet = "oops"
 }
 `, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1462,7 +1476,7 @@ file "x" {
   content = "hi"
 }
 `, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1479,7 +1493,7 @@ fil "x" {
   content = "y"
 }
 `, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1497,7 +1511,7 @@ file "x" {
   blah_unrelated = "oops"
 }
 `, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1518,7 +1532,7 @@ file "x" {
   adopt   = "true"
 }
 `, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1534,7 +1548,7 @@ file "x" {
   content = "y"
 }
 `)
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1558,7 +1572,7 @@ file "tgt" {
   adopt   = file.src.path
 }
 `, tmp, tmp))
-	err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1593,7 +1607,7 @@ file "x" {
   content = "y"
 }
 `, c.path))
-			err := apply(t.Context(), cfg, engine.NewInventory(), engine.Discard)
+			err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 			rejected := errors.Is(err, engine.ErrSnapshotRejected)
 			if rejected != c.reject {
 				t.Errorf("path %q: rejected=%v want %v (err=%v)", c.path, rejected, c.reject, err)

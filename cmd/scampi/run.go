@@ -104,17 +104,13 @@ func newRunCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := setupActionLog(); err != nil {
-				return err
-			}
 			snapPath, err := plat.Paths.PeersFile()
 			if err != nil {
 				return err
 			}
-			emitter := sinkWith(pickRunEmitter())
-			log := engine.NewLog(emitter)
+			emitter := pickRunEmitter()
 
-			m, merr := startMesh(cmd.Context(), log, snapPath)
+			m, merr := startMesh(cmd.Context(), engine.NewLog(emitter), snapPath)
 			if merr != nil {
 				emitter.Emit(
 					cmd.Context(), engine.CodeMeshUnavailable, nil,
@@ -136,10 +132,10 @@ func newRunCmd() *cobra.Command {
 			}
 
 			return engine.Run(cmd.Context(), engine.RunConfig{
-				Dir:       args[0],
-				Interval:  interval,
-				Inventory: inv,
-				Log:       log,
+				Dir:          args[0],
+				ActionLogDir: actionLogPath,
+				Emitter:      emitter,
+				Interval:     interval,
 			})
 		},
 	}
