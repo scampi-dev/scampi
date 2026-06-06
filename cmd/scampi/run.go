@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -12,13 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/mesh"
 	"scampi.dev/scampi/internal/render"
-)
-
-const (
-	meshLeaveTimeout     = 2 * time.Second
-	meshSnapshotDebounce = 1 * time.Second
 )
 
 var (
@@ -63,37 +56,6 @@ func parseJoinSeeds(raw string) []string {
 	return out
 }
 
-func startMesh(ctx context.Context, log engine.Log, snapPath string) (*mesh.Mesh, error) {
-	return mesh.Run(ctx, mesh.Config{
-		Name:             defaultMeshName(),
-		BindAddr:         meshBind,
-		BindPort:         instancePort,
-		AdvertiseAddr:    meshAdvertise,
-		AdvertisePort:    instancePort,
-		Join:             parseJoinSeeds(joinSeeds),
-		SnapshotPath:     snapPath,
-		Logger:           log,
-		SnapshotDebounce: meshSnapshotDebounce,
-	})
-}
-
-func forwardMeshEvents(ctx context.Context, emitter engine.Emitter, m *mesh.Mesh) {
-	for ev := range m.Events() {
-		var code engine.Code
-		switch ev.Kind {
-		case mesh.EventJoin:
-			code = engine.CodeMeshPeerJoined
-		case mesh.EventLeave:
-			code = engine.CodeMeshPeerLeft
-		case mesh.EventUpdate:
-			code = engine.CodeMeshPeerUpdated
-		default:
-			continue
-		}
-		emitter.Emit(ctx, code, nil, "name", ev.Peer.Name, "addr", ev.Peer.Addr)
-	}
-}
-
 func newRunCmd() *cobra.Command {
 	var interval time.Duration
 
@@ -108,34 +70,20 @@ func newRunCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			emitter := pickRunEmitter()
-
-			m, merr := startMesh(cmd.Context(), engine.NewLog(emitter), snapPath)
-			if merr != nil {
-				emitter.Emit(
-					cmd.Context(), engine.CodeMeshUnavailable, nil,
-					"err", merr.Error(),
-				)
-			} else {
-				emitter.Emit(
-					cmd.Context(), engine.CodeMeshUp, nil,
-					"name", m.Self().Name,
-					"addr", m.Self().Addr,
-					"members", len(m.Members()),
-				)
-				go forwardMeshEvents(cmd.Context(), emitter, m)
-				defer func() {
-					_ = m.Leave(meshLeaveTimeout)
-					_ = m.Shutdown()
-					emitter.Emit(cmd.Context(), engine.CodeMeshDown, nil)
-				}()
-			}
-
 			return engine.Run(cmd.Context(), engine.RunConfig{
 				Dir:          args[0],
 				ActionLogDir: actionLogPath,
-				Emitter:      emitter,
+				Emitter:      pickRunEmitter(),
 				Interval:     interval,
+				Mesh: &engine.MeshConfig{
+					Name:          defaultMeshName(),
+					BindAddr:      meshBind,
+					BindPort:      instancePort,
+					AdvertiseAddr: meshAdvertise,
+					AdvertisePort: instancePort,
+					Join:          parseJoinSeeds(joinSeeds),
+					SnapshotPath:  snapPath,
+				},
 			})
 		},
 	}

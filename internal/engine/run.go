@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"scampi.dev/scampi/internal/mesh"
 )
 
 type RunConfig struct {
@@ -14,6 +16,22 @@ type RunConfig struct {
 	Inventory    *Inventory // optional; loaded from ActionLogDir if nil
 	Emitter      Emitter
 	Interval     time.Duration
+	Mesh         *MeshConfig // optional; nil disables mesh
+}
+
+// MeshConfig carries the per-peer mesh settings that vary by
+// deployment. Zero LeaveTimeout / SnapshotDebounce pick sensible
+// defaults; everything else is required when Mesh is non-nil.
+type MeshConfig struct {
+	Name             string
+	BindAddr         string
+	BindPort         int
+	AdvertiseAddr    string
+	AdvertisePort    int
+	Join             []string
+	SnapshotPath     string
+	SnapshotDebounce time.Duration
+	LeaveTimeout     time.Duration
 }
 
 // Run keeps reconciling after a snapshot reject so operators can fix
@@ -25,6 +43,13 @@ func Run(ctx context.Context, cfg RunConfig) error {
 	}
 	defer func() { _ = actLog.Close() }()
 	log := NewLog(FanoutEmitter{cfg.Emitter, actLog})
+
+	if cfg.Mesh != nil {
+		if stop := startMesh(ctx, cfg.Mesh, cfg.Emitter, log); stop != nil {
+			defer stop()
+		}
+	}
+
 	dir, interval := cfg.Dir, cfg.Interval
 	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
 	var (
@@ -81,6 +106,69 @@ func Run(ctx context.Context, cfg RunConfig) error {
 			return nil
 		case <-time.After(interval):
 		}
+	}
+}
+
+const (
+	defaultMeshLeaveTimeout     = 2 * time.Second
+	defaultMeshSnapshotDebounce = 1 * time.Second
+)
+
+// startMesh brings up the mesh substrate. Failures are non-fatal:
+// engine emits CodeMeshUnavailable and keeps reconciling. Returns
+// a cleanup func when mesh did come up; nil otherwise.
+func startMesh(ctx context.Context, cfg *MeshConfig, emitter Emitter, log Log) func() {
+	debounce := cfg.SnapshotDebounce
+	if debounce == 0 {
+		debounce = defaultMeshSnapshotDebounce
+	}
+	leave := cfg.LeaveTimeout
+	if leave == 0 {
+		leave = defaultMeshLeaveTimeout
+	}
+	m, err := mesh.Run(ctx, mesh.Config{
+		Name:             cfg.Name,
+		BindAddr:         cfg.BindAddr,
+		BindPort:         cfg.BindPort,
+		AdvertiseAddr:    cfg.AdvertiseAddr,
+		AdvertisePort:    cfg.AdvertisePort,
+		Join:             cfg.Join,
+		SnapshotPath:     cfg.SnapshotPath,
+		Logger:           log,
+		SnapshotDebounce: debounce,
+	})
+	if err != nil {
+		emitter.Emit(ctx, CodeMeshUnavailable, nil, "err", err.Error())
+		return nil
+	}
+	emitter.Emit(
+		ctx, CodeMeshUp, nil,
+		"name", m.Self().Name,
+		"addr", m.Self().Addr,
+		"members", len(m.Members()),
+	)
+	go forwardMeshEvents(ctx, emitter, m)
+	return func() {
+		_ = m.Leave(leave)
+		_ = m.Shutdown()
+		emitter.Emit(ctx, CodeMeshDown, nil)
+	}
+}
+
+func forwardMeshEvents(ctx context.Context, emitter Emitter, m *mesh.Mesh) {
+	for ev := range m.Events() {
+		var code Code
+		switch ev.Kind {
+		case mesh.EventJoin:
+			code = CodeMeshPeerJoined
+		case mesh.EventLeave:
+			code = CodeMeshPeerLeft
+		case mesh.EventUpdate:
+			code = CodeMeshPeerUpdated
+		default:
+			continue
+		}
+		emitter.Emit(ctx, code, nil, "name", ev.Peer.Name, "addr", ev.Peer.Addr)
 	}
 }
 

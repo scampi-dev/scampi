@@ -12,13 +12,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/mesh"
 	"scampi.dev/scampi/internal/render"
-)
-
-const (
-	meshLeaveTimeout     = 2 * time.Second
-	meshSnapshotDebounce = 1 * time.Second
 )
 
 func runCmd() *cli.Command {
@@ -62,31 +56,21 @@ func runCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			emitter := pickRunEmitter(cmd)
-
-			m, merr := startMesh(ctx, cmd, engine.NewLog(emitter), snapPath)
-			if merr != nil {
-				emitter.Emit(ctx, engine.CodeMeshUnavailable, nil, "err", merr.Error())
-			} else {
-				emitter.Emit(
-					ctx, engine.CodeMeshUp, nil,
-					"name", m.Self().Name,
-					"addr", m.Self().Addr,
-					"members", len(m.Members()),
-				)
-				go forwardMeshEvents(ctx, emitter, m)
-				defer func() {
-					_ = m.Leave(meshLeaveTimeout)
-					_ = m.Shutdown()
-					emitter.Emit(ctx, engine.CodeMeshDown, nil)
-				}()
-			}
-
+			port := int(cmd.Int("instance-port"))
 			return engine.Run(ctx, engine.RunConfig{
 				Dir:          dir,
 				ActionLogDir: actionLogDir,
-				Emitter:      emitter,
+				Emitter:      pickRunEmitter(cmd),
 				Interval:     cmd.Duration("interval"),
+				Mesh: &engine.MeshConfig{
+					Name:          defaultMeshName(cmd.String("mesh-name"), port),
+					BindAddr:      cmd.String("mesh-bind"),
+					BindPort:      port,
+					AdvertiseAddr: cmd.String("mesh-advertise"),
+					AdvertisePort: port,
+					Join:          parseJoinSeeds(cmd.String("join")),
+					SnapshotPath:  snapPath,
+				},
 			})
 		},
 	}
@@ -103,26 +87,6 @@ func pickRunEmitter(cmd *cli.Command) engine.Emitter {
 		decideColor(cmd.String("color"), os.Stdout),
 		v,
 	)
-}
-
-func startMesh(
-	ctx context.Context,
-	cmd *cli.Command,
-	log engine.Log,
-	snapPath string,
-) (*mesh.Mesh, error) {
-	port := int(cmd.Int("instance-port"))
-	return mesh.Run(ctx, mesh.Config{
-		Name:             defaultMeshName(cmd.String("mesh-name"), port),
-		BindAddr:         cmd.String("mesh-bind"),
-		BindPort:         port,
-		AdvertiseAddr:    cmd.String("mesh-advertise"),
-		AdvertisePort:    port,
-		Join:             parseJoinSeeds(cmd.String("join")),
-		SnapshotPath:     snapPath,
-		Logger:           log,
-		SnapshotDebounce: meshSnapshotDebounce,
-	})
 }
 
 func defaultMeshName(meshName string, port int) string {
@@ -148,21 +112,4 @@ func parseJoinSeeds(raw string) []string {
 		}
 	}
 	return out
-}
-
-func forwardMeshEvents(ctx context.Context, emitter engine.Emitter, m *mesh.Mesh) {
-	for ev := range m.Events() {
-		var code engine.Code
-		switch ev.Kind {
-		case mesh.EventJoin:
-			code = engine.CodeMeshPeerJoined
-		case mesh.EventLeave:
-			code = engine.CodeMeshPeerLeft
-		case mesh.EventUpdate:
-			code = engine.CodeMeshPeerUpdated
-		default:
-			continue
-		}
-		emitter.Emit(ctx, code, nil, "name", ev.Peer.Name, "addr", ev.Peer.Addr)
-	}
 }
