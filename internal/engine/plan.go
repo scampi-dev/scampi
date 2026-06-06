@@ -4,7 +4,7 @@ package engine
 
 import "context"
 
-// Plan inspects what an Apply against dir would do without touching
+// Plan inspects what a Reconcile against dir would do without touching
 // live state. Reads inv; never mutates it or writes lifecycle events.
 type Plan struct {
 	Create  []Ref // would write a new resource (state=missing)

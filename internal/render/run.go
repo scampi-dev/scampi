@@ -55,39 +55,39 @@ func (r *RunRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref,
 		r.tickEvents = 0
 	case engine.CodeLogInfo:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", AnsiGreen, args)
+			r.logLine(r.glyphs.Info, AnsiGreen, args)
 		}
 	case engine.CodeLogWarn:
-		r.logLine("WRN", AnsiYellow, args)
+		r.logLine(r.glyphs.Warn, AnsiYellow, args)
 	case engine.CodeLogError:
-		r.logLine("ERR", AnsiRed, args)
+		r.logLine(r.glyphs.Error, AnsiRed, args)
 	case engine.CodeLogDebug:
 		if r.verbosity >= VerbosityVerbose {
-			r.logLine("DBG", AnsiDark, args)
+			r.logLine(r.glyphs.Debug, AnsiDark, args)
 		}
 	case engine.CodeMeshUp:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", AnsiGreen, append([]any{"msg", "mesh up"}, args...))
+			r.logLine(r.glyphs.Info, AnsiGreen, append([]any{"msg", "mesh up"}, args...))
 		}
 	case engine.CodeMeshDown:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", AnsiGreen, append([]any{"msg", "mesh down"}, args...))
+			r.logLine(r.glyphs.Info, AnsiGreen, append([]any{"msg", "mesh down"}, args...))
 		}
 	case engine.CodeMeshPeerJoined:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", AnsiGreen, append([]any{"msg", "peer joined"}, args...))
+			r.logLine(r.glyphs.Info, AnsiGreen, append([]any{"msg", "peer joined"}, args...))
 		}
 	case engine.CodeMeshPeerLeft:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", AnsiGreen, append([]any{"msg", "peer left"}, args...))
+			r.logLine(r.glyphs.Info, AnsiGreen, append([]any{"msg", "peer left"}, args...))
 		}
 	case engine.CodeMeshPeerUpdated:
 		if r.verbosity >= VerbosityVerbose {
-			r.logLine("DBG", AnsiDark, append([]any{"msg", "peer updated"}, args...))
+			r.logLine(r.glyphs.Debug, AnsiDark, append([]any{"msg", "peer updated"}, args...))
 		}
 	case engine.CodeMeshUnavailable:
 		r.logLine(
-			"WRN", AnsiYellow,
+			r.glyphs.Warn, AnsiYellow,
 			append([]any{"msg", "mesh unavailable; running engine-only"}, args...),
 		)
 	case engine.CodeApplyStart, engine.CodeDestroyStart, engine.CodeSnapshotReceived:
@@ -100,10 +100,10 @@ func (r *RunRenderer) tickSummary(args []any) {
 	status := attrString(args, "status")
 	ts := time.Now().Format("15:04:05.000")
 	color := AnsiGreen
-	tag := padCol("OK", indicatorWidth)
+	tag := r.glyphs.OK
 	if status != "ok" {
 		color = AnsiRed
-		tag = padCol("ERR", indicatorWidth)
+		tag = r.glyphs.Error
 	}
 	if !r.colored {
 		_, _ = fmt.Fprintf(r.out, "%s  %s  reconcile %s in %s\n", ts, tag, status, duration)
@@ -157,12 +157,11 @@ func (r *RunRenderer) destroyLine(ref *engine.Ref) {
 
 func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
 	ts := time.Now().Format("15:04:05.000")
-	ind := padCol(glyph, indicatorWidth)
 	if !r.colored {
 		if detail != "" {
-			_, _ = fmt.Fprintf(r.out, "%s  %s  %-20s  %s: %s\n", ts, ind, ref, label, detail)
+			_, _ = fmt.Fprintf(r.out, "%s  %s  %-20s  %s: %s\n", ts, glyph, ref, label, detail)
 		} else {
-			_, _ = fmt.Fprintf(r.out, "%s  %s  %-20s  %s\n", ts, ind, ref, label)
+			_, _ = fmt.Fprintf(r.out, "%s  %s  %-20s  %s\n", ts, glyph, ref, label)
 		}
 		return
 	}
@@ -170,7 +169,7 @@ func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
 		_, _ = fmt.Fprintf(
 			r.out, "%s%s%s  %s%s%s  %-20s  %s%s: %s%s\n",
 			AnsiDark, ts, AnsiReset,
-			color, ind, AnsiReset,
+			color, glyph, AnsiReset,
 			ref,
 			AnsiDim, label, detail, AnsiUndim,
 		)
@@ -179,7 +178,7 @@ func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
 	_, _ = fmt.Fprintf(
 		r.out, "%s%s%s  %s%s%s  %-20s  %s%s%s\n",
 		AnsiDark, ts, AnsiReset,
-		color, ind, AnsiReset,
+		color, glyph, AnsiReset,
 		ref,
 		AnsiDim, label, AnsiUndim,
 	)
@@ -189,7 +188,6 @@ func (r *RunRenderer) logLine(tag, color string, args []any) {
 	msg, rest := popMsg(args)
 	attrs := formatAttrs(rest, r.colored)
 	ts := time.Now().Format("15:04:05.000")
-	ind := padCol(tag, indicatorWidth)
 	// CR+clear so the engine's shutdown announce overwrites the
 	// TTY-echoed ^C in the same Write.
 	prefix := ""
@@ -197,11 +195,11 @@ func (r *RunRenderer) logLine(tag, color string, args []any) {
 		prefix = "\r\x1b[K"
 	}
 	if !r.colored {
-		_, _ = fmt.Fprintf(r.out, "%s%s  %s  %s%s\n", prefix, ts, ind, msg, attrs)
+		_, _ = fmt.Fprintf(r.out, "%s%s  %s  %s%s\n", prefix, ts, tag, msg, attrs)
 		return
 	}
 	_, _ = fmt.Fprintf(r.out, "%s%s%s%s  %s%s%s  %s%s\n",
-		prefix, AnsiDark, ts, AnsiReset, color, ind, AnsiReset, msg, attrs)
+		prefix, AnsiDark, ts, AnsiReset, color, tag, AnsiReset, msg, attrs)
 }
 
 const shutdownMsg = "received shutdown signal, exiting at next safe point"

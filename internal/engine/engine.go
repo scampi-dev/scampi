@@ -429,7 +429,7 @@ func resolve(resources []Resource) ([]Resource, error) {
 
 // applyAll iterates the snapshot. When bo is non-nil, failing
 // resources get skipped until their backoff expires. Pass nil for
-// one-shot Apply.
+// one-shot Reconcile.
 func applyAll(
 	ctx context.Context,
 	resources []Resource,

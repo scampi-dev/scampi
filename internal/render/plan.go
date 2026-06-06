@@ -58,15 +58,14 @@ func PrintPlan(w io.Writer, p *engine.Plan, g Glyphs, colored bool) {
 
 func writePlanEntry(w io.Writer, e planEntry, refWidth int, colored bool) {
 	ref := e.ref.String()
-	ind := padCol(e.glyph, indicatorWidth)
 	if !colored {
-		_, _ = fmt.Fprintf(w, "  %s  %-*s  %s\n", ind, refWidth, ref, e.label)
+		_, _ = fmt.Fprintf(w, "  %s  %-*s  %s\n", e.glyph, refWidth, ref, e.label)
 		return
 	}
 	col := planColor(e.label)
 	_, _ = fmt.Fprintf(
 		w, "  %s%s%s  %-*s  %s%s%s\n",
-		col, ind, AnsiReset,
+		col, e.glyph, AnsiReset,
 		refWidth, ref,
 		AnsiDim, e.label, AnsiUndim,
 	)

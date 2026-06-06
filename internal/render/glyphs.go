@@ -2,9 +2,10 @@
 
 package render
 
-import "strings"
-
+// Glyphs is scampi's indicator set. All values are pre-aligned to
+// the same display width; renderers print them verbatim.
 type Glyphs struct {
+	// Resource sigils.
 	Create  string
 	Update  string
 	Destroy string
@@ -13,42 +14,50 @@ type Glyphs struct {
 	Adopt   string
 	Failed  string
 	Rename  string
+
+	// Log severity tags.
+	Info  string
+	Debug string
+	Warn  string
+	Error string
+
+	// Tick outcome.
+	OK string
 }
 
 var (
 	UnicodeGlyphs = Glyphs{
-		Create:  "✚", // heavy greek cross
-		Update:  "↻", // clockwise open circle arrow
-		Destroy: "󰅖", // nerd-font close (v1's err glyph)
-		InSync:  "✓", // check mark
-		Halt:    "⏸", // double vertical bar (pause)
-		Adopt:   "⤴", // arrow pointing rightwards then curving upwards
-		Failed:  "✗", // ballot x
-		Rename:  "⇄", // rightwards arrow over leftwards arrow
+		Create:  "✚  ", // heavy greek cross
+		Update:  "↻  ", // clockwise open circle arrow
+		Destroy: "󰅖  ", // nerd-font close (v1's err glyph)
+		InSync:  "✓  ", // check mark
+		Halt:    "⏸  ", // double vertical bar (pause)
+		Adopt:   "⤴  ", // arrow pointing rightwards then curving upwards
+		Failed:  "✗  ", // ballot x
+		Rename:  "⇄  ", // rightwards arrow over leftwards arrow
+
+		Info:  "INF",
+		Debug: "DBG",
+		Warn:  "WRN",
+		Error: "ERR",
+
+		OK: "OK ",
 	}
 	ASCIIGlyphs = Glyphs{
-		Create:  "+",
-		Update:  "~",
-		Destroy: "-",
-		InSync:  "=",
-		Halt:    "!",
-		Adopt:   "@",
-		Failed:  "x",
-		Rename:  ">",
+		Create:  "+  ",
+		Update:  "~  ",
+		Destroy: "-  ",
+		InSync:  "=  ",
+		Halt:    "!  ",
+		Adopt:   "@  ",
+		Failed:  "x  ",
+		Rename:  ">  ",
+
+		Info:  "INF",
+		Debug: "DBG",
+		Warn:  "WRN",
+		Error: "ERR",
+
+		OK: "OK ",
 	}
 )
-
-// indicatorWidth keeps following columns aligned regardless of the
-// indicator (INF, ✚, OK, ...).
-const indicatorWidth = 3
-
-func padCol(s string, width int) string {
-	n := 0
-	for range s {
-		n++
-	}
-	if n >= width {
-		return s
-	}
-	return s + strings.Repeat(" ", width-n)
-}

@@ -185,34 +185,32 @@ func (r *ReportRenderer) handleDestroySuccess(ref *engine.Ref) {
 
 func (r *ReportRenderer) handleLog(code engine.Code, args []any) {
 	msg, _ := popMsg(args)
-	tag := "WRN"
+	tag := r.glyphs.Warn
 	color := AnsiYellow
 	if code == engine.CodeLogError {
-		tag = "ERR"
+		tag = r.glyphs.Error
 		color = AnsiRed
 	}
-	ind := padCol(tag, indicatorWidth)
 	if r.colored {
-		_, _ = fmt.Fprintf(r.out, "  %s%s%s  %s\n", color, ind, AnsiReset, msg)
+		_, _ = fmt.Fprintf(r.out, "  %s%s%s  %s\n", color, tag, AnsiReset, msg)
 	} else {
-		_, _ = fmt.Fprintf(r.out, "  %s  %s\n", ind, msg)
+		_, _ = fmt.Fprintf(r.out, "  %s  %s\n", tag, msg)
 	}
 }
 
 func (r *ReportRenderer) writeLine(glyph, label, ref, detail, color string) {
-	ind := padCol(glyph, indicatorWidth)
 	if !r.colored {
 		if detail != "" {
-			_, _ = fmt.Fprintf(r.out, "  %s  %-20s  %s: %s\n", ind, ref, label, detail)
+			_, _ = fmt.Fprintf(r.out, "  %s  %-20s  %s: %s\n", glyph, ref, label, detail)
 		} else {
-			_, _ = fmt.Fprintf(r.out, "  %s  %-20s  %s\n", ind, ref, label)
+			_, _ = fmt.Fprintf(r.out, "  %s  %-20s  %s\n", glyph, ref, label)
 		}
 		return
 	}
 	if detail != "" {
 		_, _ = fmt.Fprintf(
 			r.out, "  %s%s%s  %-20s  %s%s: %s%s\n",
-			color, ind, AnsiReset,
+			color, glyph, AnsiReset,
 			ref,
 			AnsiDim, label, detail, AnsiUndim,
 		)
@@ -220,7 +218,7 @@ func (r *ReportRenderer) writeLine(glyph, label, ref, detail, color string) {
 	}
 	_, _ = fmt.Fprintf(
 		r.out, "  %s%s%s  %-20s  %s%s%s\n",
-		color, ind, AnsiReset,
+		color, glyph, AnsiReset,
 		ref,
 		AnsiDim, label, AnsiUndim,
 	)

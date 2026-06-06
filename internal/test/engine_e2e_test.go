@@ -760,10 +760,10 @@ file "x" {
 // Action log durability
 // -----------------------------------------------------------------------------
 
-// The replay path is the durability story. Apply writes lifecycle
+// The replay path is the durability story. Reconcile writes lifecycle
 // events to the action log; a "restarted" process loads that log into
 // a fresh inventory and continues. With the resource then removed from
-// config, the second apply must treat it as an orphan and destroy it.
+// config, the second reconcile must treat it as an orphan and destroy it.
 func TestActionLog_PersistsAcrossRuns(t *testing.T) {
 	cfgDir := t.TempDir()
 	targetDir := t.TempDir()
@@ -778,7 +778,7 @@ func TestActionLog_PersistsAcrossRuns(t *testing.T) {
 		}
 	}
 
-	// Run 1: declare the file, apply, persist to action log
+	// Run 1: declare the file, reconcile, persist to action log
 	writeCfg(`
 file "x" {
   path    = "` + target + `"
@@ -902,7 +902,7 @@ func TestReconcile_IdentityDriftOnSameRefDestroysOld(t *testing.T) {
 		}
 	}
 
-	// Apply 1: dir.tmp at oldPath.
+	// Reconcile 1: dir.tmp at oldPath.
 	writeCfg(`
 dir "tmp" {
   path = "` + oldPath + `"
@@ -916,7 +916,7 @@ dir "tmp" {
 		t.Fatalf("old dir should exist after first apply: %v", err)
 	}
 
-	// Apply 2: dir.tmp moves to newPath while keeping the same ref.
+	// Reconcile 2: dir.tmp moves to newPath while keeping the same ref.
 	writeCfg(`
 dir "tmp" {
   path = "` + newPath + `"
@@ -999,7 +999,7 @@ file "yolo" {
 	}
 }
 
-// Apply must return ctx.Err and stop iterating resources when the
+// Reconcile must return ctx.Err and stop iterating resources when the
 // caller cancels mid-pass. Otherwise long-running applies can't be
 // aborted gracefully.
 func TestReconcile_AbortsOnContextCancellation(t *testing.T) {
@@ -1019,7 +1019,7 @@ file "c" {
 }
 `, tmp, tmp, tmp))
 	ctx, cancel := context.WithCancel(t.Context())
-	cancel() // cancel before Apply runs
+	cancel() // cancel before Reconcile runs
 	err := reconcile(ctx, t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context.Canceled; got %v", err)
@@ -1044,7 +1044,7 @@ type brokenEmitter struct{ err error }
 func (b *brokenEmitter) Emit(context.Context, engine.Code, *engine.Ref, ...any) {}
 func (b *brokenEmitter) Err() error                                             { return b.err }
 
-// Apply must surface and propagate a sticky action-log failure rather
+// Reconcile must surface and propagate a sticky action-log failure rather
 // than acting blind. The wrapped emitter error must show up under
 // ErrReconcileFailed so main exits cleanly.
 func TestReconcile_AbortsOnActionLogFailure(t *testing.T) {
@@ -1084,7 +1084,7 @@ func TestMakePlan_Categories(t *testing.T) {
 	halt := filepath.Join(tmp, "halt")
 	newPath := filepath.Join(tmp, "new")
 
-	// Pre-existing state that the first apply will adopt.
+	// Pre-existing state that the first reconcile will adopt.
 	if err := os.WriteFile(match, []byte("right"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1092,7 +1092,7 @@ func TestMakePlan_Categories(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// First apply: populate the inventory with match, gone, drift.
+	// First reconcile: populate the inventory with match, gone, drift.
 	cfg1 := writeConfig(t, fmt.Sprintf(`
 file "match" {
   path    = %q
