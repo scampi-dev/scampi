@@ -65,6 +65,31 @@ func (r *RunRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref,
 		if r.verbosity >= VerbosityVerbose {
 			r.logLine("DBG", ansiDark, args)
 		}
+	case engine.CodeMeshUp:
+		if r.verbosity >= VerbosityDefault {
+			r.logLine("INF", ansiGreen, append([]any{"msg", "mesh up"}, args...))
+		}
+	case engine.CodeMeshDown:
+		if r.verbosity >= VerbosityDefault {
+			r.logLine("INF", ansiGreen, append([]any{"msg", "mesh down"}, args...))
+		}
+	case engine.CodeMeshPeerJoined:
+		if r.verbosity >= VerbosityDefault {
+			r.logLine("INF", ansiGreen, append([]any{"msg", "peer joined"}, args...))
+		}
+	case engine.CodeMeshPeerLeft:
+		if r.verbosity >= VerbosityDefault {
+			r.logLine("INF", ansiGreen, append([]any{"msg", "peer left"}, args...))
+		}
+	case engine.CodeMeshPeerUpdated:
+		if r.verbosity >= VerbosityVerbose {
+			r.logLine("DBG", ansiDark, append([]any{"msg", "peer updated"}, args...))
+		}
+	case engine.CodeMeshUnavailable:
+		r.logLine(
+			"WRN", ansiYellow,
+			append([]any{"msg", "mesh unavailable; running engine-only"}, args...),
+		)
 	case engine.CodeApplyStart, engine.CodeDestroyStart, engine.CodeSnapshotReceived:
 		// lifecycle wrappers; sigil lines convey the meaningful work
 	}

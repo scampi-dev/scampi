@@ -35,7 +35,13 @@ const (
 	CodeDestroyStart     Code = "destroy.start"
 	CodeDestroySuccess   Code = "destroy.success"
 	CodeDestroyFailed    Code = "destroy.failed"
-	CodeMeshUnavailable  Code = "mesh.unavailable"
+
+	CodeMeshUp          Code = "mesh.up"
+	CodeMeshDown        Code = "mesh.down"
+	CodeMeshUnavailable Code = "mesh.unavailable"
+	CodeMeshPeerJoined  Code = "mesh.peer.joined"
+	CodeMeshPeerLeft    Code = "mesh.peer.left"
+	CodeMeshPeerUpdated Code = "mesh.peer.updated"
 
 	CodeLogDebug Code = "log.debug"
 	CodeLogInfo  Code = "log.info"

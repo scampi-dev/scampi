@@ -223,6 +223,23 @@ func pickRunEmitter() engine.Emitter {
 	)
 }
 
+func forwardMeshEvents(ctx context.Context, emitter engine.Emitter, m *mesh.Mesh) {
+	for ev := range m.Events() {
+		var code engine.Code
+		switch ev.Kind {
+		case mesh.EventJoin:
+			code = engine.CodeMeshPeerJoined
+		case mesh.EventLeave:
+			code = engine.CodeMeshPeerLeft
+		case mesh.EventUpdate:
+			code = engine.CodeMeshPeerUpdated
+		default:
+			continue
+		}
+		emitter.Emit(ctx, code, nil, "name", ev.Peer.Name, "addr", ev.Peer.Addr)
+	}
+}
+
 func startMesh(ctx context.Context, log engine.Log, snapPath string) (*mesh.Mesh, error) {
 	cfg := mesh.Config{
 		Name:             resolveMeshName(),
@@ -459,12 +476,19 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 
 			m, merr := startMesh(cmd.Context(), log, snapPath)
 			if merr != nil {
-				log.Warn(cmd.Context(), "mesh unavailable; running engine-only", "err", merr)
 				emitter.Emit(cmd.Context(), engine.CodeMeshUnavailable, nil, "err", merr.Error())
 			} else {
+				emitter.Emit(
+					cmd.Context(), engine.CodeMeshUp, nil,
+					"name", m.Self().Name,
+					"addr", m.Self().Addr,
+					"members", len(m.Members()),
+				)
+				go forwardMeshEvents(cmd.Context(), emitter, m)
 				defer func() {
 					_ = m.Leave(meshLeaveTimeout)
 					_ = m.Shutdown()
+					emitter.Emit(cmd.Context(), engine.CodeMeshDown, nil)
 				}()
 			}
 
