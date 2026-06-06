@@ -66,24 +66,24 @@ func writePlanEntry(w io.Writer, e planEntry, refWidth int, colored bool) {
 	col := planColor(e.label)
 	_, _ = fmt.Fprintf(
 		w, "  %s%s%s  %-*s  %s%s%s\n",
-		col, ind, ansiReset,
+		col, ind, AnsiReset,
 		refWidth, ref,
-		ansiDim, e.label, ansiUndim,
+		AnsiDim, e.label, AnsiUndim,
 	)
 }
 
 func planColor(label string) string {
 	switch label {
 	case "create":
-		return ansiGreen
+		return AnsiGreen
 	case "update", "halt":
-		return ansiYellow
+		return AnsiYellow
 	case "destroy", "failed":
-		return ansiRed
+		return AnsiRed
 	case "adopt", "rename":
-		return ansiCyan
+		return AnsiCyan
 	case "in sync":
-		return ansiDark
+		return AnsiDark
 	}
 	return ""
 }
@@ -109,7 +109,7 @@ func writePlanSummary(w io.Writer, p *engine.Plan, colored bool) {
 	}
 	body := strings.Join(bits, ", ")
 	if colored {
-		_, _ = fmt.Fprintf(w, "  %sPlan:%s %s\n", ansiBold, ansiUndim, body)
+		_, _ = fmt.Fprintf(w, "  %sPlan:%s %s\n", AnsiBold, AnsiUndim, body)
 	} else {
 		_, _ = fmt.Fprintf(w, "  Plan: %s\n", body)
 	}

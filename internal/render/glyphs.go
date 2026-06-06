@@ -2,10 +2,7 @@
 
 package render
 
-import (
-	"os"
-	"strings"
-)
+import "strings"
 
 type Glyphs struct {
 	Create  string
@@ -40,15 +37,6 @@ var (
 		Rename:  ">",
 	}
 )
-
-// DecideGlyphs forces ASCII if asciiFlag or SCAMPI_ASCII=1; else
-// Unicode. No tty-detect: non-UTF8 environments opt in explicitly.
-func DecideGlyphs(asciiFlag bool) Glyphs {
-	if asciiFlag || os.Getenv("SCAMPI_ASCII") == "1" {
-		return ASCIIGlyphs
-	}
-	return UnicodeGlyphs
-}
 
 // indicatorWidth keeps following columns aligned regardless of the
 // indicator (INF, ✚, OK, ...).

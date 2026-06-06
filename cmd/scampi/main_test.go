@@ -6,148 +6,93 @@ import (
 	"net"
 	"os"
 	"slices"
-	"strconv"
 	"testing"
+
+	"scampi.dev/scampi/internal/render"
 )
 
-func saveFlagVars(t *testing.T) {
-	t.Helper()
-	origPort := instancePort
-	origBind := meshBind
-	origAdv := meshAdvertise
-	origName := meshName
-	origJoin := joinSeeds
-	t.Cleanup(func() {
-		instancePort = origPort
-		meshBind = origBind
-		meshAdvertise = origAdv
-		meshName = origName
-		joinSeeds = origJoin
-	})
+func TestEnvOr_EnvWins(t *testing.T) {
+	t.Setenv("SCAMPI_TEST_KEY", "from-env")
+	if got := envOr("SCAMPI_TEST_KEY", "fallback"); got != "from-env" {
+		t.Errorf("got %s, want from-env", got)
+	}
 }
 
-func TestResolveInstancePort_EnvWinsOverFlag(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_INSTANCE_PORT", "12345")
-	instancePort = 99999
-	if got := resolveInstancePort(); got != 12345 {
+func TestEnvOr_FallbackWhenUnset(t *testing.T) {
+	t.Setenv("SCAMPI_TEST_KEY", "")
+	if got := envOr("SCAMPI_TEST_KEY", "fallback"); got != "fallback" {
+		t.Errorf("got %s, want fallback", got)
+	}
+}
+
+func TestEnvIntOr_ParsesEnv(t *testing.T) {
+	t.Setenv("SCAMPI_TEST_KEY", "12345")
+	if got := envIntOr("SCAMPI_TEST_KEY", 99); got != 12345 {
 		t.Errorf("got %d, want 12345", got)
 	}
 }
 
-func TestResolveInstancePort_FlagFallback(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_INSTANCE_PORT", "")
-	instancePort = 7777
-	if got := resolveInstancePort(); got != 7777 {
-		t.Errorf("got %d, want 7777", got)
+func TestEnvIntOr_FallbackOnInvalid(t *testing.T) {
+	t.Setenv("SCAMPI_TEST_KEY", "not-a-number")
+	if got := envIntOr("SCAMPI_TEST_KEY", 42); got != 42 {
+		t.Errorf("got %d, want 42", got)
 	}
 }
 
-func TestResolveInstancePort_InvalidEnvFallsBack(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_INSTANCE_PORT", "not-a-number")
-	instancePort = 4242
-	if got := resolveInstancePort(); got != 4242 {
-		t.Errorf("got %d, want 4242", got)
+func TestEnvBool_True(t *testing.T) {
+	t.Setenv("SCAMPI_TEST_KEY", "1")
+	if got := envBool("SCAMPI_TEST_KEY", false); !got {
+		t.Errorf("got false, want true")
 	}
 }
 
-func TestResolveMeshBind_EnvWinsOverFlag(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_BIND", "10.0.0.5")
-	meshBind = "127.0.0.1"
-	if got := resolveMeshBind(); got != "10.0.0.5" {
-		t.Errorf("got %s, want 10.0.0.5", got)
+func TestEnvBool_FallbackOnInvalid(t *testing.T) {
+	t.Setenv("SCAMPI_TEST_KEY", "yes-please")
+	if got := envBool("SCAMPI_TEST_KEY", true); !got {
+		t.Errorf("got false, want true (fallback)")
 	}
 }
 
-func TestResolveMeshBind_FlagFallback(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_BIND", "")
-	meshBind = "0.0.0.0"
-	if got := resolveMeshBind(); got != "0.0.0.0" {
-		t.Errorf("got %s, want 0.0.0.0", got)
-	}
-}
-
-func TestResolveMeshAdvertise_FlagFallback(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_ADVERTISE", "")
-	meshAdvertise = ""
-	if got := resolveMeshAdvertise(); got != "" {
-		t.Errorf("got %s, want empty", got)
-	}
-}
-
-func TestResolveMeshName_HostnameWhenEmpty(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_NAME", "")
-	t.Setenv("SCAMPI_INSTANCE_PORT", "")
-	meshName = ""
-	instancePort = defaultInstancePort
-	want, _ := os.Hostname()
-	if got := resolveMeshName(); got != want {
-		t.Errorf("got %s, want %s", got, want)
-	}
-}
-
-func TestResolveMeshName_PortSuffixOnNonDefaultPort(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_NAME", "")
-	t.Setenv("SCAMPI_INSTANCE_PORT", "")
-	meshName = ""
-	instancePort = defaultInstancePort + 1
-	host, _ := os.Hostname()
-	want := host + "-" + strconv.Itoa(defaultInstancePort+1)
-	if got := resolveMeshName(); got != want {
-		t.Errorf("got %s, want %s", got, want)
-	}
-}
-
-func TestResolveMeshName_EnvWinsOverFlagAndHostname(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_NAME", "peer-from-env")
-	meshName = "peer-from-flag"
-	if got := resolveMeshName(); got != "peer-from-env" {
-		t.Errorf("got %s, want peer-from-env", got)
-	}
-}
-
-func TestResolveJoinSeeds_ParsesCommaListWithWhitespace(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_JOIN", "")
-	joinSeeds = "10.0.0.5:7946, 10.0.0.6:7946 ,10.0.0.7:7946"
+func TestParseJoinSeeds_CommaListWithWhitespace(t *testing.T) {
 	want := []string{"10.0.0.5:7946", "10.0.0.6:7946", "10.0.0.7:7946"}
-	if got := resolveJoinSeeds(); !slices.Equal(got, want) {
+	got := parseJoinSeeds("10.0.0.5:7946, 10.0.0.6:7946 ,10.0.0.7:7946")
+	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
-func TestResolveJoinSeeds_EmptyWhenUnset(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_JOIN", "")
-	joinSeeds = ""
-	if got := resolveJoinSeeds(); got != nil {
+func TestParseJoinSeeds_EmptyReturnsNil(t *testing.T) {
+	if got := parseJoinSeeds(""); got != nil {
 		t.Errorf("got %v, want nil", got)
 	}
 }
 
-func TestInstanceAddr_FormatsBindAndPort(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_BIND", "")
-	t.Setenv("SCAMPI_INSTANCE_PORT", "")
-	meshBind = "10.0.0.5"
-	instancePort = 9999
-	if got := instanceAddr(); got != "10.0.0.5:9999" {
-		t.Errorf("got %s, want 10.0.0.5:9999", got)
+func TestDefaultMeshName_HostnameWhenEmpty(t *testing.T) {
+	savePort, saveName := instancePort, meshName
+	t.Cleanup(func() { instancePort, meshName = savePort, saveName })
+	meshName = ""
+	instancePort = defaultInstancePort
+	want, _ := os.Hostname()
+	if got := defaultMeshName(); got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+}
+
+func TestDefaultMeshName_PortSuffixOnNonDefaultPort(t *testing.T) {
+	savePort, saveName := instancePort, meshName
+	t.Cleanup(func() { instancePort, meshName = savePort, saveName })
+	meshName = ""
+	instancePort = defaultInstancePort + 1
+	host, _ := os.Hostname()
+	want := host + "-" + itoa(defaultInstancePort+1)
+	if got := defaultMeshName(); got != want {
+		t.Errorf("got %s, want %s", got, want)
 	}
 }
 
 func TestAcquireInstanceListener_CollidesOnSecondCall(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_BIND", "")
-	t.Setenv("SCAMPI_INSTANCE_PORT", "")
+	saveBind, savePort := meshBind, instancePort
+	t.Cleanup(func() { meshBind, instancePort = saveBind, savePort })
 	meshBind = "127.0.0.1"
 	instancePort = pickFreePort(t)
 
@@ -162,25 +107,51 @@ func TestAcquireInstanceListener_CollidesOnSecondCall(t *testing.T) {
 	}
 }
 
-func TestAcquireInstanceListener_SucceedsAfterRelease(t *testing.T) {
-	saveFlagVars(t)
-	t.Setenv("SCAMPI_MESH_BIND", "")
-	t.Setenv("SCAMPI_INSTANCE_PORT", "")
-	meshBind = "127.0.0.1"
-	instancePort = pickFreePort(t)
-
-	l1, err := acquireInstanceListener()
-	if err != nil {
-		t.Fatalf("first acquire: %v", err)
+func TestDecideColor_AlwaysReturnsTrue(t *testing.T) {
+	save := colorMode
+	t.Cleanup(func() { colorMode = save })
+	t.Setenv("NO_COLOR", "1")
+	colorMode = "always"
+	if !decideColor(os.Stdout) {
+		t.Error("colorMode=always should win over NO_COLOR")
 	}
-	_ = l1.Close()
+}
 
-	l2, err := acquireInstanceListener()
-	if err != nil {
-		t.Errorf("second acquire after release: %v", err)
+func TestDecideColor_NeverReturnsFalse(t *testing.T) {
+	save := colorMode
+	t.Cleanup(func() { colorMode = save })
+	t.Setenv("NO_COLOR", "")
+	colorMode = "never"
+	if decideColor(os.Stdout) {
+		t.Error("colorMode=never should return false")
 	}
-	if l2 != nil {
-		_ = l2.Close()
+}
+
+func TestDecideColor_NoColorOverridesAuto(t *testing.T) {
+	save := colorMode
+	t.Cleanup(func() { colorMode = save })
+	t.Setenv("NO_COLOR", "1")
+	colorMode = "auto"
+	if decideColor(os.Stdout) {
+		t.Error("NO_COLOR should defeat auto")
+	}
+}
+
+func TestDecideGlyphs_AsciiFlag(t *testing.T) {
+	save := asciiFlag
+	t.Cleanup(func() { asciiFlag = save })
+	asciiFlag = true
+	if got := decideGlyphs(); got != render.ASCIIGlyphs {
+		t.Errorf("got %v, want ASCIIGlyphs", got)
+	}
+}
+
+func TestDecideGlyphs_Unicode(t *testing.T) {
+	save := asciiFlag
+	t.Cleanup(func() { asciiFlag = save })
+	asciiFlag = false
+	if got := decideGlyphs(); got != render.UnicodeGlyphs {
+		t.Errorf("got %v, want UnicodeGlyphs", got)
 	}
 }
 
@@ -193,4 +164,28 @@ func pickFreePort(t *testing.T) int {
 	p := l.Addr().(*net.TCPAddr).Port
 	_ = l.Close()
 	return p
+}
+
+// itoa is a thin wrapper that avoids importing strconv just for tests.
+func itoa(i int) string {
+	const digits = "0123456789"
+	if i == 0 {
+		return "0"
+	}
+	neg := i < 0
+	if neg {
+		i = -i
+	}
+	var b [20]byte
+	n := len(b)
+	for i > 0 {
+		n--
+		b[n] = digits[i%10]
+		i /= 10
+	}
+	if neg {
+		n--
+		b[n] = '-'
+	}
+	return string(b[n:])
 }

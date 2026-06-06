@@ -42,9 +42,9 @@ func writeRejectedHeader(w io.Writer, ts, phase string, n int, colored bool) err
 		return err
 	}
 	_, err := fmt.Fprintf(w, "%s%s%s %sWRN%s %s%ssnapshot rejected at %s (%d %s)%s%s\n",
-		ansiDark, ts, ansiReset,
-		ansiYellow, ansiReset,
-		ansiBold, ansiYellow, phase, n, noun, ansiReset, ansiUndim)
+		AnsiDark, ts, AnsiReset,
+		AnsiYellow, AnsiReset,
+		AnsiBold, AnsiYellow, phase, n, noun, AnsiReset, AnsiUndim)
 	return err
 }
 
@@ -53,6 +53,6 @@ func writeErrorLine(w io.Writer, msg string, colored bool) error {
 		_, err := fmt.Fprintf(w, "    %s\n", msg)
 		return err
 	}
-	_, err := fmt.Fprintf(w, "%s    %s%s\n", ansiDim, msg, ansiUndim)
+	_, err := fmt.Fprintf(w, "%s    %s%s\n", AnsiDim, msg, AnsiUndim)
 	return err
 }

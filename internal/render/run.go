@@ -55,39 +55,39 @@ func (r *RunRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref,
 		r.tickEvents = 0
 	case engine.CodeLogInfo:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", ansiGreen, args)
+			r.logLine("INF", AnsiGreen, args)
 		}
 	case engine.CodeLogWarn:
-		r.logLine("WRN", ansiYellow, args)
+		r.logLine("WRN", AnsiYellow, args)
 	case engine.CodeLogError:
-		r.logLine("ERR", ansiRed, args)
+		r.logLine("ERR", AnsiRed, args)
 	case engine.CodeLogDebug:
 		if r.verbosity >= VerbosityVerbose {
-			r.logLine("DBG", ansiDark, args)
+			r.logLine("DBG", AnsiDark, args)
 		}
 	case engine.CodeMeshUp:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", ansiGreen, append([]any{"msg", "mesh up"}, args...))
+			r.logLine("INF", AnsiGreen, append([]any{"msg", "mesh up"}, args...))
 		}
 	case engine.CodeMeshDown:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", ansiGreen, append([]any{"msg", "mesh down"}, args...))
+			r.logLine("INF", AnsiGreen, append([]any{"msg", "mesh down"}, args...))
 		}
 	case engine.CodeMeshPeerJoined:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", ansiGreen, append([]any{"msg", "peer joined"}, args...))
+			r.logLine("INF", AnsiGreen, append([]any{"msg", "peer joined"}, args...))
 		}
 	case engine.CodeMeshPeerLeft:
 		if r.verbosity >= VerbosityDefault {
-			r.logLine("INF", ansiGreen, append([]any{"msg", "peer left"}, args...))
+			r.logLine("INF", AnsiGreen, append([]any{"msg", "peer left"}, args...))
 		}
 	case engine.CodeMeshPeerUpdated:
 		if r.verbosity >= VerbosityVerbose {
-			r.logLine("DBG", ansiDark, append([]any{"msg", "peer updated"}, args...))
+			r.logLine("DBG", AnsiDark, append([]any{"msg", "peer updated"}, args...))
 		}
 	case engine.CodeMeshUnavailable:
 		r.logLine(
-			"WRN", ansiYellow,
+			"WRN", AnsiYellow,
 			append([]any{"msg", "mesh unavailable; running engine-only"}, args...),
 		)
 	case engine.CodeApplyStart, engine.CodeDestroyStart, engine.CodeSnapshotReceived:
@@ -99,10 +99,10 @@ func (r *RunRenderer) tickSummary(args []any) {
 	duration := attrString(args, "duration")
 	status := attrString(args, "status")
 	ts := time.Now().Format("15:04:05.000")
-	color := ansiGreen
+	color := AnsiGreen
 	tag := padCol("OK", indicatorWidth)
 	if status != "ok" {
-		color = ansiRed
+		color = AnsiRed
 		tag = padCol("ERR", indicatorWidth)
 	}
 	if !r.colored {
@@ -111,9 +111,9 @@ func (r *RunRenderer) tickSummary(args []any) {
 	}
 	_, _ = fmt.Fprintf(
 		r.out, "%s%s%s  %s%s%s  %sreconcile %s%s in %s\n",
-		ansiDark, ts, ansiReset,
-		color, tag, ansiReset,
-		ansiDim, status, ansiUndim,
+		AnsiDark, ts, AnsiReset,
+		color, tag, AnsiReset,
+		AnsiDim, status, AnsiUndim,
 		duration,
 	)
 }
@@ -122,19 +122,19 @@ func (r *RunRenderer) applyLine(ref *engine.Ref, args []any) {
 	action := attrString(args, "action")
 	switch action {
 	case "create":
-		r.eventLine(r.glyphs.Create, "create", ref.String(), "", ansiGreen)
+		r.eventLine(r.glyphs.Create, "create", ref.String(), "", AnsiGreen)
 	case "update":
-		r.eventLine(r.glyphs.Update, "update", ref.String(), "", ansiYellow)
+		r.eventLine(r.glyphs.Update, "update", ref.String(), "", AnsiYellow)
 	case "adopt":
-		r.eventLine(r.glyphs.Adopt, "adopt", ref.String(), "", ansiCyan)
+		r.eventLine(r.glyphs.Adopt, "adopt", ref.String(), "", AnsiCyan)
 	default:
-		r.eventLine(r.glyphs.Update, action, ref.String(), "", ansiYellow)
+		r.eventLine(r.glyphs.Update, action, ref.String(), "", AnsiYellow)
 	}
 }
 
 func (r *RunRenderer) failedLine(ref *engine.Ref, args []any) {
 	errMsg := attrString(args, "err")
-	r.eventLine(r.glyphs.Failed, "failed", ref.String(), errMsg, ansiRed)
+	r.eventLine(r.glyphs.Failed, "failed", ref.String(), errMsg, AnsiRed)
 }
 
 func (r *RunRenderer) haltedLine(ref *engine.Ref, args []any) {
@@ -143,16 +143,16 @@ func (r *RunRenderer) haltedLine(ref *engine.Ref, args []any) {
 	if state != "" {
 		detail = "exists (" + state + "), no adopt"
 	}
-	r.eventLine(r.glyphs.Halt, "halt", ref.String(), detail, ansiYellow)
+	r.eventLine(r.glyphs.Halt, "halt", ref.String(), detail, AnsiYellow)
 }
 
 func (r *RunRenderer) renamedLine(ref *engine.Ref, args []any) {
 	from := attrString(args, "from")
-	r.eventLine(r.glyphs.Rename, "rename", ref.String(), "from "+from, ansiCyan)
+	r.eventLine(r.glyphs.Rename, "rename", ref.String(), "from "+from, AnsiCyan)
 }
 
 func (r *RunRenderer) destroyLine(ref *engine.Ref) {
-	r.eventLine(r.glyphs.Destroy, "destroy", ref.String(), "", ansiRed)
+	r.eventLine(r.glyphs.Destroy, "destroy", ref.String(), "", AnsiRed)
 }
 
 func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
@@ -169,19 +169,19 @@ func (r *RunRenderer) eventLine(glyph, label, ref, detail, color string) {
 	if detail != "" {
 		_, _ = fmt.Fprintf(
 			r.out, "%s%s%s  %s%s%s  %-20s  %s%s: %s%s\n",
-			ansiDark, ts, ansiReset,
-			color, ind, ansiReset,
+			AnsiDark, ts, AnsiReset,
+			color, ind, AnsiReset,
 			ref,
-			ansiDim, label, detail, ansiUndim,
+			AnsiDim, label, detail, AnsiUndim,
 		)
 		return
 	}
 	_, _ = fmt.Fprintf(
 		r.out, "%s%s%s  %s%s%s  %-20s  %s%s%s\n",
-		ansiDark, ts, ansiReset,
-		color, ind, ansiReset,
+		AnsiDark, ts, AnsiReset,
+		color, ind, AnsiReset,
 		ref,
-		ansiDim, label, ansiUndim,
+		AnsiDim, label, AnsiUndim,
 	)
 }
 
@@ -201,7 +201,7 @@ func (r *RunRenderer) logLine(tag, color string, args []any) {
 		return
 	}
 	_, _ = fmt.Fprintf(r.out, "%s%s%s%s  %s%s%s  %s%s\n",
-		prefix, ansiDark, ts, ansiReset, color, ind, ansiReset, msg, attrs)
+		prefix, AnsiDark, ts, AnsiReset, color, ind, AnsiReset, msg, attrs)
 }
 
 const shutdownMsg = "received shutdown signal, exiting at next safe point"

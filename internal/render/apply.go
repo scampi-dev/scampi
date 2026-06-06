@@ -123,9 +123,9 @@ func (r *ApplyRenderer) Finalize(err error) {
 		_, _ = fmt.Fprintf(
 			r.out,
 			"\n  %s%s:%s %s in %s\n",
-			ansiBold,
+			AnsiBold,
 			label,
-			ansiUndim,
+			AnsiUndim,
 			body,
 			elapsed,
 		)
@@ -158,14 +158,14 @@ func (r *ApplyRenderer) handleApplySuccess(ref *engine.Ref, args []any) {
 func (r *ApplyRenderer) handleApplyFailed(ref *engine.Ref, args []any) {
 	errMsg := attrString(args, "err")
 	r.counts.failed++
-	r.writeLine(r.glyphs.Failed, "failed", ref.String(), errMsg, ansiRed)
+	r.writeLine(r.glyphs.Failed, "failed", ref.String(), errMsg, AnsiRed)
 }
 
 func (r *ApplyRenderer) handleRenamed(ref *engine.Ref, args []any) {
 	from := attrString(args, "from")
 	r.counts.renamed++
 	detail := "from " + from
-	r.writeLine(r.glyphs.Rename, "rename", ref.String(), detail, ansiCyan)
+	r.writeLine(r.glyphs.Rename, "rename", ref.String(), detail, AnsiCyan)
 }
 
 func (r *ApplyRenderer) handleHalted(ref *engine.Ref, args []any) {
@@ -175,25 +175,25 @@ func (r *ApplyRenderer) handleHalted(ref *engine.Ref, args []any) {
 	if state != "" {
 		detail = "exists (" + state + "), no adopt"
 	}
-	r.writeLine(r.glyphs.Halt, "halt", ref.String(), detail, ansiYellow)
+	r.writeLine(r.glyphs.Halt, "halt", ref.String(), detail, AnsiYellow)
 }
 
 func (r *ApplyRenderer) handleDestroySuccess(ref *engine.Ref) {
 	r.counts.destroyed++
-	r.writeLine(r.glyphs.Destroy, "destroy", ref.String(), "", ansiRed)
+	r.writeLine(r.glyphs.Destroy, "destroy", ref.String(), "", AnsiRed)
 }
 
 func (r *ApplyRenderer) handleLog(code engine.Code, args []any) {
 	msg, _ := popMsg(args)
 	tag := "WRN"
-	color := ansiYellow
+	color := AnsiYellow
 	if code == engine.CodeLogError {
 		tag = "ERR"
-		color = ansiRed
+		color = AnsiRed
 	}
 	ind := padCol(tag, indicatorWidth)
 	if r.colored {
-		_, _ = fmt.Fprintf(r.out, "  %s%s%s  %s\n", color, ind, ansiReset, msg)
+		_, _ = fmt.Fprintf(r.out, "  %s%s%s  %s\n", color, ind, AnsiReset, msg)
 	} else {
 		_, _ = fmt.Fprintf(r.out, "  %s  %s\n", ind, msg)
 	}
@@ -212,16 +212,16 @@ func (r *ApplyRenderer) writeLine(glyph, label, ref, detail, color string) {
 	if detail != "" {
 		_, _ = fmt.Fprintf(
 			r.out, "  %s%s%s  %-20s  %s%s: %s%s\n",
-			color, ind, ansiReset,
+			color, ind, AnsiReset,
 			ref,
-			ansiDim, label, detail, ansiUndim,
+			AnsiDim, label, detail, AnsiUndim,
 		)
 		return
 	}
 	_, _ = fmt.Fprintf(
 		r.out, "  %s%s%s  %-20s  %s%s%s\n",
-		color, ind, ansiReset,
+		color, ind, AnsiReset,
 		ref,
-		ansiDim, label, ansiUndim,
+		AnsiDim, label, AnsiUndim,
 	)
 }

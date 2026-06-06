@@ -44,7 +44,7 @@ func formatAttrs(args []any, colored bool) string {
 		}
 		v := args[i+1]
 		if colored {
-			_, _ = fmt.Fprintf(&b, " %s%s=%s%v", ansiCyan, k, ansiReset, v)
+			_, _ = fmt.Fprintf(&b, " %s%s=%s%v", AnsiCyan, k, AnsiReset, v)
 		} else {
 			_, _ = fmt.Fprintf(&b, " %s=%v", k, v)
 		}
