@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/mesh"
 	"scampi.dev/scampi/internal/platform"
 	"scampi.dev/scampi/internal/render"
 )
@@ -27,14 +28,82 @@ import (
 // multiple peers can run on one host for dev and mesh testing.
 const defaultInstancePort = 0xfeed
 
-func resolveInstanceAddr() string {
-	port := instancePort
+const (
+	meshLeaveTimeout     = 2 * time.Second
+	meshSnapshotDebounce = 1 * time.Second
+)
+
+func resolveInstancePort() int {
 	if env := os.Getenv("SCAMPI_INSTANCE_PORT"); env != "" {
 		if p, err := strconv.Atoi(env); err == nil {
-			port = p
+			return p
 		}
 	}
-	return fmt.Sprintf("127.0.0.1:%d", port)
+	return instancePort
+}
+
+func resolveMeshBind() string {
+	if env := os.Getenv("SCAMPI_MESH_BIND"); env != "" {
+		return env
+	}
+	return meshBind
+}
+
+func resolveMeshAdvertise() string {
+	if env := os.Getenv("SCAMPI_MESH_ADVERTISE"); env != "" {
+		return env
+	}
+	return meshAdvertise
+}
+
+func resolveMeshName() string {
+	if env := os.Getenv("SCAMPI_MESH_NAME"); env != "" {
+		return env
+	}
+	if meshName != "" {
+		return meshName
+	}
+	h, _ := os.Hostname()
+	// Non-default port means multi-instance dev; suffix so two
+	// peers on one host don't collide on the mesh name.
+	if port := resolveInstancePort(); port != defaultInstancePort {
+		return fmt.Sprintf("%s-%d", h, port)
+	}
+	return h
+}
+
+func resolveJoinSeeds() []string {
+	raw := os.Getenv("SCAMPI_MESH_JOIN")
+	if raw == "" {
+		raw = joinSeeds
+	}
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func instanceAddr() string {
+	return net.JoinHostPort(resolveMeshBind(), strconv.Itoa(resolveInstancePort()))
+}
+
+func acquireInstanceListener() (net.Listener, error) {
+	addr := instanceAddr()
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"another scampi is already running on this host (could not bind %s)",
+			addr,
+		)
+	}
+	return l, nil
 }
 
 //nolint:revive // cobra template; lines are template syntax, not source lines
@@ -72,6 +141,10 @@ var (
 	quietFlag      bool
 	runtimeReached bool
 	instancePort   int
+	meshBind       string
+	meshAdvertise  string
+	meshName       string
+	joinSeeds      string
 )
 
 var (
@@ -150,6 +223,21 @@ func pickRunEmitter() engine.Emitter {
 	)
 }
 
+func startMesh(ctx context.Context, log engine.Log, snapPath string) (*mesh.Mesh, error) {
+	cfg := mesh.Config{
+		Name:             resolveMeshName(),
+		BindAddr:         resolveMeshBind(),
+		BindPort:         resolveInstancePort(),
+		AdvertiseAddr:    resolveMeshAdvertise(),
+		AdvertisePort:    resolveInstancePort(),
+		Join:             resolveJoinSeeds(),
+		SnapshotPath:     snapPath,
+		Logger:           log,
+		SnapshotDebounce: meshSnapshotDebounce,
+	}
+	return mesh.Run(ctx, cfg)
+}
+
 // First SIGINT goes to the platform's ShutdownContext; a second one
 // within the same process lifetime force-exits.
 func armForceExit() {
@@ -215,16 +303,16 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		return render.FanoutEmitter{r, actLog}
 	}
 
-	acquireMutationLock := func() error {
-		addr := resolveInstanceAddr()
-		l, err := net.Listen("tcp", addr)
+	acquireMutexListener := func() error {
+		l, err := acquireInstanceListener()
 		if err != nil {
-			return fmt.Errorf(
-				"another scampi is already running on this host (could not bind %s)",
-				addr,
-			)
+			return err
 		}
 		instance = l
+		return nil
+	}
+
+	setupActionLog := func() error {
 		loaded, err := engine.LoadInventory(actionLogPath)
 		if err != nil {
 			return fmt.Errorf("action log replay: %w", err)
@@ -311,7 +399,13 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		&instancePort,
 		"instance-port",
 		defaultInstancePort,
-		"loopback port for the single-instance lock (also honors SCAMPI_INSTANCE_PORT)",
+		"single-instance lock and mesh SWIM port (also honors SCAMPI_INSTANCE_PORT)",
+	)
+	root.PersistentFlags().StringVar(
+		&meshBind,
+		"mesh-bind",
+		"0.0.0.0",
+		"bind interface for the mesh port (also honors SCAMPI_MESH_BIND)",
 	)
 
 	// SetHelpFunc fires after flag parsing but before the template
@@ -329,7 +423,10 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := acquireMutationLock(); err != nil {
+			if err := acquireMutexListener(); err != nil {
+				return err
+			}
+			if err := setupActionLog(); err != nil {
 				return err
 			}
 			renderer, finalize := pickApplyEmitter()
@@ -350,20 +447,55 @@ func newRootCmd(plat platform.Platform) (*cobra.Command, func() error) {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := acquireMutationLock(); err != nil {
+			if err := setupActionLog(); err != nil {
 				return err
 			}
+			snapPath, err := plat.Paths.PeersFile()
+			if err != nil {
+				return err
+			}
+			emitter := sinkWith(pickRunEmitter())
+			log := engine.NewLog(emitter)
+
+			m, merr := startMesh(cmd.Context(), log, snapPath)
+			if merr != nil {
+				log.Warn(cmd.Context(), "mesh unavailable; running engine-only", "err", merr)
+				emitter.Emit(cmd.Context(), engine.CodeMeshUnavailable, nil, "err", merr.Error())
+			} else {
+				defer func() {
+					_ = m.Leave(meshLeaveTimeout)
+					_ = m.Shutdown()
+				}()
+			}
+
 			interval, _ := cmd.Flags().GetDuration("interval")
-			renderer := pickRunEmitter()
 			return engine.Run(cmd.Context(), engine.RunConfig{
 				Dir:       args[0],
 				Interval:  interval,
 				Inventory: inv,
-				Log:       engine.NewLog(sinkWith(renderer)),
+				Log:       log,
 			})
 		},
 	}
 	run.Flags().Duration("interval", 5*time.Second, "poll interval between snapshots")
+	run.Flags().StringVar(
+		&meshAdvertise,
+		"mesh-advertise",
+		"",
+		"address peers reach this node on; empty auto-detects (SCAMPI_MESH_ADVERTISE)",
+	)
+	run.Flags().StringVar(
+		&meshName,
+		"mesh-name",
+		"",
+		"node identity in the mesh; empty defaults to hostname (SCAMPI_MESH_NAME)",
+	)
+	run.Flags().StringVar(
+		&joinSeeds,
+		"join",
+		"",
+		"comma-separated seed host:port for first-ever join (SCAMPI_MESH_JOIN)",
+	)
 
 	plan := &cobra.Command{
 		Use:           "plan <dir>",

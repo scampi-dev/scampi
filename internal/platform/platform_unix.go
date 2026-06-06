@@ -30,17 +30,33 @@ func (unixSignals) ShutdownContext(parent context.Context) (context.Context, con
 type unixPaths struct{}
 
 func (unixPaths) ActionLogDir() (string, error) {
+	root, err := stateRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "actionlog"), nil
+}
+
+func (unixPaths) PeersFile() (string, error) {
+	root, err := stateRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "peers.json"), nil
+}
+
+func stateRoot() (string, error) {
 	if os.Geteuid() == 0 {
-		return "/var/lib/scampi/actionlog", nil
+		return "/var/lib/scampi", nil
 	}
 	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
-		return filepath.Join(xdg, "scampi", "actionlog"), nil
+		return filepath.Join(xdg, "scampi"), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("home dir: %w", err)
 	}
-	return filepath.Join(home, ".local", "state", "scampi", "actionlog"), nil
+	return filepath.Join(home, ".local", "state", "scampi"), nil
 }
 
 type unixPrivilege struct{}

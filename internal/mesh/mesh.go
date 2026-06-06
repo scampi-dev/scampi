@@ -128,6 +128,7 @@ func Run(ctx context.Context, cfg Config) (*Mesh, error) {
 		flushDone: make(chan struct{}),
 	}
 	mlc.Events = &eventBridge{m: m}
+	mlc.Conflict = &conflictBridge{m: m}
 
 	list, err := memberlist.Create(mlc)
 	if err != nil {
@@ -291,24 +292,45 @@ func (e *eventBridge) NotifyJoin(n *memberlist.Node)   { e.m.onEvent(EventJoin, 
 func (e *eventBridge) NotifyLeave(n *memberlist.Node)  { e.m.onEvent(EventLeave, nodeToPeer(n)) }
 func (e *eventBridge) NotifyUpdate(n *memberlist.Node) { e.m.onEvent(EventUpdate, nodeToPeer(n)) }
 
-// diagWriter maps memberlist's hardcoded "[LEVEL] memberlist: ..."
-// prefix onto the matching diag.Logger severity.
+type conflictBridge struct {
+	m *Mesh
+}
+
+func (c *conflictBridge) NotifyConflict(existing, other *memberlist.Node) {
+	c.m.log.Error(
+		context.Background(), "mesh name conflict",
+		"name", existing.Name,
+		"existing", nodeToPeer(existing).Addr,
+		"other", nodeToPeer(other).Addr,
+	)
+}
+
+// diagWriter routes memberlist's "[LEVEL] memberlist: msg" lines
+// onto matching diag.Logger calls with the prefix stripped.
 type diagWriter struct {
 	l diag.Logger
 }
 
 func (w diagWriter) Write(p []byte) (int, error) {
-	s := strings.TrimSpace(string(p))
+	raw := strings.TrimSpace(string(p))
 	ctx := context.Background()
+	msg := stripMemberlistPrefix(raw)
 	switch {
-	case strings.HasPrefix(s, "[ERR]"):
-		w.l.Error(ctx, s, "src", "memberlist")
-	case strings.HasPrefix(s, "[WARN]"):
-		w.l.Warn(ctx, s, "src", "memberlist")
-	case strings.HasPrefix(s, "[INFO]"):
-		w.l.Info(ctx, s, "src", "memberlist")
+	case strings.HasPrefix(raw, "[ERR]"):
+		w.l.Error(ctx, msg, "src", "memberlist")
+	case strings.HasPrefix(raw, "[WARN]"):
+		w.l.Warn(ctx, msg, "src", "memberlist")
+	case strings.HasPrefix(raw, "[INFO]"):
+		w.l.Info(ctx, msg, "src", "memberlist")
 	default:
-		w.l.Debug(ctx, s, "src", "memberlist")
+		w.l.Debug(ctx, msg, "src", "memberlist")
 	}
 	return len(p), nil
+}
+
+func stripMemberlistPrefix(s string) string {
+	if _, after, ok := strings.Cut(s, "]"); ok {
+		return strings.TrimSpace(strings.TrimPrefix(after, " memberlist:"))
+	}
+	return s
 }

@@ -35,6 +35,7 @@ const (
 	CodeDestroyStart     Code = "destroy.start"
 	CodeDestroySuccess   Code = "destroy.success"
 	CodeDestroyFailed    Code = "destroy.failed"
+	CodeMeshUnavailable  Code = "mesh.unavailable"
 
 	CodeLogDebug Code = "log.debug"
 	CodeLogInfo  Code = "log.info"
