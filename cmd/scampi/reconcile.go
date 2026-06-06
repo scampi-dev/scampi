@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/internal/render"
 )
 
-func pickApplyEmitter() (engine.Emitter, func(error)) {
+func pickReconcileEmitter() (engine.Emitter, func(error)) {
 	v := resolveVerbosity()
 	if outputFormat == "json" {
 		return render.NewJSONRenderer(os.Stdout, v), func(error) {}
@@ -20,9 +20,9 @@ func pickApplyEmitter() (engine.Emitter, func(error)) {
 	return ar, ar.Finalize
 }
 
-func newApplyCmd() *cobra.Command {
+func newReconcileCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:           "apply <dir>",
+		Use:           "reconcile <dir>",
 		Short:         "Reconcile the snapshot in <dir> once.",
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
@@ -33,8 +33,8 @@ func newApplyCmd() *cobra.Command {
 				return err
 			}
 			instance = l
-			renderer, finalize := pickApplyEmitter()
-			err = engine.Apply(cmd.Context(), engine.ApplyConfig{
+			renderer, finalize := pickReconcileEmitter()
+			err = engine.Reconcile(cmd.Context(), engine.ReconcileConfig{
 				Dir:          args[0],
 				ActionLogDir: actionLogPath,
 				Emitter:      renderer,

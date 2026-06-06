@@ -114,7 +114,7 @@ func main() {
 		os.Exit(130)
 	case errors.Is(err, engine.ErrSnapshotRejected):
 		os.Exit(2)
-	case errors.Is(err, engine.ErrApplyFailed):
+	case errors.Is(err, engine.ErrReconcileFailed):
 		os.Exit(1)
 	default:
 		errColored := decideColor(os.Stderr)

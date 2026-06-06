@@ -19,10 +19,10 @@ import (
 	"scampi.dev/scampi/internal/engine"
 )
 
-// Test helpers for the engine.{Apply,Run,MakePlan}Config style.
+// Test helpers for the engine.{Reconcile,Run,MakePlan}Config style.
 // Each helper sources its action log dir from t.TempDir so the
 // engine can write its lifecycle stream somewhere disposable.
-func apply(
+func reconcile(
 	ctx context.Context,
 	t *testing.T,
 	dir string,
@@ -30,7 +30,7 @@ func apply(
 	em engine.Emitter,
 ) error {
 	t.Helper()
-	return engine.Apply(ctx, engine.ApplyConfig{
+	return engine.Reconcile(ctx, engine.ReconcileConfig{
 		Dir:          dir,
 		ActionLogDir: t.TempDir(),
 		Inventory:    inv,
@@ -229,7 +229,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		t.Fatalf("expected.yaml: %v", err)
 	}
 
-	gotErr := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	gotErr := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 
 	switch want.Error {
 	case "":
@@ -240,9 +240,9 @@ func runGoldenCase(t *testing.T, caseDir string) {
 		if !errors.Is(gotErr, engine.ErrSnapshotRejected) {
 			t.Fatalf("expected engine.ErrSnapshotRejected, got: %v", gotErr)
 		}
-	case "apply":
-		if !errors.Is(gotErr, engine.ErrApplyFailed) {
-			t.Fatalf("expected engine.ErrApplyFailed, got: %v", gotErr)
+	case "reconcile":
+		if !errors.Is(gotErr, engine.ErrReconcileFailed) {
+			t.Fatalf("expected engine.ErrReconcileFailed, got: %v", gotErr)
 		}
 	default:
 		t.Fatalf("unknown expected.error %q", want.Error)
@@ -280,7 +280,7 @@ func runGoldenCase(t *testing.T, caseDir string) {
 
 // In-sync skip can't be asserted by post-state alone; the observable
 // is mtime not advancing.
-func TestApply_AdoptMatchingSkipsWrite(t *testing.T) {
+func TestReconcile_AdoptMatchingSkipsWrite(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
 	if err := os.WriteFile(target, []byte("hello"), 0o644); err != nil {
@@ -297,8 +297,8 @@ file "etc" {
   adopt   = true
 }
 `)
-	if err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard); err != nil {
-		t.Fatalf("Apply: %v", err)
+	if err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard); err != nil {
+		t.Fatalf("Reconcile: %v", err)
 	}
 	after, err := os.Stat(target)
 	if err != nil {
@@ -310,7 +310,7 @@ file "etc" {
 	}
 }
 
-func TestApply_HaltsMatchingWithoutAdopt(t *testing.T) {
+func TestReconcile_HaltsMatchingWithoutAdopt(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
 	if err := os.WriteFile(target, []byte("hello"), 0o644); err != nil {
@@ -324,8 +324,8 @@ file "etc" {
 `)
 	log, capture := newCaptureLog()
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
-		t.Fatalf("Apply: %v", err)
+	if err := reconcile(t.Context(), t, cfg, inv, log); err != nil {
+		t.Fatalf("Reconcile: %v", err)
 	}
 	if !capture.has(engine.CodeApplyHalted) {
 		t.Errorf("expected apply.halted; got codes %v", capture.codes())
@@ -335,7 +335,7 @@ file "etc" {
 	}
 }
 
-func TestApply_HaltsDivergingWithoutAdopt(t *testing.T) {
+func TestReconcile_HaltsDivergingWithoutAdopt(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
 	if err := os.WriteFile(target, []byte("on-disk"), 0o644); err != nil {
@@ -349,8 +349,8 @@ file "etc" {
 `)
 	log, capture := newCaptureLog()
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
-		t.Fatalf("Apply: %v", err)
+	if err := reconcile(t.Context(), t, cfg, inv, log); err != nil {
+		t.Fatalf("Reconcile: %v", err)
 	}
 	if !capture.has(engine.CodeApplyHalted) {
 		t.Errorf("expected apply.halted; got codes %v", capture.codes())
@@ -368,7 +368,7 @@ file "etc" {
 	}
 }
 
-func TestApply_AdoptTakesOverDiverging(t *testing.T) {
+func TestReconcile_AdoptTakesOverDiverging(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
 	if err := os.WriteFile(target, []byte("on-disk"), 0o644); err != nil {
@@ -382,8 +382,8 @@ file "etc" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfg, inv, engine.Discard); err != nil {
-		t.Fatalf("Apply: %v", err)
+	if err := reconcile(t.Context(), t, cfg, inv, engine.Discard); err != nil {
+		t.Fatalf("Reconcile: %v", err)
 	}
 	got, err := os.ReadFile(target)
 	if err != nil {
@@ -495,10 +495,10 @@ file "x" {
 	}
 }
 
-// A successful apply emits the lifecycle codes in order: snapshot
+// A successful reconcile emits the lifecycle codes in order: snapshot
 // received, then apply.start + apply.success per resource that
 // actually wrote (in-sync resources stay silent on the action log).
-func TestApply_EmitsLifecycleEvents(t *testing.T) {
+func TestReconcile_EmitsLifecycleEvents(t *testing.T) {
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "out.txt")
 	cfg := writeConfig(t, `
@@ -509,8 +509,8 @@ file "x" {
 `)
 	log, capture := newCaptureLog()
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
-		t.Fatalf("Apply: %v", err)
+	if err := reconcile(t.Context(), t, cfg, inv, log); err != nil {
+		t.Fatalf("Reconcile: %v", err)
 	}
 	got := lifecycleOnly(capture.Events())
 	want := []engine.Code{
@@ -526,16 +526,16 @@ file "x" {
 			t.Errorf("event[%d] = %q, want %q", i, got[i].Code, w)
 		}
 	}
-	// Cursor between the two applies so we assert only on what the
-	// second one emits. Shared inventory: second apply finds file.x
+	// Cursor between the two reconciles so we assert only on what the
+	// second one emits. Shared inventory: second reconcile finds file.x
 	// in inventory and in sync, so it stays silent on the action log.
 	cursor := len(capture.Events())
-	if err := apply(t.Context(), t, cfg, inv, log); err != nil {
-		t.Fatalf("Apply (second): %v", err)
+	if err := reconcile(t.Context(), t, cfg, inv, log); err != nil {
+		t.Fatalf("Reconcile (second): %v", err)
 	}
 	got = lifecycleOnly(capture.Events()[cursor:])
 	if len(got) != 1 || got[0].Code != engine.CodeSnapshotReceived {
-		t.Errorf("second apply lifecycle events = %+v, want only snapshot.received", got)
+		t.Errorf("second reconcile lifecycle events = %+v, want only snapshot.received", got)
 	}
 }
 
@@ -789,7 +789,7 @@ file "x" {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := apply(t.Context(), t, cfgDir, engine.NewInventory(), engine.NewLog(al1)); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, engine.NewInventory(), engine.NewLog(al1)); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 	if err := al1.Close(); err != nil {
@@ -814,7 +814,7 @@ file "x" {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := apply(t.Context(), t, cfgDir, inv, engine.NewLog(al2)); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, inv, engine.NewLog(al2)); err != nil {
 		t.Fatalf("second apply: %v", err)
 	}
 	if err := al2.Close(); err != nil {
@@ -830,7 +830,7 @@ file "x" {
 // live state must be destroyed in dependency-aware order (children
 // before parents). Otherwise dir.tmp tries to remove /old while
 // file.yolo at /old/yolo is still there, failing once.
-func TestApply_IdentityDriftRespectsReverseTopo(t *testing.T) {
+func TestReconcile_IdentityDriftRespectsReverseTopo(t *testing.T) {
 	tmp := t.TempDir()
 	oldRoot := filepath.Join(tmp, "old")
 	newRoot := filepath.Join(tmp, "new")
@@ -853,7 +853,7 @@ file "yolo" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 
@@ -868,7 +868,7 @@ file "yolo" {
 }
 `)
 	log, capture := newCaptureLog()
-	if err := apply(t.Context(), t, cfgDir, inv, log); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, inv, log); err != nil {
 		t.Fatalf("second apply: %v", err)
 	}
 
@@ -888,7 +888,7 @@ file "yolo" {
 // A resource keeping its ref but changing its identity attrs (e.g.
 // dir.tmp's path moves) must destroy the prior live resource and
 // create the new one. Otherwise the old live state lingers untracked.
-func TestApply_IdentityDriftOnSameRefDestroysOld(t *testing.T) {
+func TestReconcile_IdentityDriftOnSameRefDestroysOld(t *testing.T) {
 	tmp := t.TempDir()
 	oldPath := filepath.Join(tmp, "old")
 	newPath := filepath.Join(tmp, "new")
@@ -908,7 +908,7 @@ dir "tmp" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 	if _, err := os.Stat(oldPath); err != nil {
@@ -921,7 +921,7 @@ dir "tmp" {
   path = "` + newPath + `"
 }
 `)
-	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("second apply: %v", err)
 	}
 	if _, err := os.Stat(newPath); err != nil {
@@ -936,7 +936,7 @@ dir "tmp" {
 // its identity attrs the same) must move the inventory entry rather
 // than destroy + create. Otherwise destroy on a non-empty dir fails
 // and even where it succeeds the live state churns needlessly.
-func TestApply_RenameSwapsInventoryNotDestroyCreate(t *testing.T) {
+func TestReconcile_RenameSwapsInventoryNotDestroyCreate(t *testing.T) {
 	tmp := t.TempDir()
 	dirPath := filepath.Join(tmp, "shared")
 	filePath := filepath.Join(dirPath, "yolo")
@@ -960,7 +960,7 @@ file "yolo" {
 }
 `)
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 	if !inv.Has(engine.Ref{Kind: "dir", Name: "tmp"}) {
@@ -978,7 +978,7 @@ file "yolo" {
   content = "hi"
 }
 `)
-	if err := apply(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
+	if err := reconcile(t.Context(), t, cfgDir, inv, engine.Discard); err != nil {
 		t.Fatalf("second apply (rename): %v", err)
 	}
 
@@ -1001,7 +1001,7 @@ file "yolo" {
 // Apply must return ctx.Err and stop iterating resources when the
 // caller cancels mid-pass. Otherwise long-running applies can't be
 // aborted gracefully.
-func TestApply_AbortsOnContextCancellation(t *testing.T) {
+func TestReconcile_AbortsOnContextCancellation(t *testing.T) {
 	tmp := t.TempDir()
 	cfg := writeConfig(t, fmt.Sprintf(`
 file "a" {
@@ -1019,7 +1019,7 @@ file "c" {
 `, tmp, tmp, tmp))
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // cancel before Apply runs
-	err := apply(ctx, t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(ctx, t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context.Canceled; got %v", err)
 	}
@@ -1045,8 +1045,8 @@ func (b *brokenEmitter) Err() error                                             
 
 // Apply must surface and propagate a sticky action-log failure rather
 // than acting blind. The wrapped emitter error must show up under
-// ErrApplyFailed so main exits cleanly.
-func TestApply_AbortsOnActionLogFailure(t *testing.T) {
+// ErrReconcileFailed so main exits cleanly.
+func TestReconcile_AbortsOnActionLogFailure(t *testing.T) {
 	cfg := t.TempDir()
 	tmp := t.TempDir()
 	target := filepath.Join(tmp, "f.txt")
@@ -1060,12 +1060,12 @@ file "x" {
 	}
 
 	bad := &brokenEmitter{err: errors.New("simulated action log failure")}
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.NewLog(bad))
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.NewLog(bad))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !errors.Is(err, engine.ErrApplyFailed) {
-		t.Errorf("expected ErrApplyFailed; got %v", err)
+	if !errors.Is(err, engine.ErrReconcileFailed) {
+		t.Errorf("expected ErrReconcileFailed; got %v", err)
 	}
 	if !strings.Contains(err.Error(), "simulated action log failure") {
 		t.Errorf("expected wrapped emitter error; got %v", err)
@@ -1109,7 +1109,7 @@ file "gone" {
 }
 `, match, drift, gone))
 	inv := engine.NewInventory()
-	if err := apply(t.Context(), t, cfg1, inv, engine.Discard); err != nil {
+	if err := reconcile(t.Context(), t, cfg1, inv, engine.Discard); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 
@@ -1240,7 +1240,7 @@ file "dup" {
   content = "2"
 }
 `, tmp, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Errorf("expected snapshot rejection; got %v", err)
 	}
@@ -1259,7 +1259,7 @@ file "b" {
   content = "from-b"
 }
 `, path, path))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Errorf("expected snapshot rejection; got %v", err)
 	}
@@ -1278,7 +1278,7 @@ dir "b" {
   path = dir.a.path
 }
 `, path))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Errorf("expected snapshot rejection; got %v", err)
 	}
@@ -1294,7 +1294,7 @@ file "x" {
   path = "%s/x"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1312,7 +1312,7 @@ file "x" {
   contnet = "z"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1335,7 +1335,7 @@ file "x" {
   contnet = dir.d.path
 }
 `, tmp, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1356,7 +1356,7 @@ file "b" {
   bogus   = "z"
 }
 `, tmp, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1381,7 +1381,7 @@ file "x" {
   contnet = "oops"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1397,7 +1397,7 @@ file "x" {
   path = "%s/x"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1414,7 +1414,7 @@ file "x" {
   content = "%s"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1435,7 +1435,7 @@ file "dup" {
   content = "2"
 }
 `, tmp, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1456,7 +1456,7 @@ file "x" {
   contnet = "oops"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1476,7 +1476,7 @@ file "x" {
   content = "hi"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1493,7 +1493,7 @@ fil "x" {
   content = "y"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1511,7 +1511,7 @@ file "x" {
   blah_unrelated = "oops"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1532,7 +1532,7 @@ file "x" {
   adopt   = "true"
 }
 `, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1548,7 +1548,7 @@ file "x" {
   content = "y"
 }
 `)
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1572,7 +1572,7 @@ file "tgt" {
   adopt   = file.src.path
 }
 `, tmp, tmp))
-	err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+	err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 	if !errors.Is(err, engine.ErrSnapshotRejected) {
 		t.Fatalf("expected snapshot rejection; got %v", err)
 	}
@@ -1607,7 +1607,7 @@ file "x" {
   content = "y"
 }
 `, c.path))
-			err := apply(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
+			err := reconcile(t.Context(), t, cfg, engine.NewInventory(), engine.Discard)
 			rejected := errors.Is(err, engine.ErrSnapshotRejected)
 			if rejected != c.reject {
 				t.Errorf("path %q: rejected=%v want %v (err=%v)", c.path, rejected, c.reject, err)

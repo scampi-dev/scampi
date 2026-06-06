@@ -23,114 +23,9 @@ import (
 // ref, cycle). Nothing applies when it fires.
 var ErrSnapshotRejected = errors.New("snapshot rejected")
 
-// ErrApplyFailed wraps per-resource runtime failures. Some resources
-// may have landed; failures aggregate.
-var ErrApplyFailed = errors.New("apply failed")
-
-// Public API
-// -----------------------------------------------------------------------------
-
-// Plan inspects what an Apply against dir would do without touching
-// live state. Reads inv; never mutates it or writes lifecycle events.
-type Plan struct {
-	Create  []Ref // would write a new resource (state=missing)
-	Update  []Ref // would rewrite (state=diverging: drift or take-over)
-	Adopt   []Ref // would claim matching live state (first time + adopt)
-	Halt    []Ref // would refuse: live exists but adopt=false
-	Destroy []Ref // would remove orphans
-	InSync  []Ref // owned and matching - no action
-}
-
-type ApplyConfig struct {
-	Dir          string
-	ActionLogDir string
-	Inventory    *Inventory // optional; loaded from ActionLogDir if nil
-	Emitter      Emitter
-}
-
-type RunConfig struct {
-	Dir          string
-	ActionLogDir string
-	Inventory    *Inventory // optional; loaded from ActionLogDir if nil
-	Emitter      Emitter
-	Interval     time.Duration
-}
-
-type PlanConfig struct {
-	Dir       string
-	Inventory *Inventory
-	Emitter   Emitter
-}
-
-func MakePlan(ctx context.Context, cfg PlanConfig) (*Plan, error) {
-	dir, inv := cfg.Dir, cfg.Inventory
-	log := NewLog(cfg.Emitter)
-	snap, err := snapshot(ctx, dir, log)
-	if err != nil {
-		return nil, err
-	}
-	p := &Plan{}
-	for _, r := range snap {
-		ref := r.Ref()
-		was := inv.Has(ref)
-		k, err := kindFor(r)
-		if err != nil {
-			continue
-		}
-		state, err := k.Check(ctx, r)
-		if err != nil {
-			return nil, err
-		}
-		switch {
-		case was && state == StateMatching:
-			p.InSync = append(p.InSync, ref)
-		case !was && state != StateMissing && !r.Attrs.GetBool("adopt"):
-			p.Halt = append(p.Halt, ref)
-		case state == StateMissing:
-			p.Create = append(p.Create, ref)
-		case state == StateMatching:
-			p.Adopt = append(p.Adopt, ref)
-		default:
-			p.Update = append(p.Update, ref)
-		}
-	}
-	p.Destroy = inv.Orphans(snap)
-	return p, nil
-}
-
-func Apply(ctx context.Context, cfg ApplyConfig) error {
-	inv, actLog, err := openSinkAndInventory(cfg.ActionLogDir, cfg.Inventory)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = actLog.Close() }()
-	log := NewLog(FanoutEmitter{cfg.Emitter, actLog})
-
-	snap, err := snapshot(ctx, cfg.Dir, log)
-	if err != nil {
-		return err
-	}
-	var errs []error
-	reconcileRenames(ctx, snap, inv, log)
-	orphans := append(inv.Orphans(snap), identityDrifts(snap, inv)...)
-	if err := destroyAll(ctx, orphans, inv, log, nil); err != nil {
-		errs = append(errs, err)
-	}
-	if err := applyAll(ctx, snap, inv, log, nil); err != nil {
-		errs = append(errs, err)
-	}
-	if err := log.Err(); err != nil {
-		errs = append(errs, fmt.Errorf("action log: %w", err))
-	}
-	if ctx.Err() != nil {
-		log.Info(ctx, "received shutdown signal, exiting at next safe point")
-		return ctx.Err()
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("%w: %w", ErrApplyFailed, errors.Join(errs...))
-	}
-	return nil
-}
+// ErrReconcileFailed wraps per-resource runtime failures. Some
+// resources may have landed; failures aggregate.
+var ErrReconcileFailed = errors.New("reconcile failed")
 
 // openSinkAndInventory opens the action log writer rooted at dir
 // and resolves the starting inventory. inv is used as-is if
@@ -148,74 +43,6 @@ func openSinkAndInventory(dir string, inv *Inventory) (*Inventory, *ActionLog, e
 		return nil, nil, fmt.Errorf("action log: %w", err)
 	}
 	return inv, actLog, nil
-}
-
-// Run keeps reconciling after a snapshot reject so operators can fix
-// configs in place against the last-good snapshot.
-func Run(ctx context.Context, cfg RunConfig) error {
-	inv, actLog, err := openSinkAndInventory(cfg.ActionLogDir, cfg.Inventory)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = actLog.Close() }()
-	log := NewLog(FanoutEmitter{cfg.Emitter, actLog})
-	dir, interval := cfg.Dir, cfg.Interval
-	log.Info(ctx, "starting run loop", "dir", dir, "interval", interval)
-	var (
-		lastRev string
-		snap    []Resource
-	)
-	bo := newBackoff()
-	for {
-		rev, hashErr := hashDir(dir)
-		switch {
-		case hashErr != nil:
-			log.Error(ctx, "hash dir", "err", hashErr)
-		case rev != lastRev:
-			log.Debug(ctx, "snapshot change", "rev", rev)
-			s, err := snapshot(ctx, dir, log)
-			if err != nil {
-				logReconcileErr(ctx, log, err)
-			} else {
-				snap = s
-			}
-			lastRev = rev
-		}
-		if snap != nil {
-			tickStart := time.Now()
-			tickOk := true
-			reconcileRenames(ctx, snap, inv, log)
-			orphans := append(inv.Orphans(snap), identityDrifts(snap, inv)...)
-			if err := destroyAll(ctx, orphans, inv, log, bo); err != nil {
-				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
-				tickOk = false
-			}
-			if err := applyAll(ctx, snap, inv, log, bo); err != nil {
-				logReconcileErr(ctx, log, fmt.Errorf("%w: %w", ErrApplyFailed, err))
-				tickOk = false
-			}
-			status := "ok"
-			if !tickOk {
-				status = "failed"
-			}
-			log.Emit(
-				ctx, CodeTickComplete, nil,
-				"duration", time.Since(tickStart).Round(time.Millisecond).String(),
-				"status", status,
-			)
-		}
-		// Action log failure is fatal: persistence is broken, so we
-		// stop reconciling rather than acting blind.
-		if err := log.Err(); err != nil {
-			return fmt.Errorf("action log: %w", err)
-		}
-		select {
-		case <-ctx.Done():
-			log.Info(ctx, "received shutdown signal, exiting at next safe point")
-			return nil
-		case <-time.After(interval):
-		}
-	}
 }
 
 // Pipeline
@@ -275,7 +102,7 @@ func logReconcileErr(ctx context.Context, log Log, err error) {
 	case errors.Is(err, ErrSnapshotRejected):
 		// rejected() already emitted CodeSnapshotRejected at the
 		// rejection site; logging here would double-report.
-	case errors.Is(err, ErrApplyFailed):
+	case errors.Is(err, ErrReconcileFailed):
 		// Per-resource apply.failed events already convey the
 		// failure with detail; an aggregated warn is redundant.
 	default:
@@ -635,66 +462,6 @@ func applyAll(
 		}
 	}
 	return errors.Join(errs...)
-}
-
-// Backoff
-// -----------------------------------------------------------------------------
-
-// backoff tracks per-Ref retry deadlines. Methods are nil-safe.
-type backoff struct {
-	entries map[Ref]*backoffEntry
-}
-
-type backoffEntry struct {
-	nextRetry time.Time
-	attempts  int
-}
-
-func newBackoff() *backoff { return &backoff{entries: map[Ref]*backoffEntry{}} }
-
-func (b *backoff) due(ref Ref, now time.Time) bool {
-	if b == nil {
-		return true
-	}
-	e, ok := b.entries[ref]
-	if !ok {
-		return true
-	}
-	return !now.Before(e.nextRetry)
-}
-
-func (b *backoff) success(ref Ref) {
-	if b == nil {
-		return
-	}
-	delete(b.entries, ref)
-}
-
-func (b *backoff) failure(ref Ref, now time.Time) {
-	if b == nil {
-		return
-	}
-	e, ok := b.entries[ref]
-	if !ok {
-		e = &backoffEntry{}
-		b.entries[ref] = e
-	}
-	e.attempts++
-	e.nextRetry = now.Add(backoffDelay(e.attempts))
-}
-
-// backoffDelay doubles per attempt starting at 1s, capped at 5 min.
-func backoffDelay(attempts int) time.Duration {
-	if attempts < 1 {
-		return 0
-	}
-	shift := min(attempts-1, 30)
-	d := time.Second << shift
-	const maxDelay = 5 * time.Minute
-	if d > maxDelay || d < 0 {
-		return maxDelay
-	}
-	return d
 }
 
 func applyOne(ctx context.Context, r Resource, inv *Inventory, log Log) error {

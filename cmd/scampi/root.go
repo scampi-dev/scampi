@@ -197,7 +197,7 @@ func newRootCmd() (*cobra.Command, func() error) {
 		defaultHelp(cmd, args)
 	})
 
-	apply := newApplyCmd()
+	apply := newReconcileCmd()
 	run := newRunCmd()
 	plan := newPlanCmd()
 	root.AddCommand(apply, run, plan)

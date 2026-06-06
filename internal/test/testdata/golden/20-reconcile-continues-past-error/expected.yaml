@@ -1,4 +1,4 @@
-error: apply
+error: reconcile
 files:
   good.txt: |
     yes

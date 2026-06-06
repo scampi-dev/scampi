@@ -23,7 +23,7 @@ func pickPlanEmitter() engine.Emitter {
 func newPlanCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:           "plan <dir>",
-		Short:         "Show what apply would do without changing anything.",
+		Short:         "Show what reconcile would do without changing anything.",
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
