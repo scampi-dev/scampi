@@ -17,7 +17,7 @@ func pickPlanEmitter() engine.Emitter {
 	if outputFormat == "json" {
 		return render.NewJSONRenderer(os.Stdout, v)
 	}
-	return render.NewApplyRenderer(os.Stdout, decideGlyphs(), decideColor(os.Stdout), v)
+	return render.NewReportRenderer(os.Stdout, decideGlyphs(), decideColor(os.Stdout), v)
 }
 
 func newPlanCmd() *cobra.Command {

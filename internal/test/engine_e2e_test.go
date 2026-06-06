@@ -789,8 +789,9 @@ file "x" {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := reconcile(t.Context(), t, cfgDir, engine.NewInventory(), engine.NewLog(al1)); err != nil {
-		t.Fatalf("first apply: %v", err)
+	err = reconcile(t.Context(), t, cfgDir, engine.NewInventory(), engine.NewLog(al1))
+	if err != nil {
+		t.Fatalf("first reconcile: %v", err)
 	}
 	if err := al1.Close(); err != nil {
 		t.Fatal(err)

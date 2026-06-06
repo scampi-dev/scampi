@@ -16,7 +16,7 @@ func pickReconcileEmitter() (engine.Emitter, func(error)) {
 	if outputFormat == "json" {
 		return render.NewJSONRenderer(os.Stdout, v), func(error) {}
 	}
-	ar := render.NewApplyRenderer(os.Stdout, decideGlyphs(), decideColor(os.Stdout), v)
+	ar := render.NewReportRenderer(os.Stdout, decideGlyphs(), decideColor(os.Stdout), v)
 	return ar, ar.Finalize
 }
 

@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/internal/engine"
 )
 
-type ApplyRenderer struct {
+type ReportRenderer struct {
 	out       io.Writer
 	glyphs    Glyphs
 	colored   bool
@@ -33,8 +33,8 @@ type applyCounts struct {
 	failed    int
 }
 
-func NewApplyRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *ApplyRenderer {
-	return &ApplyRenderer{
+func NewReportRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *ReportRenderer {
+	return &ReportRenderer{
 		out:       out,
 		glyphs:    g,
 		colored:   colored,
@@ -43,9 +43,9 @@ func NewApplyRenderer(out io.Writer, g Glyphs, colored bool, v Verbosity) *Apply
 	}
 }
 
-func (*ApplyRenderer) Err() error { return nil }
+func (*ReportRenderer) Err() error { return nil }
 
-func (r *ApplyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
+func (r *ReportRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Ref, args ...any) {
 	switch code {
 	case engine.CodeApplySuccess:
 		r.handleApplySuccess(ref, args)
@@ -80,7 +80,7 @@ func (r *ApplyRenderer) Emit(_ context.Context, code engine.Code, ref *engine.Re
 	}
 }
 
-func (r *ApplyRenderer) Finalize(err error) {
+func (r *ReportRenderer) Finalize(err error) {
 	if r.rejected {
 		// renderSnapshotRejected already told the operator everything.
 		return
@@ -111,12 +111,12 @@ func (r *ApplyRenderer) Finalize(err error) {
 	if body == "" {
 		body = "nothing to do"
 	}
-	label := "Applied"
+	label := "Reconciled"
 	if r.counts.failed > 0 {
-		label = "Apply incomplete"
+		label = "Reconcile incomplete"
 	}
 	if errors.Is(err, context.Canceled) {
-		label = "Apply interrupted"
+		label = "Reconcile interrupted"
 	}
 	elapsed := time.Since(r.start).Round(time.Millisecond)
 	if r.colored {
@@ -134,7 +134,7 @@ func (r *ApplyRenderer) Finalize(err error) {
 	}
 }
 
-func (r *ApplyRenderer) handleApplySuccess(ref *engine.Ref, args []any) {
+func (r *ReportRenderer) handleApplySuccess(ref *engine.Ref, args []any) {
 	action := attrString(args, "action")
 	var glyph, label string
 	switch action {
@@ -155,20 +155,20 @@ func (r *ApplyRenderer) handleApplySuccess(ref *engine.Ref, args []any) {
 	r.writeLine(glyph, label, ref.String(), "", planColor(label))
 }
 
-func (r *ApplyRenderer) handleApplyFailed(ref *engine.Ref, args []any) {
+func (r *ReportRenderer) handleApplyFailed(ref *engine.Ref, args []any) {
 	errMsg := attrString(args, "err")
 	r.counts.failed++
 	r.writeLine(r.glyphs.Failed, "failed", ref.String(), errMsg, AnsiRed)
 }
 
-func (r *ApplyRenderer) handleRenamed(ref *engine.Ref, args []any) {
+func (r *ReportRenderer) handleRenamed(ref *engine.Ref, args []any) {
 	from := attrString(args, "from")
 	r.counts.renamed++
 	detail := "from " + from
 	r.writeLine(r.glyphs.Rename, "rename", ref.String(), detail, AnsiCyan)
 }
 
-func (r *ApplyRenderer) handleHalted(ref *engine.Ref, args []any) {
+func (r *ReportRenderer) handleHalted(ref *engine.Ref, args []any) {
 	state := attrString(args, "state")
 	r.counts.halted++
 	detail := ""
@@ -178,12 +178,12 @@ func (r *ApplyRenderer) handleHalted(ref *engine.Ref, args []any) {
 	r.writeLine(r.glyphs.Halt, "halt", ref.String(), detail, AnsiYellow)
 }
 
-func (r *ApplyRenderer) handleDestroySuccess(ref *engine.Ref) {
+func (r *ReportRenderer) handleDestroySuccess(ref *engine.Ref) {
 	r.counts.destroyed++
 	r.writeLine(r.glyphs.Destroy, "destroy", ref.String(), "", AnsiRed)
 }
 
-func (r *ApplyRenderer) handleLog(code engine.Code, args []any) {
+func (r *ReportRenderer) handleLog(code engine.Code, args []any) {
 	msg, _ := popMsg(args)
 	tag := "WRN"
 	color := AnsiYellow
@@ -199,7 +199,7 @@ func (r *ApplyRenderer) handleLog(code engine.Code, args []any) {
 	}
 }
 
-func (r *ApplyRenderer) writeLine(glyph, label, ref, detail, color string) {
+func (r *ReportRenderer) writeLine(glyph, label, ref, detail, color string) {
 	ind := padCol(glyph, indicatorWidth)
 	if !r.colored {
 		if detail != "" {
