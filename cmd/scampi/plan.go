@@ -3,46 +3,63 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v3"
 
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/render"
 )
 
-func pickPlanEmitter() engine.Emitter {
-	v := resolveVerbosity()
-	if outputFormat == "json" {
-		return render.NewJSONRenderer(os.Stdout, v)
-	}
-	return render.NewReportRenderer(os.Stdout, decideGlyphs(), decideColor(os.Stdout), v)
-}
-
-func newPlanCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:           "plan <dir>",
-		Short:         "Show what reconcile would do without changing anything.",
-		Args:          cobra.ExactArgs(1),
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			inv, err := engine.LoadInventoryLenient(actionLogPath)
+func planCmd() *cli.Command {
+	var dir string
+	return &cli.Command{
+		Name:      "plan",
+		Usage:     "Show what reconcile would do without changing anything.",
+		ArgsUsage: "<dir>",
+		Arguments: []cli.Argument{
+			&cli.StringArg{Name: "dir", Destination: &dir},
+		},
+		Before: requireArgs(1),
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			actionLogDir, err := resolveActionLogDir(cmd)
+			if err != nil {
+				return err
+			}
+			inv, err := engine.LoadInventoryLenient(actionLogDir)
 			if err != nil {
 				return fmt.Errorf("action log replay: %w", err)
 			}
-			renderer := pickPlanEmitter()
-			p, err := engine.MakePlan(cmd.Context(), engine.PlanConfig{
-				Dir:       args[0],
+			renderer := pickPlanEmitter(cmd)
+			p, err := engine.MakePlan(ctx, engine.PlanConfig{
+				Dir:       dir,
 				Inventory: inv,
 				Emitter:   renderer,
 			})
 			if err != nil {
 				return err
 			}
-			render.PrintPlan(os.Stdout, p, decideGlyphs(), decideColor(os.Stdout))
+			render.PrintPlan(
+				os.Stdout, p,
+				decideGlyphs(cmd.Bool("ascii")),
+				decideColor(cmd.String("color"), os.Stdout),
+			)
 			return nil
 		},
 	}
+}
+
+func pickPlanEmitter(cmd *cli.Command) engine.Emitter {
+	v := resolveVerbosity(cmd)
+	if cmd.String("output-format") == "json" {
+		return render.NewJSONRenderer(os.Stdout, v)
+	}
+	return render.NewReportRenderer(
+		os.Stdout,
+		decideGlyphs(cmd.Bool("ascii")),
+		decideColor(cmd.String("color"), os.Stdout),
+		v,
+	)
 }

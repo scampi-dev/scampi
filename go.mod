@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/hashicorp/memberlist v0.5.4
 	github.com/mattn/go-isatty v0.0.22
-	github.com/spf13/cobra v1.10.2
+	github.com/urfave/cli/v3 v3.9.0
 	github.com/zclconf/go-cty v1.18.1
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -214,6 +214,7 @@ require (
 	github.com/sourcegraph/go-diff v0.8.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
+	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
@@ -229,7 +230,6 @@ require (
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
 	github.com/ultraware/funlen v0.2.0 // indirect
 	github.com/ultraware/whitespace v0.2.0 // indirect
-	github.com/urfave/cli/v3 v3.9.0 // indirect
 	github.com/uudashr/gocognit v1.2.1 // indirect
 	github.com/uudashr/iface v1.4.2 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect

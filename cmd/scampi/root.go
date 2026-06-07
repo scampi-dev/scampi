@@ -3,97 +3,125 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/mattn/go-isatty"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v3"
 
 	"scampi.dev/scampi/internal/render"
 )
 
-// 0xfeed is high in the IANA dynamic range; ephemeral collisions
-// are rare. Overridable for multi-instance dev and mesh testing.
 const defaultInstancePort = 0xfeed
 
-var (
-	actionLogPath string
-	instance      net.Listener
-
-	asciiFlag    bool
-	verboseCount int
-	quietFlag    bool
-	instancePort int
-	meshBind     string
-
-	colorMode    = "auto"
-	outputFormat = "text"
-)
-
-func envOr(envKey, fallback string) string {
-	if v := os.Getenv(envKey); v != "" {
-		return v
+func rootFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{
+			Name:    "action-log",
+			Usage:   "action log dir (defaults under XDG state dir)",
+			Sources: cli.EnvVars("SCAMPI_ACTION_LOG"),
+		},
+		&cli.BoolFlag{
+			Name:    "ascii",
+			Usage:   "use ASCII glyphs instead of Unicode",
+			Sources: cli.EnvVars("SCAMPI_ASCII"),
+		},
+		&cli.StringFlag{
+			Name:    "color",
+			Value:   "auto",
+			Usage:   "colored output: auto|always|never (NO_COLOR also honored)",
+			Sources: cli.EnvVars("SCAMPI_COLOR"),
+		},
+		&cli.IntFlag{
+			Name:    "instance-port",
+			Value:   defaultInstancePort,
+			Usage:   "single-instance lock and mesh SWIM port",
+			Sources: cli.EnvVars("SCAMPI_INSTANCE_PORT"),
+		},
+		&cli.StringFlag{
+			Name:    "mesh-bind",
+			Value:   "0.0.0.0",
+			Usage:   "bind interface for the mesh port",
+			Sources: cli.EnvVars("SCAMPI_MESH_BIND"),
+		},
+		&cli.StringFlag{
+			Name:    "output-format",
+			Aliases: []string{"o"},
+			Value:   "text",
+			Usage:   "output format: text|json",
+			Sources: cli.EnvVars("SCAMPI_OUTPUT_FORMAT"),
+		},
+		&cli.BoolFlag{
+			Name:    "quiet",
+			Aliases: []string{"q"},
+			Usage:   "suppress non-essential output",
+			Sources: cli.EnvVars("SCAMPI_QUIET"),
+		},
+		&cli.BoolFlag{
+			Name:    "verbose",
+			Aliases: []string{"v"},
+			Usage:   "increase verbosity (-v shows info, -vv shows debug)",
+		},
 	}
-	return fallback
 }
 
-func envIntOr(envKey string, fallback int) int {
-	if v := os.Getenv(envKey); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
-			return i
+func requireArgs(n int) func(context.Context, *cli.Command) (context.Context, error) {
+	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		if cmd.Args().Len() != n {
+			cli.ShowCommandHelpAndExit(ctx, cmd.Root(), cmd.Name, 1)
 		}
+		return ctx, nil
 	}
-	return fallback
 }
 
-func envBool(envKey string, fallback bool) bool {
-	if v := os.Getenv(envKey); v != "" {
-		if b, err := strconv.ParseBool(v); err == nil {
-			return b
-		}
+func resolveActionLogDir(cmd *cli.Command) (string, error) {
+	if d := cmd.String("action-log"); d != "" {
+		return d, nil
 	}
-	return fallback
+	return plat.Paths.ActionLogDir()
 }
 
-func resolveVerbosity() render.Verbosity {
-	if quietFlag {
+func resolveVerbosity(cmd *cli.Command) render.Verbosity {
+	if cmd.Bool("quiet") {
 		return render.VerbosityQuiet
 	}
-	return render.Verbosity(verboseCount)
+	return render.Verbosity(cmd.Count("verbose"))
 }
 
 // decideColor priority: always > NO_COLOR > never > tty-detect.
-// colorMode picks up SCAMPI_COLOR via envOr at flag registration.
-func decideColor(w *os.File) bool {
-	if colorMode == "always" {
+// mode comes from --color (which picks up SCAMPI_COLOR via Sources).
+func decideColor(mode string, w *os.File) bool {
+	if mode == "always" {
 		return true
 	}
 	if os.Getenv("NO_COLOR") != "" {
 		return false
 	}
-	if colorMode == "never" {
+	if mode == "never" {
 		return false
 	}
 	return isatty.IsTerminal(w.Fd())
 }
 
-// decideGlyphs picks ASCII over Unicode based on the ascii flag.
-// No tty-detect; non-UTF8 environments opt in explicitly.
-func decideGlyphs() render.Glyphs {
+func decideGlyphs(asciiFlag bool) render.Glyphs {
 	if asciiFlag {
 		return render.ASCIIGlyphs
 	}
 	return render.UnicodeGlyphs
 }
 
-func instanceAddr() string {
-	return net.JoinHostPort(meshBind, strconv.Itoa(instancePort))
+func instanceAddr(cmd *cli.Command) string {
+	return net.JoinHostPort(
+		cmd.String("mesh-bind"),
+		strconv.Itoa(int(cmd.Int("instance-port"))),
+	)
 }
 
-func acquireInstanceListener() (net.Listener, error) {
-	addr := instanceAddr()
+func acquireInstanceListener(addr string) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf(
@@ -104,112 +132,30 @@ func acquireInstanceListener() (net.Listener, error) {
 	return l, nil
 }
 
-func newRootCmd() (*cobra.Command, func() error) {
-	root := &cobra.Command{
-		Use:           "scampi",
-		Short:         "Decentralized reconciler for bare-metal infrastructure.",
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		PersistentPreRunE: func(*cobra.Command, []string) error {
-			switch colorMode {
-			case "auto", "always", "never":
-			default:
-				return fmt.Errorf(
-					"invalid --color value %q; want auto|always|never",
-					colorMode,
-				)
-			}
-			switch outputFormat {
-			case "text", "json":
-			default:
-				return fmt.Errorf(
-					"invalid --output-format value %q; want text|json",
-					outputFormat,
-				)
-			}
-			runtimeReached = true
-			if actionLogPath == "" {
-				d, err := plat.Paths.ActionLogDir()
-				if err != nil {
-					return err
-				}
-				actionLogPath = d
-			}
-			return nil
-		},
-	}
-	root.PersistentFlags().StringVar(
-		&actionLogPath,
-		"action-log",
-		"",
-		"action log dir ($XDG_STATE_HOME/scampi/actionlog; /var/lib/scampi/actionlog as root)",
-	)
-	root.PersistentFlags().StringVar(
-		&colorMode,
-		"color",
-		envOr("SCAMPI_COLOR", "auto"),
-		"colored output: auto|always|never (also honors NO_COLOR)",
-	)
-	root.PersistentFlags().BoolVar(
-		&asciiFlag,
-		"ascii",
-		envBool("SCAMPI_ASCII", false),
-		"use ASCII glyphs instead of Unicode",
-	)
-	root.PersistentFlags().CountVarP(
-		&verboseCount,
-		"verbose",
-		"v",
-		"increase verbosity (-v shows info, -vv shows debug)",
-	)
-	root.PersistentFlags().BoolVarP(
-		&quietFlag,
-		"quiet",
-		"q",
-		envBool("SCAMPI_QUIET", false),
-		"suppress non-essential output",
-	)
-	root.PersistentFlags().StringVarP(
-		&outputFormat,
-		"output-format",
-		"o",
-		envOr("SCAMPI_OUTPUT_FORMAT", "text"),
-		"output format: text|json",
-	)
-	root.PersistentFlags().IntVar(
-		&instancePort,
-		"instance-port",
-		envIntOr("SCAMPI_INSTANCE_PORT", defaultInstancePort),
-		"single-instance lock and mesh SWIM port",
-	)
-	root.PersistentFlags().StringVar(
-		&meshBind,
-		"mesh-bind",
-		envOr("SCAMPI_MESH_BIND", "0.0.0.0"),
-		"bind interface for the mesh port",
-	)
-
-	// SetHelpFunc fires after flag parsing but before the template
-	// renders; sample colorMode here so flags take effect.
-	defaultHelp := root.HelpFunc()
-	root.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		cobraColored = decideColor(os.Stdout)
-		defaultHelp(cmd, args)
-	})
-
-	apply := newReconcileCmd()
-	run := newRunCmd()
-	plan := newPlanCmd()
-	root.AddCommand(apply, run, plan)
-	for _, c := range []*cobra.Command{root, apply, run, plan} {
-		c.SetUsageTemplate(usageTemplate)
-		c.SetHelpTemplate(helpTemplate)
-	}
-
-	return root, func() error {
-		if instance != nil {
-			return instance.Close()
+// expandShorthand finds the first non-flag arg and, if it uniquely
+// prefixes one subcommand name, rewrites it to the full name.
+// kubectl-style: `scampi recon` -> `scampi reconcile`.
+func expandShorthand(args []string, commands []*cli.Command) []string {
+	for i, a := range args {
+		if i == 0 || strings.HasPrefix(a, "-") {
+			continue
 		}
-		return nil
+		var matches []string
+		for _, c := range commands {
+			if c.Name == a {
+				return args // exact match; nothing to do
+			}
+			if strings.HasPrefix(c.Name, a) {
+				matches = append(matches, c.Name)
+			}
+		}
+		if len(matches) == 1 {
+			out := make([]string, len(args))
+			copy(out, args)
+			out[i] = matches[0]
+			return out
+		}
+		return args // unknown or ambiguous; let urfave handle it
 	}
+	return args
 }
