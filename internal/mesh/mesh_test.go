@@ -5,6 +5,7 @@ package mesh
 import (
 	"net"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -67,6 +68,38 @@ func TestMesh_SnapshotWrittenWithPeers(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatal("snapshot never reached 2 peers")
+}
+
+func TestMesh_JoinRetriesUntilSeedAppears(t *testing.T) {
+	seedPort := pickPort(t)
+	seedAddr := net.JoinHostPort("127.0.0.1", strconv.Itoa(seedPort))
+
+	// Joiner boots before the seed exists; first Join() will fail.
+	joiner := startMesh(t, "joiner", []string{seedAddr}, "")
+	if got := len(joiner.Members()); got != 1 {
+		t.Fatalf("joiner cold start: got %d members, want 1", got)
+	}
+
+	// Spin up the seed on the pre-reserved port a moment later.
+	time.Sleep(300 * time.Millisecond)
+	seedCfg := Config{
+		Name:                "seed",
+		BindAddr:            "127.0.0.1",
+		BindPort:            seedPort,
+		AdvertiseAddr:       "127.0.0.1",
+		AdvertisePort:       seedPort,
+		ProbeInterval:       100 * time.Millisecond,
+		SuspectMult:         2,
+		DeadNodeReclaimTime: 1 * time.Millisecond,
+	}
+	seed, err := Run(t.Context(), seedCfg)
+	if err != nil {
+		t.Fatalf("seed Run: %v", err)
+	}
+	t.Cleanup(func() { _ = seed.Shutdown() })
+
+	waitForMembers(t, joiner, 2)
+	waitForMembers(t, seed, 2)
 }
 
 func TestMesh_PersistedRejoin(t *testing.T) {

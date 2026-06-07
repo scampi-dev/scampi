@@ -155,12 +155,47 @@ func Run(ctx context.Context, cfg Config) (*Mesh, error) {
 
 	if len(candidates) > 0 {
 		if _, jerr := list.Join(candidates); jerr != nil {
-			m.log.Warn(ctx, "mesh join: no candidates reachable", "err", jerr)
+			m.log.Warn(
+				ctx, "mesh join: no candidates reachable, retrying",
+				"next", joinRetryInitial, "err", jerr,
+			)
+			go m.joinRetry(ctx, candidates)
 		}
 	}
 
 	m.markDirty()
 	return m, nil
+}
+
+const (
+	joinRetryInitial = 500 * time.Millisecond
+	joinRetryMax     = 30 * time.Second
+)
+
+// joinRetry keeps re-attempting list.Join with exponential backoff
+// until any candidate accepts. Without this a peer that boots
+// before its seed stays solo forever, because memberlist's Join is
+// one-shot and #1 (the seed) has no return path to #2 (the joiner)
+// unless gossip already linked them.
+func (m *Mesh) joinRetry(ctx context.Context, candidates []string) {
+	delay := joinRetryInitial
+	for attempt := 1; ; attempt++ {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(delay):
+		}
+		if m.closed.Load() {
+			return
+		}
+		next := min(delay*2, joinRetryMax)
+		m.log.Debug(ctx, "mesh-join retrying", "attempt", attempt, "next", next)
+		if _, err := m.list.Join(candidates); err == nil {
+			m.log.Info(ctx, "mesh join succeeded after retry", "attempt", attempt)
+			return
+		}
+		delay = next
+	}
 }
 
 // Members returns alive peers; the slice includes self.
