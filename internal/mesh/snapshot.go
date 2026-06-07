@@ -11,37 +11,30 @@ import (
 	"time"
 )
 
-const snapshotVersion = 1
-
-// snapshot holds last-known-good addresses; alive/dead gets
+// Snapshot holds last-known-good addresses; alive/dead gets
 // re-detected by SWIM after restart.
-type snapshot struct {
-	Version   int       `json:"version"`
+type Snapshot struct {
 	Self      string    `json:"self"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Peers     []Peer    `json:"peers"`
 }
 
-// readSnapshot returns os.ErrNotExist when the file is absent.
-func readSnapshot(path string) (*snapshot, error) {
+// ReadSnapshot returns os.ErrNotExist when the file is absent.
+func ReadSnapshot(path string) (*Snapshot, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var s snapshot
+	var s Snapshot
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("decode %s: %w", path, err)
-	}
-	if s.Version != snapshotVersion {
-		return nil, fmt.Errorf("%s: unsupported snapshot version %d", path, s.Version)
 	}
 	return &s, nil
 }
 
 // writeSnapshot atomic-renames via a tmp file; creates the
 // parent dir if missing.
-func writeSnapshot(path string, s *snapshot) error {
-	s.Version = snapshotVersion
+func writeSnapshot(path string, s *Snapshot) error {
 	s.UpdatedAt = time.Now().UTC()
 	s.Peers = dedupePeers(s.Peers)
 

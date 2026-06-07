@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -20,11 +21,6 @@ const defaultInstancePort = 0xfeed
 
 func rootFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{
-			Name:    "action-log",
-			Usage:   "action log dir (defaults under XDG state dir)",
-			Sources: cli.EnvVars("SCAMPI_ACTION_LOG"),
-		},
 		&cli.BoolFlag{
 			Name:    "ascii",
 			Usage:   "use ASCII glyphs instead of Unicode",
@@ -35,18 +31,6 @@ func rootFlags() []cli.Flag {
 			Value:   "auto",
 			Usage:   "colored output: auto|always|never (NO_COLOR also honored)",
 			Sources: cli.EnvVars("SCAMPI_COLOR"),
-		},
-		&cli.IntFlag{
-			Name:    "instance-port",
-			Value:   defaultInstancePort,
-			Usage:   "single-instance lock and mesh SWIM port",
-			Sources: cli.EnvVars("SCAMPI_INSTANCE_PORT"),
-		},
-		&cli.StringFlag{
-			Name:    "mesh-bind",
-			Value:   "0.0.0.0",
-			Usage:   "bind interface for the mesh port",
-			Sources: cli.EnvVars("SCAMPI_MESH_BIND"),
 		},
 		&cli.StringFlag{
 			Name:    "output-format",
@@ -69,6 +53,32 @@ func rootFlags() []cli.Flag {
 	}
 }
 
+func stateDirFlag() cli.Flag {
+	return &cli.StringFlag{
+		Name:    "state-dir",
+		Usage:   "scampi state dir (action log + mesh peers; defaults under XDG state dir)",
+		Sources: cli.EnvVars("SCAMPI_STATE_DIR"),
+	}
+}
+
+func meshBindFlag() cli.Flag {
+	return &cli.StringFlag{
+		Name:    "mesh-bind",
+		Value:   "0.0.0.0",
+		Usage:   "bind interface for the mesh port",
+		Sources: cli.EnvVars("SCAMPI_MESH_BIND"),
+	}
+}
+
+func instancePortFlag() cli.Flag {
+	return &cli.IntFlag{
+		Name:    "instance-port",
+		Value:   defaultInstancePort,
+		Usage:   "single-instance lock and mesh SWIM port",
+		Sources: cli.EnvVars("SCAMPI_INSTANCE_PORT"),
+	}
+}
+
 func requireArgs(n int) func(context.Context, *cli.Command) (context.Context, error) {
 	return func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 		if cmd.Args().Len() != n {
@@ -78,12 +88,15 @@ func requireArgs(n int) func(context.Context, *cli.Command) (context.Context, er
 	}
 }
 
-func resolveActionLogDir(cmd *cli.Command) (string, error) {
-	if d := cmd.String("action-log"); d != "" {
+func resolveStateDir(cmd *cli.Command) (string, error) {
+	if d := cmd.String("state-dir"); d != "" {
 		return d, nil
 	}
-	return plat.Paths.ActionLogDir()
+	return plat.Paths.StateDir()
 }
+
+func actionLogDir(stateDir string) string { return filepath.Join(stateDir, "log") }
+func peersFile(stateDir string) string    { return filepath.Join(stateDir, "peers.json") }
 
 func resolveVerbosity(cmd *cli.Command) render.Verbosity {
 	if cmd.Bool("quiet") {

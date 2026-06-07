@@ -6,9 +6,12 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 
-shopt -s nullglob
-for f in "$HERE"/.sandbox/log/*.jsonl; do
+shopt -s nullglob globstar
+for f in "$HERE"/.sandbox/**/0001.jsonl; do
   : > "$f"
+done
+for f in "$HERE"/.sandbox/**/peers.json; do
+  rm -f "$f"
 done
 
 for d in /tmp/scampi-*; do

@@ -17,8 +17,7 @@ type Signaler interface {
 }
 
 type Paths interface {
-	ActionLogDir() (string, error)
-	PeersFile() (string, error)
+	StateDir() (string, error)
 }
 
 type Privilege interface {

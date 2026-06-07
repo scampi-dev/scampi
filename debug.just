@@ -13,7 +13,7 @@
 reset:
   @./scripts/sandbox-reset.sh
 
-[doc("Reset sandbox state, then run scampi with given args (action log under .sandbox/log)")]
+[doc("Reset sandbox state, then run scampi with given args (state under .sandbox/state)")]
 run *args:
   @./scripts/sandbox-reset.sh
-  @go run ./cmd/scampi --action-log .sandbox/log {{args}}
+  @SCAMPI_STATE_DIR=.sandbox/state go run ./cmd/scampi {{args}}

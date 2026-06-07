@@ -29,23 +29,7 @@ func (unixSignals) ShutdownContext(parent context.Context) (context.Context, con
 
 type unixPaths struct{}
 
-func (unixPaths) ActionLogDir() (string, error) {
-	root, err := stateRoot()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(root, "actionlog"), nil
-}
-
-func (unixPaths) PeersFile() (string, error) {
-	root, err := stateRoot()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(root, "peers.json"), nil
-}
-
-func stateRoot() (string, error) {
+func (unixPaths) StateDir() (string, error) {
 	if os.Geteuid() == 0 {
 		return "/var/lib/scampi", nil
 	}

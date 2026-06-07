@@ -128,6 +128,25 @@ func TestDecideGlyphs_Unicode(t *testing.T) {
 	}
 }
 
+func TestProbeStale_FreePortReportsStale(t *testing.T) {
+	port := pickFreePort(t)
+	addr := net.JoinHostPort("127.0.0.1", itoa(port))
+	if !probeStale(addr) {
+		t.Error("free port should report stale=true")
+	}
+}
+
+func TestProbeStale_BusyPortReportsLive(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = l.Close() })
+	if probeStale(l.Addr().String()) {
+		t.Error("busy port should report stale=false")
+	}
+}
+
 func TestAcquireInstanceListener_CollidesOnSecondCall(t *testing.T) {
 	port := pickFreePort(t)
 	addr := net.JoinHostPort("127.0.0.1", itoa(port))

@@ -141,7 +141,7 @@ func Run(ctx context.Context, cfg Config) (*Mesh, error) {
 
 	candidates := append([]string(nil), cfg.Join...)
 	if cfg.SnapshotPath != "" {
-		if snap, rerr := readSnapshot(cfg.SnapshotPath); rerr == nil {
+		if snap, rerr := ReadSnapshot(cfg.SnapshotPath); rerr == nil {
 			for _, p := range snap.Peers {
 				if p.Name == cfg.Name {
 					continue
@@ -252,7 +252,12 @@ func (m *Mesh) flushWorker() {
 }
 
 func (m *Mesh) doFlushSnapshot() {
-	s := &snapshot{Self: m.self.Name, Peers: m.Members()}
+	// Members() drops self post-Leave; the snapshot is both a
+	// rejoin seed list and a peer-display record, so self belongs
+	// in it. dedupePeers handles the duplicate when Members()
+	// still includes self.
+	peers := append(m.Members(), m.self)
+	s := &Snapshot{Self: m.self.Name, Peers: peers}
 	if err := writeSnapshot(m.cfg.SnapshotPath, s); err != nil {
 		m.log.Warn(context.Background(), "mesh snapshot write failed", "err", err)
 	}

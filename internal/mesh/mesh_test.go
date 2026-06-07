@@ -58,7 +58,7 @@ func TestMesh_SnapshotWrittenWithPeers(t *testing.T) {
 
 	deadline := time.Now().Add(testWait)
 	for time.Now().Before(deadline) {
-		if snap, err := readSnapshot(snapPath); err == nil && len(snap.Peers) >= 2 {
+		if snap, err := ReadSnapshot(snapPath); err == nil && len(snap.Peers) >= 2 {
 			if snap.Self != "peer-b" {
 				t.Errorf("snapshot self: got %s want peer-b", snap.Self)
 			}
@@ -80,7 +80,7 @@ func TestMesh_PersistedRejoin(t *testing.T) {
 	}
 	waitForMembers(t, a, 1)
 
-	snap, err := readSnapshot(snapPath)
+	snap, err := ReadSnapshot(snapPath)
 	if err != nil {
 		t.Fatalf("snapshot: %v", err)
 	}

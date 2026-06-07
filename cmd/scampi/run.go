@@ -25,6 +25,9 @@ func runCmd() *cli.Command {
 			&cli.StringArg{Name: "dir", Destination: &dir},
 		},
 		Flags: []cli.Flag{
+			stateDirFlag(),
+			meshBindFlag(),
+			instancePortFlag(),
 			&cli.DurationFlag{
 				Name:  "interval",
 				Value: 5 * time.Second,
@@ -48,18 +51,14 @@ func runCmd() *cli.Command {
 		},
 		Before: requireArgs(1),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			actionLogDir, err := resolveActionLogDir(cmd)
-			if err != nil {
-				return err
-			}
-			snapPath, err := plat.Paths.PeersFile()
+			stateDir, err := resolveStateDir(cmd)
 			if err != nil {
 				return err
 			}
 			port := int(cmd.Int("instance-port"))
 			return engine.Run(ctx, engine.RunConfig{
 				Dir:          dir,
-				ActionLogDir: actionLogDir,
+				ActionLogDir: actionLogDir(stateDir),
 				Emitter:      pickRunEmitter(cmd),
 				Interval:     cmd.Duration("interval"),
 				Mesh: &engine.MeshConfig{
@@ -69,7 +68,7 @@ func runCmd() *cli.Command {
 					AdvertiseAddr: cmd.String("mesh-advertise"),
 					AdvertisePort: port,
 					Join:          parseJoinSeeds(cmd.String("join")),
-					SnapshotPath:  snapPath,
+					SnapshotPath:  peersFile(stateDir),
 				},
 			})
 		},

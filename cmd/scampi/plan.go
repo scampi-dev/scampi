@@ -22,13 +22,14 @@ func planCmd() *cli.Command {
 		Arguments: []cli.Argument{
 			&cli.StringArg{Name: "dir", Destination: &dir},
 		},
+		Flags:  []cli.Flag{stateDirFlag()},
 		Before: requireArgs(1),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			actionLogDir, err := resolveActionLogDir(cmd)
+			stateDir, err := resolveStateDir(cmd)
 			if err != nil {
 				return err
 			}
-			inv, err := engine.LoadInventoryLenient(actionLogDir)
+			inv, err := engine.LoadInventoryLenient(actionLogDir(stateDir))
 			if err != nil {
 				return fmt.Errorf("action log replay: %w", err)
 			}

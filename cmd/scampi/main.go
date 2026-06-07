@@ -35,15 +35,17 @@ func main() {
 	defer stop()
 
 	app := &cli.Command{
-		Name:            "scampi",
-		Usage:           "Decentralized reconciler for bare-metal infrastructure.",
-		Suggest:         true,
-		CommandNotFound: commandNotFound,
-		Flags:           rootFlags(),
+		Name:                   "scampi",
+		Usage:                  "Decentralized reconciler for bare-metal infrastructure.",
+		Suggest:                true,
+		UseShortOptionHandling: true,
+		CommandNotFound:        commandNotFound,
+		Flags:                  rootFlags(),
 		Commands: []*cli.Command{
 			reconcileCmd(),
 			runCmd(),
 			planCmd(),
+			peersCmd(),
 		},
 	}
 

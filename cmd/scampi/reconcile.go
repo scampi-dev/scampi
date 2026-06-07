@@ -21,6 +21,11 @@ func reconcileCmd() *cli.Command {
 		Arguments: []cli.Argument{
 			&cli.StringArg{Name: "dir", Destination: &dir},
 		},
+		Flags: []cli.Flag{
+			stateDirFlag(),
+			meshBindFlag(),
+			instancePortFlag(),
+		},
 		Before: requireArgs(1),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			listener, err := acquireInstanceListener(instanceAddr(cmd))
@@ -29,7 +34,7 @@ func reconcileCmd() *cli.Command {
 			}
 			defer func() { _ = listener.Close() }()
 
-			actionLogDir, err := resolveActionLogDir(cmd)
+			stateDir, err := resolveStateDir(cmd)
 			if err != nil {
 				return err
 			}
@@ -37,7 +42,7 @@ func reconcileCmd() *cli.Command {
 			renderer, finalize := pickReconcileEmitter(cmd)
 			rerr := engine.Reconcile(ctx, engine.ReconcileConfig{
 				Dir:          dir,
-				ActionLogDir: actionLogDir,
+				ActionLogDir: actionLogDir(stateDir),
 				Emitter:      renderer,
 			})
 			finalize(rerr)

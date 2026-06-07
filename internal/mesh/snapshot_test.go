@@ -3,7 +3,6 @@
 package mesh
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -12,7 +11,7 @@ import (
 
 func TestSnapshot_RoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "peers.json")
-	in := &snapshot{
+	in := &Snapshot{
 		Self: "peer-a",
 		Peers: []Peer{
 			{Name: "peer-a", Addr: "10.0.0.5:7946"},
@@ -22,15 +21,12 @@ func TestSnapshot_RoundTrip(t *testing.T) {
 	if err := writeSnapshot(path, in); err != nil {
 		t.Fatal(err)
 	}
-	out, err := readSnapshot(path)
+	out, err := ReadSnapshot(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if out.Self != "peer-a" {
 		t.Errorf("self: got %q want %q", out.Self, "peer-a")
-	}
-	if out.Version != snapshotVersion {
-		t.Errorf("version: got %d want %d", out.Version, snapshotVersion)
 	}
 	if out.UpdatedAt.IsZero() {
 		t.Error("updated_at: expected non-zero stamp")
@@ -41,7 +37,7 @@ func TestSnapshot_RoundTrip(t *testing.T) {
 }
 
 func TestSnapshot_ReadMissing(t *testing.T) {
-	_, err := readSnapshot(filepath.Join(t.TempDir(), "absent.json"))
+	_, err := ReadSnapshot(filepath.Join(t.TempDir(), "absent.json"))
 	if !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("got %v, want errors.Is(_, os.ErrNotExist)", err)
 	}
@@ -52,32 +48,14 @@ func TestSnapshot_ReadCorrupt(t *testing.T) {
 	if err := os.WriteFile(path, []byte("{not json"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := readSnapshot(path); err == nil {
+	if _, err := ReadSnapshot(path); err == nil {
 		t.Error("expected decode error, got nil")
-	}
-}
-
-func TestSnapshot_VersionMismatch(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "peers.json")
-	data, err := json.Marshal(map[string]any{
-		"version": 999,
-		"self":    "peer-a",
-		"peers":   []Peer{},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := readSnapshot(path); err == nil {
-		t.Error("expected version mismatch error, got nil")
 	}
 }
 
 func TestSnapshot_DedupesAndSorts(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "peers.json")
-	in := &snapshot{
+	in := &Snapshot{
 		Self: "peer-a",
 		Peers: []Peer{
 			{Name: "peer-c", Addr: "10.0.0.7:7946"},
@@ -89,7 +67,7 @@ func TestSnapshot_DedupesAndSorts(t *testing.T) {
 	if err := writeSnapshot(path, in); err != nil {
 		t.Fatal(err)
 	}
-	out, err := readSnapshot(path)
+	out, err := ReadSnapshot(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +85,7 @@ func TestSnapshot_DedupesAndSorts(t *testing.T) {
 func TestSnapshot_AtomicRenameNoTmpLeftover(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "peers.json")
-	s := &snapshot{Self: "peer-a", Peers: []Peer{{Name: "peer-a", Addr: "127.0.0.1:7946"}}}
+	s := &Snapshot{Self: "peer-a", Peers: []Peer{{Name: "peer-a", Addr: "127.0.0.1:7946"}}}
 	if err := writeSnapshot(path, s); err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +103,7 @@ func TestSnapshot_AtomicRenameNoTmpLeftover(t *testing.T) {
 func TestSnapshot_CreatesParentDir(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nested", "scampi")
 	path := filepath.Join(dir, "peers.json")
-	s := &snapshot{Self: "peer-a", Peers: []Peer{{Name: "peer-a", Addr: "127.0.0.1:7946"}}}
+	s := &Snapshot{Self: "peer-a", Peers: []Peer{{Name: "peer-a", Addr: "127.0.0.1:7946"}}}
 	if err := writeSnapshot(path, s); err != nil {
 		t.Fatal(err)
 	}
