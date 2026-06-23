@@ -1,0 +1,7 @@
+# Pinned tool versions — bumps are deliberate, never let one drift.
+# golangci-lint, gomarklint and hugo are pinned in go.mod tool directives.
+[tools]
+go = "1.26.4"
+just = "1.53.0"
+shellcheck = "0.11.0"
+jq = "1.8.2"

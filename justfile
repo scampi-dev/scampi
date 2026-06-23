@@ -17,17 +17,14 @@ mod release 'release.just'
 [doc("GitHub issue/PR/milestone helpers via the gh CLI")]
 mod gh 'github.just'
 
-[group('modules')]
-[doc("Issue intake pipeline: eval-inbox -> claude QA -> pusher-inbox -> GitHub")]
-mod issues 'issues.just'
-
 # Constants
 # -----------------------------------------------------------------------------
 
 build_dir       := "./build"
 bin_dir         := f"{{build_dir}}/bin"
 spdx_header     := "// SPDX-License-Identifier: GPL-3.0-only"
-required_tools  := "shellcheck jq curl"
+# System staples mise doesn't manage; everything else is pinned in .mise.toml.
+required_tools  := "curl"
 cross_targets   := "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64 freebsd/arm64"
 
 # Help
@@ -62,20 +59,6 @@ cross outdir=bin_dir:
     out="{{outdir}}/scampi-${os}-${arch}"
     printf "  %-20s -> %s\n" "scampi ${os}/${arch}" "$out"
     CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags '{{ldflags}}' -o "$out" ./cmd/scampi
-  done
-
-[group('build')]
-[doc("Generate manpages from markdown sources")]
-manpages:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  out="{{build_dir}}/man/man1"
-  mkdir -p "$out"
-  for src in doc/man/*.1.md; do
-    [ -f "$src" ] || continue
-    name=$(basename "$src" .md)
-    go tool github.com/cpuguy83/go-md2man/v2 -in "$src" -out "$out/$name"
-    echo "  $name"
   done
 
 [group('build')]
@@ -167,30 +150,23 @@ _gopls-hints severity:
 # -----------------------------------------------------------------------------
 
 [group('deps')]
-[doc("Install external build/lint dependencies")]
+[doc("Install pinned tools via mise, then check system staples")]
 setup:
   #!/usr/bin/env bash
   set -euo pipefail
+  if command -v mise &>/dev/null; then
+    mise install
+  else
+    echo "mise not found — install https://mise.jdx.dev to get the pinned"
+    echo "go/just/shellcheck/jq versions from .mise.toml."
+    exit 1
+  fi
   missing=()
   for cmd in {{required_tools}}; do
     command -v "$cmd" &>/dev/null || missing+=("$cmd")
   done
-  if [[ ${#missing[@]} -eq 0 ]]; then
-    echo "All dependencies installed."
-    exit 0
-  fi
-  echo "Missing: ${missing[*]}"
-  if command -v brew &>/dev/null; then
-    brew install "${missing[@]}"
-  elif command -v pacman &>/dev/null; then
-    sudo pacman -S "${missing[@]}"
-  elif command -v dnf &>/dev/null; then
-    sudo dnf install -y "${missing[@]}"
-  elif command -v apt-get &>/dev/null; then
-    sudo apt-get install -y "${missing[@]}"
-  else
-    echo "Install manually: ${missing[*]}"
-    exit 1
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "Also install system staple(s): ${missing[*]}"
   fi
 
 [group('deps')]
@@ -205,11 +181,6 @@ upgrade:
 
 # Diagnostics & cleanup
 # -----------------------------------------------------------------------------
-
-[group('cleanup')]
-[doc("Analyze binary sizes")]
-bin-size:
-  ./scripts/bin-size.sh
 
 [group('cleanup')]
 [doc("Clean project")]

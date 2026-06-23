@@ -4,6 +4,7 @@
 !.gitattributes
 !.golangci.yml
 !.gomarklint.json
+!.mise.toml
 
 # Template / example files want to be committed regardless of where
 # they live (covers .env.example, .config.example, etc.).

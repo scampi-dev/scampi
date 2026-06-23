@@ -45,14 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.26'
-          check-latest: true
-
-      - name: Setup just
-        uses: extractions/setup-just@v2
+      - uses: jdx/mise-action@v2
 
       - name: Build scampi
         run: just build

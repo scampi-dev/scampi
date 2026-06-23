@@ -2,8 +2,9 @@ module scampi.dev/scampi
 
 go 1.26
 
+toolchain go1.26.4
+
 tool (
-	github.com/cpuguy83/go-md2man/v2
 	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	github.com/shinagawa-web/gomarklint
 )

@@ -51,7 +51,7 @@ Core flow: **scampi step → StepType → Action → Op → Target**
 cmd/         # CLI entrypoint: scampi (engine)
 lang/        # Language implementation: lexer, parser, AST, evaluator, formatter
 std/         # Standard library (.scampi files + embedded Go)
-mod/         # Module system (fetch, resolve, tidy, sum)
+mod/         # scampi.mod manifest parser (local multi-file/submodule resolution)
 linker/      # Submodule linker
 engine/      # Planning and execution (deterministic, fail-fast)
 spec/        # Core interfaces: StepType, Action, Op, Plan
