@@ -97,9 +97,4 @@ std.deploy(name = "hello", targets = [machine]) {
     style="pointer-events: none"
     subtitle="Built-in test framework with mock targets. Test your infra code in milliseconds, no containers needed."
   >}}
-  {{< hextra/feature-card
-    title="Editor-First"
-    style="pointer-events: none"
-    subtitle="LSP server with real-time diagnostics, completion, and hover docs. Full eval pipeline, not just syntax."
-  >}}
 {{< /hextra/feature-grid >}}

@@ -29,13 +29,6 @@ publishDir = "../build/site"
     base = "https://github.com/scampi-dev/scampi/edit/main/site/content"
 
 [[menus.main]]
-  name = "Why"
-  pageRef = "/why"
-  weight = 1
-  [menus.main.params]
-    type = "link"
-
-[[menus.main]]
   name = "About"
   pageRef = "/about"
   weight = 2
