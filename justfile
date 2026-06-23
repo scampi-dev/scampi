@@ -23,8 +23,6 @@ mod gh 'github.just'
 build_dir       := "./build"
 bin_dir         := f"{{build_dir}}/bin"
 spdx_header     := "// SPDX-License-Identifier: GPL-3.0-only"
-# System staples mise doesn't manage; everything else is pinned in .mise.toml.
-required_tools  := "curl"
 cross_targets   := "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64 freebsd/arm64"
 
 # Help
@@ -150,24 +148,9 @@ _gopls-hints severity:
 # -----------------------------------------------------------------------------
 
 [group('deps')]
-[doc("Install pinned tools via mise, then check system staples")]
+[doc("Bootstrap the pinned toolchain (same as ./scripts/bootstrap.sh)")]
 setup:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  if command -v mise &>/dev/null; then
-    mise install
-  else
-    echo "mise not found — install https://mise.jdx.dev to get the pinned"
-    echo "go/just/shellcheck/jq versions from .mise.toml."
-    exit 1
-  fi
-  missing=()
-  for cmd in {{required_tools}}; do
-    command -v "$cmd" &>/dev/null || missing+=("$cmd")
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    echo "Also install system staple(s): ${missing[*]}"
-  fi
+  ./scripts/bootstrap.sh
 
 [group('deps')]
 [doc("Check for outdated direct dependencies")]

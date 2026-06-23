@@ -76,12 +76,13 @@ Stack `-v` flags on any of those for more detail — `-v` (why), `-vv` (how), `-
 
 ## From source
 
-Prefer building from a checkout? You'll need [Go](https://go.dev) and [`just`](https://github.com/casey/just):
+Prefer building from a checkout? `scripts/bootstrap.sh` installs the pinned toolchain ([mise](https://mise.jdx.dev) → Go, [`just`](https://github.com/casey/just), …) so you don't have to:
 
 ```bash
 git clone https://github.com/scampi-dev/scampi
 cd scampi
-just build           # produces ./build/bin/scampi
+./scripts/bootstrap.sh   # installs the pinned toolchain (or: just setup)
+just build               # produces ./build/bin/scampi
 ```
 
 For ongoing development, `just scampi <args>` is a rebuild-on-change wrapper that always runs the latest source.
