@@ -1,9 +1,7 @@
 name: Site Deploy
 
 # Build the docs site and deploy it to the VPS Caddy dir whenever a
-# release is published. Runs on ubuntu-latest — only bench needs the
-# self-hosted VPS runner for measurement stability; this is just a
-# build + ssh-push.
+# release is published. Runs on ubuntu-latest — just a build + ssh-push.
 
 on:
   # Triggered when the Release workflow completes. The Release workflow

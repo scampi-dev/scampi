@@ -3,9 +3,6 @@ name: CI
 on:
   push:
     branches: [main]
-    # Bench commits land in benchmarks/ and shouldn't re-trigger CI.
-    paths-ignore:
-      - 'benchmarks/**'
   pull_request:
     branches: [main]
 

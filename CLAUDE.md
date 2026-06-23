@@ -40,7 +40,6 @@ just test nocontainers # Everything except container-gated tests
 just test everything   # Full suite including containers
 just test race         # Tests with race-detector
 just test fuzz         # Fuzz tests (30s default)
-just test bench        # Benchmarks
 just test coverage     # Coverage report
 ```
 

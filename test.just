@@ -1,5 +1,3 @@
-bench_dir := "./benchmarks"
-
 # Help
 # -----------------------------------------------------------------------------
 
@@ -112,10 +110,10 @@ ssh:
 testkit:
   go run ./cmd/scampi test test/testdata/testkit/...
 
-# Fuzz and benchmarks
+# Fuzz
 # -----------------------------------------------------------------------------
 
-[group('fuzz-bench')]
+[group('fuzz')]
 [doc("Run fuzz tests (optional package filter, e.g. just test fuzz 10m test)")]
 fuzz time='30s' pkg='':
   #!/usr/bin/env bash
@@ -131,48 +129,6 @@ fuzz time='30s' pkg='':
     echo "fuzzing ./$pkg ({{time}})..."
     go test "./$pkg" -fuzz=. -fuzztime={{time}}
   done
-
-[group('fuzz-bench')]
-[doc("Run benchmarks (SCAMPI_BENCH_FULL=1 enables Size-{10,100,1000,10000} variants in addition to Size-1)")]
-bench save_as='' count='10' benchtime='100ms':
-  #!/usr/bin/env bash
-  # -run=^$ skips tests entirely; we want to measure only benchmarks
-  # so an unrelated test flake can't poison a recorded baseline.
-  # pipefail makes `go test ... | tee` propagate go test's exit code
-  # so callers (CI) see real failures instead of tee's swallowed 0.
-  set -euo pipefail
-  if [[ -z "{{save_as}}" ]]; then
-    SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count={{count}} -benchtime={{benchtime}}
-    exit 0
-  fi
-  mkdir -p "{{bench_dir}}"
-  # Allow CI to fix the filename timestamp to the same value used in
-  # the eventual commit message, so the file in benchmarks/ matches
-  # `ci: bench baseline <ts>` instead of drifting by the bench runtime.
-  ts="${SCAMPI_BENCH_TS:-$(date '+%Y-%m-%dT%H%M')}"
-  echo 'Warmup run...'
-  SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count=2 -benchtime={{benchtime}}
-  echo 'Recorded run...'
-  SCAMPI_BENCH_FULL=1 go test ./test/integration -run='^$' -bench=. -benchmem -count={{count}} -benchtime={{benchtime}} \
-    | tee "{{bench_dir}}/$ts-{{save_as}}.txt"
-
-[group('fuzz-bench')]
-[doc("Compare the latest 2 existing benchmarks with suffix")]
-benchcomp suffix:
-  curr=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 1`; \
-  prev=`ls {{bench_dir}}/*-{{suffix}}.txt | sort | tail -n 2 | head -n 1`; \
-  echo "Comparing:"; \
-  echo "  $prev"; \
-  echo "  $curr"; \
-  go tool benchstat -table .config -row .fullname -col .file "$prev" "$curr"
-
-[group('fuzz-bench')]
-[doc("Plot benchmark history as HTML dashboard for given suffix")]
-benchplot suffix:
-  go run ./bin/benchplot \
-    -o ./bin/benchplot/{{suffix}}.html \
-    {{bench_dir}}/*-{{suffix}}.txt
-  open ./bin/benchplot/{{suffix}}.html
 
 # Coverage
 # -----------------------------------------------------------------------------
