@@ -73,10 +73,6 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
-			pattern:        "linker/remote.go",
-			allowedImports: "net/http,os,os/exec",
-		},
-		{
 			pattern:        "step/sharedop/convert.go",
 			allowedImports: "crypto/sha256",
 		},
@@ -99,10 +95,6 @@ func TestImportCapabilities(t *testing.T) {
 		{
 			pattern:        "engine/errors.go",
 			allowedImports: "runtime",
-		},
-		{
-			pattern:        "mod/cache.go",
-			allowedImports: "os",
 		},
 		{
 			pattern:        "render/cli/cli.go",
@@ -196,36 +188,8 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "crypto/sha256",
 		},
 		{
-			pattern:        "mod/init.go",
-			allowedImports: "os/exec",
-		},
-		{
-			pattern:        "cmd/scampi/mod.go",
-			allowedImports: "os",
-		},
-		{
 			pattern:        "cmd/scampi/test.go",
 			allowedImports: "os",
-		},
-		{
-			pattern:        "mod/sum.go",
-			allowedImports: "os,crypto/sha256",
-		},
-		{
-			pattern:        "mod/fetch.go",
-			allowedImports: "os,os/exec",
-		},
-		{
-			pattern:        "mod/resolve_deps.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "mod/vanity.go",
-			allowedImports: "os/exec,net/http",
-		},
-		{
-			pattern:        "mod/add.go",
-			allowedImports: "os,os/exec",
 		},
 	}
 

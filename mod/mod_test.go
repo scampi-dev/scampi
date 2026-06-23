@@ -3,13 +3,11 @@
 package mod_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
 	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/mod"
-	"scampi.dev/scampi/source"
 )
 
 const testFile = "scampi.mod"
@@ -393,40 +391,6 @@ require (
 		if dep.Indirect {
 			t.Errorf("Require[%d].Indirect = true, want false", i)
 		}
-	}
-}
-
-func TestWriteModFile_IndirectRoundTrip(t *testing.T) {
-	ctx := context.Background()
-	src := source.NewMemSource()
-
-	deps := []mod.Dependency{
-		{Path: "github.com/scampi-modules/npm", Version: "v1.0.0", Indirect: false},
-		{Path: "github.com/scampi-modules/authelia", Version: "v0.3.2", Indirect: true},
-	}
-
-	if err := mod.WriteModFile(ctx, src, testFile, "github.com/pskry/skrynet", deps); err != nil {
-		t.Fatalf("writeModFile: %v", err)
-	}
-
-	data, err := src.ReadFile(ctx, testFile)
-	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	}
-
-	m, err := mod.Parse(testFile, data)
-	if err != nil {
-		t.Fatalf("Parse after write: %v", err)
-	}
-
-	if len(m.Require) != 2 {
-		t.Fatalf("len(Require) = %d, want 2", len(m.Require))
-	}
-	if m.Require[0].Indirect {
-		t.Errorf("Require[0].Indirect = true, want false")
-	}
-	if !m.Require[1].Indirect {
-		t.Errorf("Require[1].Indirect = false, want true")
 	}
 }
 

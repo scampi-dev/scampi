@@ -118,7 +118,6 @@ func main() {
 			checkCmd(),
 			applyCmd(),
 			inspectCmd(),
-			modCmd(),
 			testCmd(),
 			indexCmd(),
 			secretsCmd(),

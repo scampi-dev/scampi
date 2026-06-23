@@ -5,11 +5,14 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 
 	"filippo.io/age"
 
 	"scampi.dev/scampi/diagnostic"
+	"scampi.dev/scampi/diagnostic/event"
 	"scampi.dev/scampi/engine"
 	"scampi.dev/scampi/secret"
 	"scampi.dev/scampi/source"
@@ -502,4 +505,17 @@ std.deploy(name = "test", targets = [host]) {}
 	if err == nil {
 		t.Fatal("expected error for missing secrets file, got nil")
 	}
+}
+
+func recContains(rec *harness.RecordingDisplayer, substr string) bool {
+	for _, ev := range rec.Diagnostics {
+		tmpl := event.TemplateOf(ev)
+		if strings.Contains(tmpl.Text, substr) {
+			return true
+		}
+		if strings.Contains(fmt.Sprintf("%+v", tmpl.Data), substr) {
+			return true
+		}
+	}
+	return false
 }

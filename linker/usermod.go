@@ -356,9 +356,10 @@ func depDir(m *mod.Module, dep *mod.Dependency) string {
 		}
 		return dir
 	}
-	cacheDir := filepath.Join(mod.DefaultCacheDir(), dep.Path+"@"+dep.Version)
-	_ = ensureRemoteDep(dep.Path, dep.Version, cacheDir)
-	return cacheDir
+	// Remote dependencies are no longer fetched; only local path deps
+	// resolve. A non-local dep returns no dir, so the loader skips it
+	// and the checker reports it as an unknown module.
+	return ""
 }
 
 func lastPathSegment(p string) string {
