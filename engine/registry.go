@@ -15,7 +15,6 @@ import (
 	"scampi.dev/scampi/step/group"
 	"scampi.dev/scampi/step/mount"
 	"scampi.dev/scampi/step/pkg"
-	"scampi.dev/scampi/step/pve/lxc"
 	steprest "scampi.dev/scampi/step/rest"
 	"scampi.dev/scampi/step/run"
 	"scampi.dev/scampi/step/runset"
@@ -27,7 +26,6 @@ import (
 	"scampi.dev/scampi/step/unarchive"
 	stepuser "scampi.dev/scampi/step/user"
 	"scampi.dev/scampi/target/local"
-	"scampi.dev/scampi/target/pve"
 	"scampi.dev/scampi/target/rest"
 	"scampi.dev/scampi/target/ssh"
 )
@@ -50,7 +48,6 @@ func NewRegistry() *Registry {
 		steprest.Request{},
 		steprest.Resource{},
 		steprest.ResourceSet{},
-		lxc.LXC{},
 		run.Run{},
 		runset.RunSet{},
 		service.Service{},
@@ -63,7 +60,6 @@ func NewRegistry() *Registry {
 
 	targetTypes := []spec.TargetType{
 		local.Local{},
-		pve.LXC{},
 		rest.REST{},
 		ssh.SSH{},
 	}
@@ -87,7 +83,6 @@ func NewRegistry() *Registry {
 		steprest.Converters(),
 		rest.Converters(),
 		container.Converters(),
-		lxc.Converters(),
 	} {
 		maps.Copy(r.converters, cm)
 	}

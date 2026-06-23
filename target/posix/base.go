@@ -26,7 +26,6 @@ type Base struct {
 	PkgBackend     *pkgmgr.Backend
 	SvcBackend     svcmgr.Backend
 	CtrBackend     *ctrmgr.Backend
-	HasPVE         bool
 	Escalate       string
 	EscalateReason target.EscalateReason
 	IsRoot         bool
@@ -61,9 +60,6 @@ func (b Base) Capabilities() capability.Capability {
 	}
 	if b.CtrBackend != nil {
 		caps |= capability.Container
-	}
-	if b.HasPVE {
-		caps |= capability.PVE
 	}
 	return caps
 }

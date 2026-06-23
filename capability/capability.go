@@ -28,7 +28,6 @@ const (
 	PkgRepo                             // HasRepo, HasRepoKey, InstallRepoKey, WriteRepoConfig
 	Container                           // ContainerInspect, ContainerCreate, ContainerStart, ContainerStop, ContainerRm
 	REST                                // HTTP Do (GET, POST, PUT, PATCH, DELETE)
-	PVE                                 // Proxmox VE CLI tools (pct, qm, pvesm)
 )
 
 const (
@@ -92,9 +91,6 @@ func (c Capability) String() string {
 	}
 	if c&REST != 0 {
 		parts = append(parts, "REST")
-	}
-	if c&PVE != 0 {
-		parts = append(parts, "PVE")
 	}
 
 	// If no known flags matched, show raw value

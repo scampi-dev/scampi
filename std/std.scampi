@@ -121,7 +121,6 @@ pub func env(name: string, default: string?) string
 // posix.source_local for deploy-time access instead.
 //
 //   let hal_key = std.read_file("keys/hal9000.pub")
-//   pve.lxc { ssh_public_keys = [hal_key], ... }
 //
 // errors if the file is missing or unreadable. in lenient eval
 // (LSP, dry analysis) returns a placeholder string instead.
