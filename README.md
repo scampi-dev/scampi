@@ -120,7 +120,7 @@ Or just own it: "We've standardized on **scampi** for infrastructure convergence
 
 ## Development
 
-Want to hack on scampi? See [`CONTRIBUTING.md`](CONTRIBUTING.md) — covers the build/test workflow, the design docs under `doc/design/`, the commit style, and the project's code conventions.
+Want to hack on scampi? See [`CONTRIBUTING.md`](CONTRIBUTING.md) — covers the build/test workflow, the commit style, and the project's code conventions.
 
 ## License
 

@@ -77,9 +77,8 @@ linter doesn't catch:
   // Title
   // -----------------------------------------------------------------------------
   ```
-- **Naming** — see [`doc/design/naming.md`](./doc/design/naming.md)
-  for the project's terminology (StepType, Action, Op, Target) and
-  the suffixes to avoid.
+- **Naming** — the project's terminology is StepType, Action, Op,
+  Target; avoid `Impl`, `Handler`, `Spec` suffixes.
 
 If you're unsure whether a change fits the project style, file the
 issue first and we'll talk it through before you write code.

@@ -76,16 +76,7 @@ target/      # Write-side effects (mutations only)
 - Ops within an action run in parallel via DAG scheduler
 - All ops support idempotent Check/Execute pattern
 
-## Design Docs
-
-- `doc/design/workflow.md` — end-to-end workflow contract (issue → implementation → commit)
-- `doc/design/naming.md` — terminology and conceptual model
-- `doc/design/units-targets-vars.md` — configuration model, targets, deploy blocks, project layout
-- `doc/design/cli-semantics.md` — CLI output colors and verbosity
-
 ## Naming Conventions
-
-See `doc/design/naming.md` for authoritative terminology.
 
 - **Step**: declarative work item
 - **StepType**: Go type representing a step kind (one per kind)
@@ -97,8 +88,7 @@ Avoid: `Impl`, `Handler`, `Spec` suffixes. Package names are singular nouns desc
 
 ## CLI Output Semantics
 
-Colors are semantic, not decorative. See `doc/design/cli-semantics.md`
-for the full contract; the canonical palette is:
+Colors are semantic, not decorative. The canonical palette is:
 
 | Color   | Meaning                 |
 | ------- | ----------------------- |
