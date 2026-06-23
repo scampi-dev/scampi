@@ -1,9 +1,0 @@
-module main
-import "std/posix"
-
-posix.copy {
-  src = posix.source_inline { content = "hi" }
-  $0
-  dest = "/etc/foo"
-  owner = "root"
-}

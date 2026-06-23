@@ -1,5 +1,0 @@
-module main
-
-let greeting = "hello"
-
-let msg = gree$0ting

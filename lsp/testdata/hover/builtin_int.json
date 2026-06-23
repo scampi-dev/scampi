@@ -1,6 +1,0 @@
-{
-  "request": "hover",
-  "expect": {
-    "contains": ["int", "signed integer"]
-  }
-}

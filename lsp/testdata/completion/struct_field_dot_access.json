@@ -1,6 +1,0 @@
-{
-  "request": "completion",
-  "expect": {
-    "labels": ["name", "port"]
-  }
-}

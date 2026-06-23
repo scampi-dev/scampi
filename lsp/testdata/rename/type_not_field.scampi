@@ -1,7 +1,0 @@
-module main
-
-type X$0 {
-  X: string
-}
-
-let x = X { X = "hello" }

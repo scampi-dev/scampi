@@ -1,6 +1,0 @@
-{
-  "request": "completion",
-  "expect": {
-    "labels": ["hostname", "cores"]
-  }
-}

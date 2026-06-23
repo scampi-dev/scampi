@@ -21,12 +21,11 @@ A declarative system convergence engine. Users describe desired system state in 
 ## Commands
 
 ```bash
-just build          # Build scampi and scampls binaries
+just build          # Build the scampi binary
 just test           # Show test recipes; `just test all` runs the full suite
 just lint           # Run golangci-lint
 just fmt            # Format code
 just scampi <args>  # Build and run scampi locally
-just scampls        # Build and run scampls (LSP) via go run
 just help site      # Site build/dev subcommands
 ```
 
@@ -50,9 +49,8 @@ just test coverage     # Coverage report
 Core flow: **scampi step → StepType → Action → Op → Target**
 
 ```
-cmd/         # CLI entrypoints: scampi (engine) and scampls (LSP)
+cmd/         # CLI entrypoint: scampi (engine)
 lang/        # Language implementation: lexer, parser, AST, evaluator, formatter
-lsp/         # scampls LSP server (completion, hover, diagnostics)
 std/         # Standard library (.scampi files + embedded Go)
 mod/         # Module system (fetch, resolve, tidy, sum)
 linker/      # Submodule linker
@@ -240,7 +238,6 @@ behavior you care about.
 | Integration (Go)     | `test/integration/*_test.go`              | Inline Go tests of engine wiring (mock targets, error paths). No fixtures.             |
 | Drift                | `test/drift/`                             | Drift-detection scenarios.                                                             |
 | Rules                | `test/rules/`                             | Codebase invariants (bare-error ban, markdown table alignment, signature style, etc.). |
-| LSP                  | `lsp/*_test.go`                           | Inline Go strings — cursor positions need encoding.                                    |
 | testkit              | `test/testdata/testkit/`                  | scampi's own test framework fixtures.                                                  |
 | SSH                  | `test/ssh/`                               | Container-gated; `just test ssh`.                                                      |
 

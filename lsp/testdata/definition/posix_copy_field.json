@@ -1,7 +1,0 @@
-{
-  "request": "definition",
-  "expect": {
-    "uri_suffix": "posix.scampi",
-    "line": 56
-  }
-}

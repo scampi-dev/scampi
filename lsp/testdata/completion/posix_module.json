@@ -1,7 +1,0 @@
-{
-  "request": "completion",
-  "expect": {
-    "labels_include": ["copy", "dir", "service", "pkg", "user", "group", "symlink"],
-    "labels_exclude": ["nonexistent"]
-  }
-}

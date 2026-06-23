@@ -81,7 +81,7 @@ Prefer building from a checkout? You'll need [Go](https://go.dev) and [`just`](h
 ```bash
 git clone https://github.com/scampi-dev/scampi
 cd scampi
-just build           # produces ./build/bin/scampi and ./build/bin/scampls
+just build           # produces ./build/bin/scampi
 ```
 
 For ongoing development, `just scampi <args>` is a rebuild-on-change wrapper that always runs the latest source.

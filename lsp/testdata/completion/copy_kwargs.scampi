@@ -1,7 +1,0 @@
-module main
-
-import "std/posix"
-
-posix.copy {
-  $0
-}

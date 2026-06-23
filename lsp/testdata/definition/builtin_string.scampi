@@ -1,5 +1,0 @@
-module main
-
-func greet(name: stri$0ng) string {
-  return "hello " + name
-}

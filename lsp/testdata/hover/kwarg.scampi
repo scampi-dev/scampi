@@ -1,5 +1,0 @@
-module main
-
-import "std/posix"
-
-posix.copy { de$0st = "/etc/foo" }

@@ -1,5 +1,0 @@
-module main
-
-import "std/posix"
-
-posix.co$0py

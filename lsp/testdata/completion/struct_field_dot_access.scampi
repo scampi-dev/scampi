@@ -1,9 +1,0 @@
-module main
-
-type Server {
-  name: string
-  port: int
-}
-
-let s = Server { name = "web", port = 443 }
-let n = s.$0

@@ -190,7 +190,7 @@ coverage filter='':
   # Drop generated stringer files and bare CLI entrypoints -- noise in
   # the HTML view, and skews per-package numbers. The mode: header
   # doesn't match the pattern and survives.
-  grep -v -E '(_string\.go|cmd/scampi/main\.go|cmd/scampls/main\.go):' coverage.raw.out > coverage.out
+  grep -v -E '(_string\.go|cmd/scampi/main\.go):' coverage.raw.out > coverage.out
   printf "%-50s %8s\n" "PACKAGE" "COVERAGE"
   printf "%-50s %8s\n" "-------" "--------"
   go tool cover -func=coverage.out \

@@ -1,6 +1,0 @@
-{
-  "request": "completion",
-  "expect": {
-    "labels": ["id", "name"]
-  }
-}

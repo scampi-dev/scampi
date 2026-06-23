@@ -69,10 +69,6 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,runtime,runtime/pprof,runtime/trace",
 		},
 		{
-			pattern:        "cmd/scampls/main.go",
-			allowedImports: "os,os/signal",
-		},
-		{
 			pattern:        "linker/usermod.go",
 			allowedImports: "os",
 		},
@@ -87,38 +83,6 @@ func TestImportCapabilities(t *testing.T) {
 		{
 			pattern:        "step/pkg/convert.go",
 			allowedImports: "crypto/sha256,net/url",
-		},
-		{
-			pattern:        "lsp/server.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "lsp/complete.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "lsp/eval.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "lsp/definition.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "lsp/stubdefs.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "lsp/references.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "lsp/symbols.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "lsp/oneshot.go",
-			allowedImports: "os,runtime/debug",
 		},
 		{
 			pattern:        "osutil/configdir.go",

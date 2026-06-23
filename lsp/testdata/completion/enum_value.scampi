@@ -1,5 +1,0 @@
-module main
-
-import "std/posix"
-
-posix.service { name = "nginx", state = "$0

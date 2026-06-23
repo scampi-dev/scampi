@@ -1,7 +1,0 @@
-{
-  "request": "completion",
-  "expect": {
-    "labels": ["port", "tls"],
-    "labels_exclude": ["name"]
-  }
-}

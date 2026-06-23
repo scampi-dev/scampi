@@ -45,11 +45,10 @@ version  := `git describe --tags --always --dirty 2>/dev/null || echo dev`
 ldflags  := "-s -w -X main.version=" + version
 
 [group('build')]
-[doc("Build scampi and scampls binaries")]
+[doc("Build the scampi binary")]
 build:
   mkdir -p {{bin_dir}}
   CGO_ENABLED=0 go build -trimpath -ldflags '{{ldflags}}' -o {{bin_dir}}/scampi  ./cmd/scampi
-  CGO_ENABLED=0 go build -trimpath -ldflags '{{ldflags}}' -o {{bin_dir}}/scampls ./cmd/scampls
 
 [group('build')]
 [doc("Cross-compile for all supported platforms (outdir=DIR)")]
@@ -60,11 +59,9 @@ cross outdir=bin_dir:
   for pair in {{cross_targets}}; do
     os="${pair%/*}"
     arch="${pair#*/}"
-    for bin in scampi scampls; do
-      out="{{outdir}}/${bin}-${os}-${arch}"
-      printf "  %-20s -> %s\n" "${bin} ${os}/${arch}" "$out"
-      CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags '{{ldflags}}' -o "$out" ./cmd/${bin}
-    done
+    out="{{outdir}}/scampi-${os}-${arch}"
+    printf "  %-20s -> %s\n" "scampi ${os}/${arch}" "$out"
+    CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags '{{ldflags}}' -o "$out" ./cmd/scampi
   done
 
 [group('build')]
@@ -118,11 +115,6 @@ _patch-license-headers:
 [doc("Build and run scampi locally")]
 scampi *args:
   go run ./cmd/scampi {{args}}
-
-[group('run')]
-[doc("Run scampls (LSP server) locally")]
-scampls *args:
-  go run ./cmd/scampls {{args}}
 
 [group('run')]
 [doc("Serve markdown files in a browser (default: .sandbox/ on :7080)")]

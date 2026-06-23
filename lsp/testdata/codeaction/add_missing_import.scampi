@@ -1,5 +1,0 @@
-module main
-
-import "std"
-
-posix.copy { src = "a", dest = "b" }
