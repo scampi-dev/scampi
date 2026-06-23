@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/errs"
-	"scampi.dev/scampi/signal"
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/errs"
+	"scampi.dev/scampi/internal/signal"
 )
 
 type ExpectedDiagnostics struct {

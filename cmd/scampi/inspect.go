@@ -8,11 +8,11 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v3"
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/osutil"
-	clir "scampi.dev/scampi/render/cli"
-	"scampi.dev/scampi/spec"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/osutil"
+	clir "scampi.dev/scampi/internal/render/cli"
+	"scampi.dev/scampi/internal/spec"
 )
 
 // scampi inspect

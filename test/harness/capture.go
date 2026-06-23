@@ -3,8 +3,8 @@
 package harness
 
 import (
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
 )
 
 // Capture is an Emitter that buffers every event in arrival order. It

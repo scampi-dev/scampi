@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/lang/ast"
-	"scampi.dev/scampi/lang/lex"
-	"scampi.dev/scampi/lang/parse"
-	"scampi.dev/scampi/linker"
-	"scampi.dev/scampi/std"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/lang/ast"
+	"scampi.dev/scampi/internal/lang/lex"
+	"scampi.dev/scampi/internal/lang/parse"
+	"scampi.dev/scampi/internal/linker"
+	"scampi.dev/scampi/internal/std"
 )
 
 // TestStubsMatchGoConfigs is the drift lint that replaces the deleted

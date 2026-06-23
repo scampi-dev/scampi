@@ -9,11 +9,11 @@ import (
 	"os"
 	"testing"
 
-	"scampi.dev/scampi/capability"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/target"
-	"scampi.dev/scampi/target/ssh"
+	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/target"
+	"scampi.dev/scampi/internal/target/ssh"
 	"scampi.dev/scampi/test/harness"
 )
 

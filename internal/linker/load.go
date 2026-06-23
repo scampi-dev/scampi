@@ -1,0 +1,419 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+package linker
+
+import (
+	"context"
+	"encoding/json"
+	"path/filepath"
+	"strings"
+
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/errs"
+	"scampi.dev/scampi/internal/lang/ast"
+	"scampi.dev/scampi/internal/lang/check"
+	"scampi.dev/scampi/internal/lang/eval"
+	"scampi.dev/scampi/internal/lang/lex"
+	"scampi.dev/scampi/internal/lang/parse"
+	"scampi.dev/scampi/internal/secret"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/std"
+)
+
+// Analysis is the result of Analyze: the parsed AST, the eval result,
+// and the original file bytes. Callers needing only diagnostics can
+// discard everything and use the error return; callers needing the
+// pipeline outputs (linker, LSP doc indexing) consume the fields.
+type Analysis struct {
+	File   *ast.File
+	Result *eval.Result
+	Source []byte
+}
+
+// AnalyzeOption configures Analyze.
+type AnalyzeOption func(*analyzeOpts)
+
+type analyzeOpts struct {
+	lenient  bool
+	redactor *secret.Redactor
+}
+
+// WithLenient enables tolerant evaluation: builtins that would
+// otherwise error on missing/empty input from an unset env var (or
+// any other placeholder) relax to silent defaults instead. Suitable
+// for analysis tools (LSP, dry-run check) where inputs may not
+// reflect the real apply-time values. See #264.
+func WithLenient() AnalyzeOption {
+	return func(o *analyzeOpts) { o.lenient = true }
+}
+
+// WithRedactor wires a secret.Redactor into eval so every value
+// returned by `secrets.get(...)` registers as a secret to redact in
+// downstream rendered output. The same redactor must be passed to
+// the renderer for the substitution to actually apply (see #281).
+func WithRedactor(r *secret.Redactor) AnalyzeOption {
+	return func(o *analyzeOpts) { o.redactor = r }
+}
+
+// Analyze runs the full lang pipeline (lex → parse → check → eval →
+// attribute static checks) without performing the final Link step.
+// Returns the analysis result and an error wrapping the first
+// failing phase's diagnostics. Suitable for both the linker
+// (LoadConfig wraps Analyze + Link) and the LSP (which surfaces
+// diagnostics inline as the user types).
+func Analyze(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	src source.Source,
+	opts ...AnalyzeOption,
+) (*Analysis, error) {
+	var o analyzeOpts
+	for _, f := range opts {
+		f(&o)
+	}
+	data, err := src.ReadFile(ctx, cfgPath)
+	if err != nil {
+		return nil, errs.WrapErrf(err, "read %s", cfgPath)
+	}
+
+	// Lex + parse.
+	l := lex.New(cfgPath, data)
+	p := parse.New(l)
+	f := p.Parse()
+	if lexErrs := l.Errors(); len(lexErrs) > 0 {
+		raiseLangErrors(em, lexErrs, cfgPath, data)
+		return nil, diagnostic.ErrAlreadyRaised
+	}
+	if parseErrs := p.Errors(); len(parseErrs) > 0 {
+		raiseLangErrors(em, parseErrs, cfgPath, data)
+		return nil, diagnostic.ErrAlreadyRaised
+	}
+
+	// Type check. Bootstrap std modules first, then load any user
+	// modules declared in scampi.mod so `import "mymodule"` works.
+	modules, err := check.BootstrapModules(std.FS)
+	if err != nil {
+		em.Raise(toLangDiagnostic(err, cfgPath, data))
+		return nil, diagnostic.ErrAlreadyRaised
+	}
+	userMods := LoadUserModules(cfgPath, modules)
+
+	// Multi-file module detection: if the file declares a non-main
+	// module and there are sibling .scampi files with the same
+	// module name, load them all into a shared scope (Go package
+	// model). This makes `scampi check module_file.scampi` work
+	// for files that reference siblings.
+	modName := "main"
+	if f.Module != nil {
+		modName = f.Module.Name.Name
+	}
+	var siblingMods []eval.UserModule
+	var brokenSiblings []brokenSibling
+	c := check.New(modules)
+	if modName != "main" {
+		siblings, broken, sibErr := loadSiblingDecls(em, cfgPath, modName, modules)
+		if sibErr != nil {
+			return nil, sibErr
+		}
+		brokenSiblings = append(brokenSiblings, broken...)
+		if siblings != nil {
+			c.WithScope(siblings)
+		}
+		var broken2 []brokenSibling
+		siblingMods, broken2 = loadSiblingUserModules(cfgPath, modName, modules)
+		brokenSiblings = append(brokenSiblings, broken2...)
+	}
+	c.Check(f)
+	if checkErrs := c.Errors(); len(checkErrs) > 0 {
+		raiseBrokenSiblings(em, brokenSiblings)
+		raiseLangErrors(em, checkErrs, cfgPath, data)
+		return nil, diagnostic.ErrAlreadyRaised
+	}
+
+	// Evaluate with secret backend builtins registered so
+	// secrets.from_age / secrets.from_file / secrets.get work.
+	readFile := func(path string) ([]byte, error) {
+		return src.ReadFile(ctx, path)
+	}
+	configDir := filepath.Dir(cfgPath)
+	evalOpts := []eval.Option{
+		eval.WithStubs(std.FS),
+		eval.WithUserModules(userMods),
+		eval.WithSiblingModules(siblingMods),
+		eval.WithEnv(src.LookupEnv),
+		eval.WithBuiltinFunc("secrets.from_age", secretFromAge(configDir, src.LookupEnv, readFile)),
+		eval.WithBuiltinFunc("secrets.from_file", secretFromFile(configDir, readFile)),
+		eval.WithBuiltinFunc("secrets.get", secretGetBuiltin(o.redactor)),
+		eval.WithBuiltinFunc("std.secret_env", secretEnvBuiltin(src.LookupEnv, o.redactor)),
+		eval.WithBuiltinFunc("std.read_file", stdReadFileBuiltin(configDir, readFile, o.lenient)),
+	}
+	if o.lenient {
+		evalOpts = append(evalOpts, eval.WithLenient())
+	}
+	result, evalErrs := eval.Eval(f, data, evalOpts...)
+	if len(evalErrs) > 0 {
+		raiseLangErrors(em, evalErrs, cfgPath, data)
+		return nil, diagnostic.ErrAlreadyRaised
+	}
+
+	// Run attribute static checks. Two complementary passes:
+	// the AST-walk catches func/UFCS calls (where eval consumed the
+	// args) and the eval-walk catches decl invocations (where eval
+	// preserved the resolved values in StructVal.Fields).
+	// Comprehensions and let-bindings naturally resolve through the
+	// eval-walk; literal-only call sites still go through the AST-
+	// walk's CallExpr branch. Overlap during the transition is
+	// dedup'd downstream at the diagnostic.policyEmitter boundary.
+	registry := DefaultAttributes()
+	fileScope := c.FileScope()
+	raisedStatic := runAttributeStaticChecks(
+		em,
+		f,
+		data,
+		cfgPath,
+		fileScope,
+		modules,
+		registry,
+		result,
+	)
+	raisedEval := runAttributeEvalChecks(
+		em,
+		result,
+		data,
+		cfgPath,
+		fileScope,
+		modules,
+		registry,
+	)
+	if raisedStatic || raisedEval {
+		return nil, diagnostic.ErrAlreadyRaised
+	}
+
+	return &Analysis{
+		File:   f,
+		Result: result,
+		Source: data,
+	}, nil
+}
+
+// LoadConfig reads a .scampi file, runs the full lang pipeline
+// (lex → parse → check → eval → link), and returns a spec.Config
+// ready for the engine.
+func LoadConfig(
+	ctx context.Context,
+	em diagnostic.Emitter,
+	cfgPath string,
+	src source.Source,
+	reg Registry,
+	opts ...AnalyzeOption,
+) (spec.Config, error) {
+	a, err := Analyze(ctx, em, cfgPath, src, opts...)
+	if err != nil {
+		return spec.Config{}, err
+	}
+	return Link(
+		a.Result,
+		reg,
+		cfgPath,
+		WithSource(a.Source),
+		WithSourceResolver(ctx, cfgPath, src),
+	)
+}
+
+// secretFromAge returns a BuiltinFunc for secrets.from_age(path).
+func secretFromAge(
+	configDir string,
+	envLookup func(string) (string, bool),
+	readFile func(string) ([]byte, error),
+) eval.BuiltinFunc {
+	return func(positional []eval.Value, kwargs map[string]eval.Value) (eval.Value, string) {
+		path := stringArg(positional, kwargs, "path")
+		if path == "" {
+			return nil, "secrets.from_age requires a path argument"
+		}
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(configDir, path)
+		}
+		data, err := readFile(path)
+		if err != nil {
+			return nil, "reading secrets file: " + err.Error()
+		}
+		var raw map[string]string
+		if jsonErr := json.Unmarshal(data, &raw); jsonErr != nil {
+			return nil, "parsing secrets file: " + jsonErr.Error()
+		}
+		lookup := envLookup
+		if lookup == nil {
+			lookup = func(string) (string, bool) { return "", false }
+		}
+		identities, idErr := secret.ResolveIdentities(lookup, readFile)
+		if idErr != nil {
+			keys := make(map[string]string, len(raw))
+			for k := range raw {
+				keys[k] = "<secret>"
+			}
+			return &eval.OpaqueVal{
+				TypeName: "SecretResolver",
+				Inner: &secret.PlaceholderBackend{
+					KeyMap: keys,
+					Cause:  idErr,
+				},
+			}, ""
+		}
+		ab, abErr := secret.NewAgeBackend(data, identities)
+		if abErr != nil {
+			return nil, "age backend: " + abErr.Error()
+		}
+		return &eval.OpaqueVal{TypeName: "SecretResolver", Inner: ab}, ""
+	}
+}
+
+// secretFromFile returns a BuiltinFunc for secrets.from_file(path).
+func secretFromFile(
+	configDir string,
+	readFile func(string) ([]byte, error),
+) eval.BuiltinFunc {
+	return func(positional []eval.Value, kwargs map[string]eval.Value) (eval.Value, string) {
+		path := stringArg(positional, kwargs, "path")
+		if path == "" {
+			return nil, "secrets.from_file requires a path argument"
+		}
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(configDir, path)
+		}
+		data, err := readFile(path)
+		if err != nil {
+			return nil, "reading secrets file: " + err.Error()
+		}
+		fb, fbErr := secret.NewFileBackend(data)
+		if fbErr != nil {
+			return nil, "file backend: " + fbErr.Error()
+		}
+		return &eval.OpaqueVal{TypeName: "SecretResolver", Inner: fb}, ""
+	}
+}
+
+// secretGetBuiltin returns a BuiltinFunc for secrets.get(resolver, key).
+// Every successful lookup registers the resolved value with redactor
+// (when non-nil) so downstream renderers can substitute the value
+// with a mask and avoid leaking secrets through inspect / diagnostics.
+// See #281.
+func secretGetBuiltin(redactor *secret.Redactor) eval.BuiltinFunc {
+	return func(positional []eval.Value, kwargs map[string]eval.Value) (eval.Value, string) {
+		if len(positional) == 0 {
+			return nil, "secrets.get requires a resolver and key"
+		}
+		opaque, ok := positional[0].(*eval.OpaqueVal)
+		if !ok {
+			return nil, "first argument to secrets.get must be a SecretResolver"
+		}
+		b, ok := opaque.Inner.(secret.Backend)
+		if !ok {
+			return nil, "invalid secret backend"
+		}
+		key := stringArg(positional[1:], kwargs, "key")
+		v, found, err := b.Lookup(key)
+		if err != nil {
+			return nil, "secret lookup failed: " + err.Error()
+		}
+		if !found {
+			return nil, "secret key " + key + " not found"
+		}
+		redactor.Add(v)
+		return &eval.StringVal{V: v}, ""
+	}
+}
+
+// secretEnvBuiltin returns a BuiltinFunc for std.secret_env(name, default).
+// Mirrors std.env semantics — read env via the source's lookup, fall back
+// to default on miss — but registers every successful resolution with
+// the redactor so the value gets masked in subsequent rendered output.
+// See #282.
+func secretEnvBuiltin(envLookup func(string) (string, bool), redactor *secret.Redactor) eval.BuiltinFunc {
+	return func(positional []eval.Value, kwargs map[string]eval.Value) (eval.Value, string) {
+		name := stringArg(positional, kwargs, "name")
+		if name == "" {
+			return nil, "std.secret_env requires a non-empty name"
+		}
+		if v, ok := envLookup(name); ok {
+			redactor.Add(v)
+			return &eval.StringVal{V: v}, ""
+		}
+		// Default fallback: secrets are still values, so a default
+		// for an unset secret env is a plain string (not registered
+		// — it didn't come from the env). The user opting into
+		// secret_env wants the *real* value redacted; the default is
+		// literally inline text in the config.
+		def := ""
+		if len(positional) > 1 {
+			if s, ok := positional[1].(*eval.StringVal); ok {
+				def = s.V
+			}
+		}
+		if d, ok := kwargs["default"]; ok {
+			if s, ok := d.(*eval.StringVal); ok {
+				def = s.V
+			}
+		}
+		if def != "" {
+			return &eval.StringVal{V: def}, ""
+		}
+		return nil, "secret env var " + name + " not set and no default given"
+	}
+}
+
+// stdReadFileBuiltin returns a BuiltinFunc for std.read_file(path).
+// Reads a UTF-8 file from the source side, resolved relative to the
+// calling config's directory (matching `posix.source_local`'s
+// resolution). Trims one trailing newline — the typical case is
+// "ssh-key\n" or "config\n" where the literal newline isn't part of
+// the value.
+//
+// Lenient mode (LSP / dry analysis): missing path or unreadable
+// file resolves to a placeholder rather than aborting eval, so the
+// LSP can keep working in a half-finished config. See #295 / #264.
+func stdReadFileBuiltin(
+	configDir string,
+	readFile func(string) ([]byte, error),
+	lenient bool,
+) eval.BuiltinFunc {
+	const placeholder = "scampi-read-file-placeholder"
+	return func(positional []eval.Value, kwargs map[string]eval.Value) (eval.Value, string) {
+		path := stringArg(positional, kwargs, "path")
+		if path == "" {
+			if lenient {
+				return &eval.StringVal{V: placeholder}, ""
+			}
+			return nil, "std.read_file requires a path argument"
+		}
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(configDir, path)
+		}
+		data, err := readFile(path)
+		if err != nil {
+			if lenient {
+				return &eval.StringVal{V: placeholder}, ""
+			}
+			return nil, "std.read_file: reading " + path + ": " + err.Error()
+		}
+		return &eval.StringVal{V: strings.TrimSuffix(string(data), "\n")}, ""
+	}
+}
+
+// stringArg extracts a string from the first positional arg or the
+// named kwarg.
+func stringArg(positional []eval.Value, kwargs map[string]eval.Value, name string) string {
+	if len(positional) > 0 {
+		if s, ok := positional[0].(*eval.StringVal); ok {
+			return s.V
+		}
+	}
+	if v, ok := kwargs[name]; ok {
+		if s, ok := v.(*eval.StringVal); ok {
+			return s.V
+		}
+	}
+	return ""
+}

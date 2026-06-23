@@ -9,7 +9,7 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/internal/errs"
 )
 
 // Profiling

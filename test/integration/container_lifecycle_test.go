@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"scampi.dev/scampi/capability"
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/target"
-	"scampi.dev/scampi/target/local"
+	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/target"
+	"scampi.dev/scampi/internal/target/local"
 	"scampi.dev/scampi/test/harness"
 )
 

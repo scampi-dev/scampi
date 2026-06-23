@@ -5,9 +5,9 @@ package integration
 import (
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/target"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
 

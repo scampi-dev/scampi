@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/source"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/source"
 )
 
 // nopDisplayer satisfies diagnostic.Displayer with no-op writes. Used

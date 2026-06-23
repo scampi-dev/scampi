@@ -18,14 +18,14 @@ import (
 	"sync"
 
 	"github.com/urfave/cli/v3"
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/errs"
-	"scampi.dev/scampi/osutil"
-	clir "scampi.dev/scampi/render/cli"
-	"scampi.dev/scampi/secret"
-	"scampi.dev/scampi/signal"
-	"scampi.dev/scampi/spec"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/errs"
+	"scampi.dev/scampi/internal/osutil"
+	clir "scampi.dev/scampi/internal/render/cli"
+	"scampi.dev/scampi/internal/secret"
+	"scampi.dev/scampi/internal/signal"
+	"scampi.dev/scampi/internal/spec"
 )
 
 // interruptHook holds a function called on SIGINT to notify the active

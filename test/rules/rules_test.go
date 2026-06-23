@@ -69,67 +69,67 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,runtime,runtime/pprof,runtime/trace",
 		},
 		{
-			pattern:        "linker/usermod.go",
+			pattern:        "internal/linker/usermod.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "step/sharedop/convert.go",
+			pattern:        "internal/step/sharedop/convert.go",
 			allowedImports: "crypto/sha256",
 		},
 		{
-			pattern:        "step/pkg/convert.go",
+			pattern:        "internal/step/pkg/convert.go",
 			allowedImports: "crypto/sha256,net/url",
 		},
 		{
-			pattern:        "osutil/configdir.go",
+			pattern:        "internal/osutil/configdir.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "osutil/diff.go",
+			pattern:        "internal/osutil/diff.go",
 			allowedImports: "os,os/exec",
 		},
 		{
-			pattern:        "osutil/fuzzy.go",
+			pattern:        "internal/osutil/fuzzy.go",
 			allowedImports: "os,os/exec",
 		},
 		{
-			pattern:        "engine/errors.go",
+			pattern:        "internal/engine/errors.go",
 			allowedImports: "runtime",
 		},
 		{
-			pattern:        "render/cli/cli.go",
+			pattern:        "internal/render/cli/cli.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "source/local_posix.go",
+			pattern:        "internal/source/local_posix.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "target/local/local.go",
+			pattern:        "internal/target/local/local.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "target/local/posix.go",
+			pattern:        "internal/target/local/posix.go",
 			allowedImports: "os,os/exec,os/user,crypto/rand",
 		},
 		{
-			pattern:        "target/local/repo.go",
+			pattern:        "internal/target/local/repo.go",
 			allowedImports: "os",
 		},
 		{
-			pattern:        "target/local/stat_linux.go",
+			pattern:        "internal/target/local/stat_linux.go",
 			allowedImports: "os,os/user,syscall",
 		},
 		{
-			pattern:        "target/local/stat_bsd.go",
+			pattern:        "internal/target/local/stat_bsd.go",
 			allowedImports: "os,os/user,syscall",
 		},
 		{
-			pattern:        "target/ssh/errors.go",
+			pattern:        "internal/target/ssh/errors.go",
 			allowedImports: "golang.org/x/crypto/ssh/knownhosts",
 		},
 		{
-			pattern: "target/ssh/ssh.go",
+			pattern: "internal/target/ssh/ssh.go",
 			allowedImports: `net,os,
 			golang.org/x/crypto/ssh,
 			golang.org/x/crypto/ssh/agent,
@@ -137,22 +137,22 @@ func TestImportCapabilities(t *testing.T) {
 			github.com/pkg/sftp`,
 		},
 		{
-			pattern: "target/ssh/target.go",
+			pattern: "internal/target/ssh/target.go",
 			allowedImports: `os,crypto/rand,
 			golang.org/x/crypto/ssh,
 			github.com/pkg/sftp`,
 		},
 		{
-			pattern: "target/ssh/shell_session.go",
+			pattern: "internal/target/ssh/shell_session.go",
 			allowedImports: `crypto/rand,
 			golang.org/x/crypto/ssh`,
 		},
 		{
-			pattern:        "osutil/signals_unix.go",
+			pattern:        "internal/osutil/signals_unix.go",
 			allowedImports: "os,syscall",
 		},
 		{
-			pattern:        "osutil/signals_windows.go",
+			pattern:        "internal/osutil/signals_windows.go",
 			allowedImports: "os",
 		},
 		{
@@ -176,15 +176,15 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
-			pattern:        "step/sharedop/download_op.go",
+			pattern:        "internal/step/sharedop/download_op.go",
 			allowedImports: "crypto/md5, crypto/sha1, crypto/sha256, crypto/sha512, net/http",
 		},
 		{
-			pattern:        "step/pkg/pkg.go",
+			pattern:        "internal/step/pkg/pkg.go",
 			allowedImports: "crypto/sha256",
 		},
 		{
-			pattern:        "step/unarchive/unarchive_op.go",
+			pattern:        "internal/step/unarchive/unarchive_op.go",
 			allowedImports: "crypto/sha256",
 		},
 		{
@@ -600,8 +600,8 @@ func TestMarkdownTableAlignment(t *testing.T) {
 		}
 	}
 
-	// Walk site/content/ and doc/
-	for _, dir := range []string{"site/content", "doc"} {
+	// Walk site/content/
+	for _, dir := range []string{"site/content"} {
 		abs := filepath.Join(root, dir)
 		err := filepath.WalkDir(abs, func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
@@ -655,8 +655,8 @@ func TestBareErrorBan(t *testing.T) {
 	// Sanctioned files: internal helpers whose fmt.Errorf/errors.New
 	// errors are wrapped before reaching the engine.
 	sanctioned := []string{
-		"lang/resolve/resolve.go",     // internal FS errors wrapped into resolve.Error
-		"target/ssh/shell_session.go", // framing errors wrapped by run() into errSession
+		"internal/lang/resolve/resolve.go",     // internal FS errors wrapped into resolve.Error
+		"internal/target/ssh/shell_session.go", // framing errors wrapped by run() into errSession
 	}
 
 	usedSanctions := map[string]bool{}
@@ -679,7 +679,7 @@ func TestBareErrorBan(t *testing.T) {
 		rel = filepath.ToSlash(rel)
 
 		// errs/ defines the wrappers — always exempt
-		if strings.HasPrefix(rel, "errs/") {
+		if strings.HasPrefix(rel, "internal/errs/") {
 			return nil
 		}
 		// test/ is test infrastructure — always exempt
@@ -803,10 +803,10 @@ func hasRationaleAboveBlock(file *ast.File, fset *token.FileSet, callLine int) b
 func TestLangPackageIsolation(t *testing.T) {
 	root := repoRoot(t)
 	const modulePrefix = "scampi.dev/scampi/"
-	const langPrefix = modulePrefix + "lang/"
+	const langPrefix = modulePrefix + "internal/lang/"
 
 	fset := token.NewFileSet()
-	err := filepath.WalkDir(filepath.Join(root, "lang"), func(p string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(filepath.Join(root, "internal/lang"), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -838,11 +838,11 @@ func TestLangPackageIsolation(t *testing.T) {
 				continue
 			}
 			// Allow std/ — the standard library stubs.
-			if importPath == modulePrefix+"std" {
+			if importPath == modulePrefix+"internal/std" {
 				continue
 			}
 			// Allow errs/ — leaf package with shared error primitives.
-			if importPath == modulePrefix+"errs" {
+			if importPath == modulePrefix+"internal/errs" {
 				continue
 			}
 			// Anything else in the scampi module is forbidden.
@@ -873,7 +873,7 @@ func TestLangPackageIsolation(t *testing.T) {
 // Test files are allowed (they may assert on rendered fancy output).
 // glyph.go itself is the canonical glyph source — exempt by design.
 func TestGlyphDiscipline(t *testing.T) {
-	root := "../../render/cli"
+	root := "../../internal/render/cli"
 
 	fset := token.NewFileSet()
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {

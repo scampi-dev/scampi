@@ -1,0 +1,125 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+package firewall
+
+import (
+	"fmt"
+
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/spec"
+)
+
+// BackendNotFoundError is emitted when neither ufw nor firewall-cmd is found.
+type BackendNotFoundError struct {
+}
+
+func (e BackendNotFoundError) Error() string {
+	return "no supported firewall backend found"
+}
+
+func (e BackendNotFoundError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeBackendNotFound,
+			Text: "no supported firewall backend found",
+			Hint: "install ufw or firewalld on the target",
+			Data: e,
+		},
+	}
+}
+
+// RuleCheckError is emitted when checking rule existence fails.
+type RuleCheckError struct {
+	Port   string
+	Stderr string
+}
+
+func (e RuleCheckError) Error() string {
+	return fmt.Sprintf("firewall rule check for %s failed: %s", e.Port, e.Stderr)
+}
+
+func (e RuleCheckError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeRuleCheckFailed,
+			Text: `failed to check firewall rule for port {{.Port}}`,
+			Hint: `confirm the firewall backend is installed and that scampi has privileges to query it`,
+			Help: `{{.Stderr}}`,
+			Data: e,
+		},
+	}
+}
+
+// RuleApplyError is emitted when applying a firewall rule fails.
+type RuleApplyError struct {
+	Port   string
+	Action string
+	Stderr string
+}
+
+func (e RuleApplyError) Error() string {
+	return fmt.Sprintf("firewall %s %s failed: %s", e.Action, e.Port, e.Stderr)
+}
+
+func (e RuleApplyError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeRuleApplyFailed,
+			Text: `failed to {{.Action}} port {{.Port}}`,
+			Hint: `verify the firewall backend accepts {{.Action}} and that scampi has privileges to modify rules`,
+			Help: `{{.Stderr}}`,
+			Data: e,
+		},
+	}
+}
+
+// PortOutOfRangeError is returned when a port number is outside 1-65535.
+type PortOutOfRangeError struct {
+	Field  string
+	Value  int
+	Source spec.SourceSpan
+}
+
+func (e PortOutOfRangeError) Error() string {
+	return fmt.Sprintf("%s %d is out of range (1–65535)", e.Field, e.Value)
+}
+
+func (e PortOutOfRangeError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodePortOutOfRange,
+			Text:   `{{.Field}} {{.Value}} is out of range`,
+			Hint:   "port numbers must be between 1 and 65535",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+// InvalidRangeError is returned when end_port <= port.
+type InvalidRangeError struct {
+	Port    int
+	EndPort int
+	Source  spec.SourceSpan
+}
+
+func (e InvalidRangeError) Error() string {
+	return fmt.Sprintf("end_port %d must be greater than port %d", e.EndPort, e.Port)
+}
+
+func (e InvalidRangeError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeInvalidRange,
+			Text:   `end_port {{.EndPort}} must be greater than port {{.Port}}`,
+			Hint:   "end_port defines the upper bound of a port range",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}

@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/target/ssh"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/target/ssh"
 )
 
 const (

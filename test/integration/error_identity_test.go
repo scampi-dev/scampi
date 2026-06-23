@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/target"
-	"scampi.dev/scampi/target/local"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/target"
+	"scampi.dev/scampi/internal/target/local"
 	"scampi.dev/scampi/test/harness"
 )
 

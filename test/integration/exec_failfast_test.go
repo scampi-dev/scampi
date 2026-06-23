@@ -6,13 +6,13 @@ import (
 	"context"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/model"
-	"scampi.dev/scampi/signal"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/target/local"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/model"
+	"scampi.dev/scampi/internal/signal"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/target/local"
 	"scampi.dev/scampi/test/harness"
 )
 

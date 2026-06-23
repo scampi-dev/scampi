@@ -10,9 +10,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/testkit"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/testkit"
 )
 
 func testCmd() *cli.Command {

@@ -12,7 +12,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"scampi.dev/scampi/lang/format"
+	"scampi.dev/scampi/internal/lang/format"
 )
 
 func fmtCmd() *cli.Command {

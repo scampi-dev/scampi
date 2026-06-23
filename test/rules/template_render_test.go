@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/tools/go/packages"
 
-	template "scampi.dev/scampi/render/template"
+	template "scampi.dev/scampi/internal/render/template"
 )
 
 // TestAllTemplatesRender is a contract test that auto-discovers every

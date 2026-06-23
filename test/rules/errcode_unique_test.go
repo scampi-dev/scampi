@@ -27,7 +27,7 @@ func TestDiagnosticCodeUniqueness(t *testing.T) {
 	// Find the errs.Code type from whichever package exports it.
 	var codeType types.Type
 	for _, pkg := range pkgs {
-		if pkg.PkgPath == "scampi.dev/scampi/errs" {
+		if pkg.PkgPath == "scampi.dev/scampi/internal/errs" {
 			obj := pkg.Types.Scope().Lookup("Code")
 			if obj != nil {
 				codeType = obj.Type()

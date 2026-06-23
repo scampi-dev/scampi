@@ -5,13 +5,13 @@ package harness
 import (
 	"context"
 
-	"scampi.dev/scampi/capability"
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/signal"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/target"
+	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/signal"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/target"
 )
 
 type (

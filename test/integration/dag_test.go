@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/render/template"
-	"scampi.dev/scampi/spec"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/render/template"
+	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/test/harness"
 )
 

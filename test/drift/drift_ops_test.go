@@ -7,15 +7,15 @@ import (
 	"io/fs"
 	"testing"
 
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/step/copy"
-	"scampi.dev/scampi/step/pkg"
-	"scampi.dev/scampi/step/sharedop/fileop"
-	stepsymlink "scampi.dev/scampi/step/symlink"
-	"scampi.dev/scampi/step/sysctl"
-	"scampi.dev/scampi/step/template"
-	"scampi.dev/scampi/target"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/step/copy"
+	"scampi.dev/scampi/internal/step/pkg"
+	"scampi.dev/scampi/internal/step/sharedop/fileop"
+	stepsymlink "scampi.dev/scampi/internal/step/symlink"
+	"scampi.dev/scampi/internal/step/sysctl"
+	"scampi.dev/scampi/internal/step/template"
+	"scampi.dev/scampi/internal/target"
 )
 
 func planOps(

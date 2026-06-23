@@ -8,8 +8,8 @@ import (
 	"io"
 	"sync"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
 )
 
 type (

@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/urfave/cli/v3"
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/errs"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/errs"
 )
 
 // scampi index

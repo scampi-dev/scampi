@@ -17,11 +17,11 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/urfave/cli/v3"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/diagnostic/event"
-	"scampi.dev/scampi/errs"
-	"scampi.dev/scampi/osutil"
-	"scampi.dev/scampi/secret"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/errs"
+	"scampi.dev/scampi/internal/osutil"
+	"scampi.dev/scampi/internal/secret"
 )
 
 const envSecretsFile = "SCAMPI_SECRETS_FILE"

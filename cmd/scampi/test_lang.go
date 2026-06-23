@@ -5,12 +5,12 @@ package main
 import (
 	"context"
 
-	"scampi.dev/scampi/diagnostic"
-	"scampi.dev/scampi/engine"
-	"scampi.dev/scampi/linker"
-	"scampi.dev/scampi/source"
-	"scampi.dev/scampi/spec"
-	"scampi.dev/scampi/testkit"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/linker"
+	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
+	"scampi.dev/scampi/internal/testkit"
 )
 
 // runLangTestFile runs a single scampi test file end-to-end:

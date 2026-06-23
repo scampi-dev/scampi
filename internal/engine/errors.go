@@ -1,0 +1,373 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+package engine
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"runtime"
+	"strings"
+
+	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/errs"
+	"scampi.dev/scampi/internal/spec"
+)
+
+type AbortError struct {
+	Causes []error
+}
+
+func (AbortError) Error() string {
+	return "execution aborted"
+}
+
+// ActionAbortedError signals that an action returned with one or more ops in
+// model.OpAborted state when the originating diagnostic's impact didn't
+// request a hard abort. The scheduler treats this as a real failure so
+// downstream actions don't run against a broken upstream. The user-visible
+// diagnostic has already been emitted; this error only carries propagation
+// state — Unwrap exposes the original cause for errors.As callers.
+type ActionAbortedError struct {
+	Cause error
+}
+
+func (e ActionAbortedError) Error() string {
+	if e.Cause == nil {
+		return "action aborted"
+	}
+	return "action aborted: " + e.Cause.Error()
+}
+
+func (e ActionAbortedError) Unwrap() error { return e.Cause }
+
+// LoadConfigError is the fallback diagnostic emitted when the linker
+// returns a non-diagnostic error (e.g. raw file-read failure). It
+// guarantees the user sees *something* in the render pipeline rather
+// than a silent abort.
+type LoadConfigError struct {
+	Cause  error
+	Source spec.SourceSpan
+}
+
+func (e *LoadConfigError) Error() string {
+	if e.Cause == nil {
+		return "failed to load config"
+	}
+	return "failed to load config: " + e.Cause.Error()
+}
+
+func (e *LoadConfigError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeLoadConfigError,
+			Text: "{{.Message}}",
+			Hint: "check the config file path and any imported modules",
+			Data: loadConfigErrorData{
+				Message: e.Error(),
+			},
+			Source: &e.Source,
+		},
+	}
+}
+
+type loadConfigErrorData struct {
+	Message string
+}
+
+// CancelledError is returned when execution is interrupted by a signal
+// (e.g. Ctrl+C). This is normal control flow, not a bug.
+type CancelledError struct{}
+
+func (CancelledError) Error() string {
+	return "interrupted"
+}
+
+type CapabilityMismatchError struct {
+	StepIndex    int
+	StepKind     string
+	RequiredCaps capability.Capability
+	MissingCaps  capability.Capability
+	ProvidedCaps capability.Capability
+	Source       spec.SourceSpan
+}
+
+func (e CapabilityMismatchError) Error() string {
+	return fmt.Sprintf(
+		"step %q requires %s, but target only provides %s (missing: %s)",
+		e.StepKind, e.RequiredCaps, e.ProvidedCaps, e.MissingCaps,
+	)
+}
+
+func (e CapabilityMismatchError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeCapabilityMismatch,
+			Text:   `step "{{.StepKind}}" requires capabilities not provided by target`,
+			Hint:   "use a different target or remove incompatible steps",
+			Help:   "missing:  {{.MissingCaps}}\nrequired: {{.RequiredCaps}}\nprovided: {{.ProvidedCaps}}",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+func panicIfNotAbortError(err error) error {
+	var abort AbortError
+	if errors.As(err, &abort) {
+		return abort
+	}
+	var aborted ActionAbortedError
+	if errors.As(err, &aborted) {
+		return aborted
+	}
+	if errors.Is(err, context.Canceled) {
+		return CancelledError{}
+	}
+	// very cold codepath
+	wrap := errs.BUG("Engine failed with non-signal error: %w", err)
+	if pc, _, _, ok := runtime.Caller(1); ok {
+		if details := runtime.FuncForPC(pc); details != nil {
+			wrap = errs.BUG("%s failed with non-signal error: %w", details.Name(), err)
+		}
+	}
+	panic(wrap)
+}
+
+// aborts reports whether ev requests execution abort. Only event.Error
+// carries Impact; Warning/Info are advisories that never stop the run.
+func aborts(ev event.Event) bool {
+	e, ok := ev.(event.Error)
+	return ok && e.Impact.ShouldAbort()
+}
+
+// emitScopedDiagnostic extracts diagnostic(s) from err and emits them.
+// Returns the max impact and whether any diagnostic was emitted.
+func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, bool) {
+	if err == nil {
+		return 0, false
+	}
+
+	var re diagnostic.Raisable
+	if errors.As(err, &re) {
+		ev := re.Diagnostic()
+		em.Emit(ev)
+		if aborts(ev) {
+			return diagnostic.ImpactAbort, true
+		}
+		return diagnostic.ImpactNone, true
+	}
+
+	return 0, false
+}
+
+// The scope parameters on these helpers are unused - diagnostic events
+// do not carry a scope axis. The signatures persist to keep call sites
+// stable; they can collapse to a single helper once the callers are
+// touched for unrelated reasons.
+
+func emitEngineDiagnostic(em diagnostic.Emitter, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(em, err)
+}
+
+func emitPlanDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(em, err)
+}
+
+func emitActionDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(em, err)
+}
+
+func emitOpDiagnostic(em diagnostic.Emitter, _ int, _, _, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(em, err)
+}
+
+// Index errors
+// -----------------------------------------------------------------------------
+
+type UnknownIndexKindError struct {
+	Kind string
+}
+
+func (e UnknownIndexKindError) Error() string {
+	return fmt.Sprintf("unknown step kind %q", e.Kind)
+}
+
+func (e UnknownIndexKindError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeUnknownIndexKind,
+			Text: `unknown step kind "{{.Kind}}"`,
+			Hint: "use 'scampi index' to list available step types",
+			Data: e,
+		},
+	}
+}
+
+// Resolution errors
+// -----------------------------------------------------------------------------
+
+type UnknownDeployBlockError struct {
+	Name   string
+	Source spec.SourceSpan
+}
+
+func (e UnknownDeployBlockError) Error() string {
+	return fmt.Sprintf("unknown deploy block %q", e.Name)
+}
+
+func (e UnknownDeployBlockError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownDeployBlock,
+			Text:   `unknown deploy block "{{.Name}}"`,
+			Hint:   "check that the deploy block name is spelled correctly",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+type NoDeployBlocksError struct {
+	Source spec.SourceSpan
+}
+
+func (NoDeployBlocksError) Error() string {
+	return "no deploy blocks defined"
+}
+
+func (e NoDeployBlocksError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeNoDeployBlocks,
+			Text:   "no deploy blocks defined",
+			Hint:   "add at least one deploy block to the configuration",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+type NoTargetsInDeployError struct {
+	Deploy string
+	Source spec.SourceSpan
+}
+
+func (e NoTargetsInDeployError) Error() string {
+	return fmt.Sprintf("deploy block %q has no targets", e.Deploy)
+}
+
+func (e NoTargetsInDeployError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeNoTargetsInDeploy,
+			Text:   `deploy block "{{.Deploy}}" has no targets`,
+			Hint:   "add at least one target to the deploy block's targets list",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+type UnknownTargetError struct {
+	Name   string
+	Deploy string
+	Source spec.SourceSpan
+}
+
+func (e UnknownTargetError) Error() string {
+	return fmt.Sprintf("unknown target %q referenced in deploy block %q", e.Name, e.Deploy)
+}
+
+func (e UnknownTargetError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownTarget,
+			Text:   `unknown target "{{.Name}}" referenced in deploy block "{{.Deploy}}"`,
+			Hint:   "check that the target is defined in the targets map",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+type TargetNotInDeployError struct {
+	Target string
+	Deploy string
+	Source spec.SourceSpan
+}
+
+func (e TargetNotInDeployError) Error() string {
+	return fmt.Sprintf("target %q is not in deploy block %q's target list", e.Target, e.Deploy)
+}
+
+func (e TargetNotInDeployError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeTargetNotInDeploy,
+			Text:   `target "{{.Target}}" is not in deploy block "{{.Deploy}}"'s target list`,
+			Hint:   "add the target to the deploy block's targets list or select a different target",
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+// Hook errors
+// -----------------------------------------------------------------------------
+
+type UnknownHookError struct {
+	HookID   string
+	StepKind string
+	StepDesc string
+	Source   spec.SourceSpan
+}
+
+func (e UnknownHookError) Error() string {
+	return fmt.Sprintf("on_change references unknown hook %q", e.HookID)
+}
+
+func (e UnknownHookError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeUnknownHook,
+			Text:   `on_change references unknown hook "{{.HookID}}"`,
+			Hint:   `add hooks = {"{{.HookID}}": service(name="...", state="restarted")} to the deploy block`,
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
+
+type HookCycleError struct {
+	Chain  []string
+	Source spec.SourceSpan
+}
+
+func (e HookCycleError) Error() string {
+	return fmt.Sprintf("hook cycle detected: %s", strings.Join(e.Chain, " -> "))
+}
+
+func (e HookCycleError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:     CodeHookCycle,
+			Text:   "hook cycle detected",
+			Hint:   `{{join " -> " .Chain}}`,
+			Data:   e,
+			Source: &e.Source,
+		},
+	}
+}
