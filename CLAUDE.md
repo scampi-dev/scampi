@@ -15,7 +15,6 @@ A declarative system convergence engine. Users describe desired system state in 
 ## Hosting
 
 - **Primary**: [GitHub](https://github.com/scampi-dev/scampi) — issues, PRs, releases
-- **Code mirror**: [Codeberg](https://codeberg.org/scampi-dev/scampi) — historical mirror, no active issues/PRs/CI
 - **Infra**: [scampi-infra](https://github.com/scampi-dev/scampi-infra) — VPS configs (separate repo)
 
 ## Commands

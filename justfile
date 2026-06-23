@@ -97,11 +97,6 @@ _patch-license-headers:
 scampi *args:
   go run ./cmd/scampi {{args}}
 
-[group('run')]
-[doc("Serve markdown files in a browser (default: .sandbox/ on :7080)")]
-mdserve *args:
-  go run ./bin/mdserve {{args}}
-
 # Code quality
 # -----------------------------------------------------------------------------
 
