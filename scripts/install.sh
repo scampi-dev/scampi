@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Install scampi — https://scampi.dev
 #
-#   curl get.scampi.dev | sh           # both scampi + scampls
-#   curl get.scampi.dev/cli | sh       # CLI only
-#   curl get.scampi.dev/lsp | sh       # LSP only
+#   curl get.scampi.dev | sh
 #
 # Override install location:
 #   curl get.scampi.dev | sh -s -- -d ~/.local/bin
@@ -70,7 +68,23 @@ main() {
   fetch_version
   download_checksums
 
-  ##@@INSTALL_BINS@@##
+  asset="scampi-${OS}-${ARCH}"
+
+  installed=""
+  if command -v scampi >/dev/null 2>&1; then
+    installed=$(scampi version 2>/dev/null | awk '{print $NF}')
+  fi
+  if [ "${installed}" = "${VERSION}" ]; then
+    ok "scampi ${VERSION} already installed"
+    INSTALL_DIR="$(dirname "$(command -v scampi)")"
+  else
+    [ -n "${installed}" ] && info "scampi: ${installed} → ${VERSION}"
+    info "downloading ${asset}..."
+    curl -fsSL -o "${TMPDIR}/scampi" "${DL}/${VERSION}/${asset}" ||
+      fatal "download failed — scampi ${OS}/${ARCH} may not be available for ${VERSION}"
+    verify_checksum "${asset}"
+    do_install
+  fi
 
   # shellcheck disable=SC2059
   printf "\n  ${GREEN}${B}${VERSION}${R} installed to ${DIM}${INSTALL_DIR}${R}\n\n"
@@ -148,35 +162,8 @@ verify_signature() {
   ok "SHA256SUMS signature verified (${SCAMPI_RELEASE_PRINCIPAL})"
 }
 
-install_one() {
-  bin_name="$1"
-  asset="${bin_name}-${OS}-${ARCH}"
-  url="${DL}/${VERSION}/${asset}"
-
-  # Check if already installed at this version.
-  installed=""
-  if command -v "${bin_name}" >/dev/null 2>&1; then
-    installed=$("${bin_name}" version 2>/dev/null | awk '{print $NF}')
-  fi
-  if [ "${installed}" = "${VERSION}" ]; then
-    ok "${bin_name} ${VERSION} already installed"
-    return
-  fi
-  if [ -n "${installed}" ]; then
-    info "${bin_name}: ${installed} → ${VERSION}"
-  fi
-
-  info "downloading ${asset}..."
-  curl -fsSL -o "${TMPDIR}/${bin_name}" "${url}" ||
-    fatal "download failed — ${bin_name} ${OS}/${ARCH} may not be available for ${VERSION}"
-
-  verify_checksum "${bin_name}" "${asset}"
-  do_install "${bin_name}"
-}
-
 verify_checksum() {
-  bin_name="$1"
-  asset="$2"
+  asset="$1"
 
   want=$(grep "${asset}" "${TMPDIR}/SHA256SUMS" | awk '{print $1}')
   if [ -z "${want}" ]; then
@@ -184,9 +171,9 @@ verify_checksum() {
   fi
 
   if command -v sha256sum >/dev/null 2>&1; then
-    got=$(sha256sum "${TMPDIR}/${bin_name}" | awk '{print $1}')
+    got=$(sha256sum "${TMPDIR}/scampi" | awk '{print $1}')
   elif command -v shasum >/dev/null 2>&1; then
-    got=$(shasum -a 256 "${TMPDIR}/${bin_name}" | awk '{print $1}')
+    got=$(shasum -a 256 "${TMPDIR}/scampi" | awk '{print $1}')
   else
     warn "no sha256 tool found, skipping checksum verification"
     return
@@ -195,7 +182,7 @@ verify_checksum() {
   if [ "${got}" != "${want}" ]; then
     fatal "checksum mismatch for ${asset}: expected ${want}, got ${got}"
   fi
-  ok "${bin_name}: checksum verified"
+  ok "scampi: checksum verified"
 }
 
 confirm_overwrite() {
@@ -218,39 +205,38 @@ confirm_overwrite() {
 }
 
 do_install() {
-  bin_name="$1"
-  chmod +x "${TMPDIR}/${bin_name}"
+  chmod +x "${TMPDIR}/scampi"
 
   if [ -n "${DEST_DIR}" ]; then
-    dest="${DEST_DIR}/${bin_name}"
+    dest="${DEST_DIR}/scampi"
     confirm_overwrite "${dest}"
     mkdir -p "${DEST_DIR}"
     if [ -w "${DEST_DIR}" ]; then
-      mv "${TMPDIR}/${bin_name}" "${dest}"
+      mv "${TMPDIR}/scampi" "${dest}"
     else
-      info "installing ${bin_name} to ${dest} (requires sudo)"
-      sudo mv "${TMPDIR}/${bin_name}" "${dest}"
+      info "installing scampi to ${dest} (requires sudo)"
+      sudo mv "${TMPDIR}/scampi" "${dest}"
     fi
   elif [ -d "${HOME}/.local/bin" ]; then
-    dest="${HOME}/.local/bin/${bin_name}"
+    dest="${HOME}/.local/bin/scampi"
     confirm_overwrite "${dest}"
-    mv "${TMPDIR}/${bin_name}" "${dest}"
+    mv "${TMPDIR}/scampi" "${dest}"
   elif [ -w "/usr/local/bin" ]; then
-    dest="/usr/local/bin/${bin_name}"
+    dest="/usr/local/bin/scampi"
     confirm_overwrite "${dest}"
-    mv "${TMPDIR}/${bin_name}" "${dest}"
+    mv "${TMPDIR}/scampi" "${dest}"
   else
-    dest="/usr/local/bin/${bin_name}"
+    dest="/usr/local/bin/scampi"
     confirm_overwrite "${dest}"
-    info "installing ${bin_name} to ${dest} (requires sudo)"
-    sudo mv "${TMPDIR}/${bin_name}" "${dest}"
+    info "installing scampi to ${dest} (requires sudo)"
+    sudo mv "${TMPDIR}/scampi" "${dest}"
   fi
 
   INSTALL_DIR="$(dirname "${dest}")"
-  ok "${bin_name} → ${dest}"
+  ok "scampi → ${dest}"
 }
 
-# PATH hint (once, after all installs)
+# PATH hint, after install.
 path_hint() {
   case ":${PATH}:" in
   *":${INSTALL_DIR}:"*) ;;

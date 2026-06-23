@@ -43,20 +43,12 @@ publishDir = "../build/site"
     type = "link"
 
 [[menus.main]]
-  name = "Docs"
-  pageRef = "/docs"
+  name = "Examples"
+  pageRef = "/examples"
   weight = 3
   [menus.main.params]
     type = "link"
-    icon = "book-open"
-
-[[menus.main]]
-  name = "Benchmarks"
-  pageRef = "/bench"
-  weight = 4
-  [menus.main.params]
-    type = "link"
-    icon = "chart-bar"
+    icon = "code"
 
 [[menus.main]]
   name = "Install"

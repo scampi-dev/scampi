@@ -36,7 +36,7 @@ dist outdir="build/site-dist": build
 _copy-static:
   cp scampi.png site/static/scampi.png
   cp scampi-sec.png site/static/scampi-sec.png
-  ./scripts/gen-install-scripts.sh
+  cp scripts/install.sh site/static/install.sh
 
 # Deploy
 # -----------------------------------------------------------------------------
@@ -64,6 +64,4 @@ clean:
   rm -rf build/site build/site-dist site/resources/_gen
   rm site/static/scampi.png
   rm site/static/scampi-sec.png
-  rm site/static/cli.sh
   rm site/static/install.sh
-  rm site/static/lsp.sh

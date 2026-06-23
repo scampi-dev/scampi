@@ -37,22 +37,10 @@ curl get.scampi.dev | sh
 
 This fetches [`install.sh`](/get/install-source/) from `get.scampi.dev`
 and pipes it into POSIX `sh`. The script is short enough to read in
-full before you trust it; it downloads the latest release of **both
-`scampi` and `scampls`** (the LSP server), verifies the release SSH
-signature on `SHA256SUMS`, checks each binary's SHA256, and installs
-them to `~/.local/bin` (or `/usr/local/bin` if it doesn't exist).
-
-**Just the CLI** (e.g. CI runners):
-
-```bash
-curl get.scampi.dev/cli | sh
-```
-
-**Just the LSP:**
-
-```bash
-curl get.scampi.dev/lsp | sh
-```
+full before you trust it; it downloads the latest release of `scampi`,
+verifies the release SSH signature on `SHA256SUMS`, checks the binary's
+SHA256, and installs it to `~/.local/bin` (or `/usr/local/bin` if it
+doesn't exist).
 
 **Custom path:**
 
@@ -66,7 +54,6 @@ Supported platforms: Linux, macOS, and FreeBSD (amd64/arm64).
 
 ```bash
 go install scampi.dev/scampi/cmd/scampi@latest
-go install scampi.dev/scampi/cmd/scampls@latest
 ```
 
 Requires Go {{< go-version >}}+.
@@ -155,4 +142,4 @@ cd scampi
 just build
 ```
 
-Produces `./build/bin/scampi` and `./build/bin/scampls`. Requires Go {{< go-version >}}+ and [just](https://just.systems).
+Produces `./build/bin/scampi`. Requires Go {{< go-version >}}+ and [just](https://just.systems).

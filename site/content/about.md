@@ -130,7 +130,7 @@ templating nightmares. No looping over included files just to repeat a
 task.
 
 **Batteries included.** Packages, files, templates, services, containers,
-firewall rules, symlinks, archives, mounts, REST APIs — it's all built in.
+firewall rules, symlinks, archives, mounts — it's all built in.
 No plugin ecosystems to navigate, no modules to install, version-pin,
 and pray haven't been abandoned. One binary, everything works.
 
@@ -147,12 +147,11 @@ abstraction, not an afterthought bolted onto shell commands.
 the declared state. Not eventually, not after a reconciliation loop, not
 when a controller gets around to it. Right now, confirmed, done.
 
-**Targets aren't just machines.** A target can be your local machine, a
-remote host over SSH, or a REST API. REST targets are first-class —
-authentication, TLS, and connection management are handled by the target,
-not cobbled together per-request in your config. The same check/apply
-convergence model works whether you're writing files to a server or
-ensuring a resource exists in an API.
+**Local or remote, same config.** A target can be your local machine or
+a remote host over SSH. The same check/apply convergence model works
+either way — write the config once, point it at whatever you're
+converging. Connection and escalation are the target's job, not
+something you wire up per-step.
 
 **Errors that teach.** When something's wrong in your config, scampi
 doesn't dump a stack trace and wish you luck. It tells you what's wrong,
@@ -163,14 +162,7 @@ guides you to a working config one error at a time.
 "apply it and see what breaks." Scampi has a built-in test framework with
 mock targets that run in milliseconds — no containers, no cloud accounts,
 no YAML scaffolding. Write a `*_test.scampi` file, assert on the outcome,
-done. REST API modules get mock targets too, with full request recording.
-
-**Editor support that actually works.** `scampls` is an LSP server that
-runs the real evaluation pipeline — not a syntax checker, the actual
-scampi evaluator with the full step registry. Unknown fields, missing
-required params, type errors, invalid enums — all caught as you type, with
-precise source spans and "did you mean?" hints. Your editor becomes the
-first line of defense, not `apply`.
+done.
 
 ### The workflow
 
@@ -324,15 +316,8 @@ reference — here's the short version:
   <span class="d">dim</span>       detail (higher verbosity)
 </div>
 
-## Want the deep cut?
+## See it for yourself
 
-Read the [Philosophy]({{< relref "docs/philosophy" >}}) for the design
-principles — why convergence over imperative, why a real language over YAML,
-why testability and developer ergonomics aren't nice-to-haves.
-
-Check out [Testing]({{< relref "docs/testing" >}}) to see how mock
-targets and assertions work, or set up
-[the LSP]({{< relref "docs/lsp" >}}) in your editor.
-
-Or just [get started]({{< relref "docs/getting-started" >}}) and see for
-yourself.
+Browse the [Examples]({{< relref "examples" >}}) to see what a config
+looks like and which steps are available, then [install]({{< relref
+"get" >}}) and run one against your local machine.

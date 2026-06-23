@@ -2,6 +2,8 @@ module scampi.dev/site
 
 go 1.25.7
 
+toolchain go1.26.4
+
 tool (
 	github.com/gohugoio/hugo
 	github.com/shinagawa-web/gomarklint
