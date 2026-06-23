@@ -12,6 +12,7 @@ linters:
   enable:
     # POLICY first: consistency, API discipline, readability
     - revive #      [POLICY] style, API contracts, and consistency rules
+    - depguard #    [POLICY] enforce package import boundaries
 
     # BUG prevention: correctness and safety
     - errcheck #    [BUG]    ensure errors are checked and not silently ignored
@@ -21,6 +22,19 @@ linters:
     - unused #      [BUG]    find unused vars, funcs, consts hiding logic errors
 
   settings:
+    depguard:
+      rules:
+        # lang/ must stay frontend-pure: Go stdlib plus the leaf packages
+        # std and errs, nothing else from the scampi module and no
+        # third-party deps. Keeps it cleanly extractable later.
+        lang-isolation:
+          files:
+            - "**/internal/lang/**"
+          allow:
+            - "$gostd"
+            - "scampi.dev/scampi/internal/lang"
+            - "scampi.dev/scampi/internal/std"
+            - "scampi.dev/scampi/internal/errs"
     staticcheck:
       checks:
         - all
