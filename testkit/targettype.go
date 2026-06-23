@@ -72,67 +72,6 @@ func (t MemTargetType) Create(
 	return mock, nil
 }
 
-// MemRESTTargetConfig is the linker-mapped config for a
-// `test.target_rest_mock(...)` call. Routes and ExpectRequests use
-// eval.Value for the same reason as MemTargetConfig.
-type MemRESTTargetConfig struct {
-	Name           string
-	BaseURL        string
-	Routes         eval.Value
-	ExpectRequests eval.Value
-}
-
-// MemRESTTargetType is the spec.TargetType implementation for
-// `test.target_rest_mock(...)`.
-type MemRESTTargetType struct {
-	Registry *TestRegistry
-}
-
-func (MemRESTTargetType) Kind() string   { return "test.target_rest_mock" }
-func (MemRESTTargetType) NewConfig() any { return &MemRESTTargetConfig{} }
-
-func (t MemRESTTargetType) Create(
-	_ context.Context,
-	_ source.Source,
-	tgt spec.TargetInstance,
-) (target.Target, error) {
-	cfg, ok := tgt.Config.(*MemRESTTargetConfig)
-	if !ok {
-		return nil, &TestSetupError{
-			Reason: "MemRESTTargetType.Create: wrong config type",
-		}
-	}
-
-	routes := make(map[string]target.MemRESTResponse)
-	if mp, ok := cfg.Routes.(*eval.MapVal); ok {
-		for i, k := range mp.Keys {
-			ks, ok := k.(*eval.StringVal)
-			if !ok {
-				continue
-			}
-			respSV, ok := mp.Values[i].(*eval.StructVal)
-			if !ok {
-				continue
-			}
-			routes[ks.V] = buildResponse(respSV)
-		}
-	}
-	mock := target.NewMemREST(routes)
-
-	if t.Registry != nil {
-		entry := MemRESTEntry{
-			Name: cfg.Name,
-			Mock: mock,
-		}
-		if list, ok := cfg.ExpectRequests.(*eval.ListVal); ok {
-			entry.ExpectRequests = list
-		}
-		canonical := t.Registry.AddMemREST(entry)
-		return canonical.Mock, nil
-	}
-	return mock, nil
-}
-
 // Seeding
 // -----------------------------------------------------------------------------
 
@@ -256,31 +195,6 @@ func extractInlineContent(sv *eval.StructVal) string {
 		return c.V
 	}
 	return ""
-}
-
-func buildResponse(sv *eval.StructVal) target.MemRESTResponse {
-	r := target.MemRESTResponse{}
-	if status, ok := sv.Fields["status"].(*eval.IntVal); ok {
-		r.StatusCode = int(status.V)
-	}
-	if body, ok := sv.Fields["body"].(*eval.StringVal); ok {
-		r.Body = []byte(body.V)
-	}
-	if headers, ok := sv.Fields["headers"].(*eval.MapVal); ok {
-		r.Headers = make(map[string][]string, len(headers.Keys))
-		for i, k := range headers.Keys {
-			ks, ok := k.(*eval.StringVal)
-			if !ok {
-				continue
-			}
-			vs, ok := headers.Values[i].(*eval.StringVal)
-			if !ok {
-				continue
-			}
-			r.Headers[ks.V] = []string{vs.V}
-		}
-	}
-	return r
 }
 
 // TestSetupError wraps mistakes in test framework wiring (wrong

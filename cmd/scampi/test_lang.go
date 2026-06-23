@@ -71,24 +71,5 @@ func runLangTestFile(
 		}
 	}
 
-	// REST mock verification: walk each registered REST mock and
-	// run its expect_requests matchers against the recorded calls.
-	// Each mock counts as one logical test.
-	for _, entry := range tests.MemRESTs() {
-		mismatches := testkit.VerifyMemREST(entry.ExpectRequests, entry.Mock)
-		if len(mismatches) == 0 {
-			passed++
-			continue
-		}
-		failed++
-		for _, m := range mismatches {
-			em.Raise(&testkit.TestFail{
-				Description: entry.Name + ": " + m.Key,
-				Expected:    m.Matcher,
-				Actual:      m.Reason,
-			})
-		}
-	}
-
 	return passed, failed, nil
 }

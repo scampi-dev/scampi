@@ -3,11 +3,9 @@
 package testkit
 
 import (
-	"context"
 	"testing"
 
 	"scampi.dev/scampi/lang/eval"
-	"scampi.dev/scampi/spec"
 	"scampi.dev/scampi/target"
 )
 
@@ -29,65 +27,6 @@ func TestAddMemTarget_DedupesByName(t *testing.T) {
 	}
 	if len(reg.MemTargets()) != 1 {
 		t.Errorf("expected 1 entry, got %d", len(reg.MemTargets()))
-	}
-}
-
-func TestAddMemREST_DedupesByName(t *testing.T) {
-	reg := NewTestRegistry()
-	entry1 := reg.AddMemREST(MemRESTEntry{
-		Name: "api",
-		Mock: target.NewMemREST(nil),
-	})
-	entry2 := reg.AddMemREST(MemRESTEntry{
-		Name: "api",
-		Mock: target.NewMemREST(nil), // different pointer
-	})
-	if entry1.Mock != entry2.Mock {
-		t.Errorf("second AddMemREST should return the first mock, got different pointers")
-	}
-	if len(reg.MemRESTs()) != 1 {
-		t.Errorf("expected 1 entry, got %d", len(reg.MemRESTs()))
-	}
-}
-
-// buildResponse with headers
-// -----------------------------------------------------------------------------
-
-func TestMemRESTTargetType_ResponseHeaders(t *testing.T) {
-	reg := NewTestRegistry()
-	tt := MemRESTTargetType{Registry: reg}
-
-	headers := &eval.MapVal{}
-	headers.Keys = append(headers.Keys, &eval.StringVal{V: "X-Custom"})
-	headers.Values = append(headers.Values, &eval.StringVal{V: "test-val"})
-
-	routes := &eval.MapVal{}
-	routes.Keys = append(routes.Keys, &eval.StringVal{V: "GET /x"})
-	routes.Values = append(routes.Values, &eval.StructVal{
-		TypeName: "response",
-		RetType:  "Response",
-		Fields: map[string]eval.Value{
-			"status":  &eval.IntVal{V: 200},
-			"body":    &eval.StringVal{V: "ok"},
-			"headers": headers,
-		},
-	})
-
-	cfg := &MemRESTTargetConfig{Name: "api", Routes: routes}
-	got, err := tt.Create(context.Background(), nil, spec.TargetInstance{Config: cfg})
-	if err != nil {
-		t.Fatalf("Create: %v", err)
-	}
-	mock := got.(*target.MemREST)
-	resp, _ := mock.Do(context.Background(), target.HTTPRequest{
-		Method: "GET",
-		Path:   "/x",
-	})
-	if resp.StatusCode != 200 {
-		t.Errorf("status = %d", resp.StatusCode)
-	}
-	if h := resp.Headers["X-Custom"]; len(h) != 1 || h[0] != "test-val" {
-		t.Errorf("headers = %v", resp.Headers)
 	}
 }
 

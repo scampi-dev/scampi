@@ -15,7 +15,6 @@ import (
 	"scampi.dev/scampi/step/group"
 	"scampi.dev/scampi/step/mount"
 	"scampi.dev/scampi/step/pkg"
-	steprest "scampi.dev/scampi/step/rest"
 	"scampi.dev/scampi/step/run"
 	"scampi.dev/scampi/step/runset"
 	"scampi.dev/scampi/step/service"
@@ -26,7 +25,6 @@ import (
 	"scampi.dev/scampi/step/unarchive"
 	stepuser "scampi.dev/scampi/step/user"
 	"scampi.dev/scampi/target/local"
-	"scampi.dev/scampi/target/rest"
 	"scampi.dev/scampi/target/ssh"
 )
 
@@ -45,9 +43,6 @@ func NewRegistry() *Registry {
 		group.Group{},
 		mount.Mount{},
 		pkg.Pkg{},
-		steprest.Request{},
-		steprest.Resource{},
-		steprest.ResourceSet{},
 		run.Run{},
 		runset.RunSet{},
 		service.Service{},
@@ -60,7 +55,6 @@ func NewRegistry() *Registry {
 
 	targetTypes := []spec.TargetType{
 		local.Local{},
-		rest.REST{},
 		ssh.SSH{},
 	}
 
@@ -80,8 +74,6 @@ func NewRegistry() *Registry {
 	for _, cm := range []spec.ConverterMap{
 		sharedop.Converters(),
 		pkg.Converters(),
-		steprest.Converters(),
-		rest.Converters(),
 		container.Converters(),
 	} {
 		maps.Copy(r.converters, cm)

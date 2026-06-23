@@ -19,18 +19,6 @@ import "std/test/matchers"
 //
 // See docs/test-framework.md for the full design.
 
-// Opaque types
-// -----------------------------------------------------------------------------
-
-// Response is a canned HTTP response replayed by rest_mock when a
-// matching request comes in.
-pub type Response
-
-// RequestMatcher is a request shape declaration consumed by
-// rest_mock's verification phase. Each one matches zero or more
-// recorded requests by method/path/body/headers/cardinality.
-pub type RequestMatcher
-
 // Initial / expected state shapes
 // -----------------------------------------------------------------------------
 
@@ -79,44 +67,3 @@ pub func target_in_memory(
   initial: InitialState?
   expect:  ExpectedState?
 ) std.Target
-
-// REST API mock. Records every request the engine makes; replays
-// canned responses defined by `routes`. Requests can be verified
-// against `expect_requests` matchers after apply.
-//
-// Route keys are "METHOD /path" strings, e.g. "POST /v1/sites".
-// `expect_requests` is a list of test.request(...) values; order
-// doesn't matter, cardinality defaults to "at least once".
-pub func target_rest_mock(
-  name:            string
-  base_url:        string
-  routes:          map[string, Response]
-  expect_requests: list[RequestMatcher]?
-) std.Target
-
-// Response and request builders
-// -----------------------------------------------------------------------------
-
-// Build a canned HTTP response for use in `routes`. `body` is sent
-// verbatim; `headers` are merged with sensible defaults
-// (Content-Type defaults to "application/json" if not set).
-pub func response(
-  status:  int
-  body:    string?
-  headers: map[string, string]?
-) Response
-
-// Build a request matcher for use in `expect_requests`. `body` is a
-// matchers.Matcher so partial / regex / exact matching all work.
-//
-// Cardinality:
-//   - count = N         exactly N matching requests
-//   - count_at_least = N at least N matching requests (default 1)
-// Set neither for the default (at least one match).
-pub func request(
-  method:         string
-  path:           string
-  body:           matchers.Matcher?
-  count:          int?
-  count_at_least: int?
-) RequestMatcher

@@ -27,7 +27,6 @@ const (
 	Group                               // GroupExists, CreateGroup, DeleteGroup, GetGroup
 	PkgRepo                             // HasRepo, HasRepoKey, InstallRepoKey, WriteRepoConfig
 	Container                           // ContainerInspect, ContainerCreate, ContainerStart, ContainerStop, ContainerRm
-	REST                                // HTTP Do (GET, POST, PUT, PATCH, DELETE)
 )
 
 const (
@@ -88,9 +87,6 @@ func (c Capability) String() string {
 	}
 	if c&Container != 0 {
 		parts = append(parts, "Container")
-	}
-	if c&REST != 0 {
-		parts = append(parts, "REST")
 	}
 
 	// If no known flags matched, show raw value

@@ -49,14 +49,12 @@ func (r *EngineRegistry) ConverterFor(t reflect.Type) (spec.TypeConverter, bool)
 	return r.base.ConverterFor(t)
 }
 
-// TargetType returns a test target type for the two known test
-// kinds, otherwise falls back to the base registry.
+// TargetType returns the in-memory test target type, otherwise falls
+// back to the base registry.
 func (r *EngineRegistry) TargetType(kind string) (spec.TargetType, bool) {
 	switch kind {
 	case "test.target_in_memory":
 		return MemTargetType{Registry: r.tests}, true
-	case "test.target_rest_mock":
-		return MemRESTTargetType{Registry: r.tests}, true
 	}
 	return r.base.TargetType(kind)
 }

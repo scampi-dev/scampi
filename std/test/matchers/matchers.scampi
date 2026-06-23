@@ -5,10 +5,9 @@ module matchers
 import "std/posix"
 
 // Matchers describe expected end-state on a test target. They live
-// in `expect.files`, `expect.packages`, `expect.services`, etc., and
-// in the `body` field of `test.request(...)`. The runner dispatches
-// each matcher by the slot it appears in (file content vs package
-// status vs service status vs request body) and emits a typed
+// in `expect.files`, `expect.packages`, `expect.services`, etc. The
+// runner dispatches each matcher by the slot it appears in (file
+// content vs package status vs service status) and emits a typed
 // diagnostic if a matcher doesn't make sense in its slot.
 //
 // All matchers return the same opaque `Matcher` type. Type safety is
@@ -23,8 +22,8 @@ pub type Matcher
 // String-content matchers
 // -----------------------------------------------------------------------------
 //
-// Work in slots that compare a string against an observed string:
-// file contents, request body, header value.
+// Work in slots that compare a string against an observed string,
+// e.g. file contents.
 
 // Observed content must equal `content` byte-for-byte.
 pub func has_exact_content(content: string) Matcher

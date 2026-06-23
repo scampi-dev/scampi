@@ -14,7 +14,7 @@ func TestStdLibCompiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bootstrap: %v", err)
 	}
-	want := []string{"std", "posix", "rest", "container"}
+	want := []string{"std", "posix", "container"}
 	for _, name := range want {
 		if _, ok := modules[name]; !ok {
 			t.Errorf("missing module %q", name)

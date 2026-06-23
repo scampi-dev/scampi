@@ -172,15 +172,7 @@ func TestImportCapabilities(t *testing.T) {
 			allowedImports: "os,os/exec,net",
 		},
 		{
-			pattern:        "cmd/scampi/gen.go",
-			allowedImports: "os",
-		},
-		{
 			pattern:        "cmd/scampi/fmt.go",
-			allowedImports: "os",
-		},
-		{
-			pattern:        "gen/api.go",
 			allowedImports: "os",
 		},
 		{
@@ -190,18 +182,6 @@ func TestImportCapabilities(t *testing.T) {
 		{
 			pattern:        "cmd/scampi/secrets.go",
 			allowedImports: "os",
-		},
-		{
-			pattern:        "target/rest/rest.go",
-			allowedImports: "net/http",
-		},
-		{
-			pattern:        "target/rest/tls.go",
-			allowedImports: "crypto/tls, crypto/x509",
-		},
-		{
-			pattern:        "target/rest/auth.go",
-			allowedImports: "net/http",
 		},
 		{
 			pattern:        "step/sharedop/download_op.go",

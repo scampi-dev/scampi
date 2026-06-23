@@ -39,7 +39,6 @@ var (
 var version = "v0.0.0-dev"
 
 const (
-	exitOK        = 0 // success
 	exitUserError = 1 // invalid config, failed plan, validation errors
 	exitBug       = 2 // internal error / panic
 )
@@ -119,7 +118,6 @@ func main() {
 			checkCmd(),
 			applyCmd(),
 			inspectCmd(),
-			genCmd(),
 			modCmd(),
 			testCmd(),
 			indexCmd(),

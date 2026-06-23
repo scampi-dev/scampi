@@ -110,13 +110,15 @@ func TestRunLangTestFile_SiblingModuleAccess(t *testing.T) {
 	apiSrc := `module mymod
 
 import "std"
-import "std/rest"
+import "std/posix"
 
-func get_items(check: rest.Check? = none) std.Step {
-  return rest.request {
-    method = "GET"
-    path   = "/items"
-    check  = check
+func write_foo(content: string) std.Step {
+  return posix.copy {
+    dest = "/etc/foo"
+    src = posix.source_inline { content = content }
+    perm = "0644"
+    owner = "root"
+    group = "root"
   }
 }
 `
@@ -128,22 +130,24 @@ func get_items(check: rest.Check? = none) std.Step {
 	testSrc := `module mymod
 
 import "std"
-import "std/rest"
+import "std/posix"
 import "std/test"
+import "std/test/matchers"
 
-let mock = test.target_rest_mock(
-  name     = "api",
-  base_url = "http://localhost",
-  routes = {
-    "GET /items": test.response(status = 200),
+let mock = test.target_in_memory(
+  name = "mock",
+  initial = test.InitialState {
+    dirs = ["/etc"],
   },
-  expect_requests = [
-    test.request(method = "GET", path = "/items"),
-  ],
+  expect = test.ExpectedState {
+    files = {
+      "/etc/foo": matchers.has_exact_content("hello"),
+    },
+  },
 )
 
 std.deploy(name = "smoke", targets = [mock]) {
-  get_items(check = rest.status { code = 200 })
+  write_foo(content = "hello")
 }
 `
 	testPath := filepath.Join(dir, "api_test.scampi")

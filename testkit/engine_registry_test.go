@@ -47,12 +47,6 @@ func TestEngineRegistry_OverlaysTestTargets(t *testing.T) {
 		t.Errorf("got %T, want MemTargetType", tt)
 	}
 
-	if tt, ok := r.TargetType("test.target_rest_mock"); !ok {
-		t.Errorf("test.target_rest_mock not found")
-	} else if _, ok := tt.(MemRESTTargetType); !ok {
-		t.Errorf("got %T, want MemRESTTargetType", tt)
-	}
-
 	if len(base.targetCalls) != 0 {
 		t.Errorf("base lookup should not be called for test targets, got %v", base.targetCalls)
 	}
@@ -88,11 +82,5 @@ func TestEngineRegistry_TestTypesShareRegistry(t *testing.T) {
 	mtt := tt.(MemTargetType)
 	if mtt.Registry != tests {
 		t.Errorf("MemTargetType bound to wrong registry")
-	}
-
-	tr, _ := r.TargetType("test.target_rest_mock")
-	mtr := tr.(MemRESTTargetType)
-	if mtr.Registry != tests {
-		t.Errorf("MemRESTTargetType bound to wrong registry")
 	}
 }
