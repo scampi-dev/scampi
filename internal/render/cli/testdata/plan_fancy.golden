@@ -1,0 +1,145 @@
+=== quiet.120 (cols=120) ===
+
+┌─┬ execution plan: web › production
+│ • [0] dir › create web root (1 op)
+│ • [1] copy › deploy index page (2 ops)       ← [0]  ╮ ⏸
+│ • [2] template › render vhost config (1 op)  ← [0]  ╯
+│ • [3] service › restart web server (1 op)    ← [1, 2]
+└─■
+
+=== quiet.44 (cols=44) ===
+
+┌─┬ execution plan: web › production
+│ • [0] dir (1 op)
+│ • [1] copy (2 ops)              ← [0]  ╮ ⏸
+│ • [2] template (1 op)           ← [0]  ╯
+│ • [3] service (1 op)            ← [1, 2]
+└─■
+
+=== v.120 (cols=120) ===
+
+┌─┬ execution plan: web › production
+│ ┏━┯ [0] dir › create web root
+│ ┇ └─step.dir
+│ ■
+│ ┏━┯ [1] copy › deploy index page        ← [0]  ╮ ⏸
+│ ┇ └─step.copy-file                             │
+│ ┇   └─step.ensure-mode                         │
+│ ■                                              │
+│ ┏━┯ [2] template › render vhost config  ← [0]  │
+│ ┇ └─step.render-template                       │
+│ ■                                              ╯
+│ ┏━┯ [3] service › restart web server    ← [1, 2]
+│ ┇ └─step.service
+│ ■
+└─■
+
+=== v.54 (cols=54) ===
+
+┌─┬ execution plan: web › production
+│ ┏━┯ [0] dir › create web root
+│ ┇ └─step.dir
+│ ■
+│ ┏━┯ [1] copy › deploy index page        ← [0]  ╮ ⏸
+│ ┇ └─step.copy-file                             │
+│ ┇   └─step.ensure-mode                         │
+│ ■                                              │
+│ ┏━┯ [2] template › render vhost config  ← [0]  │
+│ ┇ └─step.render-template                       │
+│ ■                                              ╯
+│ ┏━┯ [3] service › restart web server    ← [1, 2]
+│ ┇ └─step.service
+│ ■
+└─■
+
+=== vv.120 (cols=120) ===
+
+┌─┬ execution plan: web › production
+│ ┏━┯ [0] dir › create web root
+│ ┇ └─step.dir (ensure directory /var/www/site)
+│ ■
+│ ┏━┯ [1] copy › deploy index page                                             ← [0]  ╮ ⏸
+│ ┇ └─step.copy-file (copy (inline) -> /var/www/site/index.html)                      │
+│ ┇   └─step.ensure-mode (ensure mode -rw-r--r-- on /var/www/site/index.html)         │
+│ ■                                                                                   │
+│ ┏━┯ [2] template › render vhost config                                       ← [0]  │
+│ ┇ └─step.render-template (render (inline) -> /etc/nginx/sites/site.conf)            │
+│ ■                                                                                   ╯
+│ ┏━┯ [3] service › restart web server                                         ← [1, 2]
+│ ┇ └─step.service (restart nginx)
+│ ■
+└─■
+
+=== vv.80 (cols=80) ===
+
+┌─┬ execution plan: web › production
+│ ┏━┯ [0] dir › create web root
+│ ┇ └─step.dir (ensure directory /var/www/site)
+│ ■
+│ ┏━┯ [1] copy › deploy index page                                    ← [0]  ╮ ⏸
+│ ┇ └─step.copy-file (copy (inline) -> /var/www/site/index.html)             │
+│ ┇   └─step.ensure-mode (ensure mode -rw-r--…r/www/site/index.html)         │
+│ ■                                                                          │
+│ ┏━┯ [2] template › render vhost config                              ← [0]  │
+│ ┇ └─step.render-template (render (inline) ->…ginx/sites/site.conf)         │
+│ ■                                                                          ╯
+│ ┏━┯ [3] service › restart web server                                ← [1, 2]
+│ ┇ └─step.service (restart nginx)
+│ ■
+└─■
+
+=== vv.60 (cols=60) ===
+
+┌─┬ execution plan: web › production
+│ ┏━┯ [0] dir › create web root
+│ ┇ └─step.dir (ensure directory /var/www/site)
+│ ■
+│ ┏━┯ [1] copy › deploy index page                ← [0]  ╮ ⏸
+│ ┇ └─step.copy-file (copy (inlin…te/index.html)         │
+│ ┇   └─step.ensure-mode (ensure mo…/index.html)         │
+│ ■                                                      │
+│ ┏━┯ [2] template › render vhost config          ← [0]  │
+│ ┇ └─step.render-template (render (…/site.conf)         │
+│ ■                                                      ╯
+│ ┏━┯ [3] service › restart web server            ← [1, 2]
+│ ┇ └─step.service (restart nginx)
+│ ■
+└─■
+
+=== vv.46 (cols=46) ===
+
+┌─┬ execution plan: web › production
+│ ┏━┯ [0] dir
+│ ┇ └─step.dir (ensure …/www/site)
+│ ■
+│ ┏━┯ [1] copy                      ← [0]  ╮ ⏸
+│ ┇ └─step.copy-file (copy…x.html)         │
+│ ┇   └─step.ensure-mode (en…html)         │
+│ ■                                        │
+│ ┏━┯ [2] template                  ← [0]  │
+│ ┇ └─step.render-template (r…onf)         │
+│ ■                                        ╯
+│ ┏━┯ [3] service                   ← [1, 2]
+│ ┇ └─step.service (restart nginx)
+│ ■
+└─■
+
+=== vv.32 (cols=32) ===
+
+┌─┬ execution plan: web › production
+│ ┏━┯ [0] dir
+│ ┇ └─step.dir (ens…/site)
+│ ■
+│ ┏━┯ [1] copy              ← [0]  ╮ ⏸
+│ ┇ └─step.copy-file (…ml)         │
+│ ┇   └─step.ensure-mode           │
+│ ■                                │
+│ ┏━┯ [2] template          ← [0]  │
+│ ┇ └─step.render-template         │
+│ ■                                ╯
+│ ┏━┯ [3] service           ← [1, 2]
+│ ┇ └─step.service (r…inx)
+│ ■
+ 󰀦 terminal too narrow for the plan structure: need 38 columns, have 32
+└─■
+
