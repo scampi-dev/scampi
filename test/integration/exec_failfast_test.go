@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/model"
 	"scampi.dev/scampi/internal/signal"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
@@ -78,9 +78,9 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpSkipped)
-	mustOpOutcome(t, ar, "B", model.OpSkipped)
-	mustOpOutcome(t, ar, "C", model.OpSkipped)
+	mustOpOutcome(t, ar, "A", result.OpSkipped)
+	mustOpOutcome(t, ar, "B", result.OpSkipped)
+	mustOpOutcome(t, ar, "C", result.OpSkipped)
 }
 
 // Dependency graph:
@@ -146,9 +146,9 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpSucceeded)
-	mustOpOutcome(t, ar, "B", model.OpSucceeded)
-	mustOpOutcome(t, ar, "C", model.OpSucceeded)
+	mustOpOutcome(t, ar, "A", result.OpSucceeded)
+	mustOpOutcome(t, ar, "B", result.OpSucceeded)
+	mustOpOutcome(t, ar, "C", result.OpSucceeded)
 }
 
 // Dependency graph:
@@ -232,9 +232,9 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpSucceeded)
-	mustOpOutcome(t, ar, "B", model.OpFailed)
-	mustOpOutcome(t, ar, "C", model.OpAborted)
+	mustOpOutcome(t, ar, "A", result.OpSucceeded)
+	mustOpOutcome(t, ar, "B", result.OpFailed)
+	mustOpOutcome(t, ar, "C", result.OpAborted)
 }
 
 // Dependency graph:
@@ -315,10 +315,10 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpSucceeded)
-	mustOpOutcome(t, ar, "B", model.OpSucceeded)
-	mustOpOutcome(t, ar, "C", model.OpFailed)
-	mustOpOutcome(t, ar, "D", model.OpAborted)
+	mustOpOutcome(t, ar, "A", result.OpSucceeded)
+	mustOpOutcome(t, ar, "B", result.OpSucceeded)
+	mustOpOutcome(t, ar, "C", result.OpFailed)
+	mustOpOutcome(t, ar, "D", result.OpAborted)
 }
 
 // Dependency graph:
@@ -371,7 +371,7 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpSucceeded)
+	mustOpOutcome(t, ar, "A", result.OpSucceeded)
 }
 
 // Dependency graph:
@@ -428,8 +428,8 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpAborted)
-	mustOpOutcome(t, ar, "B", model.OpAborted)
+	mustOpOutcome(t, ar, "A", result.OpAborted)
+	mustOpOutcome(t, ar, "B", result.OpAborted)
 }
 
 // Dependency graph:
@@ -492,9 +492,9 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpSucceeded)
-	mustOpOutcome(t, ar, "B", model.OpFailed)
-	mustOpOutcome(t, ar, "C", model.OpAborted)
+	mustOpOutcome(t, ar, "A", result.OpSucceeded)
+	mustOpOutcome(t, ar, "B", result.OpFailed)
+	mustOpOutcome(t, ar, "C", result.OpAborted)
 }
 
 // Dependency graph:
@@ -569,11 +569,11 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 	}
 
 	ar := mustSingleAction(t, rep)
-	mustOpOutcome(t, ar, "A", model.OpSkipped)
-	mustOpOutcome(t, ar, "B", model.OpSucceeded)
+	mustOpOutcome(t, ar, "A", result.OpSkipped)
+	mustOpOutcome(t, ar, "B", result.OpSucceeded)
 }
 
-func mustSingleAction(t *testing.T, rep model.ExecutionReport) model.ActionReport {
+func mustSingleAction(t *testing.T, rep result.Execution) result.ActionReport {
 	t.Helper()
 
 	if len(rep.Actions) != 1 {
@@ -584,10 +584,10 @@ func mustSingleAction(t *testing.T, rep model.ExecutionReport) model.ActionRepor
 
 func mustOpOutcome(
 	t *testing.T,
-	ar model.ActionReport,
+	ar result.ActionReport,
 	opName string,
-	want model.OpOutcome,
-) model.OpReport {
+	want result.OpOutcome,
+) result.OpReport {
 	t.Helper()
 
 	for _, op := range ar.Ops {
@@ -606,5 +606,5 @@ func mustOpOutcome(
 	}
 
 	t.Fatalf("op %q not found in action report", opName)
-	return model.OpReport{}
+	return result.OpReport{}
 }

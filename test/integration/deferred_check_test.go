@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/model"
 	"scampi.dev/scampi/internal/signal"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
@@ -357,7 +357,7 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 		t.Fatalf("expected 1 op in copy action, got %d", len(copyReport.Ops))
 	}
 
-	if copyReport.Ops[0].Outcome != model.OpWouldChange {
+	if copyReport.Ops[0].Outcome != result.OpWouldChange {
 		t.Errorf("deferred op outcome = %v, want OpWouldChange", copyReport.Ops[0].Outcome)
 	}
 	if copyReport.Ops[0].Err != nil {

@@ -10,6 +10,7 @@ import (
 
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
@@ -31,10 +32,10 @@ func InspectList(
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) ([]event.InspectDetail, error) {
+) ([]result.Inspect, error) {
 	var (
 		mu      sync.Mutex
-		details []event.InspectDetail
+		details []result.Inspect
 	)
 	err := forEachResolvedOffline(ctx, cfgPath, store, opts, func(ctx diagnostic.Ctx, e *Engine) error {
 		d, err := e.buildInspect(ctx)
@@ -46,7 +47,7 @@ func InspectList(
 		mu.Unlock()
 		return nil
 	})
-	slices.SortStableFunc(details, func(a, b event.InspectDetail) int {
+	slices.SortStableFunc(details, func(a, b result.Inspect) int {
 		return strings.Compare(a.DeployName, b.DeployName)
 	})
 	return details, err
@@ -113,19 +114,19 @@ func InspectDiff(
 	return result, err
 }
 
-func (e *Engine) buildInspect(ctx diagnostic.Ctx) (event.InspectDetail, error) {
+func (e *Engine) buildInspect(ctx diagnostic.Ctx) (result.Inspect, error) {
 	p, _, _, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
-		return event.InspectDetail{}, err
+		return result.Inspect{}, err
 	}
 	e.storeSourcePaths(ctx, p)
 
-	detail := event.InspectDetail{
+	detail := result.Inspect{
 		DeployName: e.cfg.DeployName,
 		TargetName: e.cfg.TargetName,
 	}
 	for i, act := range p.Deploy.Actions {
-		entry := event.InspectEntry{
+		entry := result.InspectEntry{
 			Index: i,
 			Kind:  act.Kind(),
 			Desc:  act.Desc(),

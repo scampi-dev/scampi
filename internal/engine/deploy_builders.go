@@ -2,16 +2,9 @@
 
 package engine
 
-import "scampi.dev/scampi/internal/diagnostic/result"
-
-// Plan DTOs now live in result/; these are temporary alias shims for the #430
-// migration, removed once engine call sites move to result/ directly. The
-// builders below stay here - they operate on engine's *deployNode.
-type (
-	PlanResult  = result.Plan
-	DeployLevel = result.DeployLevel
-	DeployPlan  = result.DeployPlan
-)
+// depNames and driverResources build the cross-deploy edge labels for a
+// result.DeployPlan from engine's *deployNode. The DTOs themselves live in
+// result/; these stay here because they reach into engine-internal graph state.
 
 func depNames(n *deployNode) []string {
 	if len(n.deps) == 0 {

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/model"
 	"scampi.dev/scampi/internal/signal"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
@@ -84,7 +84,7 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 
 	opRep := ar.Ops[0]
 
-	if opRep.Outcome != model.OpSucceeded {
+	if opRep.Outcome != result.OpSucceeded {
 		t.Fatalf("expected op to succeed, got outcome %v", opRep.Outcome)
 	}
 

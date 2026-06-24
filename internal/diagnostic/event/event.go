@@ -8,20 +8,8 @@ package event
 import (
 	"time"
 
-	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/errs"
 	"scampi.dev/scampi/internal/spec"
-)
-
-// One-shot value DTOs moved to result/; these alias shims keep producers
-// (engine) and consumers (render) green during the #430 migration. They are
-// not events - they carry no isEvent() and are returned, not emitted.
-type (
-	InspectDetail = result.Inspect
-	InspectEntry  = result.InspectEntry
-	PlanDetail    = result.PlanDetail
-	PlannedAction = result.PlannedAction
-	PlannedOp     = result.PlannedOp
 )
 
 // Template

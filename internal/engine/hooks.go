@@ -4,7 +4,7 @@ package engine
 
 import (
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/model"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/spec"
 )
 
@@ -15,13 +15,13 @@ import (
 // Each hook fires at most once per run.
 func (e *Engine) executeHooks(
 	ctx diagnostic.Ctx,
-	stepReport model.ExecutionReport,
+	stepReport result.Execution,
 	hp *hookPlan,
 	checkOnly bool,
 	promisedPaths map[spec.Resource]bool,
-) (model.ExecutionReport, error) {
+) (result.Execution, error) {
 	if hp == nil || len(hp.actions) == 0 {
-		return model.ExecutionReport{}, nil
+		return result.Execution{}, nil
 	}
 
 	// Collect notified hooks from step results, preserving notification order.
@@ -51,7 +51,7 @@ func (e *Engine) executeHooks(
 
 	// Execute notified hooks. Process queue — new entries may be appended
 	// by hook chaining.
-	var hookReports []model.ActionReport
+	var hookReports []result.ActionReport
 	executed := map[string]bool{}
 
 	for i := 0; i < len(queue); i++ {
@@ -72,7 +72,7 @@ func (e *Engine) executeHooks(
 		for _, act := range actions {
 			hookIdx := len(stepReport.Actions) + len(hookReports)
 
-			var ar model.ActionReport
+			var ar result.ActionReport
 			var err error
 			if checkOnly {
 				ar, err = e.runCheckAction(ctx, hookIdx, act, promisedPaths, hookID)
@@ -93,7 +93,7 @@ func (e *Engine) executeHooks(
 		}
 
 		if hookErr != nil {
-			return model.ExecutionReport{
+			return result.Execution{
 				Actions: hookReports,
 				Err:     hookErr,
 			}, hookErr
@@ -115,12 +115,12 @@ func (e *Engine) executeHooks(
 		}
 	}
 
-	return model.ExecutionReport{Actions: hookReports}, nil
+	return result.Execution{Actions: hookReports}, nil
 }
 
 // actionChanged returns true if an action report indicates something changed
 // (or would change in check mode).
-func actionChanged(ar model.ActionReport, checkOnly bool) bool {
+func actionChanged(ar result.ActionReport, checkOnly bool) bool {
 	if checkOnly {
 		return ar.Summary.WouldChange > 0
 	}

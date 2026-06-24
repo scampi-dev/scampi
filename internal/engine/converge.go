@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/model"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/spec"
 )
 
@@ -18,7 +18,7 @@ func Check(
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) (model.ExecutionReport, error) {
+) (result.Execution, error) {
 	return runConverge(ctx, cfgPath, store, opts, true)
 }
 
@@ -29,7 +29,7 @@ func Apply(
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) (model.ExecutionReport, error) {
+) (result.Execution, error) {
 	return runConverge(ctx, cfgPath, store, opts, false)
 }
 
@@ -41,10 +41,10 @@ func runConverge(
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 	checkOnly bool,
-) (model.ExecutionReport, error) {
+) (result.Execution, error) {
 	var (
 		mu  sync.Mutex
-		agg model.ExecutionReport
+		agg result.Execution
 	)
 	err := forEachResolved(ctx, cfgPath, store, opts, func(ctx diagnostic.Ctx, e *Engine) error {
 		rep, cErr := e.converge(ctx, checkOnly)
@@ -61,23 +61,23 @@ func runConverge(
 
 // Check runs the deploy bound to this engine in check-only mode and
 // returns its report.
-func (e *Engine) Check(ctx diagnostic.Ctx) (model.ExecutionReport, error) {
+func (e *Engine) Check(ctx diagnostic.Ctx) (result.Execution, error) {
 	return e.converge(ctx, true)
 }
 
 // Apply runs the deploy bound to this engine and returns its report.
-func (e *Engine) Apply(ctx diagnostic.Ctx) (model.ExecutionReport, error) {
+func (e *Engine) Apply(ctx diagnostic.Ctx) (result.Execution, error) {
 	return e.converge(ctx, false)
 }
 
-func (e *Engine) converge(ctx diagnostic.Ctx, checkOnly bool) (model.ExecutionReport, error) {
+func (e *Engine) converge(ctx diagnostic.Ctx, checkOnly bool) (result.Execution, error) {
 	p, _, hp, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
-		return model.ExecutionReport{}, err
+		return result.Execution{}, err
 	}
 	e.storeSourcePaths(ctx, p)
 
-	var rep model.ExecutionReport
+	var rep result.Execution
 	var promisedPaths map[spec.Resource]bool
 	if checkOnly {
 		rep, promisedPaths, err = e.CheckPlan(ctx, p)

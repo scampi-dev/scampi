@@ -11,7 +11,7 @@ import (
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/errs"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
@@ -27,21 +27,21 @@ func Plan(
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-) (PlanResult, error) {
+) (result.Plan, error) {
 	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
 	cfg, err := LoadConfig(ctx, cfgPath, store, src)
 	if err != nil {
-		return PlanResult{}, err
+		return result.Plan{}, err
 	}
 
 	resolved, err := ResolveMultiple(cfg, opts)
 	if err != nil {
 		if impact, ok := emitEngineDiagnostic(ctx, cfgPath, err); ok {
 			if impact.ShouldAbort() {
-				return PlanResult{}, AbortError{Causes: []error{err}}
+				return result.Plan{}, AbortError{Causes: []error{err}}
 			}
 		}
-		return PlanResult{}, err
+		return result.Plan{}, err
 	}
 
 	// Build the cross-deploy graph. For a single deploy this is a
@@ -49,7 +49,7 @@ func Plan(
 	// no special case.
 	graph, err := buildDeployGraph(resolved)
 	if err != nil {
-		return PlanResult{}, err
+		return result.Plan{}, err
 	}
 
 	// Plan each deploy concurrently and key the resulting PlanDetail
@@ -59,7 +59,7 @@ func Plan(
 	allCaps := capabilityTarget{caps: capability.All}
 	var (
 		mu      sync.Mutex
-		details = make(map[int]event.PlanDetail, len(resolved))
+		details = make(map[int]result.PlanDetail, len(resolved))
 	)
 	err = runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error {
 		e, eErr := NewWithTarget(ctx, src, res, allCaps)
@@ -80,14 +80,14 @@ func Plan(
 		return nil
 	})
 	if err != nil {
-		return PlanResult{}, err
+		return result.Plan{}, err
 	}
 
-	levels := make([]DeployLevel, len(graph.levels))
+	levels := make([]result.DeployLevel, len(graph.levels))
 	for li, level := range graph.levels {
-		nodes := make([]DeployPlan, len(level))
+		nodes := make([]result.DeployPlan, len(level))
 		for ni, n := range level {
-			nodes[ni] = DeployPlan{
+			nodes[ni] = result.DeployPlan{
 				DeployName: n.res.DeployName,
 				TargetName: n.res.TargetName,
 				After:      depNames(n),
@@ -97,12 +97,12 @@ func Plan(
 		}
 		// Stable within-level ordering by deploy name keeps output
 		// deterministic across runs.
-		slices.SortStableFunc(nodes, func(a, b DeployPlan) int {
+		slices.SortStableFunc(nodes, func(a, b result.DeployPlan) int {
 			return strings.Compare(a.DeployName, b.DeployName)
 		})
-		levels[li] = DeployLevel{Index: li, Nodes: nodes}
+		levels[li] = result.DeployLevel{Index: li, Nodes: nodes}
 	}
-	return PlanResult{Levels: levels}, nil
+	return result.Plan{Levels: levels}, nil
 }
 
 // resolvedIndex returns the position of res in resolved by
@@ -123,10 +123,10 @@ func resolvedIndex(resolved []spec.ResolvedConfig, res spec.ResolvedConfig) int 
 // resolved deploy. The top-level engine.Plan aggregates per-deploy
 // details into a PlanResult; tests can call this directly to
 // surface plan-time errors without exercising the full pipeline.
-func (e *Engine) PlanDeploy(ctx diagnostic.Ctx) (event.PlanDetail, error) {
+func (e *Engine) PlanDeploy(ctx diagnostic.Ctx) (result.PlanDetail, error) {
 	p, actionDeps, _, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
-		return event.PlanDetail{}, err
+		return result.PlanDetail{}, err
 	}
 	e.storeSourcePaths(ctx, p)
 	return planDetail(p, actionDeps), nil
@@ -135,7 +135,7 @@ func (e *Engine) PlanDeploy(ctx diagnostic.Ctx) (event.PlanDetail, error) {
 // planDetail assembles the rendering payload for one resolved plan.
 // Mirrors the previous diagnostic.PlanProduced factory; lives here
 // now that plan output is a return value, not an event.
-func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
+func planDetail(p spec.Plan, actionDeps ActionDeps) result.PlanDetail {
 	var allOps []spec.Op
 	opIndex := make(map[spec.Op]int)
 	actionOpBase := make(map[int]int) // action index -> first op index
@@ -147,7 +147,7 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
 		}
 	}
 
-	plannedOps := make([]event.PlannedOp, len(allOps))
+	plannedOps := make([]result.PlannedOp, len(allOps))
 	for i, op := range allOps {
 		var tmpl *spec.PlanTemplate
 		if d, ok := op.(spec.OpDescriber); ok {
@@ -160,7 +160,7 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
 		for _, dep := range op.DependsOn() {
 			deps = append(deps, opIndex[dep])
 		}
-		plannedOps[i] = event.PlannedOp{
+		plannedOps[i] = result.PlannedOp{
 			Index:     i,
 			DisplayID: diagnostic.OpDisplayID(op),
 			DependsOn: deps,
@@ -168,7 +168,7 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
 		}
 	}
 
-	detail := event.PlanDetail{DeployID: string(p.Deploy.ID), DeployDesc: p.Deploy.Desc}
+	detail := result.PlanDetail{DeployID: string(p.Deploy.ID), DeployDesc: p.Deploy.Desc}
 	for i, act := range p.Deploy.Actions {
 		start := actionOpBase[i]
 		end := start + len(act.Ops())
@@ -176,7 +176,7 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) event.PlanDetail {
 		if actionDeps != nil && i < len(actionDeps) {
 			deps = actionDeps[i]
 		}
-		detail.Actions = append(detail.Actions, event.PlannedAction{
+		detail.Actions = append(detail.Actions, result.PlannedAction{
 			Index:     i,
 			Desc:      act.Desc(),
 			Kind:      act.Kind(),
