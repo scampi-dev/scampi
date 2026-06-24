@@ -36,7 +36,7 @@ type Options struct {
 // outputs that the engine returns directly (Plan, Inspect, Index).
 type CLI struct {
 	opts   Options
-	render *renderer
+	sink   *sink
 	glyphs glyphSet
 	store  *diagnostic.SourceStore
 
@@ -73,7 +73,7 @@ func New(opts Options, store *diagnostic.SourceStore) *CLI {
 	return &CLI{
 		opts:         opts,
 		store:        store,
-		render:       newRenderer(os.Stdout, os.Stderr, isTTY, glyphs, fmt),
+		sink:         newSink(os.Stdout, os.Stderr),
 		glyphs:       glyphs,
 		isTTY:        isTTY,
 		width:        width,
@@ -98,7 +98,7 @@ func (c *CLI) commitRenderEvents(events []renderEvent) {
 			events[i].line += ansi.Reset
 		}
 	}
-	c.render.emitEvents(events)
+	c.sink.emit(events)
 }
 
 // RenderSummary prints the one-line end-of-run summary computed from
@@ -611,13 +611,14 @@ func (c *CLI) EmitLegend() {
 	c.commitRenderEvents(events)
 }
 
-func (c *CLI) Interrupt() {
-	c.render.interrupted.Store(true)
-}
+// Interrupt is a no-op now that the live region is gone: SIGINT cancels the
+// run context (cmd), which is what actually stops work. Kept to satisfy
+// diagnostic.Displayer. A future live status line will reinstate teardown here.
+func (c *CLI) Interrupt() {}
 
-func (c *CLI) Close() {
-	c.render.close()
-}
+// Close is a no-op: output is written synchronously, so there is nothing to
+// drain. Kept to satisfy diagnostic.Displayer.
+func (c *CLI) Close() {}
 
 // Raise emits the event produced by err.
 func (c *CLI) Raise(err diagnostic.Raisable) {

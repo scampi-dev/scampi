@@ -30,8 +30,6 @@ var (
 	colPlanDeps    = ansi.BrightBlack().Dim()
 	colPlanBracket = ansi.BrightBlack().Dim()
 
-	colSpinner = ansi.Cyan().Dim()
-
 	colDiagInfo    = ansi.Blue()
 	colDiagWarning = ansi.Yellow()
 	colDiagError   = ansi.Red()
