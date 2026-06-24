@@ -15,7 +15,6 @@ import (
 	ossig "os/signal"
 	"runtime/debug"
 	"strings"
-	"sync"
 
 	"github.com/urfave/cli/v3"
 	"scampi.dev/scampi/internal/diagnostic"
@@ -26,14 +25,6 @@ import (
 	"scampi.dev/scampi/internal/secret"
 	"scampi.dev/scampi/internal/signal"
 	"scampi.dev/scampi/internal/spec"
-)
-
-// interruptHook holds a function called on SIGINT to notify the active
-// displayer. Protected by interruptMu because the signal goroutine and
-// command actions run concurrently.
-var (
-	interruptMu   sync.Mutex
-	interruptHook func()
 )
 
 var version = "v0.0.0-dev"
@@ -153,12 +144,7 @@ func main() {
 	ossig.Notify(sigCh, osutil.MainContextSignals...)
 	go func() {
 		<-sigCh
-		interruptMu.Lock()
-		if interruptHook != nil {
-			interruptHook()
-		}
-		interruptMu.Unlock()
-		cancel()
+		cancel() // cancels the run context; the engine unwinds on ctx.Done
 		ossig.Stop(sigCh)
 	}()
 
@@ -264,8 +250,8 @@ func mustGlobalOpts(ctx context.Context) globalOpts {
 // Displayer
 // -----------------------------------------------------------------------------
 
-func newDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.SourceStore) *clir.CLI {
-	d := clir.New(
+func newDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.SourceStore) diagnostic.Output {
+	return clir.New(
 		clir.Options{
 			ColorMode:  opts.colorMode,
 			Verbosity:  opts.verbosity,
@@ -274,19 +260,14 @@ func newDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.Source
 		},
 		store,
 	)
-	interruptMu.Lock()
-	interruptHook = d.Interrupt
-	interruptMu.Unlock()
-	return d
 }
 
-// withDisplayer creates a displayer and returns a cleanup function that
-// should be deferred. The cleanup function closes the displayer and
-// recovers from panics.
-func withDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.SourceStore) (*clir.CLI, func()) {
+// withDisplayer creates the output backend and returns a cleanup function that
+// should be deferred. Output is written synchronously, so cleanup only recovers
+// from panics. SIGINT is handled by cancelling the run context (see main).
+func withDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.SourceStore) (diagnostic.Output, func()) {
 	d := newDisplayer(ctx, opts, store)
 	return d, func() {
-		d.Close()
 		recoverAndReport(recover())
 	}
 }

@@ -10,26 +10,29 @@ import (
 
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/spec"
 )
 
-// nopDisplayer satisfies diagnostic.Displayer with no-op writes. Used
-// to keep the runner happy in unit tests where we only care about
-// the structured (passed, failed, err) return values, not what
-// would be printed to the terminal.
+// nopDisplayer satisfies diagnostic.Output, capturing events and no-opping the
+// one-shot renders. Used in unit tests where we only care about the structured
+// (passed, failed, err) return values, not terminal output.
 type nopDisplayer struct {
 	events []event.Event
 }
 
-func (d *nopDisplayer) EmitLegend() {}
-func (d *nopDisplayer) Emit(e event.Event) {
+func (d *nopDisplayer) RenderEvent(e event.Event) {
 	d.events = append(d.events, e)
 }
-func (d *nopDisplayer) Raise(r diagnostic.Raisable) { d.Emit(r.Diagnostic()) }
-func (d *nopDisplayer) Interrupt()                  {}
-func (d *nopDisplayer) Close()                      {}
+func (d *nopDisplayer) RenderSummary(result.Execution, bool) {}
+func (d *nopDisplayer) RenderPlan(result.Plan)               {}
+func (d *nopDisplayer) RenderInspect(result.Inspect)         {}
+func (d *nopDisplayer) RenderIndexAll([]spec.StepDoc)        {}
+func (d *nopDisplayer) RenderIndexStep(spec.StepDoc)         {}
+func (d *nopDisplayer) RenderLegend()                        {}
 
-var _ diagnostic.Displayer = (*nopDisplayer)(nil)
+var _ diagnostic.Output = (*nopDisplayer)(nil)
 
 // writeTestFile writes content to a temp file and returns the path.
 func writeTestFile(t *testing.T, name, content string) string {

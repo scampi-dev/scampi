@@ -18,13 +18,13 @@ type Policy struct {
 
 type policyEmitter struct {
 	pol Policy
-	out Displayer
+	out Output
 }
 
-// NewEmitter returns a stateless emitter that forwards events to
-// displayer, applying the policy's severity remap on the way.
-func NewEmitter(policy Policy, displayer Displayer) Emitter {
-	return &policyEmitter{pol: policy, out: displayer}
+// NewEmitter returns a stateless emitter that forwards events to the output
+// backend, applying the policy's severity remap on the way.
+func NewEmitter(policy Policy, out Output) Emitter {
+	return &policyEmitter{pol: policy, out: out}
 }
 
 func (p *policyEmitter) Raise(err Raisable) {
@@ -43,5 +43,5 @@ func (p *policyEmitter) Emit(ev event.Event) {
 			}
 		}
 	}
-	p.out.Emit(ev)
+	p.out.RenderEvent(ev)
 }

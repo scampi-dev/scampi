@@ -10,6 +10,8 @@ import (
 
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic/result"
+	"scampi.dev/scampi/internal/spec"
 )
 
 type (
@@ -30,11 +32,7 @@ type (
 	NoopEmitter struct{}
 )
 
-func (r *RecordingDisplayer) Raise(err diagnostic.Raisable) {
-	r.Emit(err.Diagnostic())
-}
-
-func (r *RecordingDisplayer) Emit(e event.Event) {
+func (r *RecordingDisplayer) RenderEvent(e event.Event) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.Events = append(r.Events, e)
@@ -48,9 +46,20 @@ func (r *RecordingDisplayer) Emit(e event.Event) {
 	}
 }
 
-func (r *RecordingDisplayer) EmitLegend() {}
-func (r *RecordingDisplayer) Interrupt()  {}
-func (r *RecordingDisplayer) Close()      {}
+// Emit and Raise let the recorder stand in as a diagnostic.Emitter too, for
+// tests that wire it straight into a Ctx instead of through NewEmitter.
+func (r *RecordingDisplayer) Emit(e event.Event)            { r.RenderEvent(e) }
+func (r *RecordingDisplayer) Raise(err diagnostic.Raisable) { r.RenderEvent(err.Diagnostic()) }
+
+// One-shot renders are no-ops: tests assert on the captured event stream, not
+// on rendered command output. Present only to satisfy diagnostic.Output.
+
+func (r *RecordingDisplayer) RenderSummary(result.Execution, bool) {}
+func (r *RecordingDisplayer) RenderPlan(result.Plan)               {}
+func (r *RecordingDisplayer) RenderInspect(result.Inspect)         {}
+func (r *RecordingDisplayer) RenderIndexAll([]spec.StepDoc)        {}
+func (r *RecordingDisplayer) RenderIndexStep(spec.StepDoc)         {}
+func (r *RecordingDisplayer) RenderLegend()                        {}
 
 func (r *RecordingDisplayer) String() string {
 	return r.Events.String()

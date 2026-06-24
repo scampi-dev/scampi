@@ -11,7 +11,6 @@ import (
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/osutil"
-	clir "scampi.dev/scampi/internal/render/cli"
 	"scampi.dev/scampi/internal/spec"
 )
 
@@ -97,7 +96,7 @@ Falls back to plain diff(1).`,
 
 func inspectList(
 	ctx context.Context,
-	displ *clir.CLI,
+	displ diagnostic.Output,
 	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,

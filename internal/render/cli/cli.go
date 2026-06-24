@@ -31,9 +31,9 @@ type Options struct {
 	Redactor *secret.Redactor
 }
 
-// CLI is the terminal renderer. It implements diagnostic.Displayer
-// for streaming events; the public Render* methods serve command
-// outputs that the engine returns directly (Plan, Inspect, Index).
+// CLI is the terminal output backend: it implements diagnostic.Output,
+// rendering both the live event stream (Emit) and the one-shot command
+// results (the Render* methods + Legend).
 type CLI struct {
 	opts   Options
 	sink   *sink
@@ -46,6 +46,8 @@ type CLI struct {
 	planRenderer *planRenderer
 	formatter    *formatter
 }
+
+var _ diagnostic.Output = (*CLI)(nil)
 
 // New creates a new CLI renderer.
 func New(opts Options, store *diagnostic.SourceStore) *CLI {
@@ -557,7 +559,7 @@ func (c *CLI) legendSection(header string, entries []legendEntry) []renderEvent 
 	return events
 }
 
-func (c *CLI) EmitLegend() {
+func (c *CLI) RenderLegend() {
 	var events []renderEvent
 
 	events = append(events, c.legendSection("STATE", []legendEntry{
@@ -611,22 +613,8 @@ func (c *CLI) EmitLegend() {
 	c.commitRenderEvents(events)
 }
 
-// Interrupt is a no-op now that the live region is gone: SIGINT cancels the
-// run context (cmd), which is what actually stops work. Kept to satisfy
-// diagnostic.Displayer. A future live status line will reinstate teardown here.
-func (c *CLI) Interrupt() {}
-
-// Close is a no-op: output is written synchronously, so there is nothing to
-// drain. Kept to satisfy diagnostic.Displayer.
-func (c *CLI) Close() {}
-
-// Raise emits the event produced by err.
-func (c *CLI) Raise(err diagnostic.Raisable) {
-	c.Emit(err.Diagnostic())
-}
-
-// Emit dispatches by concrete event type to the per-kind renderers.
-func (c *CLI) Emit(e event.Event) {
+// RenderEvent dispatches by concrete event type to the per-kind renderers.
+func (c *CLI) RenderEvent(e event.Event) {
 	switch v := e.(type) {
 	case event.Error:
 		c.renderDiagnostic(signal.Error, scopeFromCause(v.Cause), v.Template)

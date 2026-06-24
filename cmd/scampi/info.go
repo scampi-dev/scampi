@@ -75,7 +75,7 @@ and color semantics used in scampi CLI output.`,
 			opts := mustGlobalOpts(ctx)
 			displ, cleanup := withDisplayer(ctx, opts, nil)
 			defer cleanup()
-			displ.EmitLegend()
+			displ.RenderLegend()
 			return nil
 		},
 	}
