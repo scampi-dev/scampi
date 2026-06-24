@@ -6,7 +6,7 @@ package dag
 import (
 	"slices"
 
-	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic/result"
 )
 
 // PlanDAG is a DAG-ready view of a plan, used by renderers.
@@ -19,12 +19,12 @@ type Action struct {
 	Index     int
 	Desc      string
 	Kind      string
-	DependsOn []int               // action indices this depends on
-	Layers    [][]event.PlannedOp // topologically layered ops within action
+	DependsOn []int                // action indices this depends on
+	Layers    [][]result.PlannedOp // topologically layered ops within action
 }
 
 // Build constructs a DAG view of the plan detail.
-func Build(detail event.PlanDetail) PlanDAG {
+func Build(detail result.PlanDetail) PlanDAG {
 	actions := make([]Action, len(detail.Actions))
 	for i, act := range detail.Actions {
 		actions[i] = Action{
@@ -96,10 +96,10 @@ func topoLayersActions(actions []Action) [][]Action {
 	return layers
 }
 
-func topoLayers(ops []event.PlannedOp) [][]event.PlannedOp {
+func topoLayers(ops []result.PlannedOp) [][]result.PlannedOp {
 	inDegree := make(map[int]int)
 	children := make(map[int][]int)
-	index := make(map[int]event.PlannedOp)
+	index := make(map[int]result.PlannedOp)
 
 	for _, op := range ops {
 		index[op.Index] = op
@@ -109,7 +109,7 @@ func topoLayers(ops []event.PlannedOp) [][]event.PlannedOp {
 		}
 	}
 
-	var layers [][]event.PlannedOp
+	var layers [][]result.PlannedOp
 	var ready []int
 
 	for id, deg := range inDegree {
@@ -121,7 +121,7 @@ func topoLayers(ops []event.PlannedOp) [][]event.PlannedOp {
 
 	for len(ready) > 0 {
 		var next []int
-		var layer []event.PlannedOp
+		var layer []result.PlannedOp
 
 		for _, id := range ready {
 			layer = append(layer, index[id])
@@ -133,7 +133,7 @@ func topoLayers(ops []event.PlannedOp) [][]event.PlannedOp {
 			}
 		}
 
-		slices.SortFunc(layer, func(a, b event.PlannedOp) int {
+		slices.SortFunc(layer, func(a, b result.PlannedOp) int {
 			return a.Index - b.Index
 		})
 
@@ -146,8 +146,8 @@ func topoLayers(ops []event.PlannedOp) [][]event.PlannedOp {
 }
 
 // FlattenLayers flattens layered ops into a single slice.
-func FlattenLayers(layers [][]event.PlannedOp) []event.PlannedOp {
-	var out []event.PlannedOp
+func FlattenLayers(layers [][]result.PlannedOp) []result.PlannedOp {
+	var out []result.PlannedOp
 	for _, l := range layers {
 		out = append(out, l...)
 	}
@@ -155,8 +155,8 @@ func FlattenLayers(layers [][]event.PlannedOp) []event.PlannedOp {
 }
 
 // BuildDepTree builds a map of op index to its children.
-func BuildDepTree(ops []event.PlannedOp) map[int][]event.PlannedOp {
-	children := make(map[int][]event.PlannedOp)
+func BuildDepTree(ops []result.PlannedOp) map[int][]result.PlannedOp {
+	children := make(map[int][]result.PlannedOp)
 
 	for _, op := range ops {
 		for _, dep := range op.DependsOn {
@@ -168,7 +168,7 @@ func BuildDepTree(ops []event.PlannedOp) map[int][]event.PlannedOp {
 }
 
 // FindRoots returns ops that have no dependencies.
-func FindRoots(ops []event.PlannedOp) []event.PlannedOp {
+func FindRoots(ops []result.PlannedOp) []result.PlannedOp {
 	hasParent := make(map[int]bool)
 	for _, op := range ops {
 		if len(op.DependsOn) > 0 {
@@ -176,7 +176,7 @@ func FindRoots(ops []event.PlannedOp) []event.PlannedOp {
 		}
 	}
 
-	var roots []event.PlannedOp
+	var roots []result.PlannedOp
 	for _, op := range ops {
 		if !hasParent[op.Index] {
 			roots = append(roots, op)

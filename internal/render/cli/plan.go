@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/render/dag"
 	"scampi.dev/scampi/internal/render/layout"
 	"scampi.dev/scampi/internal/render/template"
@@ -43,7 +43,7 @@ type planLayout struct {
 	bracketCol      int
 }
 
-func (p *planRenderer) renderPlan(d event.PlanDetail) []renderEvent {
+func (p *planRenderer) renderPlan(d result.PlanDetail) []renderEvent {
 	if p.width < minWidePlanCols {
 		for i := range d.Actions {
 			for j := range d.Actions[i].Ops {
@@ -304,8 +304,8 @@ func digits10(i int) int {
 
 func (p *planRenderer) collectOpTreeLines(
 	lines *[]string,
-	op event.PlannedOp,
-	children map[int][]event.PlannedOp,
+	op result.PlannedOp,
+	children map[int][]result.PlannedOp,
 	prefix []bool,
 	isLast bool,
 	v signal.Verbosity,

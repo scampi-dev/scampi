@@ -11,9 +11,8 @@ import (
 	"github.com/charmbracelet/x/term"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
-	"scampi.dev/scampi/internal/engine"
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/errs"
-	"scampi.dev/scampi/internal/model"
 	"scampi.dev/scampi/internal/render/ansi"
 	"scampi.dev/scampi/internal/render/layout"
 	"scampi.dev/scampi/internal/secret"
@@ -104,7 +103,7 @@ func (c *CLI) commitRenderEvents(events []renderEvent) {
 
 // RenderSummary prints the one-line end-of-run summary computed from
 // the aggregated ExecutionReport returned by engine.Check / Apply.
-func (c *CLI) RenderSummary(rep model.ExecutionReport, checkOnly bool) {
+func (c *CLI) RenderSummary(rep result.Execution, checkOnly bool) {
 	var changed, wouldChange, failed int
 	for _, ar := range rep.Actions {
 		changed += ar.Summary.Changed
@@ -136,18 +135,18 @@ func (c *CLI) RenderSummary(rep model.ExecutionReport, checkOnly bool) {
 // RenderPlan prints the per-deploy action plans (one tree each, in
 // topo order) and, when the cross-deploy graph has any structure
 // worth showing, follows them with a [graph] header section.
-func (c *CLI) RenderPlan(result engine.PlanResult) {
-	for _, level := range result.Levels {
+func (c *CLI) RenderPlan(plan result.Plan) {
+	for _, level := range plan.Levels {
 		for _, node := range level.Nodes {
 			c.commitRenderEvents(c.planRenderer.renderPlan(node.Detail))
 		}
 	}
-	if result.HasGraph() {
-		c.renderDeployGraph(result)
+	if plan.HasGraph() {
+		c.renderDeployGraph(plan)
 	}
 }
 
-func (c *CLI) renderDeployGraph(result engine.PlanResult) {
+func (c *CLI) renderDeployGraph(plan result.Plan) {
 	f := c.formatter
 	var out []renderEvent
 
@@ -155,7 +154,7 @@ func (c *CLI) renderDeployGraph(result engine.PlanResult) {
 		stream: streamOut,
 		line:   f.fmtMsg(ansi.Magenta().Bold(), "[graph] deploy plan"),
 	})
-	for _, level := range result.Levels {
+	for _, level := range plan.Levels {
 		for _, n := range level.Nodes {
 			indent := strings.Repeat("  ", level.Index)
 			label := f.fmtMsg(ansi.Cyan().Bold(), n.DeployName)
@@ -232,7 +231,7 @@ func (c *CLI) RenderIndexAll(docs []spec.StepDoc) {
 }
 
 // RenderInspect prints inspect output for one deploy.
-func (c *CLI) RenderInspect(d event.InspectDetail) {
+func (c *CLI) RenderInspect(d result.Inspect) {
 	f := c.formatter
 	var out []renderEvent
 

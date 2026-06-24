@@ -35,6 +35,15 @@ linters:
             - "scampi.dev/scampi/internal/lang"
             - "scampi.dev/scampi/internal/std"
             - "scampi.dev/scampi/internal/errs"
+        # render/ must not import engine: it consumes the result/ and event/
+        # value types (defined below engine), never the engine itself. Keeps
+        # the stream/one-shot surfaces decoupled from planning. See #430.
+        render-isolation:
+          files:
+            - "**/internal/render/**"
+          deny:
+            - pkg: "scampi.dev/scampi/internal/engine"
+              desc: "render must consume result/ and event/ types, not import engine (#430)"
     staticcheck:
       checks:
         - all
