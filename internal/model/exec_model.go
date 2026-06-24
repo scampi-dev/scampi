@@ -1,44 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-//go:generate stringer -type=OpOutcome
+// Package model re-exports the execution report types from
+// internal/diagnostic/result. Temporary shim for the #430 migration; callers
+// move to result/ directly in the final sub-phase, after which this package
+// is deleted.
 package model
 
-import "scampi.dev/scampi/internal/spec"
+import "scampi.dev/scampi/internal/diagnostic/result"
 
-type OpOutcome uint8
-
-const (
-	OpSucceeded OpOutcome = iota
-	OpFailed
-	OpAborted
-	OpSkipped
-	OpWouldChange // Check passed, would execute if applied
+type (
+	OpOutcome       = result.OpOutcome
+	ExecutionReport = result.Execution
+	ActionReport    = result.ActionReport
+	OpReport        = result.OpReport
+	ActionSummary   = result.ActionSummary
 )
 
-type ExecutionReport struct {
-	Actions []ActionReport
-	Err     error // terminal error for the run (abort / failure), if any
-}
-type ActionReport struct {
-	Action spec.Action
-
-	Ops []OpReport
-
-	Summary ActionSummary
-}
-type OpReport struct {
-	Op      spec.Op
-	Outcome OpOutcome
-
-	Result *spec.Result
-	Err    error
-}
-type ActionSummary struct {
-	Total       int
-	Succeeded   int
-	Failed      int
-	Aborted     int
-	Skipped     int
-	Changed     int
-	WouldChange int
-}
+const (
+	OpSucceeded   = result.OpSucceeded
+	OpFailed      = result.OpFailed
+	OpAborted     = result.OpAborted
+	OpSkipped     = result.OpSkipped
+	OpWouldChange = result.OpWouldChange
+)

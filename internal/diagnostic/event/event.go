@@ -8,25 +8,21 @@ package event
 import (
 	"time"
 
+	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/errs"
 	"scampi.dev/scampi/internal/spec"
 )
 
-// InspectDetail
-// -----------------------------------------------------------------------------
-
-type InspectDetail struct {
-	DeployName string
-	TargetName string
-	Entries    []InspectEntry
-}
-
-type InspectEntry struct {
-	Index  int
-	Kind   string
-	Desc   string
-	Fields []spec.InspectField
-}
+// One-shot value DTOs moved to result/; these alias shims keep producers
+// (engine) and consumers (render) green during the #430 migration. They are
+// not events - they carry no isEvent() and are returned, not emitted.
+type (
+	InspectDetail = result.Inspect
+	InspectEntry  = result.InspectEntry
+	PlanDetail    = result.PlanDetail
+	PlannedAction = result.PlannedAction
+	PlannedOp     = result.PlannedOp
+)
 
 // Template
 // -----------------------------------------------------------------------------
@@ -178,32 +174,4 @@ type Change struct {
 type Progress struct {
 	Time time.Time
 	Text string
-}
-
-// PlanDetail
-// -----------------------------------------------------------------------------
-
-// PlanDetail / PlannedAction / PlannedOp model the rendered structure of
-// `scampi plan` output: actions in order, each carrying their ops and
-// inter-op dependency edges. Returned from engine.Plan() rather than
-// emitted as an event.
-type PlanDetail struct {
-	DeployID   string
-	DeployDesc string
-	Actions    []PlannedAction
-}
-
-type PlannedAction struct {
-	Index     int
-	Desc      string
-	Kind      string
-	DependsOn []int
-	Ops       []PlannedOp
-}
-
-type PlannedOp struct {
-	Index     int
-	DisplayID string
-	DependsOn []int
-	Template  *spec.PlanTemplate // nil = no template, use DisplayID
 }
