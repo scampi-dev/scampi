@@ -130,8 +130,8 @@ func collectDiagnostics(rec *RecordingDisplayer) []collectedDiagnostic {
 
 // WriteSnapshot serializes the actual diagnostics from rec into the
 // ExpectedDiagnostics JSON shape and writes it to path. Used when
-// regenerating fixtures (SCAMPI_UPDATE_DIAGNOSTICS=1) after intentional
-// changes to error IDs, scopes, or source spans.
+// regenerating fixtures (SCAMPI_UPDATE=1) after intentional changes to error
+// IDs, scopes, or source spans.
 func WriteSnapshot(t *testing.T, path string, abort bool, rec *RecordingDisplayer, cfgPath string) {
 	t.Helper()
 

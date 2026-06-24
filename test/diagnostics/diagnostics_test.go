@@ -9,9 +9,9 @@
 // Exercises: the full lang → engine → diagnostic pipeline. Anchors
 // diagnostic IDs, severities, source spans, and scopes against regressions.
 //
-// Snapshot regen: set SCAMPI_UPDATE_DIAGNOSTICS=1 to rewrite every
-// expect.json from the recording. Use after intentional changes to
-// error IDs, scopes, or source spans; review the diff before committing.
+// Snapshot regen: set SCAMPI_UPDATE=1 to rewrite every expect.json from the
+// recording. Use after intentional changes to error IDs, scopes, or source
+// spans; review the diff before committing.
 
 package diagnostics
 
@@ -100,7 +100,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 	var abort engine.AbortError
 	abortOccurred := errors.As(err, &abort)
 
-	if os.Getenv("SCAMPI_UPDATE_DIAGNOSTICS") == "1" {
+	if os.Getenv("SCAMPI_UPDATE") != "" {
 		harness.WriteSnapshot(t, expectPath, abortOccurred, rec, cfgPath)
 		return
 	}

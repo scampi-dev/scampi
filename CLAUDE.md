@@ -221,7 +221,7 @@ behavior you care about.
 | Formatter            | `lang/format/testdata/`                   | Pairs: `<name>.scampi.unformatted` (input) + `<name>.expected.scampi` (golden).        |
 | Lang golden          | `lang/test/testdata/{errors,eval,parse}/` | Pairs: `<name>.scampi` (input) + `<name>.json` (expected result).                      |
 | Engine internals     | `engine/*_test.go`                        | Unit tests on graph building, planning, scheduling, errors.                            |
-| Diagnostics          | `test/testdata/diagnostics/<case>/`       | `config.scampi` + `expect.json`. Snapshot mode: `SCAMPI_UPDATE_DIAGNOSTICS=1`.         |
+| Diagnostics          | `test/testdata/diagnostics/<case>/`       | `config.scampi` + `expect.json`. Snapshot mode: `SCAMPI_UPDATE=1`.                     |
 | E2E (full pipeline)  | `test/testdata/e2e/<case>/`               | `config.scampi` + `source.json` (initial state) + `expect.json` (final state + ops).   |
 | Integration (Go)     | `test/integration/*_test.go`              | Inline Go tests of engine wiring (mock targets, error paths). No fixtures.             |
 | Drift                | `test/drift/`                             | Drift-detection scenarios.                                                             |
@@ -232,7 +232,7 @@ behavior you care about.
 **Format input files use `.scampi.unformatted`** so `scampi fmt ./...` skips
 them — never rename back to `.scampi`.
 
-**Snapshot mode** for diagnostics: set `SCAMPI_UPDATE_DIAGNOSTICS=1` to
+**Snapshot mode** for diagnostics: set `SCAMPI_UPDATE=1` to
 rewrite every `expect.json` from the live recording. Use after intentional
 diagnostic changes; review the diff before committing.
 
