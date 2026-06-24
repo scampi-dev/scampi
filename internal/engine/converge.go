@@ -3,7 +3,6 @@
 package engine
 
 import (
-	"context"
 	"sync"
 
 	"scampi.dev/scampi/internal/diagnostic"
@@ -15,32 +14,29 @@ import (
 // check-only mode, and returns the aggregated report across deploys.
 // The cmd-side renders a summary line from the report.
 func Check(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 ) (model.ExecutionReport, error) {
-	return runConverge(ctx, em, cfgPath, store, opts, true)
+	return runConverge(ctx, cfgPath, store, opts, true)
 }
 
 // Apply resolves cfgPath into one execution per deploy, runs each in
 // apply mode, and returns the aggregated report across deploys.
 func Apply(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 ) (model.ExecutionReport, error) {
-	return runConverge(ctx, em, cfgPath, store, opts, false)
+	return runConverge(ctx, cfgPath, store, opts, false)
 }
 
 // runConverge is the shared scaffolding for Check and Apply: iterate
 // resolved deploys concurrently and aggregate their reports into one.
 func runConverge(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
@@ -50,7 +46,7 @@ func runConverge(
 		mu  sync.Mutex
 		agg model.ExecutionReport
 	)
-	err := forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+	err := forEachResolved(ctx, cfgPath, store, opts, func(ctx diagnostic.Ctx, e *Engine) error {
 		rep, cErr := e.converge(ctx, checkOnly)
 		if cErr != nil {
 			return cErr
@@ -65,17 +61,17 @@ func runConverge(
 
 // Check runs the deploy bound to this engine in check-only mode and
 // returns its report.
-func (e *Engine) Check(ctx context.Context) (model.ExecutionReport, error) {
+func (e *Engine) Check(ctx diagnostic.Ctx) (model.ExecutionReport, error) {
 	return e.converge(ctx, true)
 }
 
 // Apply runs the deploy bound to this engine and returns its report.
-func (e *Engine) Apply(ctx context.Context) (model.ExecutionReport, error) {
+func (e *Engine) Apply(ctx diagnostic.Ctx) (model.ExecutionReport, error) {
 	return e.converge(ctx, false)
 }
 
-func (e *Engine) converge(ctx context.Context, checkOnly bool) (model.ExecutionReport, error) {
-	p, _, hp, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+func (e *Engine) converge(ctx diagnostic.Ctx, checkOnly bool) (model.ExecutionReport, error) {
+	p, _, hp, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
 		return model.ExecutionReport{}, err
 	}

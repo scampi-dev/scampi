@@ -55,7 +55,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -121,7 +121,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -204,7 +204,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -255,7 +255,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -314,7 +314,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -409,7 +409,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 }
@@ -453,7 +453,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, _ = e.Apply(context.Background())
+	_, _ = e.Apply(diagnostic.NewCtx(context.Background(), em))
 
 	for path := range tgt.Files {
 		if strings.HasPrefix(path, "/tmp/.scampi-") {

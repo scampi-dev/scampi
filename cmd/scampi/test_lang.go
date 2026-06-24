@@ -29,7 +29,9 @@ func runLangTestFile(
 	tests := testkit.NewTestRegistry()
 	reg := testkit.NewEngineRegistry(engine.NewRegistry(), tests)
 
-	cfg, err := linker.LoadConfig(ctx, em, testPath, src, reg)
+	dctx := diagnostic.NewCtx(ctx, em)
+
+	cfg, err := linker.LoadConfig(dctx, testPath, src, reg)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -40,11 +42,11 @@ func runLangTestFile(
 	}
 
 	for _, rc := range resolved {
-		e, engineErr := engine.New(ctx, src, rc, em)
+		e, engineErr := engine.New(dctx, src, rc)
 		if engineErr != nil {
 			return 0, 0, engineErr
 		}
-		if _, applyErr := e.Apply(ctx); applyErr != nil {
+		if _, applyErr := e.Apply(dctx); applyErr != nil {
 			e.Close()
 			return 0, 0, applyErr
 		}

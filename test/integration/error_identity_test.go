@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
@@ -50,7 +51,7 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -74,7 +75,7 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 		},
 	}
 
-	_, err = e.ExecutePlan(ctx, plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 
 	// panicIfNotAbortError should trigger
 	_ = err
@@ -92,7 +93,7 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -118,7 +119,7 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 		},
 	}
 
-	_, err = e.ExecutePlan(ctx, plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 
 	// panicIfNotAbortError should trigger
 	_ = err
@@ -137,7 +138,7 @@ func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -164,7 +165,7 @@ func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
 		},
 	}
 
-	_, err = e.ExecutePlan(ctx, plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 
 	var cancelled engine.CancelledError
 	if !errors.As(err, &cancelled) {

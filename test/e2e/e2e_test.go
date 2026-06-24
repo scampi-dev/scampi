@@ -166,7 +166,7 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 	ctx := context.Background()
 
 	run := func() error {
-		cfg, err := engine.LoadConfig(ctx, em, memCfgPath, store, src)
+		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), memCfgPath, store, src)
 		if err != nil {
 			return err
 		}
@@ -179,12 +179,12 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 		resolved.Target = ti
 		resolved.Target.Config = ti.Config
 
-		e, err := engine.NewWithTarget(ctx, src, resolved, em, tgt)
+		e, err := engine.NewWithTarget(diagnostic.NewCtx(ctx, em), src, resolved, tgt)
 		if err != nil {
 			return err
 		}
 
-		_, err = e.Apply(ctx)
+		_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 		return err
 	}
 

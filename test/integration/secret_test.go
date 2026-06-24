@@ -64,7 +64,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -115,7 +115,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secret, got nil")
 	}
@@ -168,7 +168,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -204,7 +204,7 @@ std.deploy(name = "test", targets = [host]) {}
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secrets file, got nil")
 	}
@@ -256,7 +256,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -347,7 +347,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -401,7 +401,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secret, got nil")
 	}
@@ -463,7 +463,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -501,7 +501,7 @@ std.deploy(name = "test", targets = [host]) {}
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	_, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err == nil {
 		t.Fatal("expected error for missing secrets file, got nil")
 	}

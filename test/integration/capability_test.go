@@ -25,7 +25,7 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -37,13 +37,13 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 
 	var capErr engine.AbortError
 	if !errors.As(err, &capErr) {

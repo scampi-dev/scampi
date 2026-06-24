@@ -68,7 +68,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -110,7 +110,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Check(context.Background()); err != nil {
+	if _, err = e.Check(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Check: %v\n%s", err, rec)
 	}
 }
@@ -144,7 +144,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -187,7 +187,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -234,7 +234,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -281,7 +281,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -325,7 +325,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Check(context.Background()); err != nil {
+	if _, err = e.Check(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Check: %v\n%s", err, rec)
 	}
 }

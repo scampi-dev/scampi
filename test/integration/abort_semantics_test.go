@@ -50,18 +50,20 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(
+	e, err := engine.New(diagnostic.NewCtx(
 		context.Background(),
+
+		harness.NoopEmitter{}),
+
 		source.LocalPosixSource{},
-		cfg,
-		harness.NoopEmitter{},
-	)
+		cfg)
+
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(context.Background(), plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter{}), plan)
 	if err != nil {
 		t.Fatalf("non-aborting diagnostics must not return error, got %v", err)
 	}
@@ -129,18 +131,20 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(
+	e, err := engine.New(diagnostic.NewCtx(
 		context.Background(),
+
+		harness.NoopEmitter{}),
+
 		source.LocalPosixSource{},
-		cfg,
-		harness.NoopEmitter{},
-	)
+		cfg)
+
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(context.Background(), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter{}), plan)
 	if err != nil {
 		t.Fatalf("non-abort diagnostics must not fail execution: %v", err)
 	}
@@ -181,18 +185,20 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(
+	e, err := engine.New(diagnostic.NewCtx(
 		context.Background(),
+
+		harness.NoopEmitter{}),
+
 		source.LocalPosixSource{},
-		cfg,
-		harness.NoopEmitter{},
-	)
+		cfg)
+
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(context.Background(), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter{}), plan)
 
 	if err == nil {
 		t.Fatalf("abort diagnostic must abort execution")
@@ -228,18 +234,20 @@ func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(
+	e, err := engine.New(diagnostic.NewCtx(
 		context.Background(),
+
+		harness.NoopEmitter{}),
+
 		source.LocalPosixSource{},
-		cfg,
-		harness.NoopEmitter{},
-	)
+		cfg)
+
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(context.Background(), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter{}), plan)
 
 	if err == nil {
 		t.Fatalf("abort diagnostic must abort execution")
@@ -285,18 +293,20 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(
+	e, err := engine.New(diagnostic.NewCtx(
 		context.Background(),
+
+		harness.NoopEmitter{}),
+
 		source.LocalPosixSource{},
-		cfg,
-		harness.NoopEmitter{},
-	)
+		cfg)
+
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(context.Background(), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter{}), plan)
 	if err != nil {
 		t.Fatalf("non-abort diagnostics must not fail execution: %v", err)
 	}
@@ -346,18 +356,20 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(
+	e, err := engine.New(diagnostic.NewCtx(
 		context.Background(),
+
+		harness.NoopEmitter{}),
+
 		source.LocalPosixSource{},
-		cfg,
-		harness.NoopEmitter{},
-	)
+		cfg)
+
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(ctx, plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), plan)
 
 	if err == nil {
 		t.Fatalf("execution error must propagate")

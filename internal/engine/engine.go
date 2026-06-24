@@ -3,7 +3,6 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -22,18 +21,17 @@ type Engine struct {
 	src   source.Source
 	tgt   target.Target
 	cfg   spec.ResolvedConfig
-	em    diagnostic.Emitter
 	store *diagnostic.SourceStore
 }
 
-func New(ctx context.Context, src source.Source, cfg spec.ResolvedConfig, em diagnostic.Emitter) (*Engine, error) {
-	em.Emit(event.Progress{
+func New(ctx diagnostic.Ctx, src source.Source, cfg spec.ResolvedConfig) (*Engine, error) {
+	ctx.Emit(event.Progress{
 		Time: time.Now(),
 		Text: fmt.Sprintf("connecting to %s (%s)", cfg.TargetName, cfg.Target.Type.Kind()),
 	})
 	tgt, err := cfg.Target.Type.Create(ctx, src, cfg.Target)
 	if err != nil {
-		if impact, ok := emitEngineDiagnostic(em, cfg.Path, err); ok {
+		if impact, ok := emitEngineDiagnostic(ctx, cfg.Path, err); ok {
 			if impact.ShouldAbort() {
 				return nil, AbortError{Causes: []error{err}}
 			}
@@ -45,24 +43,21 @@ func New(ctx context.Context, src source.Source, cfg spec.ResolvedConfig, em dia
 		src: src,
 		tgt: tgt,
 		cfg: cfg,
-		em:  em,
 	}, nil
 }
 
 // NewWithTarget creates an engine with a pre-created target.
 // Use this for testing when you need to provide a specific target instance.
 func NewWithTarget(
-	_ context.Context,
+	_ diagnostic.Ctx,
 	src source.Source,
 	cfg spec.ResolvedConfig,
-	em diagnostic.Emitter,
 	tgt target.Target,
 ) (*Engine, error) {
 	return &Engine{
 		src: src,
 		tgt: tgt,
 		cfg: cfg,
-		em:  em,
 	}, nil
 }
 
@@ -75,7 +70,7 @@ func (e *Engine) Close() {
 // storeSourcePaths reads action source files (e.g. template sources) via the
 // source and registers them in the store so the renderer can display source
 // context in error messages.
-func (e *Engine) storeSourcePaths(ctx context.Context, p spec.Plan) {
+func (e *Engine) storeSourcePaths(ctx diagnostic.Ctx, p spec.Plan) {
 	if e.store == nil {
 		return
 	}
@@ -95,22 +90,21 @@ func (e *Engine) storeSourcePaths(ctx context.Context, p spec.Plan) {
 // forEachResolvedOffline is like forEachResolved but skips target creation.
 // Used by plan and inspect (list mode) which never touch the target.
 func forEachResolvedOffline(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-	run func(ctx context.Context, e *Engine) error,
+	run func(ctx diagnostic.Ctx, e *Engine) error,
 ) error {
 	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
-	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
+	cfg, err := LoadConfig(ctx, cfgPath, store, src)
 	if err != nil {
 		return err
 	}
 
 	resolved, err := ResolveMultiple(cfg, opts)
 	if err != nil {
-		if impact, ok := emitEngineDiagnostic(em, cfgPath, err); ok {
+		if impact, ok := emitEngineDiagnostic(ctx, cfgPath, err); ok {
 			if impact.ShouldAbort() {
 				return AbortError{Causes: []error{err}}
 			}
@@ -119,8 +113,8 @@ func forEachResolvedOffline(
 	}
 
 	allCaps := capabilityTarget{caps: capability.All}
-	return runPlansConcurrent(ctx, em, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
-		e, err := NewWithTarget(ctx, src, res, em, allCaps)
+	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error {
+		e, err := NewWithTarget(ctx, src, res, allCaps)
 		if err != nil {
 			return err
 		}
@@ -131,22 +125,21 @@ func forEachResolvedOffline(
 }
 
 func forEachResolved(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
-	run func(ctx context.Context, e *Engine) error,
+	run func(ctx diagnostic.Ctx, e *Engine) error,
 ) error {
 	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
-	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
+	cfg, err := LoadConfig(ctx, cfgPath, store, src)
 	if err != nil {
 		return err
 	}
 
 	resolved, err := ResolveMultiple(cfg, opts)
 	if err != nil {
-		if impact, ok := emitEngineDiagnostic(em, cfgPath, err); ok {
+		if impact, ok := emitEngineDiagnostic(ctx, cfgPath, err); ok {
 			if impact.ShouldAbort() {
 				return AbortError{Causes: []error{err}}
 			}
@@ -154,8 +147,8 @@ func forEachResolved(
 		return err
 	}
 
-	return runPlansConcurrent(ctx, em, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
-		e, err := New(ctx, src, res, em)
+	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error {
+		e, err := New(ctx, src, res)
 		if err != nil {
 			return err
 		}
@@ -177,10 +170,9 @@ func forEachResolved(
 // rationale and follow-ups for a tunable cap if real configs hit
 // shared-infra limits.
 func runPlansConcurrent(
-	ctx context.Context,
-	_ diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	resolved []spec.ResolvedConfig,
-	work func(ctx context.Context, res spec.ResolvedConfig) error,
+	work func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error,
 ) error {
 	if len(resolved) == 1 {
 		return work(ctx, resolved[0])
@@ -213,9 +205,9 @@ func runPlansConcurrent(
 }
 
 func runLevel(
-	ctx context.Context,
+	ctx diagnostic.Ctx,
 	level []*deployNode,
-	work func(ctx context.Context, res spec.ResolvedConfig) error,
+	work func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error,
 ) []error {
 	g, gctx := errgroup.WithContext(ctx)
 	var (
@@ -224,7 +216,7 @@ func runLevel(
 	)
 	for _, n := range level {
 		g.Go(func() error {
-			if err := work(gctx, n.res); err != nil {
+			if err := work(ctx.With(gctx), n.res); err != nil {
 				mu.Lock()
 				causes = append(causes, err)
 				mu.Unlock()

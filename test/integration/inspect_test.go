@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
@@ -36,7 +37,7 @@ func makeInspectEngine(t *testing.T, actions []spec.Action) *engine.Engine {
 		Steps:      steps,
 	}
 
-	e, err := engine.New(ctx, src, cfg, harness.NoopEmitter{})
+	e, err := engine.New(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -63,7 +64,7 @@ func TestInspect_SingleOp(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	result, err := e.InspectDiffFile(ctx, "")
+	result, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -90,7 +91,7 @@ func TestInspect_NoInspectableOps(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	_, err := e.InspectDiffFile(ctx, "")
+	_, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), "")
 	var abort engine.AbortError
 	if !errors.As(err, &abort) {
 		t.Fatalf("expected AbortError, got %v", err)
@@ -124,7 +125,7 @@ func TestInspect_MultipleOps(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	_, err := e.InspectDiffFile(ctx, "")
+	_, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), "")
 	var abort engine.AbortError
 	if !errors.As(err, &abort) {
 		t.Fatalf("expected AbortError, got %v", err)
@@ -147,7 +148,7 @@ func TestInspect_CurrentNotExist(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Action{act})
 	defer e.Close()
 
-	result, err := e.InspectDiffFile(ctx, "")
+	result, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -188,14 +189,14 @@ func TestInspect_StepFilter(t *testing.T) {
 	defer e.Close()
 
 	// Without filter: multiple ops → abort.
-	_, err := e.InspectDiffFile(ctx, "")
+	_, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), "")
 	var abort engine.AbortError
 	if !errors.As(err, &abort) {
 		t.Fatalf("expected AbortError without filter, got %v", err)
 	}
 
 	// With filter: narrows to one.
-	result, err := e.InspectDiffFile(ctx, "a.conf")
+	result, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, harness.NoopEmitter{}), "a.conf")
 	if err != nil {
 		t.Fatalf("Inspect with filter: %v", err)
 	}

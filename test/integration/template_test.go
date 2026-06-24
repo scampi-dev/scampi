@@ -53,7 +53,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -65,13 +65,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	result, err := e.InspectDiffFile(ctx, "")
+	result, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, em), "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -123,7 +123,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -135,13 +135,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	result, err := e.InspectDiffFile(ctx, "")
+	result, err := e.InspectDiffFile(diagnostic.NewCtx(ctx, em), "")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -195,7 +195,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -207,13 +207,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -283,7 +283,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -295,13 +295,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -356,7 +356,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -368,13 +368,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -429,7 +429,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -441,13 +441,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -499,7 +499,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -511,13 +511,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -564,7 +564,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -576,13 +576,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -634,7 +634,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -646,13 +646,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err == nil {
 		t.Fatal("expected error for parse failure, got nil")
 	}
@@ -702,7 +702,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -714,13 +714,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err == nil {
 		t.Fatal("expected error for exec failure, got nil")
 	}
@@ -770,7 +770,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -782,13 +782,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err == nil {
 		t.Fatal("expected error for missing source, got nil")
 	}
@@ -846,7 +846,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -858,13 +858,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err == nil {
 		t.Fatal("expected error for env key not in values, got nil")
 	}
@@ -913,7 +913,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -925,13 +925,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err == nil {
 		t.Fatal("expected error for missing dest directory, got nil")
 	}
@@ -985,7 +985,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -997,13 +997,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1050,7 +1050,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1062,13 +1062,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1118,7 +1118,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1130,13 +1130,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1178,7 +1178,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1190,13 +1190,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1246,7 +1246,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1258,13 +1258,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1318,7 +1318,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1330,13 +1330,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1390,7 +1390,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1402,13 +1402,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -1455,7 +1455,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1467,13 +1467,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err == nil {
 		t.Fatal("expected error for write failure, got nil")
 	}

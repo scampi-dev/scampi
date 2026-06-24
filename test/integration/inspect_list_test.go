@@ -48,7 +48,7 @@ std.deploy(name = "solo", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
-	details, err := engine.InspectList(context.Background(), em, path, store, spec.ResolveOptions{})
+	details, err := engine.InspectList(diagnostic.NewCtx(context.Background(), em), path, store, spec.ResolveOptions{})
 	if err != nil {
 		t.Fatalf("engine.InspectList: %v", err)
 	}
@@ -131,7 +131,7 @@ std.deploy(name = "mike", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
-	details, err := engine.InspectList(context.Background(), em, path, store, spec.ResolveOptions{})
+	details, err := engine.InspectList(diagnostic.NewCtx(context.Background(), em), path, store, spec.ResolveOptions{})
 	if err != nil {
 		t.Fatalf("engine.InspectList: %v", err)
 	}
@@ -171,7 +171,7 @@ std.deploy(name = "solo", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
-	details, err := engine.InspectList(context.Background(), em, path, store, spec.ResolveOptions{})
+	details, err := engine.InspectList(diagnostic.NewCtx(context.Background(), em), path, store, spec.ResolveOptions{})
 	if err != nil {
 		t.Fatalf("engine.InspectList: %v", err)
 	}

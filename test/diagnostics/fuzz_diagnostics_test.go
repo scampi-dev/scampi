@@ -530,7 +530,7 @@ frobnicate(name = "test")`,
 
 		apply := func() error {
 			ctx := context.Background()
-			cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+			cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 			if err != nil {
 				return err
 			}
@@ -542,13 +542,13 @@ frobnicate(name = "test")`,
 
 			resolved.Target = harness.MockTargetInstance(tgt)
 
-			e, err := engine.New(ctx, src, resolved, em)
+			e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 			if err != nil {
 				return err
 			}
 			defer e.Close()
 
-			_, err = e.Apply(ctx)
+			_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 			return err
 		}
 

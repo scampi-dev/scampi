@@ -73,7 +73,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 	ctx := context.Background()
 
 	apply := func() error {
-		cfg, err := engine.LoadConfig(ctx, em, cfgPath, store, src)
+		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), cfgPath, store, src)
 		if err != nil {
 			return err
 		}
@@ -85,13 +85,13 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 
 		resolved.Target = harness.MockTargetInstance(tgt)
 
-		e, err := engine.New(ctx, src, resolved, em)
+		e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 		if err != nil {
 			return err
 		}
 		defer e.Close()
 
-		_, err = e.Apply(ctx)
+		_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 		return err
 	}
 

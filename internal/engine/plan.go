@@ -23,21 +23,20 @@ import (
 // tree attached as a leaf. The same shape covers the single-deploy
 // case (one level, one node, no edges).
 func Plan(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 ) (PlanResult, error) {
 	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
-	cfg, err := LoadConfig(ctx, em, cfgPath, store, src)
+	cfg, err := LoadConfig(ctx, cfgPath, store, src)
 	if err != nil {
 		return PlanResult{}, err
 	}
 
 	resolved, err := ResolveMultiple(cfg, opts)
 	if err != nil {
-		if impact, ok := emitEngineDiagnostic(em, cfgPath, err); ok {
+		if impact, ok := emitEngineDiagnostic(ctx, cfgPath, err); ok {
 			if impact.ShouldAbort() {
 				return PlanResult{}, AbortError{Causes: []error{err}}
 			}
@@ -62,8 +61,8 @@ func Plan(
 		mu      sync.Mutex
 		details = make(map[int]event.PlanDetail, len(resolved))
 	)
-	err = runPlansConcurrent(ctx, em, resolved, func(ctx context.Context, res spec.ResolvedConfig) error {
-		e, eErr := NewWithTarget(ctx, src, res, em, allCaps)
+	err = runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error {
+		e, eErr := NewWithTarget(ctx, src, res, allCaps)
 		if eErr != nil {
 			return eErr
 		}
@@ -124,8 +123,8 @@ func resolvedIndex(resolved []spec.ResolvedConfig, res spec.ResolvedConfig) int 
 // resolved deploy. The top-level engine.Plan aggregates per-deploy
 // details into a PlanResult; tests can call this directly to
 // surface plan-time errors without exercising the full pipeline.
-func (e *Engine) PlanDeploy(ctx context.Context) (event.PlanDetail, error) {
-	p, actionDeps, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+func (e *Engine) PlanDeploy(ctx diagnostic.Ctx) (event.PlanDetail, error) {
+	p, actionDeps, _, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
 		return event.PlanDetail{}, err
 	}

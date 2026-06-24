@@ -35,7 +35,7 @@ func loadAndResolve(
 		memSrc.Files["/config.scampi"] = []byte(cfgStr)
 	}
 
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func loadAndResolve(
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	return engine.New(ctx, src, resolved, em)
+	return engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 }
 
 // TestIntegration_FullFlow tests the complete engine flow from config loading
@@ -87,7 +87,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -161,7 +161,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -218,7 +218,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -294,7 +294,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	// Should fail with AbortError
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -344,7 +344,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 
 	ctx := context.Background()
-	cfg, err := engine.LoadConfig(ctx, em, "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -356,13 +356,13 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockTargetInstance(tgt)
 
-	e, err := engine.New(ctx, src, resolved, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.Apply(ctx)
+	_, err = e.Apply(diagnostic.NewCtx(ctx, em))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -418,7 +418,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -474,7 +474,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -539,7 +539,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -593,7 +593,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
@@ -645,7 +645,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(context.Background())
+	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
 	if err == nil {
 		t.Fatal("first attempt should fail")
 	}
@@ -663,7 +663,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e2.Close()
 
-	if _, err = e2.Apply(context.Background()); err != nil {
+	if _, err = e2.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("second attempt should succeed: %v", err)
 	}
 
@@ -720,7 +720,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -773,7 +773,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -830,7 +830,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -894,7 +894,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -954,7 +954,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -1011,7 +1011,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Check(context.Background()); err != nil {
+	if _, err = e.Check(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Check failed: %v\n%s", err, rec)
 	}
 
@@ -1172,7 +1172,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -1245,7 +1245,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -1320,7 +1320,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 
@@ -1367,7 +1367,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(context.Background()); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 	}
 

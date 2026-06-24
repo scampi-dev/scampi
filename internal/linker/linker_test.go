@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/lang/check"
@@ -126,7 +127,7 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 	reg := engine.NewRegistry()
 
 	capture := &harness.Capture{}
-	_, err := linker.LoadConfig(context.Background(), capture, "/config.scampi", src, reg)
+	_, err := linker.LoadConfig(diagnostic.NewCtx(context.Background(), capture), "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for broken syntax")
 	}
@@ -175,7 +176,7 @@ std.deploy(name = "test", targets = [host]) {
 	reg := engine.NewRegistry()
 
 	capture := &harness.Capture{}
-	_, err := linker.LoadConfig(context.Background(), capture, "/config.scampi", src, reg)
+	_, err := linker.LoadConfig(diagnostic.NewCtx(context.Background(), capture), "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for secret() without backend")
 	}

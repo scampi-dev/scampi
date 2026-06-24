@@ -45,13 +45,13 @@ func TestExecutePlan_OpAborted_NonAbortImpact_BlocksDownstream(t *testing.T) {
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
-	e, err := engine.New(context.Background(), source.LocalPosixSource{}, cfg, harness.NoopEmitter{})
+	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter{}), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(context.Background(), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter{}), plan)
 	if err == nil {
 		t.Fatal("expected non-nil error after A's op aborted, got nil")
 	}

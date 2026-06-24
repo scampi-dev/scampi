@@ -3,8 +3,7 @@
 package engine
 
 import (
-	"context"
-
+	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/model"
 	"scampi.dev/scampi/internal/spec"
 )
@@ -15,7 +14,7 @@ import (
 // on_change and it reports changes, those hooks are added to the queue.
 // Each hook fires at most once per run.
 func (e *Engine) executeHooks(
-	ctx context.Context,
+	ctx diagnostic.Ctx,
 	stepReport model.ExecutionReport,
 	hp *hookPlan,
 	checkOnly bool,

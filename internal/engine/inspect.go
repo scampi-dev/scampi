@@ -3,7 +3,6 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -28,8 +27,7 @@ type InspectDiffResult struct {
 // the iteration. Results are sorted by DeployName so the caller
 // renders deterministically; per-deploy resolution runs concurrently.
 func InspectList(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
@@ -38,7 +36,7 @@ func InspectList(
 		mu      sync.Mutex
 		details []event.InspectDetail
 	)
-	err := forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+	err := forEachResolvedOffline(ctx, cfgPath, store, opts, func(ctx diagnostic.Ctx, e *Engine) error {
 		d, err := e.buildInspect(ctx)
 		if err != nil {
 			return err
@@ -56,8 +54,7 @@ func InspectList(
 
 // InspectDiffPaths returns destination paths of all diffable ops.
 func InspectDiffPaths(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
@@ -67,8 +64,8 @@ func InspectDiffPaths(
 		paths []string
 	)
 
-	err := forEachResolvedOffline(ctx, em, cfgPath, store, opts, func(_ context.Context, e *Engine) error {
-		p, _, _, planErr := plan(e.cfg, e.em, e.tgt.Capabilities())
+	err := forEachResolvedOffline(ctx, cfgPath, store, opts, func(ctx diagnostic.Ctx, e *Engine) error {
+		p, _, _, planErr := plan(e.cfg, ctx, e.tgt.Capabilities())
 		if planErr != nil {
 			return planErr
 		}
@@ -91,8 +88,7 @@ func InspectDiffPaths(
 
 // InspectDiff returns desired vs current content for a specific file op (diff mode).
 func InspectDiff(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
@@ -103,7 +99,7 @@ func InspectDiff(
 		result *InspectDiffResult
 	)
 
-	err := forEachResolved(ctx, em, cfgPath, store, opts, func(ctx context.Context, e *Engine) error {
+	err := forEachResolved(ctx, cfgPath, store, opts, func(ctx diagnostic.Ctx, e *Engine) error {
 		r, err := e.InspectDiffFile(ctx, destPath)
 		if err != nil {
 			return err
@@ -117,8 +113,8 @@ func InspectDiff(
 	return result, err
 }
 
-func (e *Engine) buildInspect(ctx context.Context) (event.InspectDetail, error) {
-	p, _, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+func (e *Engine) buildInspect(ctx diagnostic.Ctx) (event.InspectDetail, error) {
+	p, _, _, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
 		return event.InspectDetail{}, err
 	}
@@ -145,8 +141,8 @@ func (e *Engine) buildInspect(ctx context.Context) (event.InspectDetail, error) 
 }
 
 // InspectDiffFile returns desired vs current content for a specific file op.
-func (e *Engine) InspectDiffFile(ctx context.Context, destPath string) (*InspectDiffResult, error) {
-	p, _, _, err := plan(e.cfg, e.em, e.tgt.Capabilities())
+func (e *Engine) InspectDiffFile(ctx diagnostic.Ctx, destPath string) (*InspectDiffResult, error) {
+	p, _, _, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +163,7 @@ func (e *Engine) InspectDiffFile(ctx context.Context, destPath string) (*Inspect
 
 	if len(found) == 0 {
 		err := noDiffableOpsError{CfgPath: e.cfg.Path, Filter: destPath}
-		emitEngineDiagnostic(e.em, e.cfg.Path, err)
+		emitEngineDiagnostic(ctx, e.cfg.Path, err)
 		return nil, AbortError{Causes: []error{err}}
 	}
 
@@ -177,7 +173,7 @@ func (e *Engine) InspectDiffFile(ctx context.Context, destPath string) (*Inspect
 			paths[i] = f.diff.DestPath()
 		}
 		err := multipleDiffableOpsError{CfgPath: e.cfg.Path, Count: len(found), Paths: paths}
-		emitEngineDiagnostic(e.em, e.cfg.Path, err)
+		emitEngineDiagnostic(ctx, e.cfg.Path, err)
 		return nil, AbortError{Causes: []error{err}}
 	}
 

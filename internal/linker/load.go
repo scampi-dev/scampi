@@ -3,7 +3,6 @@
 package linker
 
 import (
-	"context"
 	"encoding/json"
 	"path/filepath"
 	"strings"
@@ -63,8 +62,7 @@ func WithRedactor(r *secret.Redactor) AnalyzeOption {
 // (LoadConfig wraps Analyze + Link) and the LSP (which surfaces
 // diagnostics inline as the user types).
 func Analyze(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	src source.Source,
 	opts ...AnalyzeOption,
@@ -83,11 +81,11 @@ func Analyze(
 	p := parse.New(l)
 	f := p.Parse()
 	if lexErrs := l.Errors(); len(lexErrs) > 0 {
-		raiseLangErrors(em, lexErrs, cfgPath, data)
+		raiseLangErrors(ctx, lexErrs, cfgPath, data)
 		return nil, diagnostic.ErrAlreadyRaised
 	}
 	if parseErrs := p.Errors(); len(parseErrs) > 0 {
-		raiseLangErrors(em, parseErrs, cfgPath, data)
+		raiseLangErrors(ctx, parseErrs, cfgPath, data)
 		return nil, diagnostic.ErrAlreadyRaised
 	}
 
@@ -95,7 +93,7 @@ func Analyze(
 	// modules declared in scampi.mod so `import "mymodule"` works.
 	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
-		em.Raise(toLangDiagnostic(err, cfgPath, data))
+		ctx.Raise(toLangDiagnostic(err, cfgPath, data))
 		return nil, diagnostic.ErrAlreadyRaised
 	}
 	userMods := LoadUserModules(cfgPath, modules)
@@ -113,7 +111,7 @@ func Analyze(
 	var brokenSiblings []brokenSibling
 	c := check.New(modules)
 	if modName != "main" {
-		siblings, broken, sibErr := loadSiblingDecls(em, cfgPath, modName, modules)
+		siblings, broken, sibErr := loadSiblingDecls(ctx, cfgPath, modName, modules)
 		if sibErr != nil {
 			return nil, sibErr
 		}
@@ -127,8 +125,8 @@ func Analyze(
 	}
 	c.Check(f)
 	if checkErrs := c.Errors(); len(checkErrs) > 0 {
-		raiseBrokenSiblings(em, brokenSiblings)
-		raiseLangErrors(em, checkErrs, cfgPath, data)
+		raiseBrokenSiblings(ctx, brokenSiblings)
+		raiseLangErrors(ctx, checkErrs, cfgPath, data)
 		return nil, diagnostic.ErrAlreadyRaised
 	}
 
@@ -154,7 +152,7 @@ func Analyze(
 	}
 	result, evalErrs := eval.Eval(f, data, evalOpts...)
 	if len(evalErrs) > 0 {
-		raiseLangErrors(em, evalErrs, cfgPath, data)
+		raiseLangErrors(ctx, evalErrs, cfgPath, data)
 		return nil, diagnostic.ErrAlreadyRaised
 	}
 
@@ -169,7 +167,7 @@ func Analyze(
 	registry := DefaultAttributes()
 	fileScope := c.FileScope()
 	raisedStatic := runAttributeStaticChecks(
-		em,
+		ctx,
 		f,
 		data,
 		cfgPath,
@@ -179,7 +177,7 @@ func Analyze(
 		result,
 	)
 	raisedEval := runAttributeEvalChecks(
-		em,
+		ctx,
 		result,
 		data,
 		cfgPath,
@@ -202,14 +200,13 @@ func Analyze(
 // (lex → parse → check → eval → link), and returns a spec.Config
 // ready for the engine.
 func LoadConfig(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	src source.Source,
 	reg Registry,
 	opts ...AnalyzeOption,
 ) (spec.Config, error) {
-	a, err := Analyze(ctx, em, cfgPath, src, opts...)
+	a, err := Analyze(ctx, cfgPath, src, opts...)
 	if err != nil {
 		return spec.Config{}, err
 	}

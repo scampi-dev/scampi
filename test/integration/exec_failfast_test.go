@@ -62,13 +62,13 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}
@@ -130,13 +130,13 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}
@@ -205,13 +205,13 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err == nil {
 		t.Fatalf("expected execution error, got nil")
 	}
@@ -296,13 +296,13 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err == nil {
 		t.Fatalf("expected execution error")
 	}
@@ -355,13 +355,13 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}
@@ -416,13 +416,13 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err == nil {
 		t.Fatalf("expected abort error")
 	}
@@ -480,13 +480,13 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err == nil {
 		t.Fatalf("expected abort error")
 	}
@@ -541,13 +541,13 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 		Target: harness.MockTargetInstance(tgt),
 	}
 
-	e, err := engine.New(ctx, src, cfg, em)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(ctx, plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err != nil {
 		t.Fatalf("unexpected execution error: %v", err)
 	}

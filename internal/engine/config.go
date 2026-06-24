@@ -3,7 +3,6 @@
 package engine
 
 import (
-	"context"
 	"errors"
 	"path/filepath"
 	"slices"
@@ -19,8 +18,7 @@ import (
 // LoadConfig decodes and validates user configuration by running the
 // scampi pipeline (lex → parse → check → eval → link).
 func LoadConfig(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	src source.Source,
@@ -46,7 +44,7 @@ func LoadConfig(
 	}
 
 	reg := NewRegistry()
-	cfg, err := linker.LoadConfig(ctx, em, cfgPath, src, reg, opts...)
+	cfg, err := linker.LoadConfig(ctx, cfgPath, src, reg, opts...)
 	if err != nil {
 		// ErrAlreadyRaised means diagnostics are already on the
 		// emitter; the engine just propagates the abort. Other errors
@@ -54,9 +52,9 @@ func LoadConfig(
 		// surfaced a diagnostic, so wrap them in LoadConfigError for
 		// visibility.
 		if !errors.Is(err, diagnostic.ErrAlreadyRaised) {
-			_, emitted := emitEngineDiagnostic(em, cfgPath, err)
+			_, emitted := emitEngineDiagnostic(ctx, cfgPath, err)
 			if !emitted {
-				em.Raise(&LoadConfigError{
+				ctx.Raise(&LoadConfigError{
 					Cause:  err,
 					Source: spec.SourceSpan{Filename: cfgPath},
 				})

@@ -6,6 +6,7 @@ import (
 	"context"
 	"testing"
 
+	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/source"
@@ -47,13 +48,13 @@ func TestCheckPlan_DriftEmitted(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(ctx, source.LocalPosixSource{}, cfg, rec)
+	e, err := engine.New(diagnostic.NewCtx(ctx, rec), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(ctx, plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(ctx, rec), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan: %v", err)
 	}
@@ -101,13 +102,13 @@ func TestCheckPlan_SatisfiedNoDrift(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(ctx, source.LocalPosixSource{}, cfg, rec)
+	e, err := engine.New(diagnostic.NewCtx(ctx, rec), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(ctx, plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(ctx, rec), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan: %v", err)
 	}
@@ -141,13 +142,13 @@ func TestExecutePlan_NoDrift(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(ctx, source.LocalPosixSource{}, cfg, rec)
+	e, err := engine.New(diagnostic.NewCtx(ctx, rec), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(ctx, plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(ctx, rec), plan)
 	if err != nil {
 		t.Fatalf("ExecutePlan: %v", err)
 	}

@@ -70,7 +70,6 @@ type opNode struct {
 type scheduler struct {
 	src source.Source
 	tgt target.Target
-	em  diagnostic.Emitter
 
 	// action context
 	actIdx    int
@@ -87,7 +86,7 @@ type scheduler struct {
 	mu      sync.Mutex
 	results []spec.Result
 	grp     *errgroup.Group
-	ctx     context.Context
+	ctx     diagnostic.Ctx
 }
 
 // emitChanges fires Change events for each drift item discovered
@@ -108,7 +107,7 @@ func (s *scheduler) emitChanges(displayID string, phase event.ChangePhase, drift
 		cause = event.Cause{Kind: event.CauseHook, Ref: s.hookID}
 	}
 	for _, d := range drift {
-		s.em.Emit(event.Change{
+		s.ctx.Emit(event.Change{
 			Time:      time.Now(),
 			Phase:     phase,
 			Step:      step,
@@ -134,7 +133,7 @@ func (s *scheduler) emitExecuted(displayID string) {
 	if s.hookID != "" {
 		cause = event.Cause{Kind: event.CauseHook, Ref: s.hookID}
 	}
-	s.em.Emit(event.Change{
+	s.ctx.Emit(event.Change{
 		Time:      time.Now(),
 		Phase:     event.ChangeExecuted,
 		Step:      step,
@@ -211,7 +210,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 					return nil
 				}
 
-				impact, consumed := emitOpDiagnostic(s.em, s.actIdx, s.actKind, s.actDesc, displayID, err)
+				impact, consumed := emitOpDiagnostic(s.ctx, s.actIdx, s.actKind, s.actDesc, displayID, err)
 
 				if impact.ShouldAbort() {
 					s.mu.Lock()
@@ -296,7 +295,7 @@ func (s *scheduler) initPending(nodes []*opNode) {
 	}
 }
 
-func (e *Engine) ExecutePlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {
+func (e *Engine) ExecutePlan(ctx diagnostic.Ctx, plan spec.Plan) (model.ExecutionReport, error) {
 	res, err := e.executePlan(ctx, plan)
 	if err != nil {
 		return res, panicIfNotAbortError(err)
@@ -304,7 +303,7 @@ func (e *Engine) ExecutePlan(ctx context.Context, plan spec.Plan) (model.Executi
 	return res, nil
 }
 
-func (e *Engine) CheckPlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, map[spec.Resource]bool, error) {
+func (e *Engine) CheckPlan(ctx diagnostic.Ctx, plan spec.Plan) (model.ExecutionReport, map[spec.Resource]bool, error) {
 	res, pp, err := e.checkPlan(ctx, plan)
 	if err != nil {
 		return res, pp, panicIfNotAbortError(err)
@@ -312,7 +311,7 @@ func (e *Engine) CheckPlan(ctx context.Context, plan spec.Plan) (model.Execution
 	return res, pp, nil
 }
 
-func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, map[spec.Resource]bool, error) {
+func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (model.ExecutionReport, map[spec.Resource]bool, error) {
 	nodes := buildActionGraph(plan.Deploy.Actions)
 	initActionPending(nodes)
 
@@ -340,7 +339,7 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 			// from already-checked upstream steps).
 			if r, ok := n.action.(refResolvable); ok {
 				if err := r.ResolveRefs(buildRefResolver(outputs, true)); err != nil {
-					emitActionDiagnostic(e.em, n.idx, n.action.Kind(), n.action.Desc(), err)
+					emitActionDiagnostic(ctx, n.idx, n.action.Kind(), n.action.Desc(), err)
 					abortErr := AbortError{Causes: []error{err}}
 					mu.Lock()
 					defer mu.Unlock()
@@ -349,7 +348,7 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 				}
 			}
 
-			res, err := e.checkAction(gctx, n.idx, n.action, snap)
+			res, err := e.checkAction(ctx.With(gctx), n.idx, n.action, snap)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -403,7 +402,7 @@ func (e *Engine) checkPlan(ctx context.Context, plan spec.Plan) (model.Execution
 }
 
 func (e *Engine) checkAction(
-	ctx context.Context,
+	ctx diagnostic.Ctx,
 	idx int,
 	act spec.Action,
 	promised map[spec.Resource]bool,
@@ -412,7 +411,7 @@ func (e *Engine) checkAction(
 }
 
 func (e *Engine) runCheckAction(
-	ctx context.Context,
+	ctx diagnostic.Ctx,
 	idx int,
 	act spec.Action,
 	promised map[spec.Resource]bool,
@@ -426,7 +425,6 @@ func (e *Engine) runCheckAction(
 	s := &scheduler{
 		src:       e.src,
 		tgt:       e.tgt,
-		em:        e.em,
 		actIdx:    idx,
 		actKind:   act.Kind(),
 		actDesc:   act.Desc(),
@@ -434,7 +432,9 @@ func (e *Engine) runCheckAction(
 		checkOnly: true,
 		promised:  promised,
 	}
-	s.grp, s.ctx = errgroup.WithContext(ctx)
+	grp, gctx := errgroup.WithContext(ctx)
+	s.grp = grp
+	s.ctx = ctx.With(gctx)
 
 	checkErr := s.runChecks(nodes)
 
@@ -460,7 +460,7 @@ func (e *Engine) runCheckAction(
 
 	var err error
 	if checkErr != nil {
-		impact, consumed := emitActionDiagnostic(e.em, idx, act.Kind(), act.Desc(), checkErr)
+		impact, consumed := emitActionDiagnostic(ctx, idx, act.Kind(), act.Desc(), checkErr)
 		switch {
 		case impact.ShouldAbort():
 			err = AbortError{Causes: []error{checkErr}}
@@ -480,7 +480,7 @@ func (e *Engine) runCheckAction(
 	return buildActionReport(act, nodes), err
 }
 
-func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.ExecutionReport, error) {
+func (e *Engine) executePlan(ctx diagnostic.Ctx, plan spec.Plan) (model.ExecutionReport, error) {
 	nodes := buildActionGraph(plan.Deploy.Actions)
 	initActionPending(nodes)
 
@@ -503,7 +503,7 @@ func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.Executi
 			// Resolve ref() markers before execution.
 			if r, ok := n.action.(refResolvable); ok {
 				if err := r.ResolveRefs(buildRefResolver(outputs, false)); err != nil {
-					emitActionDiagnostic(e.em, n.idx, n.action.Kind(), n.action.Desc(), err)
+					emitActionDiagnostic(ctx, n.idx, n.action.Kind(), n.action.Desc(), err)
 					abortErr := AbortError{Causes: []error{err}}
 					mu.Lock()
 					defer mu.Unlock()
@@ -512,7 +512,7 @@ func (e *Engine) executePlan(ctx context.Context, plan spec.Plan) (model.Executi
 				}
 			}
 
-			res, err := e.executeAction(gctx, n.idx, n.action)
+			res, err := e.executeAction(ctx.With(gctx), n.idx, n.action)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -572,7 +572,7 @@ func captureStepOutput(act spec.Action, report model.ActionReport, outputs *step
 	}
 }
 
-func (e *Engine) executeAction(ctx context.Context, idx int, act spec.Action) (model.ActionReport, error) {
+func (e *Engine) executeAction(ctx diagnostic.Ctx, idx int, act spec.Action) (model.ActionReport, error) {
 	res, err := e.runAction(ctx, idx, act, "")
 	if err != nil {
 		return res, err
@@ -580,7 +580,7 @@ func (e *Engine) executeAction(ctx context.Context, idx int, act spec.Action) (m
 	return res, nil
 }
 
-func (e *Engine) runAction(ctx context.Context, idx int, act spec.Action, hookID string) (model.ActionReport, error) {
+func (e *Engine) runAction(ctx diagnostic.Ctx, idx int, act spec.Action, hookID string) (model.ActionReport, error) {
 	nodes, planErr := buildPlan(act.Ops())
 	if planErr != nil {
 		return model.ActionReport{}, planErr
@@ -589,13 +589,14 @@ func (e *Engine) runAction(ctx context.Context, idx int, act spec.Action, hookID
 	s := &scheduler{
 		src:     e.src,
 		tgt:     e.tgt,
-		em:      e.em,
 		actIdx:  idx,
 		actKind: act.Kind(),
 		actDesc: act.Desc(),
 		hookID:  hookID,
 	}
-	s.grp, s.ctx = errgroup.WithContext(ctx)
+	grp, gctx := errgroup.WithContext(ctx)
+	s.grp = grp
+	s.ctx = ctx.With(gctx)
 
 	checkErr := s.runChecks(nodes)
 
@@ -634,7 +635,7 @@ func (e *Engine) runAction(ctx context.Context, idx int, act spec.Action, hookID
 	}
 
 	if err != nil {
-		impact, consumed := emitActionDiagnostic(e.em, idx, act.Kind(), act.Desc(), err)
+		impact, consumed := emitActionDiagnostic(ctx, idx, act.Kind(), act.Desc(), err)
 		switch {
 		case impact.ShouldAbort():
 			err = AbortError{Causes: []error{err}}
