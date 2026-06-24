@@ -3,7 +3,6 @@
   "diagnostics": [
     {
       "id": "step.download.Error",
-      "scope": "ScopeAction",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
@@ -11,10 +10,6 @@
         "start_col": 13,
         "end_line": 11,
         "end_col": 82
-      },
-      "step": {
-        "index": 0,
-        "kind": "copy"
       }
     }
   ]

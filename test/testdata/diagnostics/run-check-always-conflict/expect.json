@@ -3,7 +3,6 @@
   "diagnostics": [
     {
       "id": "step.run.CheckAlwaysConflict",
-      "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
@@ -11,10 +10,6 @@
         "start_col": 3,
         "end_line": 10,
         "end_col": 65
-      },
-      "step": {
-        "index": 0,
-        "kind": "run"
       }
     }
   ]

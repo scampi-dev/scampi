@@ -3,7 +3,6 @@
   "diagnostics": [
     {
       "id": "lang.FieldTypeMismatch",
-      "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {

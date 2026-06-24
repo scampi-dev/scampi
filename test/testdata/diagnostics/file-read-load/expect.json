@@ -3,7 +3,6 @@
   "diagnostics": [
     {
       "id": "lang.UnknownModule",
-      "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {

@@ -3,7 +3,6 @@
   "diagnostics": [
     {
       "id": "linker.AttributeViolation",
-      "scope": "ScopeEngine",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {

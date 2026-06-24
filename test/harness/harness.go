@@ -20,12 +20,10 @@ type ExpectedDiagnostics struct {
 
 type ExpectedDiagnostic struct {
 	ID       string `json:"id"`
-	Scope    string `json:"scope"`
 	Severity string `json:"severity"`
 	Kind     string `json:"kind"`
 
 	Source *ExpectedSource `json:"source,omitempty"`
-	Step   *ExpectedStep   `json:"step,omitempty"`
 }
 
 type ExpectedSource struct {
@@ -33,11 +31,6 @@ type ExpectedSource struct {
 	StartCol  int `json:"start_col"`
 	EndLine   int `json:"end_line"`
 	EndCol    int `json:"end_col"`
-}
-
-type ExpectedStep struct {
-	Index int    `json:"index"`
-	Kind  string `json:"kind"`
 }
 
 func AbsPath(p string) string {
@@ -191,10 +184,6 @@ func AssertDiagnostics(
 			t.Fatalf("[%d] unexpected kind in test data: %q (should always be DiagnosticRaised)", i, exp.Kind)
 		}
 
-		// exp.Scope is not asserted; diagnostic events carry no scope
-		// axis. Source spans on the template locate the diagnostic
-		// instead.
-
 		tmpl := got.template
 
 		if tmpl.ID != errs.Code(exp.ID) {
@@ -220,9 +209,5 @@ func AssertDiagnostics(
 				)
 			}
 		}
-
-		// Step context (StepIndex/StepKind/StepDesc/HookID) is not
-		// asserted; diagnostics locate themselves via the source
-		// span on the template.
 	}
 }

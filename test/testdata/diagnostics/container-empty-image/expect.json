@@ -3,7 +3,6 @@
   "diagnostics": [
     {
       "id": "step.container.EmptyImage",
-      "scope": "ScopePlan",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
@@ -11,10 +10,6 @@
         "start_col": 3,
         "end_line": 11,
         "end_col": 39
-      },
-      "step": {
-        "index": 0,
-        "kind": "container.instance"
       }
     }
   ]

@@ -3,7 +3,6 @@
   "diagnostics": [
     {
       "id": "step.template.DestDirMissing",
-      "scope": "ScopeOp",
       "severity": "Error",
       "kind": "DiagnosticRaised",
       "source": {
@@ -11,10 +10,6 @@
         "start_col": 14,
         "end_line": 11,
         "end_col": 22
-      },
-      "step": {
-        "index": 0,
-        "kind": "template"
       }
     }
   ]
