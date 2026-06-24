@@ -24,6 +24,7 @@ type (
 		Events      Events
 		Diagnostics []event.Event // Error/Warning/Info entries
 		Changes     []event.Change
+		Results     []event.Result
 	}
 	// NoopEmitter discards every event. Implements diagnostic.Emitter.
 	NoopEmitter struct{}
@@ -42,6 +43,8 @@ func (r *RecordingDisplayer) Emit(e event.Event) {
 		r.Diagnostics = append(r.Diagnostics, v)
 	case event.Change:
 		r.Changes = append(r.Changes, v)
+	case event.Result:
+		r.Results = append(r.Results, v)
 	}
 }
 

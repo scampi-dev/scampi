@@ -3,15 +3,12 @@
 package engine
 
 import (
-	"fmt"
 	"sync"
-	"time"
 
 	"golang.org/x/sync/errgroup"
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
@@ -25,10 +22,6 @@ type Engine struct {
 }
 
 func New(ctx diagnostic.Ctx, src source.Source, cfg spec.ResolvedConfig) (*Engine, error) {
-	ctx.Emit(event.Progress{
-		Time: time.Now(),
-		Text: fmt.Sprintf("connecting to %s (%s)", cfg.TargetName, cfg.Target.Type.Kind()),
-	})
 	tgt, err := cfg.Target.Type.Create(ctx, src, cfg.Target)
 	if err != nil {
 		if impact, ok := emitEngineDiagnostic(ctx, cfg.Path, err); ok {

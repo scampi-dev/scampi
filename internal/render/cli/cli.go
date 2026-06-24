@@ -638,6 +638,8 @@ func (c *CLI) Emit(e event.Event) {
 		c.renderChange(v)
 	case event.Progress:
 		c.renderProgress(v)
+	case event.Result:
+		c.renderResult(v)
 	}
 }
 
@@ -681,9 +683,44 @@ func (c *CLI) renderChange(e event.Change) {
 }
 
 func (c *CLI) renderProgress(e event.Progress) {
+	label := ""
+	if e.Total > 0 {
+		label = fmt.Sprintf("(%d/%d)", e.Completed, e.Total)
+	}
+	if e.Current.Kind != "" {
+		if label != "" {
+			label += " "
+		}
+		label += stepIDFromRef(e.Current)
+	}
+	if label == "" {
+		return
+	}
 	c.commitRenderEvents([]renderEvent{{
 		stream: streamOut,
-		line:   c.formatter.fmtfMsg(colEngineStarted, "[~] %s", e.Text),
+		line:   c.formatter.fmtfMsg(colEngineStarted, "[~] %s", label),
+	}})
+}
+
+// renderResult prints a step's completion line: its verdict (ok / changed /
+// failed) tagged with the step ref and any hook attribution.
+func (c *CLI) renderResult(e event.Result) {
+	var verb, glyph string
+	var col ansi.ANSI
+	switch e.Outcome {
+	case event.StepUnchanged:
+		verb, glyph, col = "ok", c.glyphs.ok, colActionFinishedUnchanged
+	case event.StepChanged:
+		verb, glyph, col = "changed", c.glyphs.change, colActionFinishedChanged
+	case event.StepFailed:
+		verb, glyph, col = "failed", c.glyphs.err, colOpExecFailed
+	default:
+		return
+	}
+	prefix := fmt.Sprintf("[%s]", stepIDFromRef(e.Step))
+	c.commitRenderEvents([]renderEvent{{
+		stream: streamOut,
+		line:   c.formatter.fmtfMsg(col, "%s %s %s%s", prefix, glyphR(glyph), verb, scopeFromCause(e.Cause)),
 	}})
 }
 

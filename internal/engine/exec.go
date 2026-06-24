@@ -89,6 +89,19 @@ type scheduler struct {
 	ctx     diagnostic.Ctx
 }
 
+// stepRef and cause tag every event this scheduler emits with the action it
+// belongs to and what triggered it (a hook, or nothing).
+func (s *scheduler) stepRef() event.StepRef {
+	return event.StepRef{Index: s.actIdx, Kind: s.actKind, Desc: s.actDesc}
+}
+
+func (s *scheduler) cause() event.Cause {
+	if s.hookID != "" {
+		return event.Cause{Kind: event.CauseHook, Ref: s.hookID}
+	}
+	return event.Cause{}
+}
+
 // emitChanges fires Change events for each drift item discovered
 // by Check. Phase indicates whether this is a would-change report
 // (check-only) or a did-change report (after apply). One Change per
@@ -97,15 +110,8 @@ func (s *scheduler) emitChanges(displayID string, phase event.ChangePhase, drift
 	if len(drift) == 0 {
 		return
 	}
-	step := event.StepRef{
-		Index: s.actIdx,
-		Kind:  s.actKind,
-		Desc:  s.actDesc,
-	}
-	cause := event.Cause{}
-	if s.hookID != "" {
-		cause = event.Cause{Kind: event.CauseHook, Ref: s.hookID}
-	}
+	step := s.stepRef()
+	cause := s.cause()
 	for _, d := range drift {
 		s.ctx.Emit(event.Change{
 			Time:      time.Now(),
@@ -118,27 +124,39 @@ func (s *scheduler) emitChanges(displayID string, phase event.ChangePhase, drift
 	}
 }
 
-// emitExecuted fires a v2 Change event for an op that actually mutated
-// state during Apply. Drift content is empty here - the op signalled
-// "I changed something" without a per-field diff. Phase 3 callers
-// rendering this stay readable because they fall back to a signal-
+// emitExecuted fires a Change event for an op that actually mutated state
+// during Apply. Drift content is empty here - the op signalled "I changed
+// something" without a per-field diff; the consumer falls back to a signal-
 // only line when Drift.Field == "".
 func (s *scheduler) emitExecuted(displayID string) {
-	step := event.StepRef{
-		Index: s.actIdx,
-		Kind:  s.actKind,
-		Desc:  s.actDesc,
-	}
-	cause := event.Cause{}
-	if s.hookID != "" {
-		cause = event.Cause{Kind: event.CauseHook, Ref: s.hookID}
-	}
 	s.ctx.Emit(event.Change{
 		Time:      time.Now(),
 		Phase:     event.ChangeExecuted,
-		Step:      step,
+		Step:      s.stepRef(),
 		DisplayID: displayID,
-		Cause:     cause,
+		Cause:     s.cause(),
+	})
+}
+
+// emitResult fires the step-completion event once an action has settled,
+// carrying its verdict and op breakdown. The verdict honors check vs apply:
+// in check mode a "would change" counts as Changed.
+func (s *scheduler) emitResult(sum model.ActionSummary) {
+	outcome := event.StepUnchanged
+	switch {
+	case sum.Failed+sum.Aborted > 0:
+		outcome = event.StepFailed
+	case s.checkOnly && sum.WouldChange > 0:
+		outcome = event.StepChanged
+	case !s.checkOnly && sum.Changed > 0:
+		outcome = event.StepChanged
+	}
+	s.ctx.Emit(event.Result{
+		Time:    time.Now(),
+		Step:    s.stepRef(),
+		Outcome: outcome,
+		Summary: event.StepSummary(sum),
+		Cause:   s.cause(),
 	})
 }
 
@@ -477,7 +495,9 @@ func (e *Engine) runCheckAction(
 		}
 	}
 
-	return buildActionReport(act, nodes), err
+	rep := buildActionReport(act, nodes)
+	s.emitResult(rep.Summary)
+	return rep, err
 }
 
 func (e *Engine) executePlan(ctx diagnostic.Ctx, plan spec.Plan) (model.ExecutionReport, error) {
@@ -651,7 +671,9 @@ func (e *Engine) runAction(ctx diagnostic.Ctx, idx int, act spec.Action, hookID 
 		}
 	}
 
-	return buildActionReport(act, nodes), err
+	rep := buildActionReport(act, nodes)
+	s.emitResult(rep.Summary)
+	return rep, err
 }
 
 func buildActionReport(act spec.Action, nodes []*opNode) model.ActionReport {

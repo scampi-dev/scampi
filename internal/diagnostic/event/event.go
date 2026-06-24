@@ -134,6 +134,7 @@ func (Warning) isEvent()  {}
 func (Info) isEvent()     {}
 func (Change) isEvent()   {}
 func (Progress) isEvent() {}
+func (Result) isEvent()   {}
 
 // Change
 // -----------------------------------------------------------------------------
@@ -168,10 +169,50 @@ type Change struct {
 // Progress
 // -----------------------------------------------------------------------------
 
-// Progress is a status update - "currently doing X". Latest-wins on
-// TTY (the consumer overwrites a status line); appended one line at a
-// time on non-TTY. No severity, no cause: too ephemeral to bother.
+// Progress reports position through a run: Completed of Total work units, with
+// Current naming the step in flight. Total == 0 means indeterminate (no count
+// to show). No severity, no cause: too ephemeral to bother. Real Completed/
+// Total counting lands with the scheduler progress hook; the type is defined
+// now so the stream sink can render it (#430).
 type Progress struct {
-	Time time.Time
-	Text string
+	Time      time.Time
+	Total     int
+	Completed int
+	Current   StepRef
+}
+
+// Result
+// -----------------------------------------------------------------------------
+
+// StepOutcome is the overall verdict for one step, derived from its op summary.
+type StepOutcome uint8
+
+const (
+	StepUnchanged StepOutcome = iota // all ops satisfied / skipped
+	StepChanged                      // at least one op changed (apply) or would (check)
+	StepFailed                       // at least one op failed or aborted
+)
+
+// StepSummary is the per-op count breakdown for a finished step. Field-
+// identical to the engine's action summary, copied onto the event so the
+// stream sink never reaches back into the execution report.
+type StepSummary struct {
+	Total       int
+	Succeeded   int
+	Failed      int
+	Aborted     int
+	Skipped     int
+	Changed     int
+	WouldChange int
+}
+
+// Result is the completion of one step: emitted on the stream as each action
+// settles (check or apply), distinct from Progress (position) and Change
+// (per-field mutation). It carries the step's verdict and op breakdown.
+type Result struct {
+	Time    time.Time
+	Step    StepRef
+	Outcome StepOutcome
+	Summary StepSummary
+	Cause   Cause
 }
