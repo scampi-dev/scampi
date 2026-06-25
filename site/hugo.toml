@@ -1,7 +1,6 @@
 baseURL = "https://scampi.dev/"
 locale = "en-us"
 title = "scampi"
-publishDir = "../build/site"
 
 [module]
   [[module.imports]]

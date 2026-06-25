@@ -1,3 +1,11 @@
+# Constants
+# -----------------------------------------------------------------------------
+
+build_dir       := f"{{justfile_directory()}}/build"
+bin_dir         := f"{{build_dir}}/bin"
+spdx_header     := "// SPDX-License-Identifier: GPL-3.0-only"
+cross_targets   := "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64 freebsd/arm64"
+
 # Modules
 # -----------------------------------------------------------------------------
 
@@ -16,14 +24,6 @@ mod release 'release.just'
 [group('modules')]
 [doc("GitHub issue/PR/milestone helpers via the gh CLI")]
 mod gh 'github.just'
-
-# Constants
-# -----------------------------------------------------------------------------
-
-build_dir       := "./build"
-bin_dir         := f"{{build_dir}}/bin"
-spdx_header     := "// SPDX-License-Identifier: GPL-3.0-only"
-cross_targets   := "linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64 freebsd/arm64"
 
 # Help
 # -----------------------------------------------------------------------------

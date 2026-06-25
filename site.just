@@ -1,6 +1,12 @@
-hugo      := "go -C site tool github.com/gohugoio/hugo"
-mdlint    := "go -C site tool github.com/shinagawa-web/gomarklint"
-infra_dir := env("SCAMPI_INFRA", "../scampi-infra")
+# Constants
+# -----------------------------------------------------------------------------
+
+build_dir       := f"{{justfile_directory()}}/build"
+out_dir         := f"{{build_dir}}/site"
+dist_dir        := f"{{build_dir}}/site-dist"
+infra_dir       := env("SCAMPI_INFRA", f"{{justfile_directory()}}/../infra")
+hugo            := "go -C site tool github.com/gohugoio/hugo"
+mdlint          := "go -C site tool github.com/shinagawa-web/gomarklint"
 
 export HUGO_SCAMPI_VERSION := env("HUGO_SCAMPI_VERSION", `git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo ""`)
 export HUGO_SCAMPI_GO_VERSION := `grep '^go ' go.mod | awk '{print $2}'`
@@ -19,18 +25,18 @@ export HUGO_SCAMPI_GO_VERSION := `grep '^go ' go.mod | awk '{print $2}'`
 [group('build')]
 [doc("Build the Hugo site")]
 build: _copy-static
-  {{hugo}} --minify
+  {{hugo}} --minify --destination {{out_dir}}
 
 [group('build')]
 [doc("Local dev server")]
 dev *args: _copy-static
-  {{hugo}} server --disableFastRender -D -e production {{args}}
+  {{hugo}} server --disableFastRender -D -e production --destination {{out_dir}} {{args}}
 
 [group('build')]
 [doc("Package site for deployment")]
-dist outdir="build/site-dist": build
-  mkdir -p {{outdir}}
-  tar czf {{outdir}}/site.tar.gz -C build/site .
+dist: clean build
+  mkdir -p {{dist_dir}}
+  tar czf {{dist_dir}}/site.tar.gz -C {{out_dir}} .
 
 [private]
 _copy-static:
@@ -42,9 +48,13 @@ _copy-static:
 # -----------------------------------------------------------------------------
 
 [group('deploy')]
+[doc("Stage site tarball to scampi-infra")]
+stage: dist
+  cp {{dist_dir}}/site.tar.gz {{infra_dir}}/files/site.tar.gz
+
+[group('deploy')]
 [doc("Build and deploy site via scampi-infra")]
-deploy: dist
-  cp build/site-dist/site.tar.gz {{infra_dir}}/files/site.tar.gz
+deploy: stage
   cd {{infra_dir}} && scampi apply site.scampi
 
 # Quality
@@ -61,7 +71,7 @@ lint:
 [group('cleanup')]
 [doc("Remove all generated files")]
 clean:
-  rm -rf build/site build/site-dist site/resources/_gen
-  rm site/static/scampi.png
-  rm site/static/scampi-sec.png
-  rm site/static/install.sh
+  rm -rf {{out_dir}} {{dist_dir}} site/resources/_gen
+  rm -f site/static/scampi.png
+  rm -f site/static/scampi-sec.png
+  rm -f site/static/install.sh
