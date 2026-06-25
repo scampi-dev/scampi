@@ -1,5 +1,5 @@
-hugo      := "go tool github.com/gohugoio/hugo"
-mdlint    := "go tool github.com/shinagawa-web/gomarklint"
+hugo      := "go -C site tool github.com/gohugoio/hugo"
+mdlint    := "go -C site tool github.com/shinagawa-web/gomarklint"
 infra_dir := env("SCAMPI_INFRA", "../scampi-infra")
 
 export HUGO_SCAMPI_VERSION := env("HUGO_SCAMPI_VERSION", `git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo ""`)
@@ -19,12 +19,12 @@ export HUGO_SCAMPI_GO_VERSION := `grep '^go ' go.mod | awk '{print $2}'`
 [group('build')]
 [doc("Build the Hugo site")]
 build: _copy-static
-  cd site && {{hugo}} --minify
+  {{hugo}} --minify
 
 [group('build')]
 [doc("Local dev server")]
 dev *args: _copy-static
-  cd site && {{hugo}} server --disableFastRender -D -e production {{args}}
+  {{hugo}} server --disableFastRender -D -e production {{args}}
 
 [group('build')]
 [doc("Package site for deployment")]
@@ -53,7 +53,7 @@ deploy: dist
 [group('quality')]
 [doc("Lint markdown content")]
 lint:
-  cd site && {{mdlint}} content/
+  {{mdlint}} content/
 
 # Cleanup
 # -----------------------------------------------------------------------------
