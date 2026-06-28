@@ -5,8 +5,11 @@ package order_test
 import (
 	"fmt"
 	"slices"
+	"strings"
+	"sync"
 	"testing"
 
+	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/render/order"
@@ -158,4 +161,37 @@ func TestFlushDrainsWithoutSummary(t *testing.T) {
 	s.Flush()
 
 	assertLog(t, r.log, []string{"result[0]", "result[2]"})
+}
+
+// The engine emits from parallel goroutines, but the Emitter serializes
+// delivery, so the Sequencer (and the output below it) see one call at a time
+// and hold no locks. Run under -race: concurrent producers go through the
+// emitter, never the Sequencer directly.
+func TestConcurrentEmitIsRaceFree(t *testing.T) {
+	r := &recorder{}
+	s := order.New(r)
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, s)
+
+	const n = 64
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			em.Emit(change(idx, "f"))
+			em.Emit(res(idx))
+		}(i)
+	}
+	wg.Wait()
+	s.Flush()
+
+	got := 0
+	for _, l := range r.log {
+		if strings.HasPrefix(l, "result[") {
+			got++
+		}
+	}
+	if got != n {
+		t.Fatalf("released %d results, want %d", got, n)
+	}
 }

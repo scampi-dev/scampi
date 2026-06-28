@@ -9,7 +9,6 @@ package order
 
 import (
 	"sort"
-	"sync"
 
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
@@ -29,13 +28,11 @@ import (
 // strict non-regression. Cross-phase/cross-deploy ordering needs a section key
 // the events do not carry yet (#433, SP-C).
 //
-// The engine emits from parallel op/action goroutines, so RenderEvent is
-// entered concurrently (the emitter does not serialize; only the sink below
-// this decorator does). A mutex guards the buffer and cursor.
+// The Emitter serializes delivery, so RenderEvent / Flush / RenderSummary are
+// never entered concurrently; the Sequencer holds no lock of its own.
 type Sequencer struct {
 	out diagnostic.Output
 
-	mu      sync.Mutex
 	cursor  int
 	pending map[int]*block
 	bypass  bool
@@ -55,9 +52,6 @@ func New(out diagnostic.Output) *Sequencer {
 }
 
 func (s *Sequencer) RenderEvent(e event.Event) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if s.bypass {
 		s.out.RenderEvent(e)
 		return
@@ -147,16 +141,12 @@ func (s *Sequencer) drain() {
 // ones that finished in parallel past a failed/cancelled cursor) are stranded
 // and lost. Idempotent: a second call drains an already-empty buffer.
 func (s *Sequencer) Flush() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.drain()
 	s.bypass = true
 }
 
 // RenderSummary marks end of run: drain the buffer, then emit the summary.
 func (s *Sequencer) RenderSummary(rep result.Execution, checkOnly bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.drain()
 	s.out.RenderSummary(rep, checkOnly)
 }

@@ -43,18 +43,19 @@ func TestCheckPlan_DriftEmitted(t *testing.T) {
 	}
 
 	rec := &harness.RecordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, rec), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(diagnostic.NewCtx(ctx, rec), plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(ctx, em), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan: %v", err)
 	}
@@ -97,18 +98,19 @@ func TestCheckPlan_SatisfiedNoDrift(t *testing.T) {
 	}
 
 	rec := &harness.RecordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, rec), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(diagnostic.NewCtx(ctx, rec), plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(ctx, em), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan: %v", err)
 	}
@@ -137,18 +139,19 @@ func TestExecutePlan_NoDrift(t *testing.T) {
 	}
 
 	rec := &harness.RecordingDisplayer{}
+	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, rec), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(diagnostic.NewCtx(ctx, rec), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(ctx, em), plan)
 	if err != nil {
 		t.Fatalf("ExecutePlan: %v", err)
 	}

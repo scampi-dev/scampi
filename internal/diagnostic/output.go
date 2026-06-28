@@ -18,6 +18,11 @@ import (
 // side (Output) renders. The interface lives here, alongside the events and
 // result types it consumes, because it is the public output contract, not
 // because rendering belongs to the diagnostic package.
+//
+// Implementations are NOT required to be safe for concurrent use. The engine
+// emits from parallel goroutines, but the Emitter serializes delivery, so every
+// method is invoked one call at a time. Keep implementations lock-free; adding
+// a per-Output mutex would double-lock and misstate the contract.
 type Output interface {
 	RenderEvent(event.Event)
 	RenderSummary(rep result.Execution, checkOnly bool)

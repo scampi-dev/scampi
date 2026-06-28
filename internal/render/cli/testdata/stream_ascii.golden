@@ -1,0 +1,32 @@
+=== quiet ===
+  ~ [1] dir > sandbox root
+      |- perm   (absent) -> -rwxr-xr-x
+      `- state  (absent) -> directory
+  ~ [2] copy > static page
+      |- perm         (absent) -> -rw-r--r--
+      `- owner:group  (absent) -> pskry:staff
+  ~ [3] symlink > current -> index
+  x [4] run > drop a marker
+      `- check  exit 1 -> exit 0
+=== v ===
+  ~ [1] dir > sandbox root
+      |- perm   (absent) -> -rwxr-xr-x
+      `- state  (absent) -> directory
+  ~ [2] copy > static page
+      |- perm         (absent) -> -rw-r--r--
+      `- owner:group  (absent) -> pskry:staff
+  ~ [3] symlink > current -> index
+  x [4] run > drop a marker
+      `- check  exit 1 -> exit 0
+  + [5] service > restart web
+=== vv ===
+  ~ [1] dir > sandbox root
+      |- step.ensure-mode  perm   (absent) -> -rwxr-xr-x
+      `- step.dir          state  (absent) -> directory
+  ~ [2] copy > static page
+      |- step.ensure-mode   perm         (absent) -> -rw-r--r--
+      `- step.ensure-owner  owner:group  (absent) -> pskry:staff
+  ~ [3] symlink > current -> index
+  x [4] run > drop a marker
+      `- step.run  check  exit 1 -> exit 0
+  + [5] service > restart web

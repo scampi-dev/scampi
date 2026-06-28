@@ -104,7 +104,7 @@ func (p *planRenderer) buildActionEntries(planDAG dag.PlanDAG) []actionEntry {
 			}
 		}
 	}
-	indexWidth := digits10(maxIndex)
+	indexWidth := digits10(displayIndex(maxIndex))
 	v := p.verbosity
 
 	var actions []actionEntry
@@ -123,7 +123,7 @@ func (p *planRenderer) buildActionEntries(planDAG dag.PlanDAG) []actionEntry {
 }
 
 func (p *planRenderer) idStr(idx, indexWidth int, kind string) string {
-	return p.fmt.fmtfMsg(colActionKind, " [%*d]%s", indexWidth, idx, kindSuffix(kind))
+	return p.fmt.fmtfMsg(colActionKind, " [%*d]%s", indexWidth, displayIndex(idx), kindSuffix(kind))
 }
 
 func (p *planRenderer) descStr(desc string) string {
@@ -371,7 +371,7 @@ func (p *planRenderer) fmtDeps(deps []int) string {
 	}
 	parts := make([]string, len(deps))
 	for i, d := range deps {
-		parts[i] = strconv.Itoa(d)
+		parts[i] = strconv.Itoa(displayIndex(d))
 	}
 	return p.glyphs.depsArrow + " [" + strings.Join(parts, ", ") + "]"
 }

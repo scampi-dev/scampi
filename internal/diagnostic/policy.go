@@ -3,6 +3,8 @@
 package diagnostic
 
 import (
+	"sync"
+
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/signal"
 )
@@ -19,10 +21,17 @@ type Policy struct {
 type policyEmitter struct {
 	pol Policy
 	out Output
+
+	// mu makes the emitter the single serialization point: the engine emits
+	// from parallel op/action goroutines, but RenderEvent is delivered one
+	// call at a time. This is the whole contract — Output implementations are
+	// therefore single-threaded and carry no locks of their own.
+	mu sync.Mutex
 }
 
-// NewEmitter returns a stateless emitter that forwards events to the output
-// backend, applying the policy's severity remap on the way.
+// NewEmitter returns an emitter that forwards events to the output backend,
+// applying the policy's severity remap on the way. Emit/Raise are safe for
+// concurrent use; delivery to the Output is serialized.
 func NewEmitter(policy Policy, out Output) Emitter {
 	return &policyEmitter{pol: policy, out: out}
 }
@@ -43,5 +52,7 @@ func (p *policyEmitter) Emit(ev event.Event) {
 			}
 		}
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.out.RenderEvent(ev)
 }

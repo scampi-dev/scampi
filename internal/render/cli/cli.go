@@ -4,6 +4,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -29,6 +30,11 @@ type Options struct {
 	// secret values registered during eval (typically via
 	// secrets.get). See #281.
 	Redactor *secret.Redactor
+	// Stdout and Stderr default to os.Stdout / os.Stderr when nil. Injectable
+	// so tests can capture output; width and TTY detection fall back to
+	// non-terminal for a writer that is not an *os.File.
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // CLI is the terminal output backend: it implements diagnostic.Output,
@@ -45,6 +51,11 @@ type CLI struct {
 
 	planRenderer *planRenderer
 	formatter    *formatter
+
+	// stepDrift accumulates an action's Change events until its Result
+	// arrives, so the whole block renders atomically (header, then railed
+	// drift). No lock: the Emitter serializes delivery (see diagnostic.Output).
+	stepDrift map[int][]event.Change
 }
 
 var _ diagnostic.Output = (*CLI)(nil)
@@ -56,32 +67,51 @@ func New(opts Options, store *diagnostic.SourceStore) *CLI {
 		glyphs = asciiGlyphs
 	}
 
-	width := func() int {
-		if cols := os.Getenv("COLUMNS"); cols != "" {
-			if n, err := strconv.Atoi(cols); err == nil && n > 0 {
-				return n
-			}
-		}
-		if w, _, err := term.GetSize(os.Stdout.Fd()); err == nil && w > 0 {
-			return w
-		}
-		return 0
-	}()
+	out := opts.Stdout
+	if out == nil {
+		out = os.Stdout
+	}
+	errw := opts.Stderr
+	if errw == nil {
+		errw = os.Stderr
+	}
 
-	isTTY := term.IsTerminal(os.Stdout.Fd())
+	width, isTTY := terminalInfo(out)
 	useColor := shouldUseColor(opts.ColorMode, isTTY)
 	fmt := newFormatter(glyphs, useColor, store, opts.Redactor)
 
 	return &CLI{
 		opts:         opts,
 		store:        store,
-		sink:         newSink(os.Stdout, os.Stderr),
+		sink:         newSink(out, errw),
 		glyphs:       glyphs,
 		isTTY:        isTTY,
 		width:        width,
 		planRenderer: newPlanRenderer(glyphs, width, opts.Verbosity, fmt),
 		formatter:    fmt,
+		stepDrift:    map[int][]event.Change{},
 	}
+}
+
+// terminalInfo derives display width and TTY-ness from the output writer. A
+// COLUMNS override always wins; otherwise only a real terminal (*os.File) has a
+// size and is a TTY, so an injected buffer renders unbounded and uncolored.
+func terminalInfo(w io.Writer) (width int, isTTY bool) {
+	if cols := os.Getenv("COLUMNS"); cols != "" {
+		if n, err := strconv.Atoi(cols); err == nil && n > 0 {
+			width = n
+		}
+	}
+	f, ok := w.(*os.File)
+	if !ok {
+		return width, false
+	}
+	if width == 0 {
+		if cw, _, err := term.GetSize(f.Fd()); err == nil && cw > 0 {
+			width = cw
+		}
+	}
+	return width, term.IsTerminal(f.Fd())
 }
 
 func (c *CLI) commitRenderEvents(events []renderEvent) {
@@ -638,36 +668,10 @@ func scopeFromCause(c event.Cause) string {
 	return ""
 }
 
+// renderChange buffers a drift entry; the block renders when the step's Result
+// arrives (see renderStepBlock).
 func (c *CLI) renderChange(e event.Change) {
-	var verb string
-	var col ansi.ANSI
-	switch e.Phase {
-	case event.ChangePlanned:
-		verb = "would change"
-		col = colOpCheckUnsatisfied
-	case event.ChangeExecuted:
-		verb = "changed"
-		col = colOpExecChanged
-	default:
-		return
-	}
-	stepID := stepIDFromRef(e.Step)
-	prefix := fmt.Sprintf("[%s]", stepID)
-	if e.DisplayID != "" {
-		prefix = fmt.Sprintf("[%s] '%s'", stepID, e.DisplayID)
-	}
-	if e.Drift.Field == "" {
-		c.commitRenderEvents([]renderEvent{{
-			stream: streamOut,
-			line:   c.formatter.fmtfMsg(col, "%s%s %s", prefix, glyphR(c.glyphs.exec), verb),
-		}})
-		return
-	}
-	c.commitRenderEvents([]renderEvent{{
-		stream: streamOut,
-		line: c.formatter.fmtfMsg(col, "%s %s %s: %s -> %s",
-			prefix, verb, e.Drift.Field, e.Drift.Current, e.Drift.Desired),
-	}})
+	c.stepDrift[e.Step.Index] = append(c.stepDrift[e.Step.Index], e)
 }
 
 func (c *CLI) renderProgress(e event.Progress) {
@@ -690,32 +694,111 @@ func (c *CLI) renderProgress(e event.Progress) {
 	}})
 }
 
-// renderResult prints a step's completion line: its verdict (ok / changed /
-// failed) tagged with the step ref and any hook attribution.
+// renderResult renders a finished step as one atomic block: a glyph-led header
+// (verdict carried by the glyph) followed by its railed drift. The drift was
+// buffered from preceding Change events. `ok` steps are hidden below -v.
 func (c *CLI) renderResult(e event.Result) {
-	var verb, glyph string
+	drift := c.stepDrift[e.Step.Index]
+	delete(c.stepDrift, e.Step.Index)
+	c.renderStepBlock(e, drift)
+}
+
+func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
+	v := c.opts.Verbosity
+
+	var glyph string
 	var col ansi.ANSI
-	switch e.Outcome {
-	case event.StepUnchanged:
-		verb, glyph, col = "ok", c.glyphs.ok, colActionFinishedUnchanged
+	switch res.Outcome {
 	case event.StepChanged:
-		verb, glyph, col = "changed", c.glyphs.change, colActionFinishedChanged
+		glyph, col = c.glyphs.change, colActionFinishedChanged
 	case event.StepFailed:
-		verb, glyph, col = "failed", c.glyphs.err, colOpExecFailed
+		glyph, col = c.glyphs.err, colOpExecFailed
+	case event.StepUnchanged:
+		if v < signal.V {
+			return // converged steps are noise at default verbosity
+		}
+		glyph, col = c.glyphs.ok, colActionFinishedUnchanged
 	default:
 		return
 	}
-	prefix := fmt.Sprintf("[%s]", stepIDFromRef(e.Step))
-	c.commitRenderEvents([]renderEvent{{
-		stream: streamOut,
-		line:   c.formatter.fmtfMsg(col, "%s %s %s%s", prefix, glyphR(glyph), verb, scopeFromCause(e.Cause)),
-	}})
+
+	header := c.formatter.fmtMsg(col, "  "+glyph) +
+		c.formatter.fmtfMsg(colActionKind, " [%d]%s", displayIndex(res.Step.Index), kindSuffix(res.Step.Kind)) +
+		c.descSuffix(res.Step.Desc) +
+		scopeFromCause(res.Cause)
+	out := []renderEvent{{stream: streamOut, line: header}}
+
+	rows := c.driftRows(drift, v)
+	for i, r := range rows {
+		rail := c.glyphs.opBranch
+		if i == len(rows)-1 {
+			rail = c.glyphs.opLast
+		}
+		out = append(out, renderEvent{
+			stream: streamOut,
+			line:   "      " + c.formatter.fmtMsg(colOpRail, rail) + " " + r,
+		})
+	}
+	c.commitRenderEvents(out)
 }
+
+func (c *CLI) descSuffix(desc string) string {
+	if desc == "" {
+		return ""
+	}
+	return c.formatter.fmtfMsg(colActionDesc, " %s %s", c.glyphs.actionKindSep, desc)
+}
+
+// driftRows formats the visible drift lines for a step, with the op and field
+// columns aligned within the block. At -vv each line is prefixed with the op
+// that reported it; below that the op identity is elided. Field-less changes
+// (signal-only "it changed") carry no row.
+func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
+	type row struct{ opID, field, cur, des string }
+
+	var rs []row
+	opW, fieldW := 0, 0
+	for _, ch := range drift {
+		d := ch.Drift
+		if d.Field == "" || d.Verbosity > v {
+			continue
+		}
+		cur := d.Current
+		if cur == "" {
+			cur = "(absent)"
+		}
+		r := row{field: d.Field, cur: cur, des: d.Desired}
+		if v >= signal.VV {
+			r.opID = ch.DisplayID
+		}
+		opW = max(opW, len(r.opID))
+		fieldW = max(fieldW, len(r.field))
+		rs = append(rs, r)
+	}
+
+	rows := make([]string, len(rs))
+	for i, r := range rs {
+		var prefix string
+		if opW > 0 {
+			prefix = c.formatter.fmtfMsg(colOpHeader, "%-*s  ", opW, r.opID)
+		}
+		rows[i] = prefix + c.formatter.fmtfMsg(colOpDesc, "%-*s  %s %s %s",
+			fieldW, r.field, r.cur, c.glyphs.arrow, r.des)
+	}
+	return rows
+}
+
+// displayIndex maps an engine action index (0-based, an array position) to its
+// user-facing ordinal (1-based). The single conversion point: engine internals
+// stay 0-based, every surface that shows an index to a human — plan, the
+// check/apply stream, future --json — routes through here so a "[3]" means the
+// same step everywhere. Never print a raw index + 1 anywhere else.
+func displayIndex(engineIndex int) int { return engineIndex + 1 }
 
 // stepIDFromRef returns a step display tag built from the StepRef
 // fields. Mirrors the formatting used by lifecycle renderers.
 func stepIDFromRef(s event.StepRef) string {
-	tag := fmt.Sprintf("%d", s.Index)
+	tag := fmt.Sprintf("%d", displayIndex(s.Index))
 	if s.Kind != "" {
 		tag += "|" + s.Kind
 	}

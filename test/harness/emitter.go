@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
@@ -18,11 +17,12 @@ type (
 	Events []event.Event
 
 	// RecordingDisplayer captures every emitted event for test
-	// inspection. Implements diagnostic.Displayer. Events lands in
-	// arrival order; Diagnostics and Changes are populated alongside
-	// for convenient typed assertions.
+	// inspection. It is an Output only: wrap it in diagnostic.NewEmitter
+	// (the emitter serializes delivery, so this needs no lock) and keep the
+	// reference to inspect Events afterward. Events lands in arrival order;
+	// Diagnostics, Changes, and Results are populated alongside for
+	// convenient typed assertions.
 	RecordingDisplayer struct {
-		mu          sync.Mutex
 		Events      Events
 		Diagnostics []event.Event // Error/Warning/Info entries
 		Changes     []event.Change
@@ -33,8 +33,6 @@ type (
 )
 
 func (r *RecordingDisplayer) RenderEvent(e event.Event) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	r.Events = append(r.Events, e)
 	switch v := e.(type) {
 	case event.Error, event.Warning, event.Info:
@@ -45,11 +43,6 @@ func (r *RecordingDisplayer) RenderEvent(e event.Event) {
 		r.Results = append(r.Results, v)
 	}
 }
-
-// Emit and Raise let the recorder stand in as a diagnostic.Emitter too, for
-// tests that wire it straight into a Ctx instead of through NewEmitter.
-func (r *RecordingDisplayer) Emit(e event.Event)            { r.RenderEvent(e) }
-func (r *RecordingDisplayer) Raise(err diagnostic.Raisable) { r.RenderEvent(err.Diagnostic()) }
 
 // One-shot renders are no-ops: tests assert on the captured event stream, not
 // on rendered command output. Present only to satisfy diagnostic.Output.
