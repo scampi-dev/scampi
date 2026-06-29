@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 )
 
 func TestIndexAll_ReturnsWellFormedCatalog(t *testing.T) {
-	docs := engine.IndexAll(context.Background())
+	docs := engine.IndexAll(t.Context())
 
 	if len(docs) == 0 {
 		t.Fatal("IndexAll returned no docs")

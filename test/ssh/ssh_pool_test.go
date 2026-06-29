@@ -35,7 +35,7 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 
 	const sequentialOps = 20
 	for i := range sequentialOps {
-		if _, err := tgt.RunCommand(context.Background(), "true"); err != nil {
+		if _, err := tgt.RunCommand(t.Context(), "true"); err != nil {
 			t.Fatalf("op %d: %v", i, err)
 		}
 	}
@@ -45,7 +45,7 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 	errs := make(chan error, parallelOps)
 	for range parallelOps {
 		wg.Go(func() {
-			if _, err := tgt.RunCommand(context.Background(), "true"); err != nil {
+			if _, err := tgt.RunCommand(t.Context(), "true"); err != nil {
 				errs <- err
 			}
 		})
@@ -115,7 +115,7 @@ func TestSSH_RunCommand_MultiLine(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := tgt.RunCommand(context.Background(), tc.cmd)
+			res, err := tgt.RunCommand(t.Context(), tc.cmd)
 			if err != nil {
 				t.Fatalf("RunCommand: %v", err)
 			}
@@ -155,7 +155,7 @@ func TestSSH_RetryHandlesContention(t *testing.T) {
 	errs := make(chan error, parallelOps)
 	for range parallelOps {
 		wg.Go(func() {
-			if _, err := tgt.RunCommand(context.Background(), "sleep 0.05"); err != nil {
+			if _, err := tgt.RunCommand(t.Context(), "sleep 0.05"); err != nil {
 				errs <- err
 			}
 		})
@@ -199,7 +199,7 @@ func TestSSH_RunCommand_ContextCancellation(t *testing.T) {
 	for range maxSessions {
 		go func() {
 			saturating <- struct{}{}
-			_, _ = tgt.RunCommand(context.Background(), "sleep 5")
+			_, _ = tgt.RunCommand(t.Context(), "sleep 5")
 			released <- struct{}{}
 		}()
 	}
@@ -224,7 +224,7 @@ func TestSSH_RunCommand_ContextCancellation(t *testing.T) {
 
 	// This call should block on slot acquire, then return ctx.Err()
 	// when ctx is cancelled — not hang or panic.
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
 	defer cancel()
 
 	start := time.Now()

@@ -9,7 +9,7 @@ import (
 
 func TestRunCommand_Success(t *testing.T) {
 	var tgt POSIXTarget
-	result, err := tgt.RunCommand(context.Background(), "echo hello")
+	result, err := tgt.RunCommand(t.Context(), "echo hello")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -23,7 +23,7 @@ func TestRunCommand_Success(t *testing.T) {
 
 func TestRunCommand_Failure(t *testing.T) {
 	var tgt POSIXTarget
-	result, err := tgt.RunCommand(context.Background(), "false")
+	result, err := tgt.RunCommand(t.Context(), "false")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -34,7 +34,7 @@ func TestRunCommand_Failure(t *testing.T) {
 
 func TestRunCommand_Stderr(t *testing.T) {
 	var tgt POSIXTarget
-	result, err := tgt.RunCommand(context.Background(), "echo oops >&2")
+	result, err := tgt.RunCommand(t.Context(), "echo oops >&2")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestRunCommand_Stderr(t *testing.T) {
 }
 
 func TestRunCommand_ContextCancellation(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	var tgt POSIXTarget

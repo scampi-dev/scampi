@@ -44,7 +44,7 @@ func TestCheckPlan_DriftEmitted(t *testing.T) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
@@ -99,7 +99,7 @@ func TestCheckPlan_SatisfiedNoDrift(t *testing.T) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
@@ -140,7 +140,7 @@ func TestExecutePlan_NoDrift(t *testing.T) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}

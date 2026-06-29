@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -68,7 +67,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -110,7 +109,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Check(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Check(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Check: %v\n%s", err, rec)
 	}
 }
@@ -144,7 +143,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -187,7 +186,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -234,7 +233,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -281,7 +280,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -325,7 +324,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Check(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Check(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Check: %v\n%s", err, rec)
 	}
 }

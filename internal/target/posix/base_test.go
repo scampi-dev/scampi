@@ -85,7 +85,7 @@ func TestDetectEscalation_Cases(t *testing.T) {
 				idx++
 				return out, nil
 			}
-			tool, reason := posix.DetectEscalation(context.Background(), run, tc.isRoot)
+			tool, reason := posix.DetectEscalation(t.Context(), run, tc.isRoot)
 			if tool != tc.want.tool {
 				t.Errorf("tool = %q, want %q", tool, tc.want.tool)
 			}

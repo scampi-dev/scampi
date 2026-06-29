@@ -46,7 +46,7 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -88,7 +88,7 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -133,7 +133,7 @@ func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}

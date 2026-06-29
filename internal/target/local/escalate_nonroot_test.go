@@ -10,7 +10,6 @@
 package local
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -24,7 +23,7 @@ import (
 func TestDetectEscalation(t *testing.T) {
 	var tgt POSIXTarget
 	tgt.Runner = tgt.RunCommand
-	tool, _ := posix.DetectEscalation(context.Background(), tgt.RunCommand, false)
+	tool, _ := posix.DetectEscalation(t.Context(), tgt.RunCommand, false)
 	switch tool {
 	case "sudo", "doas", "":
 	default:
@@ -42,7 +41,7 @@ func TestStat_FallsBackOnPermission(t *testing.T) {
 
 	path := filepath.Join(inner, "file")
 	tgt, readLog := newStatTarget(t, "81a4 42 1710756000 file")
-	info, err := tgt.Stat(context.Background(), path)
+	info, err := tgt.Stat(t.Context(), path)
 	if err != nil {
 		t.Fatalf("expected fallback to handle it, got: %v", err)
 	}
@@ -66,7 +65,7 @@ func TestGetOwner_FallsBackOnPermission(t *testing.T) {
 
 	path := filepath.Join(inner, "file")
 	tgt, _ := newStatTarget(t, "app app")
-	owner, err := tgt.GetOwner(context.Background(), path)
+	owner, err := tgt.GetOwner(t.Context(), path)
 	if err != nil {
 		t.Fatalf("expected fallback to handle it, got: %v", err)
 	}
@@ -83,7 +82,7 @@ func TestReadFile_FallsBackOnPermission(t *testing.T) {
 	}
 
 	tgt, readLog := newCaptureTarget(t)
-	_, err := tgt.ReadFile(context.Background(), path)
+	_, err := tgt.ReadFile(t.Context(), path)
 	if err != nil {
 		t.Fatalf("expected fallback to handle it, got: %v", err)
 	}
@@ -102,7 +101,7 @@ func TestWriteFile_FallsBackOnPermission(t *testing.T) {
 	}
 
 	tgt, readLog := newCaptureTarget(t)
-	err := tgt.WriteFile(context.Background(), path, []byte("new"))
+	err := tgt.WriteFile(t.Context(), path, []byte("new"))
 	if err != nil {
 		t.Fatalf("expected fallback to handle it, got: %v", err)
 	}
@@ -124,7 +123,7 @@ func TestReadFile_NoEscalationErrorWhenNoTool(t *testing.T) {
 	}
 
 	var tgt POSIXTarget // no escalation, not root
-	_, err := tgt.ReadFile(context.Background(), path)
+	_, err := tgt.ReadFile(t.Context(), path)
 
 	var noEsc target.NoEscalationError
 	if !errors.As(err, &noEsc) {
@@ -146,7 +145,7 @@ func TestWriteFile_NoEscalationErrorWhenNoTool(t *testing.T) {
 	}
 
 	var tgt POSIXTarget // no escalation, not root
-	err := tgt.WriteFile(context.Background(), path, []byte("new"))
+	err := tgt.WriteFile(t.Context(), path, []byte("new"))
 
 	var noEsc target.NoEscalationError
 	if !errors.As(err, &noEsc) {

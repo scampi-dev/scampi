@@ -101,13 +101,13 @@ func TestCheck_DeferredPath_UpstreamPromisesDirectory(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	rep, _, err := e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	rep, _, err := e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan must not return error when path is deferred, got: %v", err)
 	}
@@ -154,13 +154,13 @@ func TestCheck_DeferredPath_NoPromise_StillAborts(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err == nil {
 		t.Fatalf("CheckPlan must abort when no upstream action promises the path")
 	}
@@ -201,13 +201,13 @@ func TestCheck_DeferredPath_UpstreamSatisfied_NoPromise(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err == nil {
 		t.Fatalf("CheckPlan must abort: upstream is satisfied so path is not promised")
 	}
@@ -243,13 +243,13 @@ func TestCheck_DeferredPath_NonDeferrableError_StillAborts(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err == nil {
 		t.Fatalf("CheckPlan must abort for non-deferrable errors")
 	}
@@ -290,13 +290,13 @@ func TestCheck_DeferredPath_AncestorPromise(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	rep, _, err := e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	rep, _, err := e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan must not abort when ancestor path is promised, got: %v", err)
 	}
@@ -340,13 +340,13 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	rep, _, err := e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	rep, _, err := e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan: %v", err)
 	}
@@ -400,13 +400,13 @@ func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	rep, _, err := e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	rep, _, err := e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan must not abort when user is promised, got: %v", err)
 	}
@@ -449,13 +449,13 @@ func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	rep, _, err := e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	rep, _, err := e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("CheckPlan must not abort when group is promised, got: %v", err)
 	}
@@ -492,13 +492,13 @@ func TestCheck_DeferredUser_NoPromise_StillAborts(t *testing.T) {
 		Target: harness.MockTargetInstance(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
 	defer e.Close()
 
-	_, _, err = e.CheckPlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, _, err = e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err == nil {
 		t.Fatalf("CheckPlan must abort when no upstream action promises the user")
 	}

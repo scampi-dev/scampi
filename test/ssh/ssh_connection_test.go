@@ -3,7 +3,6 @@
 package ssh
 
 import (
-	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -54,7 +53,7 @@ func TestSSH_Connect_WrongKey(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(context.Background(), src, spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), src, spec.TargetInstance{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.SourceSpan{}},
@@ -88,7 +87,7 @@ func TestSSH_Connect_NoSuchHost(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(context.Background(), src, spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), src, spec.TargetInstance{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.SourceSpan{}},
@@ -115,7 +114,7 @@ func TestSSH_Connect_InvalidTimeout(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(context.Background(), source.NewMemSource(), spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), source.NewMemSource(), spec.TargetInstance{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"timeout": {Value: spec.SourceSpan{Filename: "test.scampi", StartLine: 5}},
@@ -158,7 +157,7 @@ func TestSSH_Connect_PublicKeyAsPrivate(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(context.Background(), src, spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), src, spec.TargetInstance{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.SourceSpan{}},
@@ -189,7 +188,7 @@ func TestSSH_ReadWriteFile(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/tmp/test-readwrite.txt"
 	content := []byte("hello from ssh test")
 
@@ -221,7 +220,7 @@ func TestSSH_ReadFile_NotExist(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := tgt.ReadFile(ctx, "/nonexistent/file")
 
 	if err == nil {
@@ -240,7 +239,7 @@ func TestSSH_Stat(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/tmp/test-stat.txt"
 	content := []byte("stat test content")
 
@@ -272,7 +271,7 @@ func TestSSH_Stat_NotExist(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err := tgt.Stat(ctx, "/nonexistent/file")
 
 	if err == nil {
@@ -291,7 +290,7 @@ func TestSSH_Chmod(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/tmp/test-chmod.txt"
 
 	// Create file with initial mode
@@ -327,7 +326,7 @@ func TestSSH_Symlink(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	targetPath := "/tmp/test-symlink-target.txt"
 	linkPath := "/tmp/test-symlink-link"
 
@@ -374,7 +373,7 @@ func TestSSH_HasUser(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// testuser exists in container
 	if !tgt.HasUser(ctx, "testuser") {
@@ -399,7 +398,7 @@ func TestSSH_HasGroup(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// testgroup exists in container
 	if !tgt.HasGroup(ctx, "testgroup") {
@@ -424,7 +423,7 @@ func TestSSH_GetOwner(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Check owner of testuser's home directory
 	owner, err := tgt.GetOwner(ctx, "/home/testuser")
@@ -448,7 +447,7 @@ func TestSSH_Chown(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	path := "/tmp/test-chown.txt"
 
 	// Create file (owned by testuser since we're connected as testuser)

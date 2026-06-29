@@ -48,7 +48,7 @@ func mustCheckDrift(
 	tgt target.Target,
 ) []spec.DriftDetail {
 	t.Helper()
-	_, drift, err := op.Check(context.Background(), src, tgt)
+	_, drift, err := op.Check(t.Context(), src, tgt)
 	if err != nil {
 		t.Fatalf("Check: %v", err)
 	}
@@ -64,7 +64,7 @@ func collectDrift(
 	t.Helper()
 	var all []spec.DriftDetail
 	for _, op := range ops {
-		_, drift, err := op.Check(context.Background(), src, tgt)
+		_, drift, err := op.Check(t.Context(), src, tgt)
 		if err != nil {
 			t.Fatalf("Check: %v", err)
 		}

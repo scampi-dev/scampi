@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 
 	"scampi.dev/scampi/internal/diagnostic"
@@ -41,7 +40,7 @@ func TestResultEvent_Apply(t *testing.T) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -75,7 +74,7 @@ func TestResultEvent_CheckWouldChange(t *testing.T) {
 	}
 	defer e.Close()
 
-	if _, err = e.Check(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Check(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Check: %v\n%s", err, rec)
 	}
 

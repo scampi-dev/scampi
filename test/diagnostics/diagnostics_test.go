@@ -16,7 +16,6 @@
 package diagnostics
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -70,7 +69,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	apply := func() error {
 		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), cfgPath, store, src)

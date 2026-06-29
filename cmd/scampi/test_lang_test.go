@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,10 +44,10 @@ func writeTestFile(t *testing.T, name, content string) string {
 	return path
 }
 
-func newTestCtx() (diagnostic.Ctx, *nopDisplayer) {
+func newTestCtx(t *testing.T) (diagnostic.Ctx, *nopDisplayer) {
 	displ := &nopDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, displ)
-	return diagnostic.NewCtx(context.Background(), em), displ
+	return diagnostic.NewCtx(t.Context(), em), displ
 }
 
 func TestRunLangTestFile_Passing(t *testing.T) {
@@ -82,7 +81,7 @@ std.deploy(name = "smoke", targets = [mock]) {
 }
 `
 	path := writeTestFile(t, "smoke_test.scampi", src)
-	ctx, displ := newTestCtx()
+	ctx, displ := newTestCtx(t)
 	passed, failed, err := runLangTestFile(
 		ctx,
 		path,
@@ -157,7 +156,7 @@ std.deploy(name = "smoke", targets = [mock]) {
 		t.Fatal(err)
 	}
 
-	ctx, displ := newTestCtx()
+	ctx, displ := newTestCtx(t)
 	passed, failed, err := runLangTestFile(
 		ctx,
 		testPath,
@@ -205,7 +204,7 @@ std.deploy(name = "fail", targets = [mock]) {
 }
 `
 	path := writeTestFile(t, "fail_test.scampi", src)
-	ctx, displ := newTestCtx()
+	ctx, displ := newTestCtx(t)
 	passed, failed, err := runLangTestFile(
 		ctx,
 		path,

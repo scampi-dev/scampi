@@ -107,7 +107,7 @@ std.deploy(name = "bench", targets = [host]) {
 			store := diagnostic.NewSourceStore()
 
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), cfgPath, store, src)
 				if err != nil {
 					b.Fatal(err)
@@ -181,7 +181,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -247,7 +247,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -313,7 +313,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -393,7 +393,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -467,7 +467,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -531,7 +531,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -596,7 +596,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -663,7 +663,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -734,7 +734,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -805,7 +805,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -881,7 +881,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -950,7 +950,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -1021,7 +1021,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -1128,7 +1128,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -1223,7 +1223,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -1303,7 +1303,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
@@ -1383,7 +1383,7 @@ std.deploy(name = "bench", targets = [host]) {
 				tgt := target.NewMemTarget()
 				b.StartTimer()
 
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(b.Context())
 				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)

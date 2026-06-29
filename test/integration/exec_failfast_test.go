@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"testing"
 
 	"scampi.dev/scampi/internal/diagnostic"
@@ -57,7 +56,7 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -125,7 +124,7 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -200,7 +199,7 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -291,7 +290,7 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -350,7 +349,7 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -411,7 +410,7 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -475,7 +474,7 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}
@@ -536,7 +535,7 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := spec.ResolvedConfig{
 		Target: harness.MockTargetInstance(tgt),
 	}

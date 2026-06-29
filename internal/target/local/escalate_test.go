@@ -3,7 +3,6 @@
 package local
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -88,7 +87,7 @@ func newStatTarget(t *testing.T, output string) (POSIXTarget, func() string) {
 
 func TestEscalatedReadFile_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
-	_, err := tgt.escalatedReadFile(context.Background(), "/etc/shadow")
+	_, err := tgt.escalatedReadFile(t.Context(), "/etc/shadow")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +98,7 @@ func TestEscalatedReadFile_Command(t *testing.T) {
 
 func TestEscalatedWriteFile_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
-	err := tgt.escalatedWriteFile(context.Background(), "/etc/config", []byte("data"))
+	err := tgt.escalatedWriteFile(t.Context(), "/etc/config", []byte("data"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +113,7 @@ func TestEscalatedWriteFile_Command(t *testing.T) {
 
 func TestEscalatedRemove_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
-	err := tgt.escalatedRemove(context.Background(), "/etc/config")
+	err := tgt.escalatedRemove(t.Context(), "/etc/config")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +124,7 @@ func TestEscalatedRemove_Command(t *testing.T) {
 
 func TestEscalatedChmod_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
-	err := tgt.escalatedChmod(context.Background(), "/etc/config", 0o755)
+	err := tgt.escalatedChmod(t.Context(), "/etc/config", 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +135,7 @@ func TestEscalatedChmod_Command(t *testing.T) {
 
 func TestEscalatedChown_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
-	err := tgt.escalatedChown(context.Background(), "/etc/config", target.Owner{User: "root", Group: "wheel"})
+	err := tgt.escalatedChown(t.Context(), "/etc/config", target.Owner{User: "root", Group: "wheel"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +147,7 @@ func TestEscalatedChown_Command(t *testing.T) {
 
 func TestEscalatedSymlink_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
-	err := tgt.escalatedSymlink(context.Background(), "/usr/bin/vim", "/usr/local/bin/vi")
+	err := tgt.escalatedSymlink(t.Context(), "/usr/bin/vim", "/usr/local/bin/vi")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +162,7 @@ func TestEscalatedSymlink_Command(t *testing.T) {
 
 func TestEscalatedRemove_ReturnsEscalationError(t *testing.T) {
 	tgt := newFailTarget(t)
-	err := tgt.escalatedRemove(context.Background(), "/etc/config")
+	err := tgt.escalatedRemove(t.Context(), "/etc/config")
 
 	var escErr target.EscalationError
 	if !errors.As(err, &escErr) {
@@ -185,7 +184,7 @@ func TestEscalatedRemove_ReturnsEscalationError(t *testing.T) {
 
 func TestEscalatedReadFile_ReturnsEscalationError(t *testing.T) {
 	tgt := newFailTarget(t)
-	_, err := tgt.escalatedReadFile(context.Background(), "/etc/shadow")
+	_, err := tgt.escalatedReadFile(t.Context(), "/etc/shadow")
 
 	var escErr target.EscalationError
 	if !errors.As(err, &escErr) {
@@ -205,7 +204,7 @@ func TestInstallPkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 		NeedsRoot: true,
 	}
 
-	err := tgt.InstallPkgs(context.Background(), []string{"curl"})
+	err := tgt.InstallPkgs(t.Context(), []string{"curl"})
 
 	var noEsc target.NoEscalationError
 	if !errors.As(err, &noEsc) {
@@ -225,7 +224,7 @@ func TestRemovePkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 		NeedsRoot: true,
 	}
 
-	err := tgt.RemovePkgs(context.Background(), []string{"nginx"})
+	err := tgt.RemovePkgs(t.Context(), []string{"nginx"})
 
 	var noEsc target.NoEscalationError
 	if !errors.As(err, &noEsc) {
@@ -244,7 +243,7 @@ func TestInstallPkgs_NoErrorWhenRoot(t *testing.T) {
 		NeedsRoot: true,
 	}
 
-	err := tgt.InstallPkgs(context.Background(), []string{"curl"})
+	err := tgt.InstallPkgs(t.Context(), []string{"curl"})
 	if err != nil {
 		t.Fatalf("expected no error when root, got: %v", err)
 	}
@@ -260,7 +259,7 @@ func TestInstallPkgs_Escalated(t *testing.T) {
 		NeedsRoot: true,
 	}
 
-	err := tgt.InstallPkgs(context.Background(), []string{"nginx"})
+	err := tgt.InstallPkgs(t.Context(), []string{"nginx"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +277,7 @@ func TestRemovePkgs_Escalated(t *testing.T) {
 		NeedsRoot: true,
 	}
 
-	err := tgt.RemovePkgs(context.Background(), []string{"nginx"})
+	err := tgt.RemovePkgs(t.Context(), []string{"nginx"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +295,7 @@ func TestInstallPkgs_NoEscalationWithoutNeedsRoot(t *testing.T) {
 		NeedsRoot: false,
 	}
 
-	err := tgt.InstallPkgs(context.Background(), []string{"wget"})
+	err := tgt.InstallPkgs(t.Context(), []string{"wget"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +318,7 @@ func TestUpdateCache_NoEscalationErrorWhenNoTool(t *testing.T) {
 		CacheNeedsRoot: true,
 	}
 
-	err := tgt.UpdateCache(context.Background())
+	err := tgt.UpdateCache(t.Context())
 
 	var noEsc target.NoEscalationError
 	if !errors.As(err, &noEsc) {
@@ -338,7 +337,7 @@ func TestUpdateCache_Escalated(t *testing.T) {
 		CacheNeedsRoot: true,
 	}
 
-	err := tgt.UpdateCache(context.Background())
+	err := tgt.UpdateCache(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +356,7 @@ func TestUpdateCache_NoEscalationWithoutCacheNeedsRoot(t *testing.T) {
 		CacheNeedsRoot: false,
 	}
 
-	err := tgt.UpdateCache(context.Background())
+	err := tgt.UpdateCache(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,12 +376,12 @@ func TestUpdateCache_NoUpgradeSupport(t *testing.T) {
 		Remove:      "apt-get remove -y %s",
 	}
 
-	err := tgt.UpdateCache(context.Background())
+	err := tgt.UpdateCache(t.Context())
 	if err == nil || !strings.Contains(err.Error(), "BUG") {
 		t.Fatalf("expected BUG error, got: %v", err)
 	}
 
-	_, err = tgt.IsUpgradable(context.Background(), "foo")
+	_, err = tgt.IsUpgradable(t.Context(), "foo")
 	if err == nil || !strings.Contains(err.Error(), "BUG") {
 		t.Fatalf("expected BUG error, got: %v", err)
 	}
@@ -396,7 +395,7 @@ func TestUpdateCache_CacheUpdateError(t *testing.T) {
 		CacheNeedsRoot: false,
 	}
 
-	err := tgt.UpdateCache(context.Background())
+	err := tgt.UpdateCache(t.Context())
 
 	var cacheErr posix.CacheUpdateError
 	if !errors.As(err, &cacheErr) {

@@ -3,7 +3,6 @@
 package testkit
 
 import (
-	"context"
 	"testing"
 
 	"scampi.dev/scampi/internal/lang/eval"
@@ -61,7 +60,7 @@ func TestMemTargetType_SeedsAllSlots(t *testing.T) {
 		Name:    "mock",
 		Initial: initialState(t),
 	}
-	got, err := tt.Create(context.Background(), nil, spec.TargetInstance{Config: cfg})
+	got, err := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -98,7 +97,7 @@ func TestMemTargetType_RegistersInRegistry(t *testing.T) {
 	}
 	cfg := &MemTargetConfig{Name: "mock", Expect: expect}
 
-	if _, err := tt.Create(context.Background(), nil, spec.TargetInstance{Config: cfg}); err != nil {
+	if _, err := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg}); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
@@ -122,7 +121,7 @@ func TestMemTargetType_NilInitialAndExpect(t *testing.T) {
 	tt := MemTargetType{Registry: reg}
 	cfg := &MemTargetConfig{Name: "mock"}
 
-	got, err := tt.Create(context.Background(), nil, spec.TargetInstance{Config: cfg})
+	got, err := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -140,7 +139,7 @@ func TestMemTargetType_NilRegistry(t *testing.T) {
 	// Without a registry the constructor still works — the mock is
 	// returned but not tracked. Useful for one-off Go-side tests.
 	tt := MemTargetType{Registry: nil}
-	got, err := tt.Create(context.Background(), nil, spec.TargetInstance{
+	got, err := tt.Create(t.Context(), nil, spec.TargetInstance{
 		Config: &MemTargetConfig{Name: "anon"},
 	})
 	if err != nil {
@@ -168,7 +167,7 @@ func TestMemTargetType_VerifyRoundTrip(t *testing.T) {
 	})
 
 	cfg := &MemTargetConfig{Name: "mock", Expect: expect}
-	got, _ := tt.Create(context.Background(), nil, spec.TargetInstance{Config: cfg})
+	got, _ := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg})
 	mock := got.(*target.MemTarget)
 
 	// Simulate engine.Apply: write a file, start a service.

@@ -3,7 +3,6 @@
 package diagnostics
 
 import (
-	"context"
 	"testing"
 
 	"scampi.dev/scampi/internal/diagnostic"
@@ -529,7 +528,7 @@ frobnicate(name = "test")`,
 		}()
 
 		apply := func() error {
-			ctx := context.Background()
+			ctx := t.Context()
 			cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 			if err != nil {
 				return err

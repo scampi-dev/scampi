@@ -7,7 +7,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -127,7 +126,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -195,7 +194,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -238,7 +237,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, err = e.Apply(diagnostic.NewCtx(t.Context(), em))
 	if err == nil {
 		t.Fatal("expected error for unsupported format")
 	}
@@ -283,7 +282,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, err = e.Apply(diagnostic.NewCtx(t.Context(), em))
 	if err == nil {
 		t.Fatal("expected error for missing source")
 	}
@@ -329,7 +328,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, err = e.Apply(diagnostic.NewCtx(t.Context(), em))
 	if err == nil {
 		t.Fatal("expected error for owner without group")
 	}
@@ -417,7 +416,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -481,7 +480,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, err = e.Apply(diagnostic.NewCtx(t.Context(), em))
 	if err == nil {
 		t.Fatal("expected error for extraction failure")
 	}
@@ -537,7 +536,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -598,7 +597,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -664,7 +663,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, _ = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, _ = e.Apply(diagnostic.NewCtx(t.Context(), em))
 
 	for path := range tgt.Files {
 		if strings.HasPrefix(path, "/tmp/.scampi-unarchive-") {
@@ -720,7 +719,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -886,7 +885,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -940,7 +939,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -992,7 +991,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	// Plan is the phase where format detection runs. If this succeeds,
 	// the URL was used for format detection instead of the empty cache path.
-	if _, err := e.PlanDeploy(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err := e.PlanDeploy(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Plan failed: %v\nBefore fix, this was 'unsupported archive format: \"\"'", err)
 	}
 }

@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"errors"
 	"io/fs"
 	"strings"
@@ -55,7 +54,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -121,7 +120,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, err = e.Apply(diagnostic.NewCtx(t.Context(), em))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -204,7 +203,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -255,7 +254,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 
@@ -314,7 +313,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, err = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, err = e.Apply(diagnostic.NewCtx(t.Context(), em))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -409,7 +408,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 }
@@ -453,7 +452,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 	defer e.Close()
 
-	_, _ = e.Apply(diagnostic.NewCtx(context.Background(), em))
+	_, _ = e.Apply(diagnostic.NewCtx(t.Context(), em))
 
 	for path := range tgt.Files {
 		if strings.HasPrefix(path, "/tmp/.scampi-") {

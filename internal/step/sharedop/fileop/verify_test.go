@@ -3,7 +3,6 @@
 package fileop
 
 import (
-	"context"
 	"errors"
 	"testing"
 )
@@ -36,7 +35,7 @@ func TestVerifiedWrite_PlaceholderCount(t *testing.T) {
 			// nil target is fine: the placeholder check fires before
 			// any target method is invoked, so the test exercises only
 			// the validation path.
-			err := VerifiedWrite(context.Background(), nil, "/etc/foo.conf", []byte("x"), tt.verifyCmd)
+			err := VerifiedWrite(t.Context(), nil, "/etc/foo.conf", []byte("x"), tt.verifyCmd)
 			var pe *VerifyPlaceholderError
 			if !errors.As(err, &pe) {
 				t.Fatalf("got %T %v, want *VerifyPlaceholderError", err, err)

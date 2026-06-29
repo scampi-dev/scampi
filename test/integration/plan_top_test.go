@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -51,7 +50,7 @@ std.deploy(name = "solo", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
-	result, err := engine.Plan(diagnostic.NewCtx(context.Background(), em), path, store, spec.ResolveOptions{})
+	result, err := engine.Plan(diagnostic.NewCtx(t.Context(), em), path, store, spec.ResolveOptions{})
 	if err != nil {
 		t.Fatalf("engine.Plan: %v", err)
 	}
@@ -128,7 +127,7 @@ std.deploy(name = "app", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
-	result, err := engine.Plan(diagnostic.NewCtx(context.Background(), em), path, store, spec.ResolveOptions{})
+	result, err := engine.Plan(diagnostic.NewCtx(t.Context(), em), path, store, spec.ResolveOptions{})
 	if err != nil {
 		t.Fatalf("engine.Plan: %v", err)
 	}
@@ -204,7 +203,7 @@ std.deploy(name = "right", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
-	result, err := engine.Plan(diagnostic.NewCtx(context.Background(), em), path, store, spec.ResolveOptions{})
+	result, err := engine.Plan(diagnostic.NewCtx(t.Context(), em), path, store, spec.ResolveOptions{})
 	if err != nil {
 		t.Fatalf("engine.Plan: %v", err)
 	}
@@ -268,7 +267,7 @@ std.deploy(name = "b", targets = [host]) {
 	store := diagnostic.NewSourceStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
-	_, err := engine.Plan(diagnostic.NewCtx(context.Background(), em), path, store, spec.ResolveOptions{})
+	_, err := engine.Plan(diagnostic.NewCtx(t.Context(), em), path, store, spec.ResolveOptions{})
 	if err == nil {
 		t.Fatal("engine.Plan: expected DeployCycleError, got nil")
 	}

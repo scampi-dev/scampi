@@ -70,7 +70,7 @@ func newStatScript(t *testing.T, output string) (string, func() string) {
 
 func TestGNUStat_Command(t *testing.T) {
 	script, readLog := newStatScript(t, "81a4 1024 1710756000 config")
-	info, err := GNUStat(context.Background(), testRunner{}, script, "/etc/config", true)
+	info, err := GNUStat(t.Context(), testRunner{}, script, "/etc/config", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestGNUStat_Command(t *testing.T) {
 
 func TestGNULstat_Command(t *testing.T) {
 	script, readLog := newStatScript(t, "81a4 0 1710756000 link")
-	_, err := GNUStat(context.Background(), testRunner{}, script, "/etc/link", false)
+	_, err := GNUStat(t.Context(), testRunner{}, script, "/etc/link", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestGNULstat_Command(t *testing.T) {
 
 func TestGNUGetOwner_Command(t *testing.T) {
 	script, readLog := newStatScript(t, "root wheel")
-	owner, err := GNUGetOwner(context.Background(), testRunner{}, script, "/etc/config")
+	owner, err := GNUGetOwner(t.Context(), testRunner{}, script, "/etc/config")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestGNUGetOwner_Command(t *testing.T) {
 
 func TestBSDStat_Command(t *testing.T) {
 	script, readLog := newStatScript(t, "81a4 512 1710756000 hosts")
-	info, err := BSDStat(context.Background(), testRunner{}, script, "/etc/hosts", true)
+	info, err := BSDStat(t.Context(), testRunner{}, script, "/etc/hosts", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestBSDStat_Command(t *testing.T) {
 
 func TestBSDGetOwner_Command(t *testing.T) {
 	script, readLog := newStatScript(t, "root staff")
-	owner, err := BSDGetOwner(context.Background(), testRunner{}, script, "/etc/hosts")
+	owner, err := BSDGetOwner(t.Context(), testRunner{}, script, "/etc/hosts")
 	if err != nil {
 		t.Fatal(err)
 	}

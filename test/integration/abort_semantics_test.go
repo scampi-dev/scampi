@@ -51,7 +51,7 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
-		context.Background(),
+		t.Context(),
 
 		harness.NoopEmitter()),
 
@@ -63,7 +63,7 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 	}
 	defer e.Close()
 
-	rep, err := e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	rep, err := e.ExecutePlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("non-aborting diagnostics must not return error, got %v", err)
 	}
@@ -132,7 +132,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
-		context.Background(),
+		t.Context(),
 
 		harness.NoopEmitter()),
 
@@ -144,7 +144,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("non-abort diagnostics must not fail execution: %v", err)
 	}
@@ -186,7 +186,7 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
-		context.Background(),
+		t.Context(),
 
 		harness.NoopEmitter()),
 
@@ -198,7 +198,7 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 
 	if err == nil {
 		t.Fatalf("abort diagnostic must abort execution")
@@ -235,7 +235,7 @@ func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
-		context.Background(),
+		t.Context(),
 
 		harness.NoopEmitter()),
 
@@ -247,7 +247,7 @@ func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 
 	if err == nil {
 		t.Fatalf("abort diagnostic must abort execution")
@@ -294,7 +294,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
-		context.Background(),
+		t.Context(),
 
 		harness.NoopEmitter()),
 
@@ -306,7 +306,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 	}
 	defer e.Close()
 
-	_, err = e.ExecutePlan(diagnostic.NewCtx(context.Background(), harness.NoopEmitter()), plan)
+	_, err = e.ExecutePlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err != nil {
 		t.Fatalf("non-abort diagnostics must not fail execution: %v", err)
 	}
@@ -317,7 +317,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 }
 
 func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// parent op: executes and fails
 	parent := &harness.FakeOp{
@@ -357,7 +357,7 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
-		context.Background(),
+		t.Context(),
 
 		harness.NoopEmitter()),
 

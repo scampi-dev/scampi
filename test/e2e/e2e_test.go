@@ -3,7 +3,6 @@
 package e2e
 
 import (
-	"context"
 	"encoding/json"
 	"io/fs"
 	"path/filepath"
@@ -163,7 +162,7 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	run := func() error {
 		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), memCfgPath, store, src)

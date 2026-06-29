@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -29,7 +28,7 @@ func setupContainerTest(t *testing.T, name string) target.Target {
 		t.Skip("container tests disabled (set SCAMPI_TEST_CONTAINERS=1)")
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	tgt, err := local.Local{}.Create(ctx, source.NewMemSource(), spec.TargetInstance{})
 	if err != nil {
 		t.Fatalf("create local target: %v", err)
@@ -45,8 +44,8 @@ func setupContainerTest(t *testing.T, name string) target.Target {
 	}
 
 	t.Cleanup(func() {
-		_ = cm.StopContainer(context.Background(), name)
-		_ = cm.RemoveContainer(context.Background(), name)
+		_ = cm.StopContainer(t.Context(), name)
+		_ = cm.RemoveContainer(t.Context(), name)
 	})
 
 	return tgt
@@ -74,7 +73,7 @@ func applyContainerConfig(t *testing.T, cfgStr string, tgt target.Target) *harne
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply: %v\n%s", err, rec)
 	}
 	return rec
@@ -101,7 +100,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, err := cm.InspectContainer(context.Background(), name)
+	info, exists, err := cm.InspectContainer(t.Context(), name)
 	if err != nil {
 		t.Fatalf("inspect: %v", err)
 	}
@@ -147,7 +146,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, _ := cm.InspectContainer(context.Background(), name)
+	info, exists, _ := cm.InspectContainer(t.Context(), name)
 	if !exists || !info.Running {
 		t.Error("container should still be running")
 	}
@@ -178,7 +177,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, err := cm.InspectContainer(context.Background(), name)
+	info, exists, err := cm.InspectContainer(t.Context(), name)
 	if err != nil {
 		t.Fatalf("inspect: %v", err)
 	}
@@ -238,7 +237,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr2, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, _ := cm.InspectContainer(context.Background(), name)
+	info, exists, _ := cm.InspectContainer(t.Context(), name)
 	if !exists {
 		t.Fatal("container should exist after drift recreate")
 	}
@@ -275,7 +274,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, _ := cm.InspectContainer(context.Background(), name)
+	info, exists, _ := cm.InspectContainer(t.Context(), name)
 	if !exists {
 		t.Fatal("container should exist")
 	}
@@ -316,7 +315,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, err := cm.InspectContainer(context.Background(), name)
+	info, exists, err := cm.InspectContainer(t.Context(), name)
 	if err != nil {
 		t.Fatalf("inspect: %v", err)
 	}
@@ -374,7 +373,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, err := cm.InspectContainer(context.Background(), name)
+	info, exists, err := cm.InspectContainer(t.Context(), name)
 	if err != nil {
 		t.Fatalf("inspect: %v", err)
 	}
@@ -414,7 +413,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, err := cm.InspectContainer(context.Background(), name)
+	info, exists, err := cm.InspectContainer(t.Context(), name)
 	if err != nil {
 		t.Fatalf("inspect: %v", err)
 	}
@@ -459,7 +458,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, err := cm.InspectContainer(context.Background(), name)
+	info, exists, err := cm.InspectContainer(t.Context(), name)
 	if err != nil {
 		t.Fatalf("inspect: %v", err)
 	}
@@ -508,7 +507,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, err := cm.InspectContainer(context.Background(), name)
+	info, exists, err := cm.InspectContainer(t.Context(), name)
 	if err != nil {
 		t.Fatalf("inspect: %v", err)
 	}
@@ -566,7 +565,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr2, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	info, exists, _ := cm.InspectContainer(context.Background(), name)
+	info, exists, _ := cm.InspectContainer(t.Context(), name)
 	if !exists {
 		t.Fatal("container should exist when stopped")
 	}
@@ -612,7 +611,7 @@ std.deploy(name = "test", targets = [host]) {
 	applyContainerConfig(t, cfgStr2, tgt)
 
 	cm := tgt.(target.ContainerManager)
-	_, exists, _ := cm.InspectContainer(context.Background(), name)
+	_, exists, _ := cm.InspectContainer(t.Context(), name)
 	if exists {
 		t.Error("container should not exist after absent")
 	}

@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -24,7 +23,7 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewSourceStore()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)

@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -368,7 +367,7 @@ func runApply(t *testing.T, cfgStr string, tgt target.Target) *harness.Recording
 	}
 	defer e.Close()
 
-	if _, err = e.Apply(diagnostic.NewCtx(context.Background(), em)); err != nil {
+	if _, err = e.Apply(diagnostic.NewCtx(t.Context(), em)); err != nil {
 		t.Fatalf("Apply failed: %v\n%s", err, rec)
 		return nil
 	}
