@@ -17,11 +17,11 @@ import (
 type Engine struct {
 	src   source.Source
 	tgt   target.Target
-	cfg   spec.ResolvedConfig
+	cfg   spec.Config
 	store *diagnostic.SourceStore
 }
 
-func New(ctx diagnostic.Ctx, src source.Source, cfg spec.ResolvedConfig) (*Engine, error) {
+func New(ctx diagnostic.Ctx, src source.Source, cfg spec.Config) (*Engine, error) {
 	tgt, err := cfg.Target.Type.Create(ctx, src, cfg.Target)
 	if err != nil {
 		if impact, ok := emitEngineDiagnostic(ctx, cfg.Path, err); ok {
@@ -44,7 +44,7 @@ func New(ctx diagnostic.Ctx, src source.Source, cfg spec.ResolvedConfig) (*Engin
 func NewWithTarget(
 	_ diagnostic.Ctx,
 	src source.Source,
-	cfg spec.ResolvedConfig,
+	cfg spec.Config,
 	tgt target.Target,
 ) (*Engine, error) {
 	return &Engine{
@@ -60,14 +60,14 @@ func (e *Engine) Close() {
 	}
 }
 
-// storeSourcePaths reads action source files (e.g. template sources) via the
+// storeSourcePaths reads step source files (e.g. template sources) via the
 // source and registers them in the store so the renderer can display source
 // context in error messages.
 func (e *Engine) storeSourcePaths(ctx diagnostic.Ctx, p spec.Plan) {
 	if e.store == nil {
 		return
 	}
-	for _, act := range p.Deploy.Actions {
+	for _, act := range p.Deploy.Steps {
 		sr, ok := act.(spec.SourceReader)
 		if !ok {
 			continue
@@ -106,7 +106,7 @@ func forEachResolvedOffline(
 	}
 
 	allCaps := capabilityTarget{caps: capability.All}
-	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error {
+	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.Config) error {
 		e, err := NewWithTarget(ctx, src, res, allCaps)
 		if err != nil {
 			return err
@@ -140,7 +140,7 @@ func forEachResolved(
 		return err
 	}
 
-	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error {
+	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.Config) error {
 		e, err := New(ctx, src, res)
 		if err != nil {
 			return err
@@ -164,8 +164,8 @@ func forEachResolved(
 // shared-infra limits.
 func runPlansConcurrent(
 	ctx diagnostic.Ctx,
-	resolved []spec.ResolvedConfig,
-	work func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error,
+	resolved []spec.Config,
+	work func(ctx diagnostic.Ctx, res spec.Config) error,
 ) error {
 	if len(resolved) == 1 {
 		return work(ctx, resolved[0])
@@ -200,7 +200,7 @@ func runPlansConcurrent(
 func runLevel(
 	ctx diagnostic.Ctx,
 	level []*deployNode,
-	work func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error,
+	work func(ctx diagnostic.Ctx, res spec.Config) error,
 ) []error {
 	g, gctx := errgroup.WithContext(ctx)
 	var (

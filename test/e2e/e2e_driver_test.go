@@ -17,7 +17,7 @@ import (
 //
 // The /tmp placeholder file forces /tmp to exist as a directory; some
 // step implementations write through /tmp during apply.
-func setupMemTarget(t *testing.T, initial E2EFiles) (*target.MemTarget, spec.TargetInstance) {
+func setupMemTarget(t *testing.T, initial E2EFiles) (*target.MemTarget, spec.DeclaredTarget) {
 	t.Helper()
 
 	tgt := target.NewMemTarget()
@@ -105,7 +105,7 @@ func setupMemTarget(t *testing.T, initial E2EFiles) (*target.MemTarget, spec.Tar
 		}
 	}
 
-	return tgt, harness.MockTargetInstance(tgt)
+	return tgt, harness.MockDeclaredTarget(tgt)
 }
 
 // verifyMemTarget asserts that the post-Apply MemTarget state matches

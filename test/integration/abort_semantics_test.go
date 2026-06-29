@@ -40,14 +40,14 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(op),
+			Steps: []spec.Step{
+				harness.MkStep(op),
 			},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
@@ -72,11 +72,11 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 		t.Fatalf("op with warning diagnostics must be treated as needing execution")
 	}
 
-	if len(rep.Actions) != 1 {
-		t.Fatalf("expected exactly one action report")
+	if len(rep.Steps) != 1 {
+		t.Fatalf("expected exactly one step report")
 	}
 
-	ar := rep.Actions[0]
+	ar := rep.Steps[0]
 
 	if len(ar.Ops) != 1 {
 		t.Fatalf("expected exactly one op report")
@@ -121,14 +121,14 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
 			ID: "fakeUnit",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB),
 			},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
@@ -175,14 +175,14 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB),
 			},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
@@ -205,7 +205,7 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 	}
 }
 
-func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
+func TestCheck_AbortDiagnostic_StopsStepExecution(t *testing.T) {
 	op := &harness.FakeOp{
 		Name: "abort-op",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
@@ -223,15 +223,15 @@ func TestCheck_AbortDiagnostic_StopsActionExecution(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(op),
-				harness.MkAction(noExecOp),
+			Steps: []spec.Step{
+				harness.MkStep(op),
+				harness.MkStep(noExecOp),
 			},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
@@ -283,14 +283,14 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB),
 			},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(
@@ -346,14 +346,14 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(parent, child),
+			Steps: []spec.Step{
+				harness.MkStep(parent, child),
 			},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(

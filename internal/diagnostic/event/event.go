@@ -182,7 +182,7 @@ const (
 )
 
 // StepSummary is the per-op count breakdown for a finished step. Field-
-// identical to the engine's action summary, copied onto the event so the
+// identical to the engine's step summary, copied onto the event so the
 // stream sink never reaches back into the execution report.
 type StepSummary struct {
 	Total       int
@@ -194,7 +194,7 @@ type StepSummary struct {
 	WouldChange int
 }
 
-// Result is the completion of one step: emitted on the stream as each action
+// Result is the completion of one step: emitted on the stream as each step
 // settles (check or apply), distinct from Progress (position) and Change
 // (per-field mutation). It carries the step's verdict and op breakdown.
 type Result struct {

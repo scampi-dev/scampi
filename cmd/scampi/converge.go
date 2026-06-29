@@ -51,7 +51,7 @@ changes when the current state differs from the declared state.`,
 
 			resolveOpts := parseResolveOpts(cmd)
 			ordered := order.New(displ)
-			defer ordered.Flush() // drain buffered actions even on abort
+			defer ordered.Flush() // drain buffered steps even on abort
 			em := diagnostic.NewEmitter(pol, ordered)
 			report, err := engine.Apply(diagnostic.NewCtx(ctx, em), cfg, store, resolveOpts)
 			if err != nil {
@@ -104,7 +104,7 @@ the actual system state.`,
 
 			resolveOpts := parseResolveOpts(cmd)
 			ordered := order.New(displ)
-			defer ordered.Flush() // drain buffered actions even on abort
+			defer ordered.Flush() // drain buffered steps even on abort
 			em := diagnostic.NewEmitter(pol, ordered)
 			report, err := engine.Check(diagnostic.NewCtx(ctx, em), cfg, store, resolveOpts)
 			if err != nil {

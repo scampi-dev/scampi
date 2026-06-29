@@ -293,7 +293,7 @@ std.deploy(name = "web", targets = [vps]) {
 	}
 }
 
-func evalAndLink(t *testing.T, src string) spec.Config {
+func evalAndLink(t *testing.T, src string) spec.DeclaredConfig {
 	t.Helper()
 	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {

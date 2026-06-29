@@ -52,7 +52,7 @@ func (e CyclicDependencyError) Diagnostic() event.Event {
 
 func DetectPlanCycles(ctx diagnostic.Ctx, plan spec.Plan) error {
 	var roots []spec.Op
-	for _, a := range plan.Deploy.Actions {
+	for _, a := range plan.Deploy.Steps {
 		roots = append(roots, a.Ops()...)
 	}
 
@@ -75,37 +75,37 @@ func DetectPlanCycles(ctx diagnostic.Ctx, plan spec.Plan) error {
 	return nil
 }
 
-// ActionCyclicDependencyError represents a cycle in the action dependency graph.
-type ActionCyclicDependencyError struct {
-	Cycle []spec.Action
+// StepCyclicDependencyError represents a cycle in the step dependency graph.
+type StepCyclicDependencyError struct {
+	Cycle []spec.Step
 }
 
-func actionID(act spec.Action) string {
+func stepID(act spec.Step) string {
 	if act.Desc() != "" {
 		return act.Desc()
 	}
 	return fmt.Sprintf("%s@%p", act.Kind(), act)
 }
 
-func (e ActionCyclicDependencyError) Error() string {
+func (e StepCyclicDependencyError) Error() string {
 	ids := make([]string, 0, len(e.Cycle))
 	for _, act := range e.Cycle {
-		ids = append(ids, actionID(act))
+		ids = append(ids, stepID(act))
 	}
-	return "cyclic action dependency: " + strings.Join(ids, " -> ")
+	return "cyclic step dependency: " + strings.Join(ids, " -> ")
 }
 
-func (e ActionCyclicDependencyError) Diagnostic() event.Event {
+func (e StepCyclicDependencyError) Diagnostic() event.Event {
 	ids := make([]string, 0, len(e.Cycle))
 	for _, act := range e.Cycle {
-		ids = append(ids, actionID(act))
+		ids = append(ids, stepID(act))
 	}
 
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:   CodeActionCyclicDep,
-			Text: "cyclic action dependency detected",
+			ID:   CodeStepCyclicDep,
+			Text: "cyclic step dependency detected",
 			Hint: `{{join " -> " .}}`,
 			Data: ids,
 		},
@@ -113,7 +113,7 @@ func (e ActionCyclicDependencyError) Diagnostic() event.Event {
 }
 
 // detectHookCycles finds cycles in hook on_change chains using DFS.
-func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.StepInstance) error {
+func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.DeclaredStep) error {
 	if len(hooks) == 0 {
 		return nil
 	}
@@ -143,7 +143,7 @@ func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.StepInstance) 
 // findCycleEdgeSource locates the on_change field span for the edge that
 // closes the cycle. The cycle slice is [A, ..., X, A] so the closing edge
 // is from X → A.
-func findCycleEdgeSource(hooks map[string][]spec.StepInstance, cycle []string) spec.SourceSpan {
+func findCycleEdgeSource(hooks map[string][]spec.DeclaredStep, cycle []string) spec.SourceSpan {
 	from := cycle[len(cycle)-2]
 	to := cycle[len(cycle)-1]
 	for _, step := range hooks[from] {
@@ -159,22 +159,22 @@ func findCycleEdgeSource(hooks map[string][]spec.StepInstance, cycle []string) s
 	return spec.SourceSpan{}
 }
 
-// DetectActionCycles checks for cycles in the action dependency graph.
-func DetectActionCycles(ctx diagnostic.Ctx, nodes []*actionNode) error {
+// DetectStepCycles checks for cycles in the step dependency graph.
+func DetectStepCycles(ctx diagnostic.Ctx, nodes []*stepNode) error {
 	rawCycles := dedupCycles(
-		detectCycles(nodes, func(n *actionNode) []*actionNode { return n.requires }),
-		ptrKey[*actionNode],
+		detectCycles(nodes, func(n *stepNode) []*stepNode { return n.requires }),
+		ptrKey[*stepNode],
 	)
 
 	if len(rawCycles) > 0 {
 		var err AbortError
 		for _, raw := range rawCycles {
-			cycle := make([]spec.Action, len(raw))
+			cycle := make([]spec.Step, len(raw))
 			for i, n := range raw {
-				cycle[i] = n.action
+				cycle[i] = n.step
 			}
 
-			cd := ActionCyclicDependencyError{Cycle: cycle}
+			cd := StepCyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
 
 			ctx.Raise(cd)

@@ -19,7 +19,7 @@ type (
 	ExecFn  func(context.Context, source.Source, target.Target) (spec.Result, error)
 	FakeOp  struct {
 		Name       string
-		action     spec.Action
+		step       spec.Step
 		Deps       []spec.Op
 		CheckFn    CheckFn
 		ExecFn     ExecFn
@@ -84,7 +84,7 @@ func PanicExecFn(msg string) ExecFn {
 	}
 }
 
-func (o FakeOp) Action() spec.Action  { return o.action }
+func (o FakeOp) Step() spec.Step      { return o.step }
 func (o FakeOp) DependsOn() []spec.Op { return o.Deps }
 
 func (o *FakeOp) Check(
@@ -113,27 +113,27 @@ func (FakeOp) RequiredCapabilities() capability.Capability {
 	return capability.POSIX
 }
 
-type FakeAction struct {
+type FakeStep struct {
 	ops []spec.Op
 }
 
-// AddOp appends an op to this action (used by tests that can't use MkAction).
-func (a *FakeAction) AddOp(op spec.Op) { a.ops = append(a.ops, op) }
+// AddOp appends an op to this step (used by tests that can't use MkStep).
+func (a *FakeStep) AddOp(op spec.Op) { a.ops = append(a.ops, op) }
 
-func (FakeAction) Kind() string     { return "fakeActionKind" }
-func (FakeAction) Desc() string     { return "fakeAction" }
-func (a FakeAction) Ops() []spec.Op { return a.ops }
+func (FakeStep) Kind() string     { return "fakeStepKind" }
+func (FakeStep) Desc() string     { return "fakeStep" }
+func (a FakeStep) Ops() []spec.Op { return a.ops }
 
-// SetAction sets the parent action for this op (used by tests that
-// can't use MkAction for custom action types).
-func (o *FakeOp) SetAction(a spec.Action) { o.action = a }
+// SetStep sets the parent step for this op (used by tests that
+// can't use MkStep for custom step types).
+func (o *FakeOp) SetStep(a spec.Step) { o.step = a }
 
-func MkAction(ops ...*FakeOp) *FakeAction {
-	act := &FakeAction{}
+func MkStep(ops ...*FakeOp) *FakeStep {
+	act := &FakeStep{}
 
 	for _, op := range ops {
 		act.ops = append(act.ops, op)
-		op.action = act
+		op.step = act
 	}
 
 	return act
@@ -178,17 +178,17 @@ func (d FakeDiagnostic) Diagnostic() event.Event {
 	}
 }
 
-// StubStepType returns a pre-built action from Plan, bypassing real config
+// StubStepKind returns a pre-built step from Plan, bypassing real config
 // parsing. Useful when tests need to control exactly which ops are planned.
-type StubStepType struct {
-	StepKind   string
-	StepAction spec.Action
+type StubStepKind struct {
+	StepKind string
+	StepStep spec.Step
 }
 
-func (s *StubStepType) Kind() string   { return s.StepKind }
-func (s *StubStepType) NewConfig() any { return &struct{}{} }
-func (s *StubStepType) Plan(_ spec.StepInstance) (spec.Action, error) {
-	return s.StepAction, nil
+func (s *StubStepKind) Kind() string   { return s.StepKind }
+func (s *StubStepKind) NewConfig() any { return &struct{}{} }
+func (s *StubStepKind) Plan(_ spec.DeclaredStep) (spec.Step, error) {
+	return s.StepStep, nil
 }
 
 // InspectableFakeOp is a FakeOp that also implements spec.Diffable.

@@ -197,7 +197,7 @@ func Analyze(
 }
 
 // LoadConfig reads a .scampi file, runs the full lang pipeline
-// (lex → parse → check → eval → link), and returns a spec.Config
+// (lex → parse → check → eval → link), and returns a spec.DeclaredConfig
 // ready for the engine.
 func LoadConfig(
 	ctx diagnostic.Ctx,
@@ -205,10 +205,10 @@ func LoadConfig(
 	src source.Source,
 	reg Registry,
 	opts ...AnalyzeOption,
-) (spec.Config, error) {
+) (spec.DeclaredConfig, error) {
 	a, err := Analyze(ctx, cfgPath, src, opts...)
 	if err != nil {
-		return spec.Config{}, err
+		return spec.DeclaredConfig{}, err
 	}
 	return Link(
 		a.Result,

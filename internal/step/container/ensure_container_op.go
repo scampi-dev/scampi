@@ -35,7 +35,7 @@ type ensureContainerOp struct {
 	args        []string
 	labels      map[string]string
 	healthcheck *target.Healthcheck
-	step        spec.StepInstance
+	step        spec.DeclaredStep
 }
 
 func (op *ensureContainerOp) Check(

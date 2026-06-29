@@ -52,7 +52,7 @@ func runConverge(
 			return cErr
 		}
 		mu.Lock()
-		agg.Actions = append(agg.Actions, rep.Actions...)
+		agg.Steps = append(agg.Steps, rep.Steps...)
 		mu.Unlock()
 		return nil
 	})
@@ -92,6 +92,6 @@ func (e *Engine) converge(ctx diagnostic.Ctx, checkOnly bool) (result.Execution,
 	if err != nil {
 		return rep, err
 	}
-	rep.Actions = append(rep.Actions, hookRep.Actions...)
+	rep.Steps = append(rep.Steps, hookRep.Steps...)
 	return rep, nil
 }

@@ -7,11 +7,11 @@ import "scampi.dev/scampi/internal/spec"
 type BaseOp struct {
 	SrcSpan  spec.SourceSpan
 	DestSpan spec.SourceSpan
-	action   spec.Action
+	step     spec.Step
 	deps     []spec.Op
 }
 
-func (op *BaseOp) Action() spec.Action          { return op.action }
-func (op *BaseOp) DependsOn() []spec.Op         { return op.deps }
-func (op *BaseOp) SetAction(action spec.Action) { op.action = action }
-func (op *BaseOp) AddDependency(dep spec.Op)    { op.deps = append(op.deps, dep) }
+func (op *BaseOp) Step() spec.Step           { return op.step }
+func (op *BaseOp) DependsOn() []spec.Op      { return op.deps }
+func (op *BaseOp) SetStep(step spec.Step)    { op.step = step }
+func (op *BaseOp) AddDependency(dep spec.Op) { op.deps = append(op.deps, dep) }

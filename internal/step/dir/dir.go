@@ -31,11 +31,11 @@ type (
 		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	dirAction struct {
+	dirStep struct {
 		desc string
 		kind string
 		path string
-		step spec.StepInstance
+		step spec.DeclaredStep
 	}
 )
 
@@ -46,7 +46,7 @@ func (c *DirConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (d Dir) Plan(step spec.StepInstance) (spec.Action, error) {
+func (d Dir) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*DirConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &DirConfig{}, step.Config)
@@ -68,7 +68,7 @@ func (d Dir) Plan(step spec.StepInstance) (spec.Action, error) {
 		}
 	}
 
-	return &dirAction{
+	return &dirStep{
 		desc: cfg.Desc,
 		kind: d.Kind(),
 		path: cfg.Path,
@@ -76,10 +76,10 @@ func (d Dir) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *dirAction) Desc() string { return a.desc }
-func (a *dirAction) Kind() string { return a.kind }
+func (a *dirStep) Desc() string { return a.desc }
+func (a *dirStep) Kind() string { return a.kind }
 
-func (a *dirAction) Inputs() []spec.Resource {
+func (a *dirStep) Inputs() []spec.Resource {
 	cfg := a.step.Config.(*DirConfig)
 	var r []spec.Resource
 	if cfg.Owner != "" {
@@ -90,16 +90,16 @@ func (a *dirAction) Inputs() []spec.Resource {
 	}
 	return r
 }
-func (a *dirAction) Promises() []spec.Resource { return []spec.Resource{spec.PathResource(a.path)} }
+func (a *dirStep) Promises() []spec.Resource { return []spec.Resource{spec.PathResource(a.path)} }
 
-func (a *dirAction) Ops() []spec.Op {
+func (a *dirStep) Ops() []spec.Op {
 	cfg := a.step.Config.(*DirConfig)
 
 	dir := &ensureDirOp{
 		path:     a.path,
 		pathSpan: a.step.Fields["path"].Value,
 	}
-	dir.SetAction(a)
+	dir.SetStep(a)
 
 	ops := []spec.Op{dir}
 
@@ -112,7 +112,7 @@ func (a *dirAction) Ops() []spec.Op {
 			Path: a.path,
 			Mode: mode,
 		}
-		chmod.SetAction(a)
+		chmod.SetStep(a)
 		chmod.AddDependency(dir)
 		ops = append(ops, chmod)
 	}
@@ -128,7 +128,7 @@ func (a *dirAction) Ops() []spec.Op {
 			OwnerSpan: a.step.Fields["owner"].Value,
 			GroupSpan: a.step.Fields["group"].Value,
 		}
-		chown.SetAction(a)
+		chown.SetStep(a)
 		chown.AddDependency(dir)
 		ops = append(ops, chown)
 	}

@@ -44,8 +44,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a, b),
+						Steps: []spec.Step{
+							harness.MkStep(a, b),
 						},
 					},
 				}
@@ -69,8 +69,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a, b, c),
+						Steps: []spec.Step{
+							harness.MkStep(a, b, c),
 						},
 					},
 				}
@@ -97,8 +97,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a, b, c, d),
+						Steps: []spec.Step{
+							harness.MkStep(a, b, c, d),
 						},
 					},
 				}
@@ -118,8 +118,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a),
+						Steps: []spec.Step{
+							harness.MkStep(a),
 						},
 					},
 				}
@@ -145,8 +145,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a, b, c, d),
+						Steps: []spec.Step{
+							harness.MkStep(a, b, c, d),
 						},
 					},
 				}
@@ -176,8 +176,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a, b, c, e, f),
+						Steps: []spec.Step{
+							harness.MkStep(a, b, c, e, f),
 						},
 					},
 				}
@@ -203,8 +203,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a, b, c, d),
+						Steps: []spec.Step{
+							harness.MkStep(a, b, c, d),
 						},
 					},
 				}
@@ -214,7 +214,7 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 			},
 		},
 		{
-			name: "cycle across actions",
+			name: "cycle across steps",
 			build: func() spec.Plan {
 				a := mkFakeOp("A")
 				b := mkFakeOp("B")
@@ -228,10 +228,10 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 					Deploy: spec.Deploy{
 						ID:   "fakeUnit",
 						Desc: "fakeUnit description",
-						Actions: []spec.Action{
-							harness.MkAction(a),
-							harness.MkAction(b),
-							harness.MkAction(c),
+						Steps: []spec.Step{
+							harness.MkStep(a),
+							harness.MkStep(b),
+							harness.MkStep(c),
 						},
 					},
 				}

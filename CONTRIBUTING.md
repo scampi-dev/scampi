@@ -77,8 +77,10 @@ linter doesn't catch:
   // Title
   // -----------------------------------------------------------------------------
   ```
-- **Naming** — the project's terminology is StepType, Action, Op,
-  Target; avoid `Impl`, `Handler`, `Spec` suffixes.
+- **Naming** — the project's terminology is StepKind, Step, Op,
+  Target; the linker emits `Declared*` types (`DeclaredConfig`,
+  `DeclaredStep`, …), the engine runs the bare execution nouns.
+  Avoid `Impl`, `Handler`, `Spec`, and `Instance`/`Type` suffixes.
 
 If you're unsure whether a change fits the project style, file the
 issue first and we'll talk it through before you write code.

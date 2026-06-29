@@ -90,11 +90,11 @@ type (
 		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	firewallAction struct {
+	firewallStep struct {
 		desc   string
 		port   FirewallPort
 		action Action
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -112,7 +112,7 @@ func (*FirewallConfig) FieldEnumValues() map[string][]string {
 	}
 }
 
-func (Firewall) Plan(step spec.StepInstance) (spec.Action, error) {
+func (Firewall) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*FirewallConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &FirewallConfig{}, step.Config)
@@ -147,7 +147,7 @@ func (Firewall) Plan(step spec.StepInstance) (spec.Action, error) {
 		Proto:   parseProto(cfg.Proto),
 	}
 
-	return &firewallAction{
+	return &firewallStep{
 		desc:   cfg.Desc,
 		port:   port,
 		action: parseAction(cfg.Action),
@@ -155,14 +155,14 @@ func (Firewall) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *firewallAction) Desc() string { return a.desc }
-func (a *firewallAction) Kind() string { return "firewall" }
+func (a *firewallStep) Desc() string { return a.desc }
+func (a *firewallStep) Kind() string { return "firewall" }
 
-func (a *firewallAction) Ops() []spec.Op {
+func (a *firewallStep) Ops() []spec.Op {
 	op := &ensureRuleOp{
 		port:   a.port,
 		action: a.action,
 	}
-	op.SetAction(a)
+	op.SetStep(a)
 	return []spec.Op{op}
 }

@@ -9,45 +9,45 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-type fakeStepType struct{ kind string }
+type fakeStepKind struct{ kind string }
 
-func (f fakeStepType) Kind() string                                { return f.kind }
-func (f fakeStepType) NewConfig() any                              { return nil }
-func (f fakeStepType) Plan(spec.StepInstance) (spec.Action, error) { return nil, nil }
+func (f fakeStepKind) Kind() string                              { return f.kind }
+func (f fakeStepKind) NewConfig() any                            { return nil }
+func (f fakeStepKind) Plan(spec.DeclaredStep) (spec.Step, error) { return nil, nil }
 
-func mkStep(kind, file string, line int) spec.StepInstance {
-	return spec.StepInstance{
-		Type:   fakeStepType{kind: kind},
+func mkStep(kind, file string, line int) spec.DeclaredStep {
+	return spec.DeclaredStep{
+		Type:   fakeStepKind{kind: kind},
 		Source: spec.SourceSpan{Filename: file, StartLine: line, EndLine: line},
 	}
 }
 
 func TestDetectDuplicatePromises_NoDuplicates(t *testing.T) {
 	ctx := discardCtx(t)
-	actions := []spec.Action{
-		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
-		&mockPromiserAction{kind: "make.node", promises: labels("node:101")},
+	steps := []spec.Step{
+		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
+		&mockPromiserStep{kind: "make.node", promises: labels("node:101")},
 	}
-	steps := []spec.StepInstance{
+	declared := []spec.DeclaredStep{
 		mkStep("make.node", "main.scampi", 10),
 		mkStep("make.node", "main.scampi", 20),
 	}
-	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
+	if err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestDetectDuplicatePromises_DuplicateLabel(t *testing.T) {
 	ctx := discardCtx(t)
-	actions := []spec.Action{
-		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
-		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
+	steps := []spec.Step{
+		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
+		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
 	}
-	steps := []spec.StepInstance{
+	declared := []spec.DeclaredStep{
 		mkStep("make.node", "main.scampi", 10),
 		mkStep("make.node", "main.scampi", 20),
 	}
-	err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps)
+	err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared)
 	if err == nil {
 		t.Fatal("expected error for duplicate label, got nil")
 	}
@@ -78,15 +78,15 @@ func TestDetectDuplicatePromises_DuplicateLabel(t *testing.T) {
 
 func TestDetectDuplicatePromises_DuplicatePath(t *testing.T) {
 	ctx := discardCtx(t)
-	actions := []spec.Action{
-		&mockPromiserAction{kind: "dir", promises: paths("/etc/foo")},
-		&mockPromiserAction{kind: "copy", promises: paths("/etc/foo")},
+	steps := []spec.Step{
+		&mockPromiserStep{kind: "dir", promises: paths("/etc/foo")},
+		&mockPromiserStep{kind: "copy", promises: paths("/etc/foo")},
 	}
-	steps := []spec.StepInstance{
+	declared := []spec.DeclaredStep{
 		mkStep("posix.dir", "main.scampi", 5),
 		mkStep("posix.copy", "main.scampi", 12),
 	}
-	err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps)
+	err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared)
 	if err == nil {
 		t.Fatal("expected error for duplicate path, got nil")
 	}
@@ -94,30 +94,30 @@ func TestDetectDuplicatePromises_DuplicatePath(t *testing.T) {
 
 func TestDetectDuplicatePromises_DistinctNodesIndependent(t *testing.T) {
 	ctx := discardCtx(t)
-	actions := []spec.Action{
-		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
-		&mockPromiserAction{kind: "make.node", promises: labels("node:200")},
+	steps := []spec.Step{
+		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
+		&mockPromiserStep{kind: "make.node", promises: labels("node:200")},
 	}
-	steps := []spec.StepInstance{
+	declared := []spec.DeclaredStep{
 		mkStep("make.node", "main.scampi", 10),
 		mkStep("make.node", "main.scampi", 20),
 	}
-	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
+	if err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared); err != nil {
 		t.Fatalf("unexpected error for distinct labels: %v", err)
 	}
 }
 
 func TestDetectDuplicatePromises_NonPromiserSkipped(t *testing.T) {
 	ctx := discardCtx(t)
-	actions := []spec.Action{
-		&mockAction{kind: "noop"},
-		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
+	steps := []spec.Step{
+		&mockStep{kind: "noop"},
+		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
 	}
-	steps := []spec.StepInstance{
+	declared := []spec.DeclaredStep{
 		mkStep("noop", "main.scampi", 5),
 		mkStep("make.node", "main.scampi", 10),
 	}
-	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
+	if err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -136,15 +136,15 @@ func TestDetectDuplicatePromises_AllResourceKinds(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := discardCtx(t)
-			actions := []spec.Action{
-				&mockPromiserAction{kind: "x", promises: tc.promises},
-				&mockPromiserAction{kind: "x", promises: tc.promises},
+			steps := []spec.Step{
+				&mockPromiserStep{kind: "x", promises: tc.promises},
+				&mockPromiserStep{kind: "x", promises: tc.promises},
 			}
-			steps := []spec.StepInstance{
+			declared := []spec.DeclaredStep{
 				mkStep("x", "main.scampi", 10),
 				mkStep("x", "main.scampi", 20),
 			}
-			err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps)
+			err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared)
 			if err == nil {
 				t.Fatal("expected duplicate error, got nil")
 			}

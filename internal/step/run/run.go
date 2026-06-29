@@ -21,13 +21,13 @@ type (
 		Promises []string          `step:"Resources this step produces (cross-deploy ordering)" optional:"true"`
 		Inputs   []string          `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
 	}
-	runAction struct {
+	runStep struct {
 		desc   string
 		apply  string
 		check  string
 		always bool
 		env    map[string]string
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -38,7 +38,7 @@ func (c *RunConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (Run) Plan(step spec.StepInstance) (spec.Action, error) {
+func (Run) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*RunConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &RunConfig{}, step.Config)
@@ -48,7 +48,7 @@ func (Run) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, err
 	}
 
-	return &runAction{
+	return &runStep{
 		desc:   cfg.Desc,
 		apply:  cfg.Apply,
 		check:  cfg.Check,
@@ -58,7 +58,7 @@ func (Run) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (c *RunConfig) Validate(step spec.StepInstance) error {
+func (c *RunConfig) Validate(step spec.DeclaredStep) error {
 	if c.Check != "" && c.Always {
 		return CheckAlwaysConflictError{
 			Source: step.Source,
@@ -72,16 +72,16 @@ func (c *RunConfig) Validate(step spec.StepInstance) error {
 	return nil
 }
 
-func (a *runAction) Desc() string { return a.desc }
-func (a *runAction) Kind() string { return "run" }
+func (a *runStep) Desc() string { return a.desc }
+func (a *runStep) Kind() string { return "run" }
 
-func (a *runAction) Ops() []spec.Op {
+func (a *runStep) Ops() []spec.Op {
 	op := &runOp{
 		apply:  a.apply,
 		check:  a.check,
 		always: a.always,
 		env:    a.env,
 	}
-	op.SetAction(a)
+	op.SetStep(a)
 	return []spec.Op{op}
 }

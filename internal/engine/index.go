@@ -15,7 +15,7 @@ import (
 // by Kind ascending so the caller can render deterministically.
 func IndexAll(_ context.Context) []spec.StepDoc {
 	reg := NewRegistry()
-	types := reg.StepTypes()
+	types := reg.StepKinds()
 	docs := make([]spec.StepDoc, 0, len(types))
 	for _, t := range types {
 		docs = append(docs, loadStepDoc(reg, t.Kind()))
@@ -32,7 +32,7 @@ func IndexAll(_ context.Context) []spec.StepDoc {
 // shape the exit code.
 func IndexStep(ctx diagnostic.Ctx, stepKind string) (spec.StepDoc, error) {
 	reg := NewRegistry()
-	_, ok := reg.StepType(stepKind)
+	_, ok := reg.StepKind(stepKind)
 	if !ok {
 		ctx.Raise(UnknownIndexKindError{Kind: stepKind})
 		return spec.StepDoc{}, AbortError{}

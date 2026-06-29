@@ -20,7 +20,7 @@ func (e *Engine) executeHooks(
 	checkOnly bool,
 	promisedPaths map[spec.Resource]bool,
 ) (result.Execution, error) {
-	if hp == nil || len(hp.actions) == 0 {
+	if hp == nil || len(hp.steps) == 0 {
 		return result.Execution{}, nil
 	}
 
@@ -29,13 +29,13 @@ func (e *Engine) executeHooks(
 	notified := map[string]bool{}
 	triggerBy := map[string]string{} // hook ID → desc of step that triggered it
 
-	for i, ar := range stepReport.Actions {
+	for i, ar := range stepReport.Steps {
 		onChange, ok := hp.onChange[i]
 		if !ok {
 			continue
 		}
 
-		changed := actionChanged(ar, checkOnly)
+		changed := stepChanged(ar, checkOnly)
 		if !changed {
 			continue
 		}
@@ -43,7 +43,7 @@ func (e *Engine) executeHooks(
 		for _, hookID := range onChange {
 			if !notified[hookID] {
 				notified[hookID] = true
-				triggerBy[hookID] = ar.Action.Desc()
+				triggerBy[hookID] = ar.Step.Desc()
 				queue = append(queue, hookID)
 			}
 		}
@@ -51,7 +51,7 @@ func (e *Engine) executeHooks(
 
 	// Execute notified hooks. Process queue — new entries may be appended
 	// by hook chaining.
-	var hookReports []result.ActionReport
+	var hookReports []result.StepReport
 	executed := map[string]bool{}
 
 	for i := 0; i < len(queue); i++ {
@@ -61,7 +61,7 @@ func (e *Engine) executeHooks(
 		}
 		executed[hookID] = true
 
-		actions, ok := hp.actions[hookID]
+		steps, ok := hp.steps[hookID]
 		if !ok {
 			continue
 		}
@@ -69,20 +69,20 @@ func (e *Engine) executeHooks(
 		anyChanged := false
 		var hookErr error
 
-		for _, act := range actions {
-			hookIdx := len(stepReport.Actions) + len(hookReports)
+		for _, act := range steps {
+			hookIdx := len(stepReport.Steps) + len(hookReports)
 
-			var ar result.ActionReport
+			var ar result.StepReport
 			var err error
 			if checkOnly {
-				ar, err = e.runCheckAction(ctx, hookIdx, act, promisedPaths, hookID)
+				ar, err = e.runCheckStep(ctx, hookIdx, act, promisedPaths, hookID)
 			} else {
-				ar, err = e.runAction(ctx, hookIdx, act, hookID)
+				ar, err = e.runStep(ctx, hookIdx, act, hookID)
 			}
 
 			hookReports = append(hookReports, ar)
 
-			if actionChanged(ar, checkOnly) {
+			if stepChanged(ar, checkOnly) {
 				anyChanged = true
 			}
 
@@ -94,12 +94,12 @@ func (e *Engine) executeHooks(
 
 		if hookErr != nil {
 			return result.Execution{
-				Actions: hookReports,
-				Err:     hookErr,
+				Steps: hookReports,
+				Err:   hookErr,
 			}, hookErr
 		}
 
-		// Handle chaining: if any action in this hook changed, notify on_change targets
+		// Handle chaining: if any step in this hook changed, notify on_change targets
 		if anyChanged {
 			if steps, ok := e.cfg.Hooks[hookID]; ok {
 				for _, step := range steps {
@@ -115,12 +115,12 @@ func (e *Engine) executeHooks(
 		}
 	}
 
-	return result.Execution{Actions: hookReports}, nil
+	return result.Execution{Steps: hookReports}, nil
 }
 
-// actionChanged returns true if an action report indicates something changed
+// stepChanged returns true if a step report indicates something changed
 // (or would change in check mode).
-func actionChanged(ar result.ActionReport, checkOnly bool) bool {
+func stepChanged(ar result.StepReport, checkOnly bool) bool {
 	if checkOnly {
 		return ar.Summary.WouldChange > 0
 	}

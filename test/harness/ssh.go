@@ -326,7 +326,7 @@ func ConnectSSH(t *testing.T, env *SSHTestEnv) *ssh.SSHTarget {
 		Insecure: true,
 	}
 
-	tgt, err := sshType.Create(context.Background(), src, spec.TargetInstance{
+	tgt, err := sshType.Create(context.Background(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.SourceSpan{}},

@@ -11,7 +11,7 @@ import (
 )
 
 func TestCreate_DetectsPkgBackend(t *testing.T) {
-	tgt, err := Local{}.Create(t.Context(), nil, spec.TargetInstance{})
+	tgt, err := Local{}.Create(t.Context(), nil, spec.DeclaredTarget{})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}

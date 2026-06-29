@@ -62,7 +62,7 @@ type (
 		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	userAction struct {
+	userStep struct {
 		desc   string
 		name   string
 		state  State
@@ -71,7 +71,7 @@ type (
 		system bool
 		pass   string
 		groups []string
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -88,13 +88,13 @@ func (c *UserConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (u User) Plan(step spec.StepInstance) (spec.Action, error) {
+func (u User) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*UserConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &UserConfig{}, step.Config)
 	}
 
-	return &userAction{
+	return &userStep{
 		desc:   cfg.Desc,
 		name:   cfg.Name,
 		state:  parseState(cfg.State),
@@ -107,9 +107,9 @@ func (u User) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *userAction) Desc() string { return a.desc }
-func (a *userAction) Kind() string { return "user" }
-func (a *userAction) Inputs() []spec.Resource {
+func (a *userStep) Desc() string { return a.desc }
+func (a *userStep) Kind() string { return "user" }
+func (a *userStep) Inputs() []spec.Resource {
 	var r []spec.Resource
 	for _, g := range a.groups {
 		r = append(r, spec.GroupResource(g))
@@ -117,14 +117,14 @@ func (a *userAction) Inputs() []spec.Resource {
 	return r
 }
 
-func (a *userAction) Promises() []spec.Resource {
+func (a *userStep) Promises() []spec.Resource {
 	if a.state == StatePresent {
 		return []spec.Resource{spec.UserResource(a.name)}
 	}
 	return nil
 }
 
-func (a *userAction) Ops() []spec.Op {
+func (a *userStep) Ops() []spec.Op {
 	nameSource := a.step.Fields["name"].Value
 
 	switch a.state {
@@ -133,7 +133,7 @@ func (a *userAction) Ops() []spec.Op {
 			name:       a.name,
 			nameSource: nameSource,
 		}
-		op.SetAction(a)
+		op.SetStep(a)
 		return []spec.Op{op}
 
 	default:
@@ -146,7 +146,7 @@ func (a *userAction) Ops() []spec.Op {
 			groups:     a.groups,
 			nameSource: nameSource,
 		}
-		op.SetAction(a)
+		op.SetStep(a)
 		return []spec.Op{op}
 	}
 }

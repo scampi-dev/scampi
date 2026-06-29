@@ -19,7 +19,7 @@ type Policy struct {
 }
 
 // Emitter is the producer side of the diagnostic pipeline and the system's
-// single serialization point: the engine emits from parallel op/action
+// single serialization point: the engine emits from parallel op/step
 // goroutines, but the mutex delivers events to the Output one call at a time.
 // There is exactly one Emitter type, and because it serializes, every Output
 // is single-threaded and lock-free.

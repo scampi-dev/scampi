@@ -59,13 +59,13 @@ type (
 		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	groupAction struct {
+	groupStep struct {
 		desc   string
 		name   string
 		state  State
 		gid    int
 		system bool
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -82,13 +82,13 @@ func (c *GroupConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (g Group) Plan(step spec.StepInstance) (spec.Action, error) {
+func (g Group) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*GroupConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &GroupConfig{}, step.Config)
 	}
 
-	return &groupAction{
+	return &groupStep{
 		desc:   cfg.Desc,
 		name:   cfg.Name,
 		state:  parseState(cfg.State),
@@ -98,18 +98,18 @@ func (g Group) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *groupAction) Desc() string            { return a.desc }
-func (a *groupAction) Kind() string            { return "group" }
-func (a *groupAction) Inputs() []spec.Resource { return nil }
+func (a *groupStep) Desc() string            { return a.desc }
+func (a *groupStep) Kind() string            { return "group" }
+func (a *groupStep) Inputs() []spec.Resource { return nil }
 
-func (a *groupAction) Promises() []spec.Resource {
+func (a *groupStep) Promises() []spec.Resource {
 	if a.state == StatePresent {
 		return []spec.Resource{spec.GroupResource(a.name)}
 	}
 	return nil
 }
 
-func (a *groupAction) Ops() []spec.Op {
+func (a *groupStep) Ops() []spec.Op {
 	nameSource := a.step.Fields["name"].Value
 
 	switch a.state {
@@ -118,7 +118,7 @@ func (a *groupAction) Ops() []spec.Op {
 			name:       a.name,
 			nameSource: nameSource,
 		}
-		op.SetAction(a)
+		op.SetStep(a)
 		return []spec.Op{op}
 
 	default:
@@ -128,7 +128,7 @@ func (a *groupAction) Ops() []spec.Op {
 			system:     a.system,
 			nameSource: nameSource,
 		}
-		op.SetAction(a)
+		op.SetStep(a)
 		return []spec.Op{op}
 	}
 }

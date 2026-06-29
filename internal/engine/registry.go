@@ -29,13 +29,13 @@ import (
 )
 
 type Registry struct {
-	stepTypes   map[string]spec.StepType
-	targetTypes map[string]spec.TargetType
+	stepTypes   map[string]spec.StepKind
+	targetTypes map[string]spec.TargetKind
 	converters  map[reflect.Type]spec.TypeConverter
 }
 
 func NewRegistry() *Registry {
-	stepTypes := []spec.StepType{
+	stepTypes := []spec.StepKind{
 		container.Instance{},
 		copy.Copy{},
 		dir.Dir{},
@@ -53,14 +53,14 @@ func NewRegistry() *Registry {
 		stepuser.User{},
 	}
 
-	targetTypes := []spec.TargetType{
+	targetTypes := []spec.TargetKind{
 		local.Local{},
 		ssh.SSH{},
 	}
 
 	r := &Registry{
-		stepTypes:   make(map[string]spec.StepType),
-		targetTypes: make(map[string]spec.TargetType),
+		stepTypes:   make(map[string]spec.StepKind),
+		targetTypes: make(map[string]spec.TargetKind),
 		converters:  make(map[reflect.Type]spec.TypeConverter),
 	}
 	for _, st := range stepTypes {
@@ -82,17 +82,17 @@ func NewRegistry() *Registry {
 	return r
 }
 
-func (r *Registry) StepType(kind string) (spec.StepType, bool) {
+func (r *Registry) StepKind(kind string) (spec.StepKind, bool) {
 	step, ok := r.stepTypes[kind]
 	return step, ok
 }
 
-func (r *Registry) StepTypes() []spec.StepType {
-	stepTypes := make([]spec.StepType, 0, len(r.stepTypes))
+func (r *Registry) StepKinds() []spec.StepKind {
+	stepTypes := make([]spec.StepKind, 0, len(r.stepTypes))
 	for _, stepType := range r.stepTypes {
 		stepTypes = append(stepTypes, stepType)
 	}
-	slices.SortFunc(stepTypes, func(a, b spec.StepType) int {
+	slices.SortFunc(stepTypes, func(a, b spec.StepKind) int {
 		if a.Kind() < b.Kind() {
 			return -1
 		}
@@ -109,17 +109,17 @@ func (r *Registry) ConverterFor(t reflect.Type) (spec.TypeConverter, bool) {
 	return c, ok
 }
 
-func (r *Registry) TargetType(kind string) (spec.TargetType, bool) {
+func (r *Registry) TargetKind(kind string) (spec.TargetKind, bool) {
 	tgt, ok := r.targetTypes[kind]
 	return tgt, ok
 }
 
-func (r *Registry) TargetTypes() []spec.TargetType {
-	types := make([]spec.TargetType, 0, len(r.targetTypes))
+func (r *Registry) TargetKinds() []spec.TargetKind {
+	types := make([]spec.TargetKind, 0, len(r.targetTypes))
 	for _, t := range r.targetTypes {
 		types = append(types, t)
 	}
-	slices.SortFunc(types, func(a, b spec.TargetType) int {
+	slices.SortFunc(types, func(a, b spec.TargetKind) int {
 		if a.Kind() < b.Kind() {
 			return -1
 		}

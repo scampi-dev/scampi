@@ -13,8 +13,8 @@ import (
 // deployNode is one resolved-config plan plus the resources it
 // produces and consumes, used to build the cross-deploy DAG.
 type deployNode struct {
-	idx      int // index into the ResolvedConfig slice
-	res      spec.ResolvedConfig
+	idx      int // index into the Config slice
+	res      spec.Config
 	promises []spec.Resource
 	inputs   []spec.Resource
 	deps     []*deployNode // upstream nodes this one waits for
@@ -36,7 +36,7 @@ type deployGraph struct {
 // run produces) are treated as already-satisfied — those nodes
 // become roots. If the resource genuinely doesn't exist at runtime,
 // downstream errors surface that cleanly.
-func buildDeployGraph(resolved []spec.ResolvedConfig) (*deployGraph, error) {
+func buildDeployGraph(resolved []spec.Config) (*deployGraph, error) {
 	nodes := make([]*deployNode, len(resolved))
 	for i, r := range resolved {
 		nodes[i] = &deployNode{
@@ -83,7 +83,7 @@ func buildDeployGraph(resolved []spec.ResolvedConfig) (*deployGraph, error) {
 	return &deployGraph{levels: kahnLevels(nodes)}, nil
 }
 
-func collectPromises(r spec.ResolvedConfig) []spec.Resource {
+func collectPromises(r spec.Config) []spec.Resource {
 	var out []spec.Resource
 	for _, step := range r.Steps {
 		// Type-driven: a step kind auto-promises resources from its config.
@@ -101,7 +101,7 @@ func collectPromises(r spec.ResolvedConfig) []spec.Resource {
 	return out
 }
 
-func collectInputs(r spec.ResolvedConfig) []spec.Resource {
+func collectInputs(r spec.Config) []spec.Resource {
 	var out []spec.Resource
 	// Target-driven: a target kind consumes resources from its config.
 	if p, ok := r.Target.Type.(spec.StaticInputProvider); ok {

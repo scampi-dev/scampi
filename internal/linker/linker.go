@@ -2,7 +2,7 @@
 
 // Package linker bridges the scampi frontend and the engine.
 // It takes the evaluator's generic Result (StructVals, BlockResultVals)
-// and resolves them against the engine registry to produce spec.Config.
+// and resolves them against the engine registry to produce spec.DeclaredConfig.
 package linker
 
 import (
@@ -19,8 +19,8 @@ import (
 // Registry provides step and target type lookups. Implemented by
 // engine.Registry — defined as an interface here to avoid a cycle.
 type Registry interface {
-	StepType(kind string) (spec.StepType, bool)
-	TargetType(kind string) (spec.TargetType, bool)
+	StepKind(kind string) (spec.StepKind, bool)
+	TargetKind(kind string) (spec.TargetKind, bool)
 	ConverterFor(reflect.Type) (spec.TypeConverter, bool)
 }
 
@@ -47,7 +47,7 @@ func WithSourceResolver(ctx context.Context, cfgPath string, src source.Source) 
 
 // WithSource provides the raw source bytes of the entry-point config
 // file. Required for translating eval-side token offsets into
-// line/col coordinates on StepInstance.Source and StepInstance.Fields.
+// line/col coordinates on DeclaredStep.Source and DeclaredStep.Fields.
 // Without it, linked instances carry zero-valued spans.
 func WithSource(data []byte) LinkOption {
 	return func(lc *linkConfig) {
@@ -55,18 +55,18 @@ func WithSource(data []byte) LinkOption {
 	}
 }
 
-// Link converts a lang eval result into a spec.Config by walking all
+// Link converts a lang eval result into a spec.DeclaredConfig by walking all
 // values, interpreting them based on RetType/TypeName, and resolving
 // step and target names against the engine registry.
-func Link(result *eval.Result, reg Registry, path string, opts ...LinkOption) (spec.Config, error) {
+func Link(result *eval.Result, reg Registry, path string, opts ...LinkOption) (spec.DeclaredConfig, error) {
 	lc := linkConfig{cfgPath: path}
 	for _, o := range opts {
 		o(&lc)
 	}
 	lc.converterFor = reg.ConverterFor
-	cfg := spec.Config{
+	cfg := spec.DeclaredConfig{
 		Path:    path,
-		Targets: make(map[string]spec.TargetInstance),
+		Targets: make(map[string]spec.DeclaredTarget),
 	}
 
 	var linkErr error
@@ -88,7 +88,7 @@ func Link(result *eval.Result, reg Registry, path string, opts ...LinkOption) (s
 	return cfg, linkErr
 }
 
-func linkStructVal(sv *eval.StructVal, r *eval.Result, reg Registry, cfg *spec.Config, lc *linkConfig) error {
+func linkStructVal(sv *eval.StructVal, r *eval.Result, reg Registry, cfg *spec.DeclaredConfig, lc *linkConfig) error {
 	switch sv.RetType {
 	case "Target":
 		ti, err := linkTarget(sv, reg, lc)
@@ -115,7 +115,7 @@ func bindingName(r *eval.Result, v eval.Value) string {
 	return ""
 }
 
-func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.Config, lc *linkConfig) error {
+func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.DeclaredConfig, lc *linkConfig) error {
 	switch bv.TypeName {
 	case "Deploy":
 		db, err := linkDeploy(bv, reg, lc)
@@ -130,7 +130,7 @@ func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.Config, lc
 // structValSpans converts the eval-side token spans on a StructVal
 // into a (Source, Fields) pair the engine can use for diagnostics. If
 // the link config has no source bytes, returns zero values — callers
-// that only care about Type/Config see the same StepInstance shape as
+// that only care about Type/Config see the same DeclaredStep shape as
 // before this plumbing existed.
 func structValSpans(sv *eval.StructVal, lc *linkConfig) (spec.SourceSpan, map[string]spec.FieldSpan) {
 	if len(lc.source) == 0 {
@@ -165,26 +165,26 @@ func structValSpans(sv *eval.StructVal, lc *linkConfig) (spec.SourceSpan, map[st
 	return source, fields
 }
 
-func linkTarget(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.TargetInstance, error) {
+func linkTarget(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.DeclaredTarget, error) {
 	// Try leaf name (e.g. "ssh"), qualified (e.g. "rest.target"),
 	// then module prefix (e.g. "rest" from "rest.target").
-	tt, ok := reg.TargetType(sv.TypeName)
+	tt, ok := reg.TargetKind(sv.TypeName)
 	if !ok {
-		tt, ok = reg.TargetType(sv.QualName)
+		tt, ok = reg.TargetKind(sv.QualName)
 	}
 	if !ok && strings.Contains(sv.QualName, ".") {
 		mod := sv.QualName[:strings.IndexByte(sv.QualName, '.')]
-		tt, ok = reg.TargetType(mod)
+		tt, ok = reg.TargetKind(mod)
 	}
 	if !ok {
-		return spec.TargetInstance{}, &UnresolvedError{Kind: "target", Name: sv.TypeName}
+		return spec.DeclaredTarget{}, &UnresolvedError{Kind: "target", Name: sv.TypeName}
 	}
 	cfg := tt.NewConfig()
 	if err := mapFields(sv.Fields, cfg, lc); err != nil {
-		return spec.TargetInstance{}, err
+		return spec.DeclaredTarget{}, err
 	}
 	source, fields := structValSpans(sv, lc)
-	return spec.TargetInstance{
+	return spec.DeclaredTarget{
 		Type:   tt,
 		Config: cfg,
 		Source: source,
@@ -192,9 +192,9 @@ func linkTarget(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.TargetIn
 	}, nil
 }
 
-func linkDeploy(bv *eval.BlockResultVal, reg Registry, lc *linkConfig) (spec.DeployBlock, error) {
-	db := spec.DeployBlock{
-		Hooks: make(map[string][]spec.StepInstance),
+func linkDeploy(bv *eval.BlockResultVal, reg Registry, lc *linkConfig) (spec.DeclaredDeploy, error) {
+	db := spec.DeclaredDeploy{
+		Hooks: make(map[string][]spec.DeclaredStep),
 	}
 
 	if n, ok := bv.Fields["name"].(*eval.StringVal); ok {
@@ -216,8 +216,8 @@ func linkDeploy(bv *eval.BlockResultVal, reg Registry, lc *linkConfig) (spec.Dep
 
 	// extractHooks recursively processes on_change fields and
 	// registers hooks in the deploy block.
-	var extractHooks func(sv *eval.StructVal, si *spec.StepInstance) error
-	extractHooks = func(sv *eval.StructVal, si *spec.StepInstance) error {
+	var extractHooks func(sv *eval.StructVal, si *spec.DeclaredStep) error
+	extractHooks = func(sv *eval.StructVal, si *spec.DeclaredStep) error {
 		oc, ok := sv.Fields["on_change"]
 		if !ok {
 			return nil
@@ -244,7 +244,7 @@ func linkDeploy(bv *eval.BlockResultVal, reg Registry, lc *linkConfig) (spec.Dep
 				hookCounter++
 				hid = fmt.Sprintf("hook-%d", hookCounter)
 				hookIDs[hookSV] = hid
-				db.Hooks[hid] = []spec.StepInstance{hookStep}
+				db.Hooks[hid] = []spec.DeclaredStep{hookStep}
 			}
 			si.OnChange = append(si.OnChange, hid)
 		}
@@ -284,13 +284,13 @@ func linkDeploy(bv *eval.BlockResultVal, reg Registry, lc *linkConfig) (spec.Dep
 	return db, nil
 }
 
-// resolveStepRefs walks a StepInstance's config looking for RefVal
+// resolveStepRefs walks a DeclaredStep's config looking for RefVal
 // values (produced by std.ref()) and replaces them with spec.Ref
 // using the StructVal → StepID mapping from linking. RefVals can
 // appear in map[string]any fields because the linker's setValue
 // converts eval.Value → Go native types, but RefVal is special —
 // it passes through as-is (narrow interface path).
-func resolveStepRefs(si *spec.StepInstance, ids map[*eval.StructVal]spec.StepID) {
+func resolveStepRefs(si *spec.DeclaredStep, ids map[*eval.StructVal]spec.StepID) {
 	if si.Config == nil {
 		return
 	}
@@ -332,20 +332,20 @@ func resolveMapRefs(m map[string]any, ids map[*eval.StructVal]spec.StepID) {
 	}
 }
 
-func linkStep(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.StepInstance, error) {
+func linkStep(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.DeclaredStep, error) {
 	// Try qualified name first (e.g. "container.instance"), then leaf.
 	name := sv.QualName
-	st, ok := reg.StepType(name)
+	st, ok := reg.StepKind(name)
 	if !ok {
 		name = sv.TypeName
-		st, ok = reg.StepType(name)
+		st, ok = reg.StepKind(name)
 	}
 	if !ok {
-		return spec.StepInstance{}, &UnresolvedError{Kind: "step", Name: sv.TypeName}
+		return spec.DeclaredStep{}, &UnresolvedError{Kind: "step", Name: sv.TypeName}
 	}
 	cfg := st.NewConfig()
 	if err := mapFields(sv.Fields, cfg, lc); err != nil {
-		return spec.StepInstance{}, err
+		return spec.DeclaredStep{}, err
 	}
 
 	var desc string
@@ -354,7 +354,7 @@ func linkStep(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.StepInstan
 	}
 
 	source, fields := structValSpans(sv, lc)
-	return spec.StepInstance{
+	return spec.DeclaredStep{
 		Type:   st,
 		Config: cfg,
 		Desc:   desc,

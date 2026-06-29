@@ -16,9 +16,9 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-// Sequencer buffers each action's Change/Result events and releases the whole
-// action block to the wrapped Output in ascending action-index order, the
-// moment a cursor reaches a completed action. Diagnostics and progress are
+// Sequencer buffers each step's Change/Result events and releases the whole
+// step block to the wrapped Output in ascending step-index order, the
+// moment a cursor reaches a completed step. Diagnostics and progress are
 // out-of-band and pass through immediately.
 //
 // The cursor keys on event.StepRef.Index, which is unique per deploy phase but
@@ -68,12 +68,12 @@ func (s *Sequencer) RenderEvent(e event.Event) {
 		s.advance()
 	default:
 		// Errors, warnings, info, progress: out-of-band, not part of the
-		// ordered action record. Release immediately.
+		// ordered step record. Release immediately.
 		s.out.RenderEvent(e)
 	}
 }
 
-// collect routes a stream event into its action block, or bails to bypass if
+// collect routes a stream event into its step block, or bails to bypass if
 // the index was already released (section reuse).
 func (s *Sequencer) collect(idx int, raw event.Event, mut func(*block)) {
 	if idx < s.cursor {
@@ -101,8 +101,8 @@ func (s *Sequencer) advance() {
 	}
 }
 
-// flush replays one action's buffered events to the wrapped Output, drift
-// before verdict, preserving within-action order.
+// flush replays one step's buffered events to the wrapped Output, drift
+// before verdict, preserving within-step order.
 func (s *Sequencer) flush(b *block) {
 	for _, c := range b.changes {
 		s.out.RenderEvent(c)
@@ -121,7 +121,7 @@ func (s *Sequencer) drainAndBypass(raw event.Event) {
 }
 
 // drain flushes all pending blocks in ascending index order. On abort this is
-// where actions that finished in parallel past a failed/stuck cursor get
+// where steps that finished in parallel past a failed/stuck cursor get
 // reported honestly rather than dropped.
 func (s *Sequencer) drain() {
 	idxs := make([]int, 0, len(s.pending))
@@ -137,7 +137,7 @@ func (s *Sequencer) drain() {
 
 // Flush releases everything still buffered, in declaration order, then
 // switches to pass-through. It MUST run once at end of run, including the abort
-// path where RenderSummary is skipped, or completed-but-buffered actions (the
+// path where RenderSummary is skipped, or completed-but-buffered steps (the
 // ones that finished in parallel past a failed/cancelled cursor) are stranded
 // and lost. Idempotent: a second call drains an already-empty buffer.
 func (s *Sequencer) Flush() {

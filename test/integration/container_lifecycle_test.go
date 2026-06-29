@@ -29,7 +29,7 @@ func setupContainerTest(t *testing.T, name string) target.Target {
 	}
 
 	ctx := t.Context()
-	tgt, err := local.Local{}.Create(ctx, source.NewMemSource(), spec.TargetInstance{})
+	tgt, err := local.Local{}.Create(ctx, source.NewMemSource(), spec.DeclaredTarget{})
 	if err != nil {
 		t.Fatalf("create local target: %v", err)
 	}

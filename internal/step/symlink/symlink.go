@@ -28,12 +28,12 @@ type (
 		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	symlinkAction struct {
+	symlinkStep struct {
 		desc   string
 		kind   string
 		target string
 		link   string
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -44,7 +44,7 @@ func (c *SymlinkConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (s Symlink) Plan(step spec.StepInstance) (spec.Action, error) {
+func (s Symlink) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*SymlinkConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &SymlinkConfig{}, step.Config)
@@ -52,7 +52,7 @@ func (s Symlink) Plan(step spec.StepInstance) (spec.Action, error) {
 
 	// Link absoluteness is validated at link time by
 	// @std.path(absolute=true) on symlink.link in the stub.
-	return &symlinkAction{
+	return &symlinkStep{
 		desc:   cfg.Desc,
 		kind:   s.Kind(),
 		target: cfg.Target,
@@ -61,15 +61,15 @@ func (s Symlink) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *symlinkAction) Desc() string { return a.desc }
-func (a *symlinkAction) Kind() string { return a.kind }
-func (a *symlinkAction) Inputs() []spec.Resource {
+func (a *symlinkStep) Desc() string { return a.desc }
+func (a *symlinkStep) Kind() string { return a.kind }
+func (a *symlinkStep) Inputs() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.target)}
 }
-func (a *symlinkAction) Promises() []spec.Resource {
+func (a *symlinkStep) Promises() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.link)}
 }
-func (a *symlinkAction) Ops() []spec.Op {
+func (a *symlinkStep) Ops() []spec.Op {
 	op := &ensureSymlinkOp{
 		BaseOp: sharedop.BaseOp{
 			SrcSpan:  a.step.Fields["target"].Value,
@@ -79,7 +79,7 @@ func (a *symlinkAction) Ops() []spec.Op {
 		link:   a.link,
 	}
 
-	op.SetAction(a)
+	op.SetStep(a)
 
 	return []spec.Op{op}
 }

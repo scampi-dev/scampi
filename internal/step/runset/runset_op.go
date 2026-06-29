@@ -262,7 +262,7 @@ func (d runSetOpDesc) PlanTemplate() spec.PlanTemplate {
 
 func (op *runSetOp) OpDescription() spec.OpDescription {
 	return runSetOpDesc{
-		Desc:    op.Action().Desc(),
+		Desc:    op.Step().Desc(),
 		List:    op.list,
 		Desired: len(op.desired),
 	}

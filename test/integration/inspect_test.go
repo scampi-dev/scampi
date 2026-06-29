@@ -15,25 +15,25 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-func makeInspectEngine(t *testing.T, actions []spec.Action) *engine.Engine {
+func makeInspectEngine(t *testing.T, steps []spec.Step) *engine.Engine {
 	t.Helper()
 
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
-	steps := make([]spec.StepInstance, len(actions))
-	for i, act := range actions {
-		steps[i] = spec.StepInstance{
-			Type: &harness.StubStepType{StepKind: act.Kind(), StepAction: act},
+	declared := make([]spec.DeclaredStep, len(steps))
+	for i, planned := range steps {
+		declared[i] = spec.DeclaredStep{
+			Type: &harness.StubStepKind{StepKind: planned.Kind(), StepStep: planned},
 		}
 	}
 
-	cfg := spec.ResolvedConfig{
+	cfg := spec.Config{
 		Path:       "/test.scampi",
 		DeployName: "test",
 		TargetName: "local",
-		Target:     harness.MockTargetInstance(tgt),
-		Steps:      steps,
+		Target:     harness.MockDeclaredTarget(tgt),
+		Steps:      declared,
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), src, cfg)
@@ -53,12 +53,12 @@ func TestInspect_SingleOp(t *testing.T) {
 		Current: []byte("current content"),
 		Dest:    "/etc/app.conf",
 	}
-	act := harness.MkAction(&op.FakeOp)
-	// Replace the plain FakeOp in the action with our inspectable one.
+	act := harness.MkStep(&op.FakeOp)
+	// Replace the plain FakeOp in the step with our inspectable one.
 	act.AddOp(op)
-	op.SetAction(act)
+	op.SetStep(act)
 
-	e := makeInspectEngine(t, []spec.Action{act})
+	e := makeInspectEngine(t, []spec.Step{act})
 	defer e.Close()
 
 	result, err := e.InspectDiffFile(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), "")
@@ -83,9 +83,9 @@ func TestInspect_NoInspectableOps(t *testing.T) {
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
 		ExecFn:  harness.OkExecFn(false),
 	}
-	act := harness.MkAction(op)
+	act := harness.MkStep(op)
 
-	e := makeInspectEngine(t, []spec.Action{act})
+	e := makeInspectEngine(t, []spec.Step{act})
 	defer e.Close()
 
 	_, err := e.InspectDiffFile(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), "")
@@ -112,14 +112,14 @@ func TestInspect_MultipleOps(t *testing.T) {
 		Current: []byte("d"),
 		Dest:    "/etc/b.conf",
 	}
-	act := harness.MkAction(&op1.FakeOp, &op2.FakeOp)
+	act := harness.MkStep(&op1.FakeOp, &op2.FakeOp)
 	// Replace FakeOps with inspectable ones
 	act.AddOp(op1)
 	act.AddOp(op2)
-	op1.SetAction(act)
-	op2.SetAction(act)
+	op1.SetStep(act)
+	op2.SetStep(act)
 
-	e := makeInspectEngine(t, []spec.Action{act})
+	e := makeInspectEngine(t, []spec.Step{act})
 	defer e.Close()
 
 	_, err := e.InspectDiffFile(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), "")
@@ -138,11 +138,11 @@ func TestInspect_CurrentNotExist(t *testing.T) {
 		CurrErr: target.ErrNotExist,
 		Dest:    "/etc/new.conf",
 	}
-	act := harness.MkAction(&op.FakeOp)
+	act := harness.MkStep(&op.FakeOp)
 	act.AddOp(op)
-	op.SetAction(act)
+	op.SetStep(act)
 
-	e := makeInspectEngine(t, []spec.Action{act})
+	e := makeInspectEngine(t, []spec.Step{act})
 	defer e.Close()
 
 	result, err := e.InspectDiffFile(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), "")
@@ -175,14 +175,14 @@ func TestInspect_StepFilter(t *testing.T) {
 		Current: []byte("d"),
 		Dest:    "/etc/b.conf",
 	}
-	act := harness.MkAction(&op1.FakeOp, &op2.FakeOp)
+	act := harness.MkStep(&op1.FakeOp, &op2.FakeOp)
 	// Replace FakeOps with inspectable ones
 	act.AddOp(op1)
 	act.AddOp(op2)
-	op1.SetAction(act)
-	op2.SetAction(act)
+	op1.SetStep(act)
+	op2.SetStep(act)
 
-	e := makeInspectEngine(t, []spec.Action{act})
+	e := makeInspectEngine(t, []spec.Step{act})
 	defer e.Close()
 
 	// Without filter: multiple ops → abort.

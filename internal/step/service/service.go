@@ -69,12 +69,12 @@ type (
 		Promises []string `step:"Resources this step produces (cross-deploy ordering)" optional:"true"`
 		Inputs   []string `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
 	}
-	serviceAction struct {
+	serviceStep struct {
 		desc    string
 		name    string
 		state   State
 		enabled bool
-		step    spec.StepInstance
+		step    spec.DeclaredStep
 	}
 )
 
@@ -91,13 +91,13 @@ func (c *ServiceConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (s Service) Plan(step spec.StepInstance) (spec.Action, error) {
+func (s Service) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*ServiceConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &ServiceConfig{}, step.Config)
 	}
 
-	return &serviceAction{
+	return &serviceStep{
 		desc:    cfg.Desc,
 		name:    cfg.Name,
 		state:   parseState(cfg.State),
@@ -106,17 +106,17 @@ func (s Service) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *serviceAction) Desc() string { return a.desc }
-func (a *serviceAction) Kind() string { return "service" }
+func (a *serviceStep) Desc() string { return a.desc }
+func (a *serviceStep) Kind() string { return "service" }
 
-func (a *serviceAction) Ops() []spec.Op {
+func (a *serviceStep) Ops() []spec.Op {
 	switch a.state {
 	case StateRestarted:
 		op := &restartOp{
 			name:       a.name,
 			nameSource: a.step.Fields["name"].Value,
 		}
-		op.SetAction(a)
+		op.SetStep(a)
 		return []spec.Op{op}
 
 	case StateReloaded:
@@ -124,7 +124,7 @@ func (a *serviceAction) Ops() []spec.Op {
 			name:       a.name,
 			nameSource: a.step.Fields["name"].Value,
 		}
-		op.SetAction(a)
+		op.SetStep(a)
 		return []spec.Op{op}
 
 	default:
@@ -133,14 +133,14 @@ func (a *serviceAction) Ops() []spec.Op {
 			state:      a.state,
 			nameSource: a.step.Fields["name"].Value,
 		}
-		activeOp.SetAction(a)
+		activeOp.SetStep(a)
 
 		enabledOp := &ensureEnabledOp{
 			name:       a.name,
 			enabled:    a.enabled,
 			nameSource: a.step.Fields["name"].Value,
 		}
-		enabledOp.SetAction(a)
+		enabledOp.SetStep(a)
 
 		return []spec.Op{activeOp, enabledOp}
 	}

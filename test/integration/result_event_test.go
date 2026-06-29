@@ -25,7 +25,7 @@ std.deploy(name = "test", targets = [host]) {
 }
 `
 
-// TestResultEvent_Apply verifies the engine emits one Result per action as it
+// TestResultEvent_Apply verifies the engine emits one Result per step as it
 // settles, with the verdict reflecting whether the step changed anything.
 func TestResultEvent_Apply(t *testing.T) {
 	src := source.NewMemSource()

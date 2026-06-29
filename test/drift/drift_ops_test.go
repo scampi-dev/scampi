@@ -20,21 +20,21 @@ import (
 
 func planOps(
 	t *testing.T,
-	stepType spec.StepType,
+	stepType spec.StepKind,
 	cfg any,
 	fields map[string]spec.FieldSpan,
 ) []spec.Op {
 	t.Helper()
-	step := spec.StepInstance{
+	decl := spec.DeclaredStep{
 		Type:   stepType,
 		Config: cfg,
 		Fields: fields,
 	}
-	action, err := stepType.Plan(step)
+	planned, err := stepType.Plan(decl)
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
-	return action.Ops()
+	return planned.Ops()
 }
 
 type checker interface {

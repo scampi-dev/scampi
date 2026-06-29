@@ -3,22 +3,25 @@
 //go:generate stringer -type=OpOutcome
 package result
 
-import "scampi.dev/scampi/internal/spec"
+import (
+	"scampi.dev/scampi/internal/diagnostic/event"
+	"scampi.dev/scampi/internal/spec"
+)
 
 // Execution
 // -----------------------------------------------------------------------------
 
-// Execution is the aggregated outcome of an apply/check run: one ActionReport
-// per action across all deploys, plus the terminal error if the run aborted.
+// Execution is the aggregated outcome of an apply/check run: one StepReport
+// per step across all deploys, plus the terminal error if the run aborted.
 type Execution struct {
-	Actions []ActionReport
-	Err     error
+	Steps []StepReport
+	Err   error
 }
 
-type ActionReport struct {
-	Action  spec.Action
+type StepReport struct {
+	Step    spec.Step
 	Ops     []OpReport
-	Summary ActionSummary
+	Summary event.StepSummary
 }
 
 type OpReport struct {
@@ -26,16 +29,6 @@ type OpReport struct {
 	Outcome OpOutcome
 	Result  *spec.Result
 	Err     error
-}
-
-type ActionSummary struct {
-	Total       int
-	Succeeded   int
-	Failed      int
-	Aborted     int
-	Skipped     int
-	Changed     int
-	WouldChange int
 }
 
 type OpOutcome uint8
@@ -52,7 +45,7 @@ const (
 // -----------------------------------------------------------------------------
 
 // Plan is the cross-deploy execution schedule returned by engine.Plan, with
-// each deploy's detailed action plan attached as a leaf node. Levels is always
+// each deploy's detailed step plan attached as a leaf node. Levels is always
 // populated; a single-deploy run is one level with one node and empty
 // After/Needs.
 type Plan struct {
@@ -66,7 +59,7 @@ type DeployLevel struct {
 	Nodes []DeployPlan
 }
 
-// DeployPlan carries the planned actions for one deploy alongside the edges
+// DeployPlan carries the planned steps for one deploy alongside the edges
 // that placed it in its level. After and Needs are nil for roots; the renderer
 // uses that to decide whether to draw a cross-deploy graph header.
 type DeployPlan struct {
@@ -88,16 +81,16 @@ func (p Plan) isTrivial() bool {
 // header for. Renderers should call this before drawing the [graph] section.
 func (p Plan) HasGraph() bool { return !p.isTrivial() }
 
-// PlanDetail / PlannedAction / PlannedOp model the rendered structure of
-// `scampi plan` output: actions in order, each carrying their ops and
+// PlanDetail / PlannedStep / PlannedOp model the rendered structure of
+// `scampi plan` output: steps in order, each carrying their ops and
 // inter-op dependency edges.
 type PlanDetail struct {
 	DeployID   string
 	DeployDesc string
-	Actions    []PlannedAction
+	Steps      []PlannedStep
 }
 
-type PlannedAction struct {
+type PlannedStep struct {
 	Index     int
 	Desc      string
 	Kind      string

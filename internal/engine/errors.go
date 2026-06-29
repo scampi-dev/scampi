@@ -24,24 +24,24 @@ func (AbortError) Error() string {
 	return "execution aborted"
 }
 
-// ActionAbortedError signals that an action returned with one or more ops in
+// StepAbortedError signals that a step returned with one or more ops in
 // model.OpAborted state when the originating diagnostic's impact didn't
 // request a hard abort. The scheduler treats this as a real failure so
-// downstream actions don't run against a broken upstream. The user-visible
+// downstream steps don't run against a broken upstream. The user-visible
 // diagnostic has already been emitted; this error only carries propagation
 // state — Unwrap exposes the original cause for errors.As callers.
-type ActionAbortedError struct {
+type StepAbortedError struct {
 	Cause error
 }
 
-func (e ActionAbortedError) Error() string {
+func (e StepAbortedError) Error() string {
 	if e.Cause == nil {
-		return "action aborted"
+		return "step aborted"
 	}
-	return "action aborted: " + e.Cause.Error()
+	return "step aborted: " + e.Cause.Error()
 }
 
-func (e ActionAbortedError) Unwrap() error { return e.Cause }
+func (e StepAbortedError) Unwrap() error { return e.Cause }
 
 // LoadConfigError is the fallback diagnostic emitted when the linker
 // returns a non-diagnostic error (e.g. raw file-read failure). It
@@ -121,7 +121,7 @@ func panicIfNotAbortError(err error) error {
 	if errors.As(err, &abort) {
 		return abort
 	}
-	var aborted ActionAbortedError
+	var aborted StepAbortedError
 	if errors.As(err, &aborted) {
 		return aborted
 	}
@@ -178,7 +178,7 @@ func emitPlanDiagnostic(ctx diagnostic.Ctx, _ int, _, _ string, err error) (diag
 	return emitScopedDiagnostic(ctx, err)
 }
 
-func emitActionDiagnostic(ctx diagnostic.Ctx, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
+func emitStepDiagnostic(ctx diagnostic.Ctx, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
 	return emitScopedDiagnostic(ctx, err)
 }
 

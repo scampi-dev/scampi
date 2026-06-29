@@ -47,7 +47,7 @@ type (
 
 func (SSH) Kind() string   { return "ssh" }
 func (SSH) NewConfig() any { return &Config{} }
-func (SSH) Create(ctx context.Context, src source.Source, tgt spec.TargetInstance) (target.Target, error) {
+func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarget) (target.Target, error) {
 	cfg, ok := tgt.Config.(*Config)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &Config{}, cfg)

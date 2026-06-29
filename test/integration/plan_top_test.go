@@ -71,11 +71,11 @@ std.deploy(name = "solo", targets = [host]) {
 	if len(n.Needs) != 0 {
 		t.Errorf("Needs: got %v, want nil", n.Needs)
 	}
-	if got := len(n.Detail.Actions); got != 1 {
-		t.Fatalf("Detail.Actions: got %d, want 1", got)
+	if got := len(n.Detail.Steps); got != 1 {
+		t.Fatalf("Detail.Steps: got %d, want 1", got)
 	}
-	if got := n.Detail.Actions[0].Desc; got != "only step" {
-		t.Errorf("action desc: got %q, want %q", got, "only step")
+	if got := n.Detail.Steps[0].Desc; got != "only step" {
+		t.Errorf("step desc: got %q, want %q", got, "only step")
 	}
 	if result.HasGraph() {
 		t.Errorf("HasGraph: got true, want false for single deploy with no edges")

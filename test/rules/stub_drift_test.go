@@ -21,7 +21,7 @@ import (
 // stub generator (#163). Stubs in std/ are now hand-written and serve as
 // the source of truth for parameter names, types, and validation
 // attributes. This lint asserts the cheaper half of that contract:
-// every step:-tagged Go field on a registered StepType/TargetType
+// every step:-tagged Go field on a registered StepKind/TargetKind
 // config struct must have a corresponding parameter on the matching
 // stub decl, using the same snake_case conversion the linker applies
 // at link time (linker.ToSnake).
@@ -53,10 +53,10 @@ func TestStubsMatchGoConfigs(t *testing.T) {
 		isStep bool
 	}
 	var all []kindCfg
-	for _, st := range reg.StepTypes() {
+	for _, st := range reg.StepKinds() {
 		all = append(all, kindCfg{kind: st.Kind(), cfg: st.NewConfig(), isStep: true})
 	}
-	for _, tt := range reg.TargetTypes() {
+	for _, tt := range reg.TargetKinds() {
 		all = append(all, kindCfg{kind: tt.Kind(), cfg: tt.NewConfig()})
 	}
 

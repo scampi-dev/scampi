@@ -32,7 +32,7 @@ func planFixture() result.PlanDetail {
 	return result.PlanDetail{
 		DeployID:   "web",
 		DeployDesc: "production",
-		Actions: []result.PlannedAction{
+		Steps: []result.PlannedStep{
 			{
 				Index: 0, Kind: "dir", Desc: "create web root",
 				Ops: []result.PlannedOp{

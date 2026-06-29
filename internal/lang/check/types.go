@@ -150,7 +150,7 @@ func (f *FuncType) String() string {
 type DeclType struct {
 	Name    string // may be dotted: "container.instance"
 	Params  []*FieldDef
-	Ret     Type // output type (StepInstance if not declared)
+	Ret     Type // output type (DeclaredStep if not declared)
 	HasBody bool
 }
 

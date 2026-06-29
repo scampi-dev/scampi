@@ -82,7 +82,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 			return err
 		}
 
-		resolved.Target = harness.MockTargetInstance(tgt)
+		resolved.Target = harness.MockDeclaredTarget(tgt)
 
 		e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 		if err != nil {

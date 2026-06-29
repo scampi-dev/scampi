@@ -31,17 +31,17 @@ func newPlanRenderer(glyphs glyphSet, width int, verbosity signal.Verbosity, f *
 }
 
 // planLine is one rendered row. Its parts degrade independently as the terminal
-// narrows: the op detail elides first, the action desc drops next, and the
+// narrows: the op detail elides first, the step desc drops next, and the
 // gutter + id ("[N] kind" / "step.name") + structure are protected.
 type planLine struct {
 	gutter   string      // pre-colored rail/marker; always rendered in full
 	id       string      // pre-colored core label: "[N] kind" or "step.name"
-	desc     string      // pre-colored action desc "› ..."; dropped on a narrow term
+	desc     string      // pre-colored step desc "› ..."; dropped on a narrow term
 	detail   *layout.Col // elidable trailing detail (op parenthetical / op count)
 	isHeader bool
 }
 
-type actionEntry struct {
+type stepEntry struct {
 	lines      []planLine
 	layerSize  int
 	posInLayer int
@@ -52,9 +52,9 @@ type planLayout struct {
 	maxContentW int      // widest line, natural (gutter+id+desc+detail)
 	maxLabelW   int      // widest gutter+id+desc (no detail)
 	maxCoreW    int      // widest gutter+id (the protected core)
-	depsStrs    []string // deps string per action (header)
-	maxDepsW    int      // widest deps across all actions
-	maxParDepsW int      // widest deps among parallel actions (bracket offset)
+	depsStrs    []string // deps string per step (header)
+	maxDepsW    int      // widest deps across all steps
+	maxParDepsW int      // widest deps among parallel steps (bracket offset)
 	hasParallel bool
 	tooNarrow   bool // core + structure couldn't fit; warn
 	minWidth    int  // columns needed when too narrow
@@ -73,15 +73,15 @@ func (p *planRenderer) renderPlan(d result.PlanDetail) []renderEvent {
 	if d.DeployID != "" {
 		hdr += p.fmt.fmtfMsg(colPlanHeader, ": %s", d.DeployID)
 		if d.DeployDesc != "" {
-			hdr += p.fmt.fmtfMsg(colPlanHeader, " %s %s", p.glyphs.actionKindSep, d.DeployDesc)
+			hdr += p.fmt.fmtfMsg(colPlanHeader, " %s %s", p.glyphs.stepKindSep, d.DeployDesc)
 		}
 	}
 	out = append(out, renderEvent{stream: streamOut, line: hdr})
 
 	planDAG := dag.Build(d)
-	actions := p.buildActionEntries(planDAG)
-	ly := p.measureLayout(actions)
-	out = p.renderActions(out, actions, &ly)
+	steps := p.buildStepEntries(planDAG)
+	ly := p.measureLayout(steps)
+	out = p.renderSteps(out, steps, &ly)
 
 	if ly.tooNarrow {
 		out = append(out, p.narrowWarning(ly.minWidth))
@@ -92,12 +92,12 @@ func (p *planRenderer) renderPlan(d result.PlanDetail) []renderEvent {
 	return out
 }
 
-// buildActionEntries
+// buildStepEntries
 // -----------------------------------------------------------------------------
 
-func (p *planRenderer) buildActionEntries(planDAG dag.PlanDAG) []actionEntry {
+func (p *planRenderer) buildStepEntries(planDAG dag.PlanDAG) []stepEntry {
 	maxIndex := 0
-	for _, layer := range planDAG.ActionLayers {
+	for _, layer := range planDAG.StepLayers {
 		for _, act := range layer {
 			if act.Index > maxIndex {
 				maxIndex = act.Index
@@ -107,42 +107,42 @@ func (p *planRenderer) buildActionEntries(planDAG dag.PlanDAG) []actionEntry {
 	indexWidth := digits10(displayIndex(maxIndex))
 	v := p.verbosity
 
-	var actions []actionEntry
-	for _, layer := range planDAG.ActionLayers {
+	var steps []stepEntry
+	for _, layer := range planDAG.StepLayers {
 		for posInLayer, act := range layer {
-			ae := actionEntry{layerSize: len(layer), posInLayer: posInLayer, deps: act.DependsOn}
+			ae := stepEntry{layerSize: len(layer), posInLayer: posInLayer, deps: act.DependsOn}
 			if v == signal.Quiet {
 				ae.lines = []planLine{p.quietLine(act, indexWidth)}
 			} else {
 				ae.lines = p.verboseLines(act, indexWidth, v)
 			}
-			actions = append(actions, ae)
+			steps = append(steps, ae)
 		}
 	}
-	return actions
+	return steps
 }
 
 func (p *planRenderer) idStr(idx, indexWidth int, kind string) string {
-	return p.fmt.fmtfMsg(colActionKind, " [%*d]%s", indexWidth, displayIndex(idx), kindSuffix(kind))
+	return p.fmt.fmtfMsg(colStepKind, " [%*d]%s", indexWidth, displayIndex(idx), kindSuffix(kind))
 }
 
 func (p *planRenderer) descStr(desc string) string {
 	if desc == "" {
 		return ""
 	}
-	return p.fmt.fmtfMsg(colActionDesc, " %s %s", p.glyphs.actionKindSep, desc)
+	return p.fmt.fmtfMsg(colStepDesc, " %s %s", p.glyphs.stepKindSep, desc)
 }
 
-func (p *planRenderer) quietLine(act dag.Action, indexWidth int) planLine {
+func (p *planRenderer) quietLine(act dag.Step, indexWidth int) planLine {
 	nOps := 0
 	for _, l := range act.Layers {
 		nOps += len(l)
 	}
 	return planLine{
-		gutter:   p.railGutter(p.glyphs.actionStartCollapsed, colActionKind),
+		gutter:   p.railGutter(p.glyphs.stepStartCollapsed, colStepKind),
 		id:       p.idStr(act.Index, indexWidth, act.Kind),
 		desc:     p.descStr(act.Desc),
-		detail:   &layout.Col{Text: " " + opCount(nOps), Style: p.style(colActionOps), Elide: layout.Tail, Order: 3},
+		detail:   &layout.Col{Text: " " + opCount(nOps), Style: p.style(colStepOps), Elide: layout.Tail, Order: 3},
 		isHeader: true,
 	}
 }
@@ -152,14 +152,14 @@ func (p *planRenderer) railGutter(marker string, c ansi.ANSI) string {
 	return p.fmt.fmtMsg(colPlanRail, p.glyphs.planRail) + p.fmt.fmtMsg(c, " "+marker)
 }
 
-func (p *planRenderer) verboseLines(act dag.Action, indexWidth int, v signal.Verbosity) []planLine {
-	start := p.glyphs.actionStart
+func (p *planRenderer) verboseLines(act dag.Step, indexWidth int, v signal.Verbosity) []planLine {
+	start := p.glyphs.stepStart
 	if len(act.Layers) == 0 {
-		start = p.glyphs.actionStartNoOp
+		start = p.glyphs.stepStartNoOp
 	}
 
 	lines := []planLine{{
-		gutter:   p.railGutter(start, colActionRail),
+		gutter:   p.railGutter(start, colStepRail),
 		id:       p.idStr(act.Index, indexWidth, act.Kind),
 		desc:     p.descStr(act.Desc),
 		isHeader: true,
@@ -173,7 +173,7 @@ func (p *planRenderer) verboseLines(act dag.Action, indexWidth int, v signal.Ver
 	}
 
 	lines = append(lines, planLine{
-		gutter: p.railGutter(p.glyphs.actionEnd, colActionRail),
+		gutter: p.railGutter(p.glyphs.stepEnd, colStepRail),
 	})
 	return lines
 }
@@ -190,12 +190,12 @@ func (p *planRenderer) collectOpTreeLines(
 	b.WriteString(p.fmt.fmtMsg(colPlanRail, p.glyphs.planRail))
 	b.WriteString(" ")
 	for i, cont := range prefix {
-		seg := p.glyphs.actionIndent
+		seg := p.glyphs.stepIndent
 		if cont {
-			seg = p.glyphs.actionRail + " "
+			seg = p.glyphs.stepRail + " "
 		}
 		if i == 0 {
-			b.WriteString(p.fmt.fmtMsg(colActionRail, seg))
+			b.WriteString(p.fmt.fmtMsg(colStepRail, seg))
 		} else {
 			b.WriteString(p.fmt.fmtMsg(colOpRail, seg))
 		}
@@ -226,11 +226,11 @@ func (p *planRenderer) collectOpTreeLines(
 // measureLayout
 // -----------------------------------------------------------------------------
 
-func (p *planRenderer) measureLayout(actions []actionEntry) planLayout {
+func (p *planRenderer) measureLayout(steps []stepEntry) planLayout {
 	var ly planLayout
-	ly.depsStrs = make([]string, len(actions))
+	ly.depsStrs = make([]string, len(steps))
 
-	for i, ae := range actions {
+	for i, ae := range steps {
 		ly.depsStrs[i] = p.fmtDeps(ae.deps)
 		depsW := layout.VisibleLen(ly.depsStrs[i])
 		ly.maxDepsW = max(ly.maxDepsW, depsW)
@@ -253,14 +253,14 @@ func (p *planRenderer) measureLayout(actions []actionEntry) planLayout {
 	return ly
 }
 
-// renderActions
+// renderSteps
 // -----------------------------------------------------------------------------
 
-func (p *planRenderer) renderActions(out []renderEvent, actions []actionEntry, ly *planLayout) []renderEvent {
+func (p *planRenderer) renderSteps(out []renderEvent, steps []stepEntry, ly *planLayout) []renderEvent {
 	bracketGlyphW := layout.VisibleLen(p.glyphs.parallelTop + " " + p.glyphs.parallelLabel)
 
 	// Structure lives in its own block to the right of all content: the deps
-	// column, then (for parallel actions) the bracket. rightW is its reserved
+	// column, then (for parallel steps) the bracket. rightW is its reserved
 	// width measured from the content column.
 	rightW := gap + ly.maxDepsW
 	if ly.hasParallel {
@@ -272,7 +272,7 @@ func (p *planRenderer) renderActions(out []renderEvent, actions []actionEntry, l
 
 	// Content column: as wide as the widest line wants, capped so the structure
 	// still fits, but never below the protected core (gutter + id). Op detail
-	// elides to buy width; below the label width the action descs drop; below the
+	// elides to buy width; below the label width the step descs drop; below the
 	// core width the structure overflows and we warn.
 	contentCol := ly.maxContentW
 	if p.width > 0 {
@@ -284,7 +284,7 @@ func (p *planRenderer) renderActions(out []renderEvent, actions []actionEntry, l
 
 	bracketCol := contentCol + gap + ly.maxParDepsW + gap
 
-	for i, ae := range actions {
+	for i, ae := range steps {
 		lastLineIdx := len(ae.lines) - 1
 		parallel := ae.layerSize > 1
 		for lineIdx, ln := range ae.lines {
@@ -327,7 +327,7 @@ func pad(n int) string {
 	return strings.Repeat(" ", n)
 }
 
-func (p *planRenderer) bracketSegment(ae actionEntry, lineIdx, lastLineIdx int) string {
+func (p *planRenderer) bracketSegment(ae stepEntry, lineIdx, lastLineIdx int) string {
 	switch {
 	case ae.posInLayer == 0 && lineIdx == 0:
 		return p.glyphs.parallelTop + " " + p.glyphs.parallelLabel

@@ -14,7 +14,7 @@ func LoadStepDoc(kind string) spec.StepDoc {
 }
 
 func loadStepDoc(reg *Registry, kind string) spec.StepDoc {
-	st, ok := reg.StepType(kind)
+	st, ok := reg.StepKind(kind)
 	if !ok {
 		panic(errs.BUG("loadStepDoc called with unregistered kind: %s", kind))
 	}

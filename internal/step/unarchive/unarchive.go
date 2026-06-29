@@ -27,7 +27,7 @@ type (
 		Promises []string       `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string       `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	unarchiveAction struct {
+	unarchiveStep struct {
 		desc   string
 		kind   string
 		src    string
@@ -38,7 +38,7 @@ type (
 		group  string
 		mode   fs.FileMode
 		format archiveFormat
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -49,7 +49,7 @@ func (c *UnarchiveConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (u Unarchive) Plan(step spec.StepInstance) (spec.Action, error) {
+func (u Unarchive) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*UnarchiveConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &UnarchiveConfig{}, step.Config)
@@ -93,7 +93,7 @@ func (u Unarchive) Plan(step spec.StepInstance) (spec.Action, error) {
 		}
 	}
 
-	return &unarchiveAction{
+	return &unarchiveStep{
 		desc:   cfg.Desc,
 		kind:   u.Kind(),
 		src:    cfg.Src.Path,
@@ -108,9 +108,9 @@ func (u Unarchive) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *unarchiveAction) Desc() string { return a.desc }
-func (a *unarchiveAction) Kind() string { return a.kind }
-func (a *unarchiveAction) Inputs() []spec.Resource {
+func (a *unarchiveStep) Desc() string { return a.desc }
+func (a *unarchiveStep) Kind() string { return a.kind }
+func (a *unarchiveStep) Inputs() []spec.Resource {
 	var r []spec.Resource
 	if a.owner != "" {
 		r = append(r, spec.UserResource(a.owner))
@@ -120,12 +120,12 @@ func (a *unarchiveAction) Inputs() []spec.Resource {
 	}
 	return r
 }
-func (a *unarchiveAction) SourcePaths() []string { return []string{a.src} }
-func (a *unarchiveAction) Promises() []spec.Resource {
+func (a *unarchiveStep) SourcePaths() []string { return []string{a.src} }
+func (a *unarchiveStep) Promises() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.dest)}
 }
 
-func (a *unarchiveAction) Ops() []spec.Op {
+func (a *unarchiveStep) Ops() []spec.Op {
 	extract := &unarchiveOp{
 		BaseOp: sharedop.BaseOp{
 			SrcSpan:  a.step.Fields["src"].Value,
@@ -137,7 +137,7 @@ func (a *unarchiveAction) Ops() []spec.Op {
 		depth:  a.depth,
 		format: a.format,
 	}
-	extract.SetAction(a)
+	extract.SetStep(a)
 
 	ops := []spec.Op{extract}
 	ops = append(sharedop.ResolveSourceOps(a.srcRef, extract, a, a.step.Fields["src"].Value), ops...)
@@ -154,7 +154,7 @@ func (a *unarchiveAction) Ops() []spec.Op {
 			OwnerSpan: a.step.Fields["owner"].Value,
 			GroupSpan: a.step.Fields["group"].Value,
 		}
-		chown.SetAction(a)
+		chown.SetStep(a)
 		chown.AddDependency(extract)
 		ops = append(ops, chown)
 	}
@@ -168,7 +168,7 @@ func (a *unarchiveAction) Ops() []spec.Op {
 			Mode:      a.mode,
 			Recursive: true,
 		}
-		chmod.SetAction(a)
+		chmod.SetStep(a)
 		chmod.AddDependency(extract)
 		ops = append(ops, chmod)
 	}

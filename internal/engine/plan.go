@@ -19,7 +19,7 @@ import (
 )
 
 // Plan loads cfgPath, resolves it into one plan per deploy block,
-// and returns the cross-deploy schedule with each deploy's action
+// and returns the cross-deploy schedule with each deploy's step
 // tree attached as a leaf. The same shape covers the single-deploy
 // case (one level, one node, no edges).
 func Plan(
@@ -61,7 +61,7 @@ func Plan(
 		mu      sync.Mutex
 		details = make(map[int]result.PlanDetail, len(resolved))
 	)
-	err = runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.ResolvedConfig) error {
+	err = runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.Config) error {
 		e, eErr := NewWithTarget(ctx, src, res, allCaps)
 		if eErr != nil {
 			return eErr
@@ -110,7 +110,7 @@ func Plan(
 // config within a single run). Returns -1 if not found, which should
 // never happen because we only key configs from the same slice we
 // iterate.
-func resolvedIndex(resolved []spec.ResolvedConfig, res spec.ResolvedConfig) int {
+func resolvedIndex(resolved []spec.Config, res spec.Config) int {
 	for i, r := range resolved {
 		if r.DeployName == res.DeployName && r.TargetName == res.TargetName {
 			return i
@@ -124,23 +124,23 @@ func resolvedIndex(resolved []spec.ResolvedConfig, res spec.ResolvedConfig) int 
 // details into a PlanResult; tests can call this directly to
 // surface plan-time errors without exercising the full pipeline.
 func (e *Engine) PlanDeploy(ctx diagnostic.Ctx) (result.PlanDetail, error) {
-	p, actionDeps, _, err := plan(e.cfg, ctx, e.tgt.Capabilities())
+	p, stepDeps, _, err := plan(e.cfg, ctx, e.tgt.Capabilities())
 	if err != nil {
 		return result.PlanDetail{}, err
 	}
 	e.storeSourcePaths(ctx, p)
-	return planDetail(p, actionDeps), nil
+	return planDetail(p, stepDeps), nil
 }
 
 // planDetail assembles the rendering payload for one resolved plan.
 // Mirrors the previous diagnostic.PlanProduced factory; lives here
 // now that plan output is a return value, not an event.
-func planDetail(p spec.Plan, actionDeps ActionDeps) result.PlanDetail {
+func planDetail(p spec.Plan, stepDeps StepDeps) result.PlanDetail {
 	var allOps []spec.Op
 	opIndex := make(map[spec.Op]int)
-	actionOpBase := make(map[int]int) // action index -> first op index
-	for i, act := range p.Deploy.Actions {
-		actionOpBase[i] = len(allOps)
+	stepOpBase := make(map[int]int) // step index -> first op index
+	for i, act := range p.Deploy.Steps {
+		stepOpBase[i] = len(allOps)
 		for _, op := range act.Ops() {
 			opIndex[op] = len(allOps)
 			allOps = append(allOps, op)
@@ -169,14 +169,14 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) result.PlanDetail {
 	}
 
 	detail := result.PlanDetail{DeployID: string(p.Deploy.ID), DeployDesc: p.Deploy.Desc}
-	for i, act := range p.Deploy.Actions {
-		start := actionOpBase[i]
+	for i, act := range p.Deploy.Steps {
+		start := stepOpBase[i]
 		end := start + len(act.Ops())
 		var deps []int
-		if actionDeps != nil && i < len(actionDeps) {
-			deps = actionDeps[i]
+		if stepDeps != nil && i < len(stepDeps) {
+			deps = stepDeps[i]
 		}
-		detail.Actions = append(detail.Actions, result.PlannedAction{
+		detail.Steps = append(detail.Steps, result.PlannedStep{
 			Index:     i,
 			Desc:      act.Desc(),
 			Kind:      act.Kind(),
@@ -187,36 +187,36 @@ func planDetail(p spec.Plan, actionDeps ActionDeps) result.PlanDetail {
 	return detail
 }
 
-// ActionDeps maps action index to indices of actions it depends on.
-type ActionDeps [][]int
+// StepDeps maps step index to indices of steps it depends on.
+type StepDeps [][]int
 
-// hookPlan holds planned hook actions and the mapping from action index
+// hookPlan holds planned hook steps and the mapping from step index
 // to the hook IDs it should notify on change.
 type hookPlan struct {
-	actions  map[string][]spec.Action // hook ID → planned actions
-	onChange map[int][]string         // step action index → hook IDs
+	steps    map[string][]spec.Step // hook ID → planned steps
+	onChange map[int][]string       // step index → hook IDs
 }
 
 func plan(
-	cfg spec.ResolvedConfig,
+	cfg spec.Config,
 	ctx diagnostic.Ctx,
 	tgtCaps capability.Capability,
-) (spec.Plan, ActionDeps, *hookPlan, error) {
+) (spec.Plan, StepDeps, *hookPlan, error) {
 	deployID := spec.DeployID(cfg.DeployName)
 
-	actions, actionSteps, onChange, causes, impacts := planSteps(cfg.Steps, ctx, tgtCaps)
-	hookActions, hookCauses, hookImpacts := planHooks(cfg.Hooks, ctx, tgtCaps)
+	steps, stepSources, onChange, causes, impacts := planSteps(cfg.Steps, ctx, tgtCaps)
+	hookSteps, hookCauses, hookImpacts := planHooks(cfg.Hooks, ctx, tgtCaps)
 	causes = append(causes, hookCauses...)
 	impacts = append(impacts, hookImpacts...)
 
 	p := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      deployID,
-			Desc:    cfg.DeployName,
-			Actions: actions,
+			ID:    deployID,
+			Desc:  cfg.DeployName,
+			Steps: steps,
 		},
 	}
-	hp := &hookPlan{actions: hookActions, onChange: onChange}
+	hp := &hookPlan{steps: hookSteps, onChange: onChange}
 
 	for _, impact := range impacts {
 		if impact.ShouldAbort() {
@@ -227,26 +227,26 @@ func plan(
 	if err := validateHooks(ctx, cfg, hp); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
-	if err := detectDuplicatePromises(ctx, actions, actionSteps, cfg.Steps); err != nil {
+	if err := detectDuplicatePromises(ctx, steps, stepSources, cfg.Steps); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 	if err := DetectPlanCycles(ctx, p); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 
-	nodes := buildActionGraph(p.Deploy.Actions)
-	if err := DetectActionCycles(ctx, nodes); err != nil {
+	nodes := buildStepGraph(p.Deploy.Steps)
+	if err := DetectStepCycles(ctx, nodes); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 
-	return p, extractActionDeps(nodes), hp, nil
+	return p, extractStepDeps(nodes), hp, nil
 }
 
 func planOneStep(
-	step spec.StepInstance,
+	step spec.DeclaredStep,
 	stepIdx int,
 	tgtCaps capability.Capability,
-) (spec.Action, error) {
+) (spec.Step, error) {
 	act, err := step.Type.Plan(step)
 	if err != nil && act == nil {
 		return nil, err
@@ -266,77 +266,77 @@ func planOneStep(
 }
 
 func planSteps(
-	steps []spec.StepInstance,
+	declared []spec.DeclaredStep,
 	ctx diagnostic.Ctx,
 	tgtCaps capability.Capability,
-) ([]spec.Action, []int, map[int][]string, []error, []diagnostic.Impact) {
-	var actions []spec.Action
-	var actionSteps []int // actionSteps[k] = source step index of actions[k]
+) ([]spec.Step, []int, map[int][]string, []error, []diagnostic.Impact) {
+	var steps []spec.Step
+	var stepSources []int // stepSources[k] = source step index of steps[k]
 	onChange := make(map[int][]string)
 	var causes []error
 	var impacts []diagnostic.Impact
 
-	for i, step := range steps {
-		act, err := planOneStep(step, i, tgtCaps)
+	for i, decl := range declared {
+		planned, err := planOneStep(decl, i, tgtCaps)
 		if err != nil {
-			impact, _ := emitPlanDiagnostic(ctx, i, step.Type.Kind(), step.Desc, err)
+			impact, _ := emitPlanDiagnostic(ctx, i, decl.Type.Kind(), decl.Desc, err)
 			impacts = append(impacts, impact)
-			if act == nil || impact.ShouldAbort() {
+			if planned == nil || impact.ShouldAbort() {
 				causes = append(causes, err)
 				continue
 			}
 		}
 
-		actionIdx := len(actions)
-		actions = append(actions, act)
-		actionSteps = append(actionSteps, i)
+		stepIdx := len(steps)
+		steps = append(steps, planned)
+		stepSources = append(stepSources, i)
 
-		if len(step.OnChange) > 0 {
-			onChange[actionIdx] = step.OnChange
+		if len(decl.OnChange) > 0 {
+			onChange[stepIdx] = decl.OnChange
 		}
 	}
 
-	return actions, actionSteps, onChange, causes, impacts
+	return steps, stepSources, onChange, causes, impacts
 }
 
 func planHooks(
-	hooks map[string][]spec.StepInstance,
+	hooks map[string][]spec.DeclaredStep,
 	ctx diagnostic.Ctx,
 	tgtCaps capability.Capability,
-) (map[string][]spec.Action, []error, []diagnostic.Impact) {
-	actions := make(map[string][]spec.Action)
+) (map[string][]spec.Step, []error, []diagnostic.Impact) {
+	planned := make(map[string][]spec.Step)
 	var causes []error
 	var impacts []diagnostic.Impact
 
-	for id, steps := range hooks {
-		var hookActions []spec.Action
+	for id, declared := range hooks {
+		var hookSteps []spec.Step
 		hookFailed := false
-		for _, step := range steps {
-			act, err := planOneStep(step, -1, tgtCaps)
+		for _, decl := range declared {
+			step, err := planOneStep(decl, -1, tgtCaps)
 			if err != nil {
-				impact, _ := emitPlanDiagnostic(ctx, -1, step.Type.Kind(), step.Desc, err)
+				impact, _ := emitPlanDiagnostic(ctx, -1, decl.Type.Kind(), decl.Desc, err)
 				impacts = append(impacts, impact)
 				causes = append(causes, err)
 				hookFailed = true
 				break
 			}
-			hookActions = append(hookActions, act)
+			hookSteps = append(hookSteps, step)
 		}
 		if !hookFailed {
-			actions[id] = hookActions
+			planned[id] = hookSteps
 		}
 	}
 
-	return actions, causes, impacts
+	return planned, causes, impacts
 }
 
 // validateHooks checks that all on_change references point to defined hooks
 // and that hook chains don't form cycles.
-func validateHooks(ctx diagnostic.Ctx, cfg spec.ResolvedConfig, hp *hookPlan) error {
+func validateHooks(ctx diagnostic.Ctx, cfg spec.Config, hp *hookPlan) error {
 	// Check step on_change references
 	for i, step := range cfg.Steps {
 		for _, hookID := range step.OnChange {
-			if _, ok := hp.actions[hookID]; !ok {
+			if _, ok := hp.steps[hookID]; !ok {
 				source := step.Source
 				if fs, ok := step.Fields["on_change"]; ok {
 					source = fs.Value
@@ -359,7 +359,7 @@ func validateHooks(ctx diagnostic.Ctx, cfg spec.ResolvedConfig, hp *hookPlan) er
 	for id, steps := range cfg.Hooks {
 		for _, step := range steps {
 			for _, hookID := range step.OnChange {
-				if _, ok := hp.actions[hookID]; !ok {
+				if _, ok := hp.steps[hookID]; !ok {
 					source := step.Source
 					if fs, ok := step.Fields["on_change"]; ok {
 						source = fs.Value
@@ -387,9 +387,9 @@ func validateHooks(ctx diagnostic.Ctx, cfg spec.ResolvedConfig, hp *hookPlan) er
 	return nil
 }
 
-// extractActionDeps converts action graph nodes to dependency indices.
-func extractActionDeps(nodes []*actionNode) ActionDeps {
-	deps := make(ActionDeps, len(nodes))
+// extractStepDeps converts step graph nodes to dependency indices.
+func extractStepDeps(nodes []*stepNode) StepDeps {
+	deps := make(StepDeps, len(nodes))
 	for _, n := range nodes {
 		for _, req := range n.requires {
 			deps[n.idx] = append(deps[n.idx], req.idx)
@@ -398,7 +398,7 @@ func extractActionDeps(nodes []*actionNode) ActionDeps {
 	return deps
 }
 
-func collectRequiredCaps(act spec.Action) capability.Capability {
+func collectRequiredCaps(act spec.Step) capability.Capability {
 	var caps capability.Capability
 	for _, op := range act.Ops() {
 		caps |= op.RequiredCapabilities()

@@ -11,11 +11,11 @@ type DependencyAdder interface {
 
 // ResolveSourceOps creates resolution ops for source references that need
 // fetching (e.g. remote URLs). It wires the returned ops as dependencies of
-// primaryOp and sets their action. Returns nil when no resolution is needed.
+// primaryOp and sets their step. Returns nil when no resolution is needed.
 func ResolveSourceOps(
 	ref spec.SourceRef,
 	primaryOp DependencyAdder,
-	action spec.Action,
+	step spec.Step,
 	srcSpan spec.SourceSpan,
 ) []spec.Op {
 	if !ref.NeedsResolution() {
@@ -30,7 +30,7 @@ func ResolveSourceOps(
 		Checksum:  ref.Checksum,
 		CachePath: ref.Path,
 	}
-	dl.SetAction(action)
+	dl.SetStep(step)
 	primaryOp.AddDependency(dl)
 	return []spec.Op{dl}
 }

@@ -27,9 +27,9 @@ type (
 		Inputs   []string          `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
 	}
 
-	runSetAction struct {
+	runSetStep struct {
 		desc      string
-		step      spec.StepInstance
+		step      spec.DeclaredStep
 		list      string
 		addTpl    *itemTemplate
 		removeTpl *itemTemplate
@@ -46,7 +46,7 @@ func (c *RunSetConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (RunSet) Plan(step spec.StepInstance) (spec.Action, error) {
+func (RunSet) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*RunSetConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &RunSetConfig{}, step.Config)
@@ -67,7 +67,7 @@ func (RunSet) Plan(step spec.StepInstance) (spec.Action, error) {
 
 	desired := dedupePreserve(cfg.Desired)
 
-	return &runSetAction{
+	return &runSetStep{
 		desc:      cfg.Desc,
 		step:      step,
 		list:      cfg.List,
@@ -79,10 +79,10 @@ func (RunSet) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *runSetAction) Desc() string { return a.desc }
-func (a *runSetAction) Kind() string { return "run_set" }
+func (a *runSetStep) Desc() string { return a.desc }
+func (a *runSetStep) Kind() string { return "run_set" }
 
-func (a *runSetAction) Ops() []spec.Op {
+func (a *runSetStep) Ops() []spec.Op {
 	op := &runSetOp{
 		list:      a.list,
 		addTpl:    a.addTpl,
@@ -92,7 +92,7 @@ func (a *runSetAction) Ops() []spec.Op {
 		env:       a.env,
 		source:    a.step.Source,
 	}
-	op.SetAction(a)
+	op.SetStep(a)
 	return []spec.Op{op}
 }
 

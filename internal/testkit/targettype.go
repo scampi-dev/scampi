@@ -24,29 +24,29 @@ type MemTargetConfig struct {
 	Expect  eval.Value
 }
 
-// MemTargetType is the spec.TargetType implementation for
+// MemTargetKind is the spec.TargetKind implementation for
 // `test.target_in_memory(...)`. Each Create call constructs a fresh
 // target.MemTarget seeded from the `initial` field, registers it
 // with the bound TestRegistry alongside the `expect` field, and
 // returns the mock to the engine.
-type MemTargetType struct {
+type MemTargetKind struct {
 	Registry *TestRegistry
 }
 
 // Kind returns the dotted form so the linker's QualName lookup
 // matches `test.target_in_memory` directly.
-func (MemTargetType) Kind() string   { return "test.target_in_memory" }
-func (MemTargetType) NewConfig() any { return &MemTargetConfig{} }
+func (MemTargetKind) Kind() string   { return "test.target_in_memory" }
+func (MemTargetKind) NewConfig() any { return &MemTargetConfig{} }
 
-func (t MemTargetType) Create(
+func (t MemTargetKind) Create(
 	_ context.Context,
 	_ source.Source,
-	tgt spec.TargetInstance,
+	tgt spec.DeclaredTarget,
 ) (target.Target, error) {
 	cfg, ok := tgt.Config.(*MemTargetConfig)
 	if !ok {
 		return nil, &TestSetupError{
-			Reason: "MemTargetType.Create: wrong config type",
+			Reason: "MemTargetKind.Create: wrong config type",
 		}
 	}
 
@@ -64,7 +64,7 @@ func (t MemTargetType) Create(
 			entry.Expect = expect
 		}
 		// Dedupe by name — multi-deploy tests trigger Create once
-		// per ResolvedConfig but want to share a single backing
+		// per Config but want to share a single backing
 		// MemTarget so the verifier sees the combined state.
 		canonical := t.Registry.AddMemTarget(entry)
 		return canonical.Mock, nil

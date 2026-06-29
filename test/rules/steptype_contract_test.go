@@ -10,10 +10,10 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func Test_StepType_NewConfig_ReturnsPointer(t *testing.T) {
-	findStepType := func(pkgs []*packages.Package) *types.Interface {
+func Test_StepKind_NewConfig_ReturnsPointer(t *testing.T) {
+	findStepKind := func(pkgs []*packages.Package) *types.Interface {
 		for _, pkg := range pkgs {
-			if obj := pkg.Types.Scope().Lookup("StepType"); obj != nil {
+			if obj := pkg.Types.Scope().Lookup("StepKind"); obj != nil {
 				if tn, ok := obj.(*types.TypeName); ok {
 					if iface, ok := tn.Type().Underlying().(*types.Interface); ok {
 						return iface
@@ -45,13 +45,13 @@ func Test_StepType_NewConfig_ReturnsPointer(t *testing.T) {
 		t.Fatalf("failed to load packages: %v", err)
 	}
 
-	stepType := findStepType(pkgs)
+	stepType := findStepKind(pkgs)
 	if stepType == nil {
-		t.Fatal("StepType interface not found — invariant test is meaningless")
+		t.Fatal("StepKind interface not found — invariant test is meaningless")
 	}
 
 	if !hasNewConfigMethod(stepType) {
-		t.Fatal("StepType no longer defines NewConfig — update invariant test")
+		t.Fatal("StepKind no longer defines NewConfig — update invariant test")
 	}
 
 	checked := 0
@@ -68,7 +68,7 @@ func Test_StepType_NewConfig_ReturnsPointer(t *testing.T) {
 				continue
 			}
 
-			// Skip interfaces (including StepType itself)
+			// Skip interfaces (including StepKind itself)
 			if _, ok := named.Underlying().(*types.Interface); ok {
 				continue
 			}
@@ -84,7 +84,7 @@ func Test_StepType_NewConfig_ReturnsPointer(t *testing.T) {
 			ms := types.NewMethodSet(types.NewPointer(named))
 			sel := ms.Lookup(pkg.Types, "NewConfig")
 			if sel == nil {
-				t.Fatalf("%s implements StepType but has no NewConfig method", named)
+				t.Fatalf("%s implements StepKind but has no NewConfig method", named)
 			}
 
 			fnObj := sel.Obj().(*types.Func)
@@ -140,6 +140,6 @@ func Test_StepType_NewConfig_ReturnsPointer(t *testing.T) {
 	}
 
 	if checked == 0 {
-		t.Fatal("no StepType implementations found — invariant test not exercised")
+		t.Fatal("no StepKind implementations found — invariant test not exercised")
 	}
 }

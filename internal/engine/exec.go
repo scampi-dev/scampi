@@ -71,14 +71,14 @@ type scheduler struct {
 	src source.Source
 	tgt target.Target
 
-	// action context
+	// step context
 	actIdx    int
 	actKind   string
 	actDesc   string
 	hookID    string // non-empty when running ops for a hook
 	checkOnly bool   // true for check command (affects op event chattiness)
 
-	// promised holds resources that upstream actions have promised to create.
+	// promised holds resources that upstream steps have promised to create.
 	// Used during check mode to defer abort errors for resources that don't
 	// exist yet.
 	promised map[spec.Resource]bool
@@ -89,7 +89,7 @@ type scheduler struct {
 	ctx     diagnostic.Ctx
 }
 
-// stepRef and cause tag every event this scheduler emits with the action it
+// stepRef and cause tag every event this scheduler emits with the step it
 // belongs to and what triggered it (a hook, or nothing).
 func (s *scheduler) stepRef() event.StepRef {
 	return event.StepRef{Index: s.actIdx, Kind: s.actKind, Desc: s.actDesc}
@@ -138,10 +138,10 @@ func (s *scheduler) emitExecuted(displayID string) {
 	})
 }
 
-// emitResult fires the step-completion event once an action has settled,
+// emitResult fires the step-completion event once a step has settled,
 // carrying its verdict and op breakdown. The verdict honors check vs apply:
 // in check mode a "would change" counts as Changed.
-func (s *scheduler) emitResult(sum result.ActionSummary) {
+func (s *scheduler) emitResult(sum event.StepSummary) {
 	outcome := event.StepUnchanged
 	switch {
 	case sum.Failed+sum.Aborted > 0:
@@ -155,7 +155,7 @@ func (s *scheduler) emitResult(sum result.ActionSummary) {
 		Time:    time.Now(),
 		Step:    s.stepRef(),
 		Outcome: outcome,
-		Summary: event.StepSummary(sum),
+		Summary: sum,
 		Cause:   s.cause(),
 	})
 }
@@ -270,7 +270,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 }
 
 // isDeferred returns true when err references a missing resource that an
-// upstream action has already promised to create.
+// upstream step has already promised to create.
 func (s *scheduler) isDeferred(err error) bool {
 	if len(s.promised) == 0 {
 		return false
@@ -330,11 +330,11 @@ func (e *Engine) CheckPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 }
 
 func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution, map[spec.Resource]bool, error) {
-	nodes := buildActionGraph(plan.Deploy.Actions)
-	initActionPending(nodes)
+	nodes := buildStepGraph(plan.Deploy.Steps)
+	initStepPending(nodes)
 
 	rep := result.Execution{
-		Actions: make([]result.ActionReport, len(nodes)),
+		Steps: make([]result.StepReport, len(nodes)),
 	}
 
 	outputs := newStepOutputs()
@@ -343,9 +343,9 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 	promised := map[spec.Resource]bool{}
 	grp, gctx := errgroup.WithContext(ctx)
 
-	var scheduleNode func(n *actionNode)
-	scheduleNode = func(n *actionNode) {
-		// Snapshot promised resources for this action under the lock
+	var scheduleNode func(n *stepNode)
+	scheduleNode = func(n *stepNode) {
+		// Snapshot promised resources for this step under the lock
 		snap := maps.Clone(promised)
 
 		grp.Go(func() error {
@@ -355,9 +355,9 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 
 			// Resolve ref() markers before check (output available
 			// from already-checked upstream steps).
-			if r, ok := n.action.(refResolvable); ok {
+			if r, ok := n.step.(refResolvable); ok {
 				if err := r.ResolveRefs(buildRefResolver(outputs, true)); err != nil {
-					emitActionDiagnostic(ctx, n.idx, n.action.Kind(), n.action.Desc(), err)
+					emitStepDiagnostic(ctx, n.idx, n.step.Kind(), n.step.Desc(), err)
 					abortErr := AbortError{Causes: []error{err}}
 					mu.Lock()
 					defer mu.Unlock()
@@ -366,32 +366,32 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 				}
 			}
 
-			res, err := e.checkAction(ctx.With(gctx), n.idx, n.action, snap)
+			res, err := e.checkStep(ctx.With(gctx), n.idx, n.step, snap)
 
 			mu.Lock()
 			defer mu.Unlock()
 
-			rep.Actions[n.idx] = res
+			rep.Steps[n.idx] = res
 
 			// Capture step output for downstream refs.
-			captureStepOutput(n.action, res, outputs)
+			captureStepOutput(n.step, res, outputs)
 
 			if err != nil {
 				rep.Err = err
 				return err
 			}
 
-			// If this action would change something, add its promised
-			// resources to the set for downstream actions.
+			// If this step would change something, add its promised
+			// resources to the set for downstream steps.
 			if res.Summary.WouldChange > 0 {
-				if p, ok := n.action.(spec.Promiser); ok {
+				if p, ok := n.step.(spec.Promiser); ok {
 					for _, key := range p.Promises() {
 						promised[key] = true
 					}
 				}
 			}
 
-			// Unblock actions that were waiting for this one
+			// Unblock steps that were waiting for this one
 			for _, waiter := range n.requiredBy {
 				waiter.pending--
 				if waiter.pending == 0 {
@@ -419,25 +419,25 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 	return rep, promised, err
 }
 
-func (e *Engine) checkAction(
+func (e *Engine) checkStep(
 	ctx diagnostic.Ctx,
 	idx int,
-	act spec.Action,
+	act spec.Step,
 	promised map[spec.Resource]bool,
-) (result.ActionReport, error) {
-	return e.runCheckAction(ctx, idx, act, promised, "")
+) (result.StepReport, error) {
+	return e.runCheckStep(ctx, idx, act, promised, "")
 }
 
-func (e *Engine) runCheckAction(
+func (e *Engine) runCheckStep(
 	ctx diagnostic.Ctx,
 	idx int,
-	act spec.Action,
+	act spec.Step,
 	promised map[spec.Resource]bool,
 	hookID string,
-) (result.ActionReport, error) {
+) (result.StepReport, error) {
 	nodes, planErr := buildPlan(act.Ops())
 	if planErr != nil {
-		return result.ActionReport{}, planErr
+		return result.StepReport{}, planErr
 	}
 
 	s := &scheduler{
@@ -456,7 +456,7 @@ func (e *Engine) runCheckAction(
 
 	checkErr := s.runChecks(nodes)
 
-	// Unlike executeAction, we do NOT run the execution phase
+	// Unlike executeStep, we do NOT run the execution phase
 	// Mark unsatisfied ops as OpWouldChange
 	for _, n := range nodes {
 		if n.outcome == opOutcomeUnknown {
@@ -478,16 +478,16 @@ func (e *Engine) runCheckAction(
 
 	var err error
 	if checkErr != nil {
-		impact, consumed := emitActionDiagnostic(ctx, idx, act.Kind(), act.Desc(), checkErr)
+		impact, consumed := emitStepDiagnostic(ctx, idx, act.Kind(), act.Desc(), checkErr)
 		switch {
 		case impact.ShouldAbort():
 			err = AbortError{Causes: []error{checkErr}}
 		case consumed:
 			// Diagnostic emitted but didn't request a hard abort; ops
 			// nonetheless landed in OpAborted state. Surface a non-nil
-			// error so downstream actions don't run against a broken
+			// error so downstream steps don't run against a broken
 			// upstream (#330).
-			err = ActionAbortedError{Cause: checkErr}
+			err = StepAbortedError{Cause: checkErr}
 		default:
 			// Raw error that never went through the diagnostic pipeline —
 			// pass through so panicIfNotAbortError raises a BUG panic.
@@ -495,17 +495,17 @@ func (e *Engine) runCheckAction(
 		}
 	}
 
-	rep := buildActionReport(act, nodes)
+	rep := buildStepReport(act, nodes)
 	s.emitResult(rep.Summary)
 	return rep, err
 }
 
 func (e *Engine) executePlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution, error) {
-	nodes := buildActionGraph(plan.Deploy.Actions)
-	initActionPending(nodes)
+	nodes := buildStepGraph(plan.Deploy.Steps)
+	initStepPending(nodes)
 
 	rep := result.Execution{
-		Actions: make([]result.ActionReport, len(nodes)),
+		Steps: make([]result.StepReport, len(nodes)),
 	}
 
 	outputs := newStepOutputs()
@@ -513,17 +513,17 @@ func (e *Engine) executePlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Executi
 	var mu sync.Mutex
 	grp, gctx := errgroup.WithContext(ctx)
 
-	var scheduleNode func(n *actionNode)
-	scheduleNode = func(n *actionNode) {
+	var scheduleNode func(n *stepNode)
+	scheduleNode = func(n *stepNode) {
 		grp.Go(func() error {
 			if err := gctx.Err(); err != nil {
 				return err
 			}
 
 			// Resolve ref() markers before execution.
-			if r, ok := n.action.(refResolvable); ok {
+			if r, ok := n.step.(refResolvable); ok {
 				if err := r.ResolveRefs(buildRefResolver(outputs, false)); err != nil {
-					emitActionDiagnostic(ctx, n.idx, n.action.Kind(), n.action.Desc(), err)
+					emitStepDiagnostic(ctx, n.idx, n.step.Kind(), n.step.Desc(), err)
 					abortErr := AbortError{Causes: []error{err}}
 					mu.Lock()
 					defer mu.Unlock()
@@ -532,22 +532,22 @@ func (e *Engine) executePlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Executi
 				}
 			}
 
-			res, err := e.executeAction(ctx.With(gctx), n.idx, n.action)
+			res, err := e.executeStep(ctx.With(gctx), n.idx, n.step)
 
 			mu.Lock()
 			defer mu.Unlock()
 
-			rep.Actions[n.idx] = res
+			rep.Steps[n.idx] = res
 
 			// Capture step output for downstream refs.
-			captureStepOutput(n.action, res, outputs)
+			captureStepOutput(n.step, res, outputs)
 
 			if err != nil {
 				rep.Err = err
 				return err
 			}
 
-			// Unblock actions that were waiting for this one
+			// Unblock steps that were waiting for this one
 			for _, waiter := range n.requiredBy {
 				waiter.pending--
 				if waiter.pending == 0 {
@@ -576,8 +576,8 @@ func (e *Engine) executePlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Executi
 }
 
 // captureStepOutput stores a step's settled state in the output registry
-// if the action has a step ID and any of its ops implement OutputProvider.
-func captureStepOutput(act spec.Action, report result.ActionReport, outputs *stepOutputs) {
+// if the step has a step ID and any of its ops implement OutputProvider.
+func captureStepOutput(act spec.Step, report result.StepReport, outputs *stepOutputs) {
 	id, ok := act.(stepIdentifier)
 	if !ok {
 		return
@@ -592,18 +592,18 @@ func captureStepOutput(act spec.Action, report result.ActionReport, outputs *ste
 	}
 }
 
-func (e *Engine) executeAction(ctx diagnostic.Ctx, idx int, act spec.Action) (result.ActionReport, error) {
-	res, err := e.runAction(ctx, idx, act, "")
+func (e *Engine) executeStep(ctx diagnostic.Ctx, idx int, act spec.Step) (result.StepReport, error) {
+	res, err := e.runStep(ctx, idx, act, "")
 	if err != nil {
 		return res, err
 	}
 	return res, nil
 }
 
-func (e *Engine) runAction(ctx diagnostic.Ctx, idx int, act spec.Action, hookID string) (result.ActionReport, error) {
+func (e *Engine) runStep(ctx diagnostic.Ctx, idx int, act spec.Step, hookID string) (result.StepReport, error) {
 	nodes, planErr := buildPlan(act.Ops())
 	if planErr != nil {
-		return result.ActionReport{}, planErr
+		return result.StepReport{}, planErr
 	}
 
 	s := &scheduler{
@@ -655,30 +655,30 @@ func (e *Engine) runAction(ctx diagnostic.Ctx, idx int, act spec.Action, hookID 
 	}
 
 	if err != nil {
-		impact, consumed := emitActionDiagnostic(ctx, idx, act.Kind(), act.Desc(), err)
+		impact, consumed := emitStepDiagnostic(ctx, idx, act.Kind(), act.Desc(), err)
 		switch {
 		case impact.ShouldAbort():
 			err = AbortError{Causes: []error{err}}
 		case consumed:
 			// Diagnostic emitted but didn't request a hard abort; ops
 			// nonetheless landed in OpAborted state. Surface a non-nil
-			// error so downstream actions don't run against a broken
+			// error so downstream steps don't run against a broken
 			// upstream (#330).
-			err = ActionAbortedError{Cause: err}
+			err = StepAbortedError{Cause: err}
 		default:
 			// Raw error that never went through the diagnostic pipeline —
 			// pass through so panicIfNotAbortError raises a BUG panic.
 		}
 	}
 
-	rep := buildActionReport(act, nodes)
+	rep := buildStepReport(act, nodes)
 	s.emitResult(rep.Summary)
 	return rep, err
 }
 
-func buildActionReport(act spec.Action, nodes []*opNode) result.ActionReport {
-	var rep result.ActionReport
-	rep.Action = act
+func buildStepReport(act spec.Step, nodes []*opNode) result.StepReport {
+	var rep result.StepReport
+	rep.Step = act
 
 	for _, n := range nodes {
 		or := result.OpReport{
@@ -730,7 +730,7 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 			dn, ok := nodes[dep]
 			if !ok {
 				panic(errs.BUG(
-					"op %p depends on unknown op %p (StepType implementation error)",
+					"op %p depends on unknown op %p (StepKind implementation error)",
 					n.op, dep,
 				))
 			}
@@ -768,7 +768,7 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 	}
 
 	if visited != len(nodes) {
-		panic(errs.BUG("cycle detected in op graph (StepType implementation error)"))
+		panic(errs.BUG("cycle detected in op graph (StepKind implementation error)"))
 	}
 
 	for _, n := range nodes {

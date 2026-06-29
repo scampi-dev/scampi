@@ -10,25 +10,25 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-// detectDuplicatePromises rejects plans where two actions promise the
-// same Resource. Two actions promising the same resource is always a
+// detectDuplicatePromises rejects plans where two steps promise the
+// same Resource. Two steps promising the same resource is always a
 // user error: either two writers will race, or one masks the other
 // (e.g. two posix.user "alice").
 //
-// The first action to promise a given resource is the "winner"; every
-// later action promising the same resource produces a DuplicateResourceError
+// The first step to promise a given resource is the "winner"; every
+// later step promising the same resource produces a DuplicateResourceError
 // pointing back at the original.
 func detectDuplicatePromises(
 	ctx diagnostic.Ctx,
-	actions []spec.Action,
-	actionSteps []int,
-	steps []spec.StepInstance,
+	steps []spec.Step,
+	stepSources []int,
+	declared []spec.DeclaredStep,
 ) error {
-	winners := map[spec.Resource]int{} // resource → action index of first promiser
+	winners := map[spec.Resource]int{} // resource → step index of first promiser
 	var causes []error
 
-	for i, act := range actions {
-		p, ok := act.(spec.Promiser)
+	for i, step := range steps {
+		p, ok := step.(spec.Promiser)
 		if !ok {
 			continue
 		}
@@ -39,8 +39,8 @@ func detectDuplicatePromises(
 				continue
 			}
 
-			cur := steps[actionSteps[i]]
-			prev := steps[actionSteps[prevIdx]]
+			cur := declared[stepSources[i]]
+			prev := declared[stepSources[prevIdx]]
 			err := DuplicateResourceError{
 				Resource:     r,
 				KindLabel:    resourceKindLabel(r.Kind),
@@ -54,7 +54,7 @@ func detectDuplicatePromises(
 				OtherLocText: formatSpan(prev.Source),
 			}
 			causes = append(causes, err)
-			emitPlanDiagnostic(ctx, actionSteps[i], cur.Type.Kind(), cur.Desc, err)
+			emitPlanDiagnostic(ctx, stepSources[i], cur.Type.Kind(), cur.Desc, err)
 		}
 	}
 
@@ -64,7 +64,7 @@ func detectDuplicatePromises(
 	return nil
 }
 
-// DuplicateResourceError fires when two actions promise the same Resource.
+// DuplicateResourceError fires when two steps promise the same Resource.
 type DuplicateResourceError struct {
 	Resource     spec.Resource
 	KindLabel    string // human label for Resource.Kind (e.g. "container", "path")

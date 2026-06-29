@@ -44,7 +44,7 @@ func loadAndResolve(
 		return nil, err
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	return engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 }
@@ -238,7 +238,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Errorf("file B mode: got %o, want %o", tgt.Modes["/dest-b.txt"], 0o600)
 	}
 
-	// Both actions produced executed changes; the file-state checks
+	// Both steps produced executed changes; the file-state checks
 	// above are the real proof that they ran with the right content.
 	steps := map[int]bool{}
 	for _, c := range rec.Changes {
@@ -353,7 +353,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -367,8 +367,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_PartialFailure verifies that first action failure aborts
-// subsequent actions (fail-fast).
+// TestIntegration_PartialFailure verifies that first step failure aborts
+// subsequent steps (fail-fast).
 func TestIntegration_PartialFailure(t *testing.T) {
 	cfgStr := `
 module main
@@ -422,11 +422,11 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatal("expected error, got nil")
 	}
 
-	// With parallel execution, independent actions run concurrently.
+	// With parallel execution, independent steps run concurrently.
 	// The second copy (independent paths) WILL complete successfully
 	// even though the first copy failed.
 	if _, exists := innerTgt.Files["/dest-b.txt"]; !exists {
-		t.Error("second file should be written (independent action)")
+		t.Error("second file should be written (independent step)")
 	}
 
 }

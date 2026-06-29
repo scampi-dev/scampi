@@ -192,7 +192,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -258,7 +258,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -324,7 +324,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -347,7 +347,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 // BenchmarkApplyNoOp_Mixed exercises a configuration with multiple
 // step kinds at once (copy, dir, symlink, template). Heavier per-
-// action work than the uniform _NoOp variants; catches scheduler /
+// step work than the uniform _NoOp variants; catches scheduler /
 // DAG regressions that single-kind benches miss.
 func BenchmarkApplyNoOp_Mixed(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -404,7 +404,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -478,7 +478,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -542,7 +542,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -607,7 +607,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -674,7 +674,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -745,7 +745,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -816,7 +816,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -892,7 +892,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -961,7 +961,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -1032,7 +1032,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -1139,7 +1139,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -1234,7 +1234,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -1314,7 +1314,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {
@@ -1394,7 +1394,7 @@ std.deploy(name = "bench", targets = [host]) {
 					b.Fatalf("engine.Resolve() must not return error, got %v", err)
 				}
 
-				resolved.Target = harness.MockTargetInstance(tgt)
+				resolved.Target = harness.MockDeclaredTarget(tgt)
 
 				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 				if err != nil {

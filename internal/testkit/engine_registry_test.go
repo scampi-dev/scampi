@@ -14,15 +14,15 @@ import (
 type stubBase struct {
 	stepCalls   []string
 	targetCalls []string
-	targetTypes map[string]spec.TargetType
+	targetTypes map[string]spec.TargetKind
 }
 
-func (s *stubBase) StepType(kind string) (spec.StepType, bool) {
+func (s *stubBase) StepKind(kind string) (spec.StepKind, bool) {
 	s.stepCalls = append(s.stepCalls, kind)
 	return nil, false
 }
 
-func (s *stubBase) TargetType(kind string) (spec.TargetType, bool) {
+func (s *stubBase) TargetKind(kind string) (spec.TargetKind, bool) {
 	s.targetCalls = append(s.targetCalls, kind)
 	if t, ok := s.targetTypes[kind]; ok {
 		return t, true
@@ -41,10 +41,10 @@ func TestEngineRegistry_OverlaysTestTargets(t *testing.T) {
 
 	// Both test target kinds resolve to test types without
 	// touching the base registry.
-	if tt, ok := r.TargetType("test.target_in_memory"); !ok {
+	if tt, ok := r.TargetKind("test.target_in_memory"); !ok {
 		t.Errorf("test.target_in_memory not found")
-	} else if _, ok := tt.(MemTargetType); !ok {
-		t.Errorf("got %T, want MemTargetType", tt)
+	} else if _, ok := tt.(MemTargetKind); !ok {
+		t.Errorf("got %T, want MemTargetKind", tt)
 	}
 
 	if len(base.targetCalls) != 0 {
@@ -56,19 +56,19 @@ func TestEngineRegistry_FallsThroughForOtherTargets(t *testing.T) {
 	base := &stubBase{}
 	r := NewEngineRegistry(base, NewTestRegistry())
 
-	if _, ok := r.TargetType("ssh"); ok {
+	if _, ok := r.TargetKind("ssh"); ok {
 		t.Errorf("ssh should not resolve through stub base")
 	}
 	if len(base.targetCalls) != 1 || base.targetCalls[0] != "ssh" {
-		t.Errorf("base.TargetType not called once with 'ssh', got %v", base.targetCalls)
+		t.Errorf("base.TargetKind not called once with 'ssh', got %v", base.targetCalls)
 	}
 }
 
-func TestEngineRegistry_StepTypePassthrough(t *testing.T) {
+func TestEngineRegistry_StepKindPassthrough(t *testing.T) {
 	base := &stubBase{}
 	r := NewEngineRegistry(base, NewTestRegistry())
 
-	r.StepType("posix.copy")
+	r.StepKind("posix.copy")
 	if len(base.stepCalls) != 1 || base.stepCalls[0] != "posix.copy" {
 		t.Errorf("step lookup not forwarded: %v", base.stepCalls)
 	}
@@ -78,9 +78,9 @@ func TestEngineRegistry_TestTypesShareRegistry(t *testing.T) {
 	tests := NewTestRegistry()
 	r := NewEngineRegistry(&stubBase{}, tests)
 
-	tt, _ := r.TargetType("test.target_in_memory")
-	mtt := tt.(MemTargetType)
+	tt, _ := r.TargetKind("test.target_in_memory")
+	mtt := tt.(MemTargetKind)
 	if mtt.Registry != tests {
-		t.Errorf("MemTargetType bound to wrong registry")
+		t.Errorf("MemTargetKind bound to wrong registry")
 	}
 }

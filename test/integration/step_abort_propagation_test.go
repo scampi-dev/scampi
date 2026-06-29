@@ -15,11 +15,11 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-// Regression test for #330: when an action's op aborts on a non-Abort-impact
-// diagnostic, the action must still surface a non-nil error so downstream
-// actions don't get scheduled against the broken upstream.
+// Regression test for #330: when a step's op aborts on a non-Abort-impact
+// diagnostic, the step must still surface a non-nil error so downstream
+// steps don't get scheduled against the broken upstream.
 func TestExecutePlan_OpAborted_NonAbortImpact_BlocksDownstream(t *testing.T) {
-	actA := mkPromiserAction(nil, paths("/foo"),
+	actA := mkPromiserStep(nil, paths("/foo"),
 		&harness.FakeOp{
 			Name:    "A",
 			CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -32,17 +32,17 @@ func TestExecutePlan_OpAborted_NonAbortImpact_BlocksDownstream(t *testing.T) {
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("B must not run when A's op aborted"),
 	}
-	actB := mkPromiserAction(paths("/foo"), paths("/bar"), bOp)
+	actB := mkPromiserStep(paths("/foo"), paths("/bar"), bOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "issue-330",
-			Actions: []spec.Action{actA, actB},
+			ID:    "issue-330",
+			Steps: []spec.Step{actA, actB},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
 	if err != nil {
@@ -56,12 +56,12 @@ func TestExecutePlan_OpAborted_NonAbortImpact_BlocksDownstream(t *testing.T) {
 	}
 
 	// Engine treats every non-AbortError/CancelledError as a BUG panic, so
-	// any propagated action-abort error must satisfy errors.As(AbortError)
-	// or errors.As(ActionAbortedError) — either way, non-nil is the contract.
+	// any propagated step-abort error must satisfy errors.As(AbortError)
+	// or errors.As(StepAbortedError) — either way, non-nil is the contract.
 	var abort engine.AbortError
-	var aborted engine.ActionAbortedError
+	var aborted engine.StepAbortedError
 	if !errors.As(err, &abort) && !errors.As(err, &aborted) {
-		t.Errorf("expected AbortError or ActionAbortedError, got %T: %v", err, err)
+		t.Errorf("expected AbortError or StepAbortedError, got %T: %v", err, err)
 	}
 
 	if bOp.ExecCalls != 0 {

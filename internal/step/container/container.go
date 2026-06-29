@@ -84,7 +84,7 @@ type (
 		Promises    []string            `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs      []string            `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	instanceAction struct {
+	instanceStep struct {
 		desc        string
 		name        string
 		image       string
@@ -96,7 +96,7 @@ type (
 		args        []string
 		labels      map[string]string
 		healthcheck *target.Healthcheck
-		step        spec.StepInstance
+		step        spec.DeclaredStep
 	}
 )
 
@@ -114,7 +114,7 @@ func (c *InstanceConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (Instance) Plan(step spec.StepInstance) (spec.Action, error) {
+func (Instance) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*InstanceConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &InstanceConfig{}, step.Config)
@@ -124,7 +124,7 @@ func (Instance) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, err
 	}
 
-	return &instanceAction{
+	return &instanceStep{
 		desc:        cfg.Desc,
 		name:        cfg.Name,
 		image:       cfg.Image,
@@ -140,7 +140,7 @@ func (Instance) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (c *InstanceConfig) validate(step spec.StepInstance) error {
+func (c *InstanceConfig) validate(step spec.DeclaredStep) error {
 	// State and Restart are typed enums in the stub — lang/check
 	// rejects non-variant values, so we don't need a runtime
 	// switch-default to catch them.
@@ -195,10 +195,10 @@ func (c *InstanceConfig) validate(step spec.StepInstance) error {
 	return nil
 }
 
-func (a *instanceAction) Desc() string { return a.desc }
-func (a *instanceAction) Kind() string { return "container.instance" }
+func (a *instanceStep) Desc() string { return a.desc }
+func (a *instanceStep) Kind() string { return "container.instance" }
 
-func (a *instanceAction) Inputs() []spec.Resource {
+func (a *instanceStep) Inputs() []spec.Resource {
 	var r []spec.Resource
 	for _, m := range a.mounts {
 		r = append(r, spec.PathResource(m.Source))
@@ -206,9 +206,9 @@ func (a *instanceAction) Inputs() []spec.Resource {
 	return r
 }
 
-func (a *instanceAction) Promises() []spec.Resource { return nil }
+func (a *instanceStep) Promises() []spec.Resource { return nil }
 
-func (a *instanceAction) Ops() []spec.Op {
+func (a *instanceStep) Ops() []spec.Op {
 	op := &ensureContainerOp{
 		name:        a.name,
 		image:       a.image,
@@ -222,6 +222,6 @@ func (a *instanceAction) Ops() []spec.Op {
 		healthcheck: a.healthcheck,
 		step:        a.step,
 	}
-	op.SetAction(a)
+	op.SetStep(a)
 	return []spec.Op{op}
 }

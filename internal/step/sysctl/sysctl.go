@@ -21,12 +21,12 @@ type (
 		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	sysctlAction struct {
+	sysctlStep struct {
 		desc    string
 		key     string
 		value   string
 		persist bool
-		step    spec.StepInstance
+		step    spec.DeclaredStep
 	}
 )
 
@@ -37,13 +37,13 @@ func (c *SysctlConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (Sysctl) Plan(step spec.StepInstance) (spec.Action, error) {
+func (Sysctl) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*SysctlConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &SysctlConfig{}, step.Config)
 	}
 
-	return &sysctlAction{
+	return &sysctlStep{
 		desc:    cfg.Desc,
 		key:     cfg.Key,
 		value:   cfg.Value,
@@ -52,21 +52,21 @@ func (Sysctl) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *sysctlAction) Desc() string { return a.desc }
-func (a *sysctlAction) Kind() string { return "sysctl" }
+func (a *sysctlStep) Desc() string { return a.desc }
+func (a *sysctlStep) Kind() string { return "sysctl" }
 
-func (a *sysctlAction) Ops() []spec.Op {
+func (a *sysctlStep) Ops() []spec.Op {
 	set := &setSysctlOp{
 		key:   a.key,
 		value: a.value,
 	}
-	set.SetAction(a)
+	set.SetStep(a)
 
 	if !a.persist {
 		cleanup := &cleanupSysctlOp{
 			path: dropInPath(a.key),
 		}
-		cleanup.SetAction(a)
+		cleanup.SetStep(a)
 		cleanup.AddDependency(set)
 		return []spec.Op{set, cleanup}
 	}
@@ -76,7 +76,7 @@ func (a *sysctlAction) Ops() []spec.Op {
 		value: a.value,
 		path:  dropInPath(a.key),
 	}
-	persist.SetAction(a)
+	persist.SetStep(a)
 	persist.AddDependency(set)
 
 	return []spec.Op{set, persist}

@@ -12,12 +12,12 @@ var (
 	colPlanHeader = ansi.Magenta().Bold()
 	colPlanRail   = ansi.Magenta().Dim()
 
-	colActionKind              = ansi.Cyan().Bold()
-	colActionDesc              = ansi.Cyan()
-	colActionRail              = ansi.Cyan()
-	colActionOps               = ansi.Cyan().Dim()
-	colActionFinishedUnchanged = ansi.Green().Dim()
-	colActionFinishedChanged   = ansi.Yellow()
+	colStepKind              = ansi.Cyan().Bold()
+	colStepDesc              = ansi.Cyan()
+	colStepRail              = ansi.Cyan()
+	colStepOps               = ansi.Cyan().Dim()
+	colStepFinishedUnchanged = ansi.Green().Dim()
+	colStepFinishedChanged   = ansi.Yellow()
 
 	colOpHeader       = ansi.BrightBlack()
 	colOpRail         = ansi.BrightBlack().Dim()

@@ -36,17 +36,17 @@ func TestCheckPlan_DriftEmitted(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "driftUnit",
-			Desc:    "drift test",
-			Actions: []spec.Action{harness.MkAction(opA)},
+			ID:    "driftUnit",
+			Desc:  "drift test",
+			Steps: []spec.Step{harness.MkStep(opA)},
 		},
 	}
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
@@ -91,17 +91,17 @@ func TestCheckPlan_SatisfiedNoDrift(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "driftUnit",
-			Desc:    "drift test",
-			Actions: []spec.Action{harness.MkAction(opA)},
+			ID:    "driftUnit",
+			Desc:  "drift test",
+			Steps: []spec.Step{harness.MkStep(opA)},
 		},
 	}
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
@@ -132,17 +132,17 @@ func TestExecutePlan_NoDrift(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "driftUnit",
-			Desc:    "drift test",
-			Actions: []spec.Action{harness.MkAction(opA)},
+			ID:    "driftUnit",
+			Desc:  "drift test",
+			Steps: []spec.Step{harness.MkStep(opA)},
 		},
 	}
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)

@@ -13,7 +13,7 @@ const (
 	CodeUnknownHook         errs.Code = "engine.UnknownHook"
 	CodeHookCycle           errs.Code = "engine.HookCycle"
 	CodeCyclicDependency    errs.Code = "engine.CyclicDependency"
-	CodeActionCyclicDep     errs.Code = "engine.ActionCyclicDependency"
+	CodeStepCyclicDep       errs.Code = "engine.StepCyclicDependency"
 	CodeRefError            errs.Code = "engine.RefError"
 	CodeNoDiffableOps       errs.Code = "engine.inspect.NoDiffableOps"
 	CodeMultipleDiffableOps errs.Code = "engine.inspect.MultipleDiffableOps"

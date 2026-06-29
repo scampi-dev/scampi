@@ -11,7 +11,7 @@ import (
 )
 
 // initialState builds an `initial` value tree the way the linker
-// would hand it to MemTargetType.Create — a *eval.StructVal with
+// would hand it to MemTargetKind.Create — a *eval.StructVal with
 // per-slot map / list fields.
 func initialState(t *testing.T) *eval.StructVal {
 	t.Helper()
@@ -52,15 +52,15 @@ func initialState(t *testing.T) *eval.StructVal {
 	return sv
 }
 
-func TestMemTargetType_SeedsAllSlots(t *testing.T) {
+func TestMemTargetKind_SeedsAllSlots(t *testing.T) {
 	reg := NewTestRegistry()
-	tt := MemTargetType{Registry: reg}
+	tt := MemTargetKind{Registry: reg}
 
 	cfg := &MemTargetConfig{
 		Name:    "mock",
 		Initial: initialState(t),
 	}
-	got, err := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg})
+	got, err := tt.Create(t.Context(), nil, spec.DeclaredTarget{Config: cfg})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -86,9 +86,9 @@ func TestMemTargetType_SeedsAllSlots(t *testing.T) {
 	}
 }
 
-func TestMemTargetType_RegistersInRegistry(t *testing.T) {
+func TestMemTargetKind_RegistersInRegistry(t *testing.T) {
 	reg := NewTestRegistry()
-	tt := MemTargetType{Registry: reg}
+	tt := MemTargetKind{Registry: reg}
 
 	expect := &eval.StructVal{
 		TypeName: "ExpectedState",
@@ -97,7 +97,7 @@ func TestMemTargetType_RegistersInRegistry(t *testing.T) {
 	}
 	cfg := &MemTargetConfig{Name: "mock", Expect: expect}
 
-	if _, err := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg}); err != nil {
+	if _, err := tt.Create(t.Context(), nil, spec.DeclaredTarget{Config: cfg}); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
@@ -116,12 +116,12 @@ func TestMemTargetType_RegistersInRegistry(t *testing.T) {
 	}
 }
 
-func TestMemTargetType_NilInitialAndExpect(t *testing.T) {
+func TestMemTargetKind_NilInitialAndExpect(t *testing.T) {
 	reg := NewTestRegistry()
-	tt := MemTargetType{Registry: reg}
+	tt := MemTargetKind{Registry: reg}
 	cfg := &MemTargetConfig{Name: "mock"}
 
-	got, err := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg})
+	got, err := tt.Create(t.Context(), nil, spec.DeclaredTarget{Config: cfg})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -135,11 +135,11 @@ func TestMemTargetType_NilInitialAndExpect(t *testing.T) {
 	}
 }
 
-func TestMemTargetType_NilRegistry(t *testing.T) {
+func TestMemTargetKind_NilRegistry(t *testing.T) {
 	// Without a registry the constructor still works — the mock is
 	// returned but not tracked. Useful for one-off Go-side tests.
-	tt := MemTargetType{Registry: nil}
-	got, err := tt.Create(t.Context(), nil, spec.TargetInstance{
+	tt := MemTargetKind{Registry: nil}
+	got, err := tt.Create(t.Context(), nil, spec.DeclaredTarget{
 		Config: &MemTargetConfig{Name: "anon"},
 	})
 	if err != nil {
@@ -150,12 +150,12 @@ func TestMemTargetType_NilRegistry(t *testing.T) {
 	}
 }
 
-func TestMemTargetType_VerifyRoundTrip(t *testing.T) {
+func TestMemTargetKind_VerifyRoundTrip(t *testing.T) {
 	// End-to-end Phase 2 + Phase 3: build a target via the
-	// TargetType, mutate it as if engine.Apply ran ops, then run
+	// TargetKind, mutate it as if engine.Apply ran ops, then run
 	// VerifyMemTarget against the registry's stored expect.
 	reg := NewTestRegistry()
-	tt := MemTargetType{Registry: reg}
+	tt := MemTargetKind{Registry: reg}
 
 	expect := expectState(map[string]map[string]*eval.StructVal{
 		"files": {
@@ -167,7 +167,7 @@ func TestMemTargetType_VerifyRoundTrip(t *testing.T) {
 	})
 
 	cfg := &MemTargetConfig{Name: "mock", Expect: expect}
-	got, _ := tt.Create(t.Context(), nil, spec.TargetInstance{Config: cfg})
+	got, _ := tt.Create(t.Context(), nil, spec.DeclaredTarget{Config: cfg})
 	mock := got.(*target.MemTarget)
 
 	// Simulate engine.Apply: write a file, start a service.

@@ -25,7 +25,7 @@ import (
 //
 //	Check = Satisfied
 //	Execute = MUST NOT be called
-func TestExecuteAction_AllOpsSkipped(t *testing.T) {
+func TestExecuteStep_AllOpsSkipped(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
@@ -46,8 +46,8 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB, opC),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB, opC),
 			},
 		},
 	}
@@ -57,8 +57,8 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -76,7 +76,7 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 		t.Fatalf("expected all checks to run once")
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpSkipped)
 	mustOpOutcome(t, ar, "B", result.OpSkipped)
 	mustOpOutcome(t, ar, "C", result.OpSkipped)
@@ -90,7 +90,7 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 //
 //	Check = Unsatisfied
 //	Execute = Success
-func TestExecuteAction_LinearSuccess(t *testing.T) {
+func TestExecuteStep_LinearSuccess(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -114,8 +114,8 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB, opC),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB, opC),
 			},
 		},
 	}
@@ -125,8 +125,8 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -144,7 +144,7 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 		t.Fatalf("expected all ops to execute once")
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpSucceeded)
 	mustOpOutcome(t, ar, "B", result.OpSucceeded)
 	mustOpOutcome(t, ar, "C", result.OpSucceeded)
@@ -159,8 +159,8 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 //	A.Execute → Success
 //	B.Execute → Abort
 //	C.Execute → MUST NOT be called
-func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
-	var act *harness.FakeAction
+func TestExecuteStep_FailFast_MiddleOfChain(t *testing.T) {
+	var act *harness.FakeStep
 
 	opA := &harness.FakeOp{
 		Name:    "A",
@@ -183,13 +183,13 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 	opB.Deps = []spec.Op{opA}
 	opC.Deps = []spec.Op{opB}
 
-	act = harness.MkAction(opA, opB, opC)
+	act = harness.MkStep(opA, opB, opC)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
+			Steps: []spec.Step{
 				act,
 			},
 		},
@@ -200,8 +200,8 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -230,7 +230,7 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 		t.Fatalf("expected C not to execute, got %d", opC.ExecCalls)
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpSucceeded)
 	mustOpOutcome(t, ar, "B", result.OpFailed)
 	mustOpOutcome(t, ar, "C", result.OpAborted)
@@ -250,7 +250,7 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 //	B.Execute → Success
 //	C.Execute → Abort
 //	D.Execute → MUST NOT be called
-func TestExecuteAction_BranchFailure(t *testing.T) {
+func TestExecuteStep_BranchFailure(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -280,8 +280,8 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB, opC, opD),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB, opC, opD),
 			},
 		},
 	}
@@ -291,8 +291,8 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -313,7 +313,7 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 		t.Fatalf("expected D not to execute")
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpSucceeded)
 	mustOpOutcome(t, ar, "B", result.OpSucceeded)
 	mustOpOutcome(t, ar, "C", result.OpFailed)
@@ -328,7 +328,7 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 //
 //	A.Check   → Diagnostic (Warning, Continue)
 //	A.Execute → Success
-func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
+func TestExecuteStep_CheckDiagnostic_Continues(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.DiagCheckFn(signal.Warning, diagnostic.ImpactNone),
@@ -339,8 +339,8 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA),
+			Steps: []spec.Step{
+				harness.MkStep(opA),
 			},
 		},
 	}
@@ -350,8 +350,8 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -369,7 +369,7 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 		t.Fatalf("expected A to execute")
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpSucceeded)
 }
 
@@ -382,7 +382,7 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 //	A.Check   → Diagnostic (Abort)
 //	A.Execute → MUST NOT be called
 //	B.Execute → MUST NOT be called
-func TestExecuteAction_AbortDuringCheck(t *testing.T) {
+func TestExecuteStep_AbortDuringCheck(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.DiagCheckFn(signal.Error, diagnostic.ImpactAbort),
@@ -400,8 +400,8 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB),
 			},
 		},
 	}
@@ -411,8 +411,8 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -426,7 +426,7 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 		t.Fatalf("expected abort error")
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpAborted)
 	mustOpOutcome(t, ar, "B", result.OpAborted)
 }
@@ -440,7 +440,7 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 //	A.Execute → Success
 //	B.Execute → Abort
 //	C.Execute → MUST NOT be called
-func TestExecuteAction_AbortDuringExecution(t *testing.T) {
+func TestExecuteStep_AbortDuringExecution(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -464,8 +464,8 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB, opC),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB, opC),
 			},
 		},
 	}
@@ -475,8 +475,8 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -490,7 +490,7 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 		t.Fatalf("expected abort error")
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpSucceeded)
 	mustOpOutcome(t, ar, "B", result.OpFailed)
 	mustOpOutcome(t, ar, "C", result.OpAborted)
@@ -505,7 +505,7 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 //	A.Check   → Satisfied (Skipped)
 //	A.Execute → MUST NOT be called
 //	B.Execute → Success
-func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
+func TestExecuteStep_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
@@ -525,8 +525,8 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(opA, opB),
+			Steps: []spec.Step{
+				harness.MkStep(opA, opB),
 			},
 		},
 	}
@@ -536,8 +536,8 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -567,23 +567,23 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 		t.Fatalf("expected B to execute once, got %d", opB.ExecCalls)
 	}
 
-	ar := mustSingleAction(t, rep)
+	ar := mustSingleStep(t, rep)
 	mustOpOutcome(t, ar, "A", result.OpSkipped)
 	mustOpOutcome(t, ar, "B", result.OpSucceeded)
 }
 
-func mustSingleAction(t *testing.T, rep result.Execution) result.ActionReport {
+func mustSingleStep(t *testing.T, rep result.Execution) result.StepReport {
 	t.Helper()
 
-	if len(rep.Actions) != 1 {
-		t.Fatalf("expected exactly 1 action, got %d", len(rep.Actions))
+	if len(rep.Steps) != 1 {
+		t.Fatalf("expected exactly 1 step, got %d", len(rep.Steps))
 	}
-	return rep.Actions[0]
+	return rep.Steps[0]
 }
 
 func mustOpOutcome(
 	t *testing.T,
-	ar result.ActionReport,
+	ar result.StepReport,
 	opName string,
 	want result.OpOutcome,
 ) result.OpReport {
@@ -604,6 +604,6 @@ func mustOpOutcome(
 		}
 	}
 
-	t.Fatalf("op %q not found in action report", opName)
+	t.Fatalf("op %q not found in step report", opName)
 	return result.OpReport{}
 }

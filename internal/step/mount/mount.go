@@ -155,14 +155,14 @@ type (
 		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	mountAction struct {
+	mountStep struct {
 		desc  string
 		src   string
 		dest  string
 		fstyp FsType
 		opts  string
 		state State
-		step  spec.StepInstance
+		step  spec.DeclaredStep
 	}
 )
 
@@ -180,7 +180,7 @@ func (c *MountConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (Mount) Plan(step spec.StepInstance) (spec.Action, error) {
+func (Mount) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*MountConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &MountConfig{}, step.Config)
@@ -215,7 +215,7 @@ func (Mount) Plan(step spec.StepInstance) (spec.Action, error) {
 		cfg.Src = "*"
 	}
 
-	return &mountAction{
+	return &mountStep{
 		desc:  cfg.Desc,
 		src:   cfg.Src,
 		dest:  cfg.Dest,
@@ -226,9 +226,9 @@ func (Mount) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *mountAction) Desc() string { return a.desc }
-func (a *mountAction) Kind() string { return "mount" }
-func (a *mountAction) Ops() []spec.Op {
+func (a *mountStep) Desc() string { return a.desc }
+func (a *mountStep) Kind() string { return "mount" }
+func (a *mountStep) Ops() []spec.Op {
 	op := &ensureMountOp{
 		src:   a.src,
 		dest:  a.dest,
@@ -236,6 +236,6 @@ func (a *mountAction) Ops() []spec.Op {
 		opts:  a.opts,
 		state: a.state,
 	}
-	op.SetAction(a)
+	op.SetStep(a)
 	return []spec.Op{op}
 }

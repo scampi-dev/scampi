@@ -52,7 +52,7 @@ type CLI struct {
 	planRenderer *planRenderer
 	formatter    *formatter
 
-	// stepDrift accumulates an action's Change events until its Result
+	// stepDrift accumulates a step's Change events until its Result
 	// arrives, so the whole block renders atomically (header, then railed
 	// drift). No lock: the Emitter serializes delivery (see diagnostic.Output).
 	stepDrift map[int][]event.Change
@@ -137,7 +137,7 @@ func (c *CLI) commitRenderEvents(events []renderEvent) {
 // the aggregated ExecutionReport returned by engine.Check / Apply.
 func (c *CLI) RenderSummary(rep result.Execution, checkOnly bool) {
 	var changed, wouldChange, failed int
-	for _, ar := range rep.Actions {
+	for _, ar := range rep.Steps {
 		changed += ar.Summary.Changed
 		wouldChange += ar.Summary.WouldChange
 		failed += ar.Summary.Failed + ar.Summary.Aborted
@@ -164,7 +164,7 @@ func (c *CLI) RenderSummary(rep result.Execution, checkOnly bool) {
 	}})
 }
 
-// RenderPlan prints the per-deploy action plans (one tree each, in
+// RenderPlan prints the per-deploy step plans (one tree each, in
 // topo order) and, when the cross-deploy graph has any structure
 // worth showing, follows them with a [graph] header section.
 func (c *CLI) RenderPlan(plan result.Plan) {
@@ -593,8 +593,8 @@ func (c *CLI) RenderLegend() {
 	var events []renderEvent
 
 	events = append(events, c.legendSection("STATE", []legendEntry{
-		{c.glyphs.change, colActionFinishedChanged, "change", "system state was modified"},
-		{c.glyphs.ok, colActionFinishedUnchanged, "ok", "already correct, no change needed"},
+		{c.glyphs.change, colStepFinishedChanged, "change", "system state was modified"},
+		{c.glyphs.ok, colStepFinishedUnchanged, "ok", "already correct, no change needed"},
 		{c.glyphs.exec, colOpExecChanged, "exec", "operation executed"},
 		{c.glyphs.warn, colOpCheckUnknown, "warn", "non-fatal issue"},
 		{c.glyphs.err, colOpExecFailed, "error", "operation failed"},
@@ -603,23 +603,23 @@ func (c *CLI) RenderLegend() {
 	events = append(events, renderEvent{stream: streamOut, line: ""})
 
 	planBoundary := fmt.Sprintf("%s %s %s", c.glyphs.planStart, c.glyphs.separator, c.glyphs.planEnd)
-	actionHeader := fmt.Sprintf("%s [0] copy", c.glyphs.actionStart)
-	opBranch := fmt.Sprintf("%s %s CopyCheck", c.glyphs.actionRail, c.glyphs.opBranch)
-	opLast := fmt.Sprintf("%s %s CopyExec", c.glyphs.actionRail, c.glyphs.opLast)
-	collapsed := fmt.Sprintf("%s  [2] symlink", c.glyphs.actionStartCollapsed)
+	stepHeader := fmt.Sprintf("%s [0] copy", c.glyphs.stepStart)
+	opBranch := fmt.Sprintf("%s %s CopyCheck", c.glyphs.stepRail, c.glyphs.opBranch)
+	opLast := fmt.Sprintf("%s %s CopyExec", c.glyphs.stepRail, c.glyphs.opLast)
+	collapsed := fmt.Sprintf("%s  [2] symlink", c.glyphs.stepStartCollapsed)
 
 	events = append(events, c.legendSection("PLAN", []legendEntry{
 		{planBoundary, colPlanRail, "", "plan boundary (wraps entire execution)"},
-		{c.glyphs.planRail, colPlanRail, "", "plan rail (actions listed inside)"},
+		{c.glyphs.planRail, colPlanRail, "", "plan rail (steps listed inside)"},
 		{"", ansi.ANSI{}, "", ""},
-		{actionHeader, colActionKind, "", "action start (step with ops)"},
+		{stepHeader, colStepKind, "", "step start (step with ops)"},
 		{opBranch, colOpHeader, "", "op branch"},
 		{opLast, colOpHeader, "", "op branch (last)"},
-		{c.glyphs.actionEnd, colActionRail, "", "action end"},
+		{c.glyphs.stepEnd, colStepRail, "", "step end"},
 		{"", ansi.ANSI{}, "", ""},
-		{collapsed, colActionKind, "", "collapsed action (default verbosity)"},
+		{collapsed, colStepKind, "", "collapsed step (default verbosity)"},
 		{"", ansi.ANSI{}, "", ""},
-		{c.glyphs.depsArrow + " [N, ...]", colPlanDeps, "", "depends on action N (must complete first)"},
+		{c.glyphs.depsArrow + " [N, ...]", colPlanDeps, "", "depends on step N (must complete first)"},
 		{c.glyphs.parallelTop, colPlanBracket, "", "parallel execution group"},
 		{c.glyphs.parallelMid, colPlanBracket, "", ""},
 		{c.glyphs.parallelBot, colPlanBracket, "", ""},
@@ -634,7 +634,7 @@ func (c *CLI) RenderLegend() {
 			{"red", ansi.Red(), "", "failure"},
 			{"blue", ansi.Blue(), "", "engine and plan boundaries"},
 			{"magenta", ansi.Magenta(), "", "plan structure"},
-			{"cyan", ansi.Cyan(), "", "action context"},
+			{"cyan", ansi.Cyan(), "", "step context"},
 			{"dim", ansi.BrightBlack().Dim(), "", "detail (higher verbosity)"},
 		})...)
 		events = append(events, renderEvent{stream: streamOut, line: ""})
@@ -710,20 +710,20 @@ func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
 	var col ansi.ANSI
 	switch res.Outcome {
 	case event.StepChanged:
-		glyph, col = c.glyphs.change, colActionFinishedChanged
+		glyph, col = c.glyphs.change, colStepFinishedChanged
 	case event.StepFailed:
 		glyph, col = c.glyphs.err, colOpExecFailed
 	case event.StepUnchanged:
 		if v < signal.V {
 			return // converged steps are noise at default verbosity
 		}
-		glyph, col = c.glyphs.ok, colActionFinishedUnchanged
+		glyph, col = c.glyphs.ok, colStepFinishedUnchanged
 	default:
 		return
 	}
 
 	header := c.formatter.fmtMsg(col, "  "+glyph) +
-		c.formatter.fmtfMsg(colActionKind, " [%d]%s", displayIndex(res.Step.Index), kindSuffix(res.Step.Kind)) +
+		c.formatter.fmtfMsg(colStepKind, " [%d]%s", displayIndex(res.Step.Index), kindSuffix(res.Step.Kind)) +
 		c.descSuffix(res.Step.Desc) +
 		scopeFromCause(res.Cause)
 	out := []renderEvent{{stream: streamOut, line: header}}
@@ -746,7 +746,7 @@ func (c *CLI) descSuffix(desc string) string {
 	if desc == "" {
 		return ""
 	}
-	return c.formatter.fmtfMsg(colActionDesc, " %s %s", c.glyphs.actionKindSep, desc)
+	return c.formatter.fmtfMsg(colStepDesc, " %s %s", c.glyphs.stepKindSep, desc)
 }
 
 // driftRows formats the visible drift lines for a step, with the op and field
@@ -788,7 +788,7 @@ func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
 	return rows
 }
 
-// displayIndex maps an engine action index (0-based, an array position) to its
+// displayIndex maps an engine step index (0-based, an array position) to its
 // user-facing ordinal (1-based). The single conversion point: engine internals
 // stay 0-based, every surface that shows an index to a human — plan, the
 // check/apply stream, future --json — routes through here so a "[3]" means the

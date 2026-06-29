@@ -53,7 +53,7 @@ func TestSSH_Connect_WrongKey(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(t.Context(), src, spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.SourceSpan{}},
@@ -87,7 +87,7 @@ func TestSSH_Connect_NoSuchHost(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(t.Context(), src, spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.SourceSpan{}},
@@ -114,7 +114,7 @@ func TestSSH_Connect_InvalidTimeout(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(t.Context(), source.NewMemSource(), spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), source.NewMemSource(), spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"timeout": {Value: spec.SourceSpan{Filename: "test.scampi", StartLine: 5}},
@@ -157,7 +157,7 @@ func TestSSH_Connect_PublicKeyAsPrivate(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(t.Context(), src, spec.TargetInstance{
+	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.SourceSpan{}},

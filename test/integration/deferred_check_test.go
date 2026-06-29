@@ -19,16 +19,16 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-// fakePromiserAction wraps a harness.FakeAction with resource declarations for the
-// action dependency graph and promise system.
-type fakePromiserAction struct {
-	harness.FakeAction
+// fakePromiserStep wraps a harness.FakeStep with resource declarations for the
+// step dependency graph and promise system.
+type fakePromiserStep struct {
+	harness.FakeStep
 	inputs   []spec.Resource
 	promises []spec.Resource
 }
 
-func (a *fakePromiserAction) Inputs() []spec.Resource   { return a.inputs }
-func (a *fakePromiserAction) Promises() []spec.Resource { return a.promises }
+func (a *fakePromiserStep) Inputs() []spec.Resource   { return a.inputs }
+func (a *fakePromiserStep) Promises() []spec.Resource { return a.promises }
 
 func paths(s ...string) []spec.Resource {
 	r := make([]spec.Resource, len(s))
@@ -54,31 +54,31 @@ func groups(s ...string) []spec.Resource {
 	return r
 }
 
-func mkPromiserAction(inputs, promises []spec.Resource, ops ...*harness.FakeOp) *fakePromiserAction {
-	act := &fakePromiserAction{
+func mkPromiserStep(inputs, promises []spec.Resource, ops ...*harness.FakeOp) *fakePromiserStep {
+	act := &fakePromiserStep{
 		inputs:   inputs,
 		promises: promises,
 	}
 	for _, op := range ops {
 		act.AddOp(op)
-		op.SetAction(act)
+		op.SetStep(act)
 	}
 	return act
 }
 
 // TestCheck_DeferredPath_UpstreamPromisesDirectory verifies that check mode
 // does not abort when a downstream op reports a missing directory that an
-// upstream action has promised to create.
+// upstream step has promised to create.
 func TestCheck_DeferredPath_UpstreamPromisesDirectory(t *testing.T) {
-	// dir action: check says "unsatisfied" (directory doesn't exist yet)
+	// dir step: check says "unsatisfied" (directory doesn't exist yet)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(nil, paths("/foo"), dirOp)
+	dirStep := mkPromiserStep(nil, paths("/foo"), dirOp)
 
-	// copy action: check returns CopyDestDirMissingError for /foo
+	// copy step: check returns CopyDestDirMissingError for /foo
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
@@ -88,17 +88,17 @@ func TestCheck_DeferredPath_UpstreamPromisesDirectory(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	copyAction := mkPromiserAction(paths("/foo"), paths("/foo/bar"), copyOp)
+	copyStep := mkPromiserStep(paths("/foo"), paths("/foo/bar"), copyOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-deferred",
-			Actions: []spec.Action{dirAction, copyAction},
+			ID:    "test-deferred",
+			Steps: []spec.Step{dirStep, copyStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -112,25 +112,25 @@ func TestCheck_DeferredPath_UpstreamPromisesDirectory(t *testing.T) {
 		t.Fatalf("CheckPlan must not return error when path is deferred, got: %v", err)
 	}
 
-	if len(rep.Actions) != 2 {
-		t.Fatalf("expected 2 action reports, got %d", len(rep.Actions))
+	if len(rep.Steps) != 2 {
+		t.Fatalf("expected 2 step reports, got %d", len(rep.Steps))
 	}
 
-	for i, ar := range rep.Actions {
+	for i, ar := range rep.Steps {
 		if ar.Summary.WouldChange == 0 {
-			t.Errorf("action %d: expected WouldChange > 0, got %+v", i, ar.Summary)
+			t.Errorf("step %d: expected WouldChange > 0, got %+v", i, ar.Summary)
 		}
 		if ar.Summary.Failed > 0 {
-			t.Errorf("action %d: expected no failures, got Failed=%d", i, ar.Summary.Failed)
+			t.Errorf("step %d: expected no failures, got Failed=%d", i, ar.Summary.Failed)
 		}
 		if ar.Summary.Aborted > 0 {
-			t.Errorf("action %d: expected no aborts, got Aborted=%d", i, ar.Summary.Aborted)
+			t.Errorf("step %d: expected no aborts, got Aborted=%d", i, ar.Summary.Aborted)
 		}
 	}
 }
 
 // TestCheck_DeferredPath_NoPromise_StillAborts verifies that a missing
-// directory error still aborts when no upstream action promises the path.
+// directory error still aborts when no upstream step promises the path.
 func TestCheck_DeferredPath_NoPromise_StillAborts(t *testing.T) {
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
@@ -141,17 +141,17 @@ func TestCheck_DeferredPath_NoPromise_StillAborts(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	copyAction := mkPromiserAction(nil, paths("/nonexistent/bar"), copyOp)
+	copyStep := mkPromiserStep(nil, paths("/nonexistent/bar"), copyOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-no-promise",
-			Actions: []spec.Action{copyAction},
+			ID:    "test-no-promise",
+			Steps: []spec.Step{copyStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -162,23 +162,23 @@ func TestCheck_DeferredPath_NoPromise_StillAborts(t *testing.T) {
 
 	_, _, err = e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err == nil {
-		t.Fatalf("CheckPlan must abort when no upstream action promises the path")
+		t.Fatalf("CheckPlan must abort when no upstream step promises the path")
 	}
 }
 
 // TestCheck_DeferredPath_UpstreamSatisfied_NoPromise verifies that a
-// satisfied upstream action (CheckSatisfied, WouldChange=0) does NOT add
+// satisfied upstream step (CheckSatisfied, WouldChange=0) does NOT add
 // its paths to the promised set, so a downstream missing-dir error still aborts.
 func TestCheck_DeferredPath_UpstreamSatisfied_NoPromise(t *testing.T) {
-	// dir action: already satisfied (directory exists)
+	// dir step: already satisfied (directory exists)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(nil, paths("/foo"), dirOp)
+	dirStep := mkPromiserStep(nil, paths("/foo"), dirOp)
 
-	// copy action: missing dir error
+	// copy step: missing dir error
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
@@ -188,17 +188,17 @@ func TestCheck_DeferredPath_UpstreamSatisfied_NoPromise(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	copyAction := mkPromiserAction(paths("/foo"), paths("/foo/bar"), copyOp)
+	copyStep := mkPromiserStep(paths("/foo"), paths("/foo/bar"), copyOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-satisfied-no-promise",
-			Actions: []spec.Action{dirAction, copyAction},
+			ID:    "test-satisfied-no-promise",
+			Steps: []spec.Step{dirStep, copyStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -222,7 +222,7 @@ func TestCheck_DeferredPath_NonDeferrableError_StillAborts(t *testing.T) {
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(nil, paths("/foo"), dirOp)
+	dirStep := mkPromiserStep(nil, paths("/foo"), dirOp)
 
 	// This op returns a plain abort diagnostic (not Deferrable)
 	abortOp := &harness.FakeOp{
@@ -230,17 +230,17 @@ func TestCheck_DeferredPath_NonDeferrableError_StillAborts(t *testing.T) {
 		CheckFn: harness.DiagCheckFn(signal.Error, diagnostic.ImpactAbort),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	abortAction := mkPromiserAction(paths("/foo"), paths("/foo/file"), abortOp)
+	abortStep := mkPromiserStep(paths("/foo"), paths("/foo/file"), abortOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-non-deferrable",
-			Actions: []spec.Action{dirAction, abortAction},
+			ID:    "test-non-deferrable",
+			Steps: []spec.Step{dirStep, abortStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -258,13 +258,13 @@ func TestCheck_DeferredPath_NonDeferrableError_StillAborts(t *testing.T) {
 // TestCheck_DeferredPath_AncestorPromise verifies that a promised path like
 // /foo/bar also defers errors for /foo (MkdirAll creates ancestors).
 func TestCheck_DeferredPath_AncestorPromise(t *testing.T) {
-	// dir action promises /foo/bar (MkdirAll would create /foo too)
+	// dir step promises /foo/bar (MkdirAll would create /foo too)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(nil, paths("/foo/bar"), dirOp)
+	dirStep := mkPromiserStep(nil, paths("/foo/bar"), dirOp)
 
 	// copy needs /foo to exist (parent of /foo/file)
 	// Input depends on /foo/bar so the graph orders dir before copy.
@@ -277,17 +277,17 @@ func TestCheck_DeferredPath_AncestorPromise(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	copyAction := mkPromiserAction(paths("/foo/bar"), paths("/foo/file"), copyOp)
+	copyStep := mkPromiserStep(paths("/foo/bar"), paths("/foo/file"), copyOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-ancestor-promise",
-			Actions: []spec.Action{dirAction, copyAction},
+			ID:    "test-ancestor-promise",
+			Steps: []spec.Step{dirStep, copyStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -301,9 +301,9 @@ func TestCheck_DeferredPath_AncestorPromise(t *testing.T) {
 		t.Fatalf("CheckPlan must not abort when ancestor path is promised, got: %v", err)
 	}
 
-	for i, ar := range rep.Actions {
+	for i, ar := range rep.Steps {
 		if ar.Summary.WouldChange == 0 {
-			t.Errorf("action %d: expected WouldChange > 0", i)
+			t.Errorf("step %d: expected WouldChange > 0", i)
 		}
 	}
 }
@@ -316,7 +316,7 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(nil, paths("/foo"), dirOp)
+	dirStep := mkPromiserStep(nil, paths("/foo"), dirOp)
 
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
@@ -327,17 +327,17 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	copyAction := mkPromiserAction(paths("/foo"), paths("/foo/bar"), copyOp)
+	copyStep := mkPromiserStep(paths("/foo"), paths("/foo/bar"), copyOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-outcome",
-			Actions: []spec.Action{dirAction, copyAction},
+			ID:    "test-outcome",
+			Steps: []spec.Step{dirStep, copyStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -351,10 +351,10 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 		t.Fatalf("CheckPlan: %v", err)
 	}
 
-	// The copy action's single op should be WouldChange
-	copyReport := rep.Actions[1]
+	// The copy step's single op should be WouldChange
+	copyReport := rep.Steps[1]
 	if len(copyReport.Ops) != 1 {
-		t.Fatalf("expected 1 op in copy action, got %d", len(copyReport.Ops))
+		t.Fatalf("expected 1 op in copy step, got %d", len(copyReport.Ops))
 	}
 
 	if copyReport.Ops[0].Outcome != result.OpWouldChange {
@@ -367,17 +367,17 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 
 // TestCheck_DeferredUser_UpstreamPromisesUser verifies that check mode does
 // not abort when a downstream op reports an unknown user that an upstream
-// action has promised to create.
+// step has promised to create.
 func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
-	// user action: check says "unsatisfied" (user doesn't exist yet)
+	// user step: check says "unsatisfied" (user doesn't exist yet)
 	userOp := &harness.FakeOp{
 		Name:    "ensure-user",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	userAction := mkPromiserAction(nil, users("appd"), userOp)
+	userStep := mkPromiserStep(nil, users("appd"), userOp)
 
-	// dir action: check returns UnknownUserError for appd
+	// dir step: check returns UnknownUserError for appd
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
@@ -387,17 +387,17 @@ func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(users("appd"), paths("/opt/app"), dirOp)
+	dirStep := mkPromiserStep(users("appd"), paths("/opt/app"), dirOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-deferred-user",
-			Actions: []spec.Action{userAction, dirAction},
+			ID:    "test-deferred-user",
+			Steps: []spec.Step{userStep, dirStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -411,9 +411,9 @@ func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
 		t.Fatalf("CheckPlan must not abort when user is promised, got: %v", err)
 	}
 
-	for i, ar := range rep.Actions {
+	for i, ar := range rep.Steps {
 		if ar.Summary.WouldChange == 0 {
-			t.Errorf("action %d: expected WouldChange > 0, got %+v", i, ar.Summary)
+			t.Errorf("step %d: expected WouldChange > 0, got %+v", i, ar.Summary)
 		}
 	}
 }
@@ -425,7 +425,7 @@ func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("check mode must not execute"),
 	}
-	groupAction := mkPromiserAction(nil, groups("appusers"), groupOp)
+	groupStep := mkPromiserStep(nil, groups("appusers"), groupOp)
 
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
@@ -436,17 +436,17 @@ func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(groups("appusers"), paths("/opt/app"), dirOp)
+	dirStep := mkPromiserStep(groups("appusers"), paths("/opt/app"), dirOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-deferred-group",
-			Actions: []spec.Action{groupAction, dirAction},
+			ID:    "test-deferred-group",
+			Steps: []spec.Step{groupStep, dirStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -460,15 +460,15 @@ func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
 		t.Fatalf("CheckPlan must not abort when group is promised, got: %v", err)
 	}
 
-	for i, ar := range rep.Actions {
+	for i, ar := range rep.Steps {
 		if ar.Summary.WouldChange == 0 {
-			t.Errorf("action %d: expected WouldChange > 0, got %+v", i, ar.Summary)
+			t.Errorf("step %d: expected WouldChange > 0, got %+v", i, ar.Summary)
 		}
 	}
 }
 
 // TestCheck_DeferredUser_NoPromise_StillAborts verifies that an unknown user
-// error still aborts when no upstream action promises the user.
+// error still aborts when no upstream step promises the user.
 func TestCheck_DeferredUser_NoPromise_StillAborts(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
@@ -479,17 +479,17 @@ func TestCheck_DeferredUser_NoPromise_StillAborts(t *testing.T) {
 		},
 		ExecFn: harness.PanicExecFn("check mode must not execute"),
 	}
-	dirAction := mkPromiserAction(nil, paths("/opt/app"), dirOp)
+	dirStep := mkPromiserStep(nil, paths("/opt/app"), dirOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:      "test-user-no-promise",
-			Actions: []spec.Action{dirAction},
+			ID:    "test-user-no-promise",
+			Steps: []spec.Step{dirStep},
 		},
 	}
 
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(local.POSIXTarget{}),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
@@ -500,6 +500,6 @@ func TestCheck_DeferredUser_NoPromise_StillAborts(t *testing.T) {
 
 	_, _, err = e.CheckPlan(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), plan)
 	if err == nil {
-		t.Fatalf("CheckPlan must abort when no upstream action promises the user")
+		t.Fatalf("CheckPlan must abort when no upstream step promises the user")
 	}
 }

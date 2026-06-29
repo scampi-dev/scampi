@@ -2,7 +2,7 @@
 
 // Scope: cross-cutting tests for cycle detection inside the planning
 // pipeline (full LoadConfig + Plan flow, not unit-level graph code).
-// Exercises: plan.go (Plan, planSteps), action_graph.go (graph build
+// Exercises: plan.go (Plan, planSteps), step_graph.go (graph build
 // from before+after links), and the surfacing of cycles as
 // engine.CycleError to callers. Tests use real scampi configs that
 // declare cyclic before/after relations.
@@ -32,11 +32,11 @@ func discardCtx(t *testing.T) diagnostic.Ctx {
 // -----------------------------------------------------------------------------
 
 type mockOp struct {
-	action spec.Action
-	deps   []spec.Op
+	step spec.Step
+	deps []spec.Op
 }
 
-func (o *mockOp) Action() spec.Action                         { return o.action }
+func (o *mockOp) Step() spec.Step                             { return o.step }
 func (o *mockOp) DependsOn() []spec.Op                        { return o.deps }
 func (o *mockOp) RequiredCapabilities() capability.Capability { return 0 }
 
@@ -52,14 +52,14 @@ func (o *mockOp) Execute(context.Context, source.Source, target.Target) (spec.Re
 // -----------------------------------------------------------------------------
 
 func TestDetectPlanCycles_NoCycle(t *testing.T) {
-	act := &mockAction{desc: "test", kind: "test"}
-	opA := &mockOp{action: act}
-	opB := &mockOp{action: act, deps: []spec.Op{opA}}
+	act := &mockStep{desc: "test", kind: "test"}
+	opA := &mockOp{step: act}
+	opB := &mockOp{step: act, deps: []spec.Op{opA}}
 	act.ops = []spec.Op{opA, opB}
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			Actions: []spec.Action{act},
+			Steps: []spec.Step{act},
 		},
 	}
 
@@ -70,16 +70,16 @@ func TestDetectPlanCycles_NoCycle(t *testing.T) {
 }
 
 func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
-	act := &mockAction{desc: "test", kind: "test"}
-	opA := &mockOp{action: act}
-	opB := &mockOp{action: act}
+	act := &mockStep{desc: "test", kind: "test"}
+	opA := &mockOp{step: act}
+	opB := &mockOp{step: act}
 	opA.deps = []spec.Op{opB}
 	opB.deps = []spec.Op{opA}
 	act.ops = []spec.Op{opA, opB}
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			Actions: []spec.Action{act},
+			Steps: []spec.Step{act},
 		},
 	}
 
@@ -102,7 +102,7 @@ func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
 	}
 }
 
-func TestDetectPlanCycles_NoActions(t *testing.T) {
+func TestDetectPlanCycles_NoSteps(t *testing.T) {
 	plan := spec.Plan{}
 	err := DetectPlanCycles(discardCtx(t), plan)
 	if err != nil {
@@ -114,7 +114,7 @@ func TestDetectPlanCycles_NoActions(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestDetectHookCycles_NoCycle(t *testing.T) {
-	hooks := map[string][]spec.StepInstance{
+	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"b"}}},
 		"b": {},
 	}
@@ -125,7 +125,7 @@ func TestDetectHookCycles_NoCycle(t *testing.T) {
 }
 
 func TestDetectHookCycles_SimpleCycle(t *testing.T) {
-	hooks := map[string][]spec.StepInstance{
+	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"b"}, Fields: map[string]spec.FieldSpan{}}},
 		"b": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},
 	}
@@ -149,7 +149,7 @@ func TestDetectHookCycles_SimpleCycle(t *testing.T) {
 }
 
 func TestDetectHookCycles_SelfCycle(t *testing.T) {
-	hooks := map[string][]spec.StepInstance{
+	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},
 	}
 	err := detectHookCycles(discardCtx(t), hooks)
@@ -179,14 +179,14 @@ func TestDetectHookCycles_Empty(t *testing.T) {
 		t.Errorf("expected no error for nil hooks, got %v", err)
 	}
 
-	err = detectHookCycles(discardCtx(t), map[string][]spec.StepInstance{})
+	err = detectHookCycles(discardCtx(t), map[string][]spec.DeclaredStep{})
 	if err != nil {
 		t.Errorf("expected no error for empty hooks, got %v", err)
 	}
 }
 
 func TestDetectHookCycles_ThreeNodeCycle(t *testing.T) {
-	hooks := map[string][]spec.StepInstance{
+	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"b"}, Fields: map[string]spec.FieldSpan{}}},
 		"b": {{OnChange: []string{"c"}, Fields: map[string]spec.FieldSpan{}}},
 		"c": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},

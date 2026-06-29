@@ -23,7 +23,7 @@ func LoadConfig(
 	store *diagnostic.SourceStore,
 	src source.Source,
 	opts ...linker.AnalyzeOption,
-) (spec.Config, error) {
+) (spec.DeclaredConfig, error) {
 	cfgPath, absErr := filepath.Abs(cfgPath)
 	if absErr != nil {
 		panic(errs.BUG("filepath.Abs() failed: %w", absErr))
@@ -60,18 +60,18 @@ func LoadConfig(
 				})
 			}
 		}
-		return spec.Config{}, AbortError{Causes: []error{err}}
+		return spec.DeclaredConfig{}, AbortError{Causes: []error{err}}
 	}
 
 	return cfg, nil
 }
 
-// ResolveMultiple produces ResolvedConfigs for all matching (deploy, target)
+// ResolveMultiple produces one Config for all matching (deploy, target)
 // combinations based on the provided options.
-func ResolveMultiple(cfg spec.Config, opts spec.ResolveOptions) ([]spec.ResolvedConfig, error) {
+func ResolveMultiple(cfg spec.DeclaredConfig, opts spec.ResolveOptions) ([]spec.Config, error) {
 	cfgSpan := spec.SourceSpan{Filename: cfg.Path}
 
-	var blocks []spec.DeployBlock
+	var blocks []spec.DeclaredDeploy
 	if len(opts.DeployNames) > 0 {
 		for _, name := range opts.DeployNames {
 			b, ok := cfg.DeployByName(name)
@@ -88,7 +88,7 @@ func ResolveMultiple(cfg spec.Config, opts spec.ResolveOptions) ([]spec.Resolved
 		return nil, NoDeployBlocksError{Source: cfgSpan}
 	}
 
-	var results []spec.ResolvedConfig
+	var results []spec.Config
 
 	for _, block := range blocks {
 		deployName := block.Name
@@ -121,7 +121,7 @@ func ResolveMultiple(cfg spec.Config, opts spec.ResolveOptions) ([]spec.Resolved
 				}
 			}
 
-			results = append(results, spec.ResolvedConfig{
+			results = append(results, spec.Config{
 				Path:       cfg.Path,
 				DeployName: deployName,
 				TargetName: targetName,
@@ -139,20 +139,20 @@ func ResolveMultiple(cfg spec.Config, opts spec.ResolveOptions) ([]spec.Resolved
 	return results, nil
 }
 
-// Resolve produces a ResolvedConfig from a Config by selecting a specific
+// Resolve produces a Config from a Config by selecting a specific
 // deploy block and target. If deployName or targetName are empty, the first
 // available is selected.
-func Resolve(cfg spec.Config, deployName, targetName string) (spec.ResolvedConfig, error) {
-	var block spec.DeployBlock
+func Resolve(cfg spec.DeclaredConfig, deployName, targetName string) (spec.Config, error) {
+	var block spec.DeclaredDeploy
 	if deployName != "" {
 		var ok bool
 		block, ok = cfg.DeployByName(deployName)
 		if !ok {
-			return spec.ResolvedConfig{}, UnknownDeployBlockError{Name: deployName}
+			return spec.Config{}, UnknownDeployBlockError{Name: deployName}
 		}
 	} else {
 		if len(cfg.Deploy) == 0 {
-			return spec.ResolvedConfig{}, NoDeployBlocksError{}
+			return spec.Config{}, NoDeployBlocksError{}
 		}
 		block = cfg.Deploy[0]
 		deployName = block.Name
@@ -160,7 +160,7 @@ func Resolve(cfg spec.Config, deployName, targetName string) (spec.ResolvedConfi
 
 	if targetName == "" {
 		if len(block.Targets) == 0 {
-			return spec.ResolvedConfig{}, NoTargetsInDeployError{
+			return spec.Config{}, NoTargetsInDeployError{
 				Deploy: deployName,
 				Source: block.Source,
 			}
@@ -170,7 +170,7 @@ func Resolve(cfg spec.Config, deployName, targetName string) (spec.ResolvedConfi
 
 	tgt, ok := cfg.Targets[targetName]
 	if !ok {
-		return spec.ResolvedConfig{}, UnknownTargetError{
+		return spec.Config{}, UnknownTargetError{
 			Name:   targetName,
 			Deploy: deployName,
 			Source: block.Source,
@@ -178,14 +178,14 @@ func Resolve(cfg spec.Config, deployName, targetName string) (spec.ResolvedConfi
 	}
 
 	if !slices.Contains(block.Targets, targetName) {
-		return spec.ResolvedConfig{}, TargetNotInDeployError{
+		return spec.Config{}, TargetNotInDeployError{
 			Target: targetName,
 			Deploy: deployName,
 			Source: block.Source,
 		}
 	}
 
-	return spec.ResolvedConfig{
+	return spec.Config{
 		Path:       cfg.Path,
 		DeployName: deployName,
 		TargetName: targetName,

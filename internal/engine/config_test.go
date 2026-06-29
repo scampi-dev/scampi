@@ -9,8 +9,8 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-func testConfig(deploys []spec.DeployBlock, targets map[string]spec.TargetInstance) spec.Config {
-	return spec.Config{
+func testConfig(deploys []spec.DeclaredDeploy, targets map[string]spec.DeclaredTarget) spec.DeclaredConfig {
+	return spec.DeclaredConfig{
 		Path:    "/test/config.scampi",
 		Deploy:  deploys,
 		Targets: targets,
@@ -22,10 +22,10 @@ func testConfig(deploys []spec.DeployBlock, targets map[string]spec.TargetInstan
 
 func TestResolve_ExplicitDeployAndTarget(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
-			{Name: "prod", Targets: []string{"server"}, Steps: []spec.StepInstance{{Desc: "s1"}}},
+		[]spec.DeclaredDeploy{
+			{Name: "prod", Targets: []string{"server"}, Steps: []spec.DeclaredStep{{Desc: "s1"}}},
 		},
-		map[string]spec.TargetInstance{
+		map[string]spec.DeclaredTarget{
 			"server": {Config: "srv-cfg"},
 		},
 	)
@@ -50,10 +50,10 @@ func TestResolve_ExplicitDeployAndTarget(t *testing.T) {
 
 func TestResolve_EmptyNames_PicksFirst(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
-			{Name: "dev", Targets: []string{"laptop"}, Steps: []spec.StepInstance{{Desc: "s1"}}},
+		[]spec.DeclaredDeploy{
+			{Name: "dev", Targets: []string{"laptop"}, Steps: []spec.DeclaredStep{{Desc: "s1"}}},
 		},
-		map[string]spec.TargetInstance{
+		map[string]spec.DeclaredTarget{
 			"laptop": {},
 		},
 	)
@@ -72,10 +72,10 @@ func TestResolve_EmptyNames_PicksFirst(t *testing.T) {
 
 func TestResolve_UnknownDeployBlock(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
 		},
-		map[string]spec.TargetInstance{"laptop": {}},
+		map[string]spec.DeclaredTarget{"laptop": {}},
 	)
 
 	_, err := Resolve(cfg, "staging", "")
@@ -89,7 +89,7 @@ func TestResolve_UnknownDeployBlock(t *testing.T) {
 }
 
 func TestResolve_NoDeployBlocks(t *testing.T) {
-	cfg := testConfig([]spec.DeployBlock{}, nil)
+	cfg := testConfig([]spec.DeclaredDeploy{}, nil)
 
 	_, err := Resolve(cfg, "", "")
 	if err == nil {
@@ -103,10 +103,10 @@ func TestResolve_NoDeployBlocks(t *testing.T) {
 
 func TestResolve_NoTargetsInDeploy(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{}},
 		},
-		map[string]spec.TargetInstance{},
+		map[string]spec.DeclaredTarget{},
 	)
 
 	_, err := Resolve(cfg, "dev", "")
@@ -121,10 +121,10 @@ func TestResolve_NoTargetsInDeploy(t *testing.T) {
 
 func TestResolve_UnknownTarget(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"missing"}},
 		},
-		map[string]spec.TargetInstance{},
+		map[string]spec.DeclaredTarget{},
 	)
 
 	_, err := Resolve(cfg, "dev", "missing")
@@ -139,10 +139,10 @@ func TestResolve_UnknownTarget(t *testing.T) {
 
 func TestResolve_TargetNotInDeploy(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
 		},
-		map[string]spec.TargetInstance{
+		map[string]spec.DeclaredTarget{
 			"laptop": {},
 			"server": {},
 		},
@@ -163,11 +163,11 @@ func TestResolve_TargetNotInDeploy(t *testing.T) {
 
 func TestResolveMultiple_AllDeploys(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "prod", Targets: []string{"server"}},
 			{Name: "dev", Targets: []string{"laptop"}},
 		},
-		map[string]spec.TargetInstance{
+		map[string]spec.DeclaredTarget{
 			"server": {},
 			"laptop": {},
 		},
@@ -195,11 +195,11 @@ func TestResolveMultiple_AllDeploys(t *testing.T) {
 
 func TestResolveMultiple_FilterByDeploy(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "prod", Targets: []string{"server"}},
 			{Name: "dev", Targets: []string{"laptop"}},
 		},
-		map[string]spec.TargetInstance{
+		map[string]spec.DeclaredTarget{
 			"server": {},
 			"laptop": {},
 		},
@@ -219,10 +219,10 @@ func TestResolveMultiple_FilterByDeploy(t *testing.T) {
 
 func TestResolveMultiple_FilterByTarget(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "prod", Targets: []string{"server", "backup"}},
 		},
-		map[string]spec.TargetInstance{
+		map[string]spec.DeclaredTarget{
 			"server": {},
 			"backup": {},
 		},
@@ -242,10 +242,10 @@ func TestResolveMultiple_FilterByTarget(t *testing.T) {
 
 func TestResolveMultiple_UnknownDeployFilter(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
 		},
-		map[string]spec.TargetInstance{"laptop": {}},
+		map[string]spec.DeclaredTarget{"laptop": {}},
 	)
 
 	_, err := ResolveMultiple(cfg, spec.ResolveOptions{DeployNames: []string{"staging"}})
@@ -260,10 +260,10 @@ func TestResolveMultiple_UnknownDeployFilter(t *testing.T) {
 
 func TestResolveMultiple_TargetFilterMatchesNone(t *testing.T) {
 	cfg := testConfig(
-		[]spec.DeployBlock{
+		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
 		},
-		map[string]spec.TargetInstance{"laptop": {}},
+		map[string]spec.DeclaredTarget{"laptop": {}},
 	)
 
 	_, err := ResolveMultiple(cfg, spec.ResolveOptions{TargetNames: []string{"missing"}})
@@ -277,7 +277,7 @@ func TestResolveMultiple_TargetFilterMatchesNone(t *testing.T) {
 }
 
 func TestResolveMultiple_NoDeployBlocks(t *testing.T) {
-	cfg := testConfig([]spec.DeployBlock{}, nil)
+	cfg := testConfig([]spec.DeclaredDeploy{}, nil)
 
 	_, err := ResolveMultiple(cfg, spec.ResolveOptions{})
 	if err == nil {

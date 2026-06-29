@@ -14,18 +14,18 @@ type glyphSet struct {
 	bullet string
 	arrow  string
 
-	planStart            string
-	planRail             string
-	planEnd              string
-	actionStart          string
-	actionStartNoOp      string
-	actionStartCollapsed string
-	actionRail           string
-	actionIndent         string
-	actionKindSep        string
-	actionEnd            string
-	opBranch             string
-	opLast               string
+	planStart          string
+	planRail           string
+	planEnd            string
+	stepStart          string
+	stepStartNoOp      string
+	stepStartCollapsed string
+	stepRail           string
+	stepIndent         string
+	stepKindSep        string
+	stepEnd            string
+	opBranch           string
+	opLast             string
 
 	emDash    string
 	ellipsis  string
@@ -52,18 +52,18 @@ var (
 		bullet: "•",
 		arrow:  "→",
 
-		planStart:            "┌─┬",
-		planRail:             "│",
-		planEnd:              "└─■",
-		actionStart:          "┏━┯",
-		actionStartNoOp:      "┏━━",
-		actionStartCollapsed: "•",
-		actionRail:           "┇",
-		actionIndent:         "  ",
-		actionKindSep:        "›",
-		actionEnd:            "■",
-		opBranch:             "├─",
-		opLast:               "└─",
+		planStart:          "┌─┬",
+		planRail:           "│",
+		planEnd:            "└─■",
+		stepStart:          "┏━┯",
+		stepStartNoOp:      "┏━━",
+		stepStartCollapsed: "•",
+		stepRail:           "┇",
+		stepIndent:         "  ",
+		stepKindSep:        "›",
+		stepEnd:            "■",
+		opBranch:           "├─",
+		opLast:             "└─",
 
 		emDash:    "—",
 		ellipsis:  "…",
@@ -89,18 +89,18 @@ var (
 		bullet: "*",
 		arrow:  "->",
 
-		planStart:            "+--",
-		planRail:             "|",
-		planEnd:              "+-#",
-		actionStart:          "+--",
-		actionStartNoOp:      "+--",
-		actionStartCollapsed: "*",
-		actionRail:           "|",
-		actionIndent:         "  ",
-		actionKindSep:        ">",
-		actionEnd:            "#",
-		opBranch:             "|-",
-		opLast:               "`-",
+		planStart:          "+--",
+		planRail:           "|",
+		planEnd:            "+-#",
+		stepStart:          "+--",
+		stepStartNoOp:      "+--",
+		stepStartCollapsed: "*",
+		stepRail:           "|",
+		stepIndent:         "  ",
+		stepKindSep:        ">",
+		stepEnd:            "#",
+		opBranch:           "|-",
+		opLast:             "`-",
 
 		emDash:    "--",
 		ellipsis:  "...",

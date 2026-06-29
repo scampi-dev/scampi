@@ -20,7 +20,7 @@ func noopCtx(ctx context.Context) diagnostic.Ctx {
 
 func TestRunPlansConcurrent_Empty(t *testing.T) {
 	calls := 0
-	err := runPlansConcurrent(noopCtx(t.Context()), nil, func(_ diagnostic.Ctx, _ spec.ResolvedConfig) error {
+	err := runPlansConcurrent(noopCtx(t.Context()), nil, func(_ diagnostic.Ctx, _ spec.Config) error {
 		calls++
 		return nil
 	})
@@ -33,9 +33,9 @@ func TestRunPlansConcurrent_Empty(t *testing.T) {
 }
 
 func TestRunPlansConcurrent_Single(t *testing.T) {
-	resolved := []spec.ResolvedConfig{{DeployName: "a"}}
+	resolved := []spec.Config{{DeployName: "a"}}
 	var ran atomic.Int32
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, _ spec.ResolvedConfig) error {
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, _ spec.Config) error {
 		ran.Add(1)
 		return nil
 	})
@@ -49,9 +49,9 @@ func TestRunPlansConcurrent_Single(t *testing.T) {
 
 func TestRunPlansConcurrent_RunsInParallel(t *testing.T) {
 	const n = 4
-	resolved := make([]spec.ResolvedConfig, n)
+	resolved := make([]spec.Config, n)
 	for i := range resolved {
-		resolved[i] = spec.ResolvedConfig{DeployName: "p"}
+		resolved[i] = spec.Config{DeployName: "p"}
 	}
 
 	// Each worker increments inFlight, waits for all peers to arrive,
@@ -60,7 +60,7 @@ func TestRunPlansConcurrent_RunsInParallel(t *testing.T) {
 	var inFlight atomic.Int32
 	allArrived := make(chan struct{})
 
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, _ spec.ResolvedConfig) error {
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, _ spec.Config) error {
 		if inFlight.Add(1) == n {
 			close(allArrived)
 		}
@@ -83,13 +83,13 @@ func TestRunPlansConcurrent_RunsInParallel(t *testing.T) {
 func TestRunPlansConcurrent_AggregatesErrors(t *testing.T) {
 	errA := errors.New("plan a failed")
 	errB := errors.New("plan b failed")
-	resolved := []spec.ResolvedConfig{
+	resolved := []spec.Config{
 		{DeployName: "a"},
 		{DeployName: "b"},
 		{DeployName: "c"},
 	}
 
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.ResolvedConfig) error {
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.Config) error {
 		switch res.DeployName {
 		case "a":
 			return errA
@@ -117,12 +117,12 @@ func TestRunPlansConcurrent_AggregatesErrors(t *testing.T) {
 
 func TestRunPlansConcurrent_SingleErrorUnwrapped(t *testing.T) {
 	target := errors.New("only one fails")
-	resolved := []spec.ResolvedConfig{
+	resolved := []spec.Config{
 		{DeployName: "a"},
 		{DeployName: "b"},
 	}
 
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.ResolvedConfig) error {
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.Config) error {
 		if res.DeployName == "b" {
 			return target
 		}
@@ -135,7 +135,7 @@ func TestRunPlansConcurrent_SingleErrorUnwrapped(t *testing.T) {
 }
 
 func TestRunPlansConcurrent_SiblingsRunDespiteFailure(t *testing.T) {
-	resolved := []spec.ResolvedConfig{
+	resolved := []spec.Config{
 		{DeployName: "a"},
 		{DeployName: "b"},
 		{DeployName: "c"},
@@ -145,7 +145,7 @@ func TestRunPlansConcurrent_SiblingsRunDespiteFailure(t *testing.T) {
 		mu     sync.Mutex
 		ranAll = map[string]bool{}
 	)
-	_ = runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.ResolvedConfig) error {
+	_ = runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.Config) error {
 		mu.Lock()
 		ranAll[res.DeployName] = true
 		mu.Unlock()
@@ -163,7 +163,7 @@ func TestRunPlansConcurrent_SiblingsRunDespiteFailure(t *testing.T) {
 }
 
 func TestRunPlansConcurrent_CtxCancellationPropagates(t *testing.T) {
-	resolved := []spec.ResolvedConfig{
+	resolved := []spec.Config{
 		{DeployName: "a"},
 		{DeployName: "b"},
 	}
@@ -182,7 +182,7 @@ func TestRunPlansConcurrent_CtxCancellationPropagates(t *testing.T) {
 	}()
 
 	var observedCancel atomic.Bool
-	_ = runPlansConcurrent(noopCtx(ctx), resolved, func(ctx diagnostic.Ctx, _ spec.ResolvedConfig) error {
+	_ = runPlansConcurrent(noopCtx(ctx), resolved, func(ctx diagnostic.Ctx, _ spec.Config) error {
 		startOnce.Do(func() { close(started) })
 		select {
 		case <-ctx.Done():

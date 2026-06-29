@@ -33,7 +33,7 @@ type (
 		Values map[string]any
 		Env    map[string]string
 	}
-	templateAction struct {
+	templateStep struct {
 		desc   string
 		kind   string
 		src    string
@@ -45,7 +45,7 @@ type (
 		group  string
 		verify string
 		backup bool
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -56,7 +56,7 @@ func (c *TemplateConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (t Template) Plan(step spec.StepInstance) (spec.Action, error) {
+func (t Template) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*TemplateConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &TemplateConfig{}, step.Config)
@@ -71,7 +71,7 @@ func (t Template) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, err
 	}
 
-	return &templateAction{
+	return &templateStep{
 		desc:   cfg.Desc,
 		kind:   t.Kind(),
 		src:    cfg.Src.Path,
@@ -87,10 +87,10 @@ func (t Template) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *templateAction) Desc() string { return a.desc }
-func (a *templateAction) Kind() string { return a.kind }
+func (a *templateStep) Desc() string { return a.desc }
+func (a *templateStep) Kind() string { return a.kind }
 
-func (a *templateAction) Inputs() []spec.Resource {
+func (a *templateStep) Inputs() []spec.Resource {
 	var r []spec.Resource
 	if a.owner != "" {
 		r = append(r, spec.UserResource(a.owner))
@@ -100,15 +100,15 @@ func (a *templateAction) Inputs() []spec.Resource {
 	}
 	return r
 }
-func (a *templateAction) SourcePaths() []string {
+func (a *templateStep) SourcePaths() []string {
 	return []string{a.src}
 }
 
-func (a *templateAction) Promises() []spec.Resource {
+func (a *templateStep) Promises() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.dest)}
 }
 
-func (a *templateAction) Ops() []spec.Op {
+func (a *templateStep) Ops() []spec.Op {
 	render := &renderTemplateOp{
 		BaseOp: sharedop.BaseOp{
 			SrcSpan:  a.step.Fields["src"].Value,
@@ -139,9 +139,9 @@ func (a *templateAction) Ops() []spec.Op {
 		Mode: a.mode,
 	}
 
-	render.SetAction(a)
-	chown.SetAction(a)
-	chmod.SetAction(a)
+	render.SetStep(a)
+	chown.SetStep(a)
+	chmod.SetStep(a)
 
 	chown.AddDependency(render)
 	chmod.AddDependency(render)

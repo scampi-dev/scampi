@@ -14,8 +14,8 @@ A declarative system convergence engine. Users describe desired system state in 
 
 ## Hosting
 
-- **Primary**: [GitHub](https://github.com/scampi-dev/scampi) — issues, PRs, releases
-- **Infra**: [scampi-infra](https://github.com/scampi-dev/scampi-infra) — VPS configs (separate repo)
+- **Primary**: [scampi](https://github.com/scampi-dev/scampi) — issues, PRs, releases
+- **Infra**: [infra](https://github.com/scampi-dev/infra) — VPS configs (separate repo)
 
 ## Commands
 
@@ -44,7 +44,7 @@ just test coverage     # Coverage report
 
 ## Architecture
 
-Core flow: **scampi step → StepType → Action → Op → Target**
+Core flow: **scampi step → StepKind → Step → Op → Target**
 
 ```
 cmd/         # CLI entrypoint: scampi (engine)
@@ -53,8 +53,8 @@ std/         # Standard library (.scampi files + embedded Go)
 mod/         # scampi.mod manifest parser (local multi-file/submodule resolution)
 linker/      # Submodule linker
 engine/      # Planning and execution (deterministic, fail-fast)
-spec/        # Core interfaces: StepType, Action, Op, Plan
-step/        # StepType implementations (one subdir per kind)
+spec/        # Core interfaces: StepKind, Step, Op, Plan
+step/        # StepKind implementations (one subdir per kind)
 diagnostic/  # Event emission (observational only, no control flow)
 render/      # CLI output formatting
 model/       # Execution reports and op outcomes
@@ -70,20 +70,40 @@ target/      # Write-side effects (mutations only)
 - `source`: source-side access (configs, env, local cache — never touches target)
 - `target`: managed-environment surface — both reads (drift detection during Check) and writes (mutations during Execute). Planning logic does not live here.
 
-**Execution model:**
-- Actions execute sequentially
-- Ops within an action run in parallel via DAG scheduler
-- All ops support idempotent Check/Execute pattern
+**Execution model** — three nested dependency DAGs, not sequential phases:
+- **Deploys**: ordered into levels by the cross-deploy resource graph
+  (`StaticPromiseProvider`/`StaticInputProvider`). Deploys in a level run
+  concurrently (errgroup); downstream levels wait.
+- **Steps within a deploy**: a DAG built from declared resources (`Promiser`
+  inputs/promises). Independent steps run in parallel; a step that declares no
+  resources is a barrier — that conservative default is the only thing that
+  looks "sequential".
+- **Ops within a step**: a DAG by `DependsOn`, run in parallel.
+- All ops support the idempotent Check/Execute pattern.
 
 ## Naming Conventions
 
-- **Step**: declarative work item
-- **StepType**: Go type representing a step kind (one per kind)
-- **Action**: planned execution of one step instance
-- **Op**: smallest executable step (forms DAG)
-- **Target**: execution environment
+Two worlds, two vocabularies. The prefix tells you which world a type is in:
 
-Avoid: `Impl`, `Handler`, `Spec` suffixes. Package names are singular nouns describing contents.
+- **Declarative** (what the linker emits, the user's intent): `DeclaredConfig` →
+  `DeclaredDeploy` → `DeclaredStep`, with `DeclaredTarget` referenced on the side.
+  The `Declared` prefix marks everything that comes out of the language linker.
+- **Execution** (what the engine runs): `Plan` → `Deploy` → `Step` → `Op`,
+  against a live `target.Target`. Bare nouns — these are the in-engine types
+  that are everywhere, so they keep the short canonical names.
+- The hinge is `Config`: `engine.Resolve` splits a `DeclaredConfig` into one
+  `Config` per (deploy, target). A `Config`'s steps are still `DeclaredStep`;
+  planning turns each into an executable `Step`.
+
+Per-kind Go types (one impl per kind, registry-backed):
+
+- **StepKind**: Go type representing a step kind (`Plan(DeclaredStep) → Step`)
+- **TargetKind**: Go type representing a target kind (`Create(...) → target.Target`)
+- **Step**: planned execution of one declared step (groups Ops into a DAG)
+- **Op**: smallest executable unit (forms DAG)
+
+Avoid: `Impl`, `Handler`, `Spec`, and bare `Instance`/`Type`/`Resolved`
+disambiguation suffixes. Package names are singular nouns describing contents.
 
 ## CLI Output Semantics
 
@@ -95,7 +115,7 @@ Colors are semantic, not decorative. The canonical palette is:
 | Green   | Correctness / Stability |
 | Red     | Failure                 |
 | Blue    | Deploy block boundaries |
-| Cyan    | Action boundaries       |
+| Cyan    | Step boundaries         |
 | Magenta | Plan structure          |
 | Dim     | Detail / Noise          |
 
@@ -187,7 +207,7 @@ characters line up vertically. This applies to all markdown files in
 
 ## Adding a New Step Type
 
-1. Create `step/<kind>/<kind>.go` — implement `spec.StepType` interface
+1. Create `step/<kind>/<kind>.go` — implement `spec.StepKind` interface
 2. Add config struct with `step`/`summary`/`optional`/`default`/`example` tags
 3. Register in `engine/registry.go`
 

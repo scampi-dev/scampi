@@ -104,14 +104,14 @@ func normalizeJQValue(v any) any {
 	return v
 }
 
-// Engine-level interfaces for actions that support refs.
+// Engine-level interfaces for steps that support refs.
 
 // stepIdentifier exposes a step's unique ID for output registry keying.
 type stepIdentifier interface {
 	StepID() spec.StepID
 }
 
-// refResolvable marks actions whose configs contain ref() markers that
+// refResolvable marks steps whose configs contain ref() markers that
 // must be resolved before execution.
 type refResolvable interface {
 	ResolveRefs(spec.RefResolver) error

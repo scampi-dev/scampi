@@ -80,7 +80,7 @@ func TestScrambledCompletionReleasesInOrder(t *testing.T) {
 	assertLog(t, r.log, []string{"result[0]", "result[1]", "result[2]"})
 }
 
-// An action's drift lines stay grouped with its verdict, in declaration order,
+// An step's drift lines stay grouped with its verdict, in declaration order,
 // regardless of interleaved arrival.
 func TestChangesStayGroupedAndOrdered(t *testing.T) {
 	r := &recorder{}
@@ -97,7 +97,7 @@ func TestChangesStayGroupedAndOrdered(t *testing.T) {
 	})
 }
 
-// A missing action (cancelled, no Result) doesn't wedge the buffer: completed
+// A missing step (cancelled, no Result) doesn't wedge the buffer: completed
 // later blocks drain at summary, in order.
 func TestDrainOnSummary(t *testing.T) {
 	r := &recorder{}
@@ -109,14 +109,14 @@ func TestDrainOnSummary(t *testing.T) {
 	assertLog(t, r.log, []string{"result[0]", "result[2]", "summary"})
 }
 
-// On abort, actions that finished in parallel past a stuck cursor are reported
+// On abort, steps that finished in parallel past a stuck cursor are reported
 // honestly at drain, in declaration order, not dropped.
 func TestAbortDrainsCompletedPastCursor(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
 	s.RenderEvent(res(1))
-	s.RenderEvent(res(3)) // action 2 cancelled; 3 finished in parallel
+	s.RenderEvent(res(3)) // step 2 cancelled; 3 finished in parallel
 	s.RenderEvent(res(4))
 	s.RenderSummary(result.Execution{}, false)
 
@@ -126,7 +126,7 @@ func TestAbortDrainsCompletedPastCursor(t *testing.T) {
 }
 
 // Diagnostics and progress are out-of-band: released immediately, never held
-// behind buffered action blocks.
+// behind buffered step blocks.
 func TestDiagnosticsAndProgressPassThrough(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
@@ -151,13 +151,13 @@ func TestIndexCollisionBypasses(t *testing.T) {
 }
 
 // On abort the command returns before RenderSummary, so a deferred Flush is the
-// only thing that drains completed-but-buffered actions. Without it they'd be
+// only thing that drains completed-but-buffered steps. Without it they'd be
 // stranded and lost.
 func TestFlushDrainsWithoutSummary(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
-	s.RenderEvent(res(2)) // action 1 cancelled; 2 finished in parallel
+	s.RenderEvent(res(2)) // step 1 cancelled; 2 finished in parallel
 	s.Flush()
 
 	assertLog(t, r.log, []string{"result[0]", "result[2]"})

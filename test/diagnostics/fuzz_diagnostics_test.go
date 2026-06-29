@@ -278,7 +278,7 @@ import "std/local"
 let host = local.target { name = "local" }
 
 std.deploy(name = "test", targets = [host]) {
-  posix.firewall { port = 443, action = posix.FirewallAction.deny }
+  posix.firewall { port = 443, step = posix.FirewallStep.deny }
 }`,
 
 		// firewall step invalid port
@@ -290,7 +290,7 @@ import "std/local"
 let host = local.target { name = "local" }
 
 std.deploy(name = "test", targets = [host]) {
-  posix.firewall { port = 99999, action = posix.FirewallAction.allow }
+  posix.firewall { port = 99999, step = posix.FirewallStep.allow }
 }`,
 
 		// mount step
@@ -351,7 +351,7 @@ std.deploy(name = "test", targets = [host]) {
   posix.mount { src = "10.10.2.2:/data", dest = "/mnt/data", fs_type = posix.MountType.nfs, state = "bogus" }
 }`,
 
-		// firewall step invalid action
+		// firewall step invalid step
 		`module main
 import "std"
 import "std/posix"
@@ -360,7 +360,7 @@ import "std/local"
 let host = local.target { name = "local" }
 
 std.deploy(name = "test", targets = [host]) {
-  posix.firewall { port = 22, action = "bogus" }
+  posix.firewall { port = 22, step = "bogus" }
 }`,
 
 		// unarchive step
@@ -539,7 +539,7 @@ frobnicate(name = "test")`,
 				return err
 			}
 
-			resolved.Target = harness.MockTargetInstance(tgt)
+			resolved.Target = harness.MockDeclaredTarget(tgt)
 
 			e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 			if err != nil {

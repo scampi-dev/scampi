@@ -26,7 +26,7 @@ func (e LinkDirMissingError) Diagnostic() event.Event {
 			ID:     CodeLinkDirMissing,
 			Text:   `link directory "{{.Path}}" does not exist`,
 			Hint:   `add dir(path="{{.Path}}") to your deploy steps before this symlink`,
-			Help:   "the symlink action does not create directories automatically",
+			Help:   "the symlink step does not create directories automatically",
 			Data:   e,
 			Source: &e.Source,
 		},

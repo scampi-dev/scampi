@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/step/sharedop/fileop"
 )
 
-var _ spec.StepType = Copy{}
+var _ spec.StepKind = Copy{}
 
 type (
 	Copy       struct{}
@@ -30,7 +30,7 @@ type (
 		Promises []string       `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string       `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	copyAction struct {
+	copyStep struct {
 		desc   string
 		kind   string
 		src    string
@@ -41,7 +41,7 @@ type (
 		group  string
 		verify string
 		backup bool
-		step   spec.StepInstance
+		step   spec.DeclaredStep
 	}
 )
 
@@ -52,7 +52,7 @@ func (c *CopyConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (c Copy) Plan(step spec.StepInstance) (spec.Action, error) {
+func (c Copy) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*CopyConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &CopyConfig{}, step.Config)
@@ -71,7 +71,7 @@ func (c Copy) Plan(step spec.StepInstance) (spec.Action, error) {
 		return nil, err
 	}
 
-	return &copyAction{
+	return &copyStep{
 		desc:   cfg.Desc,
 		kind:   c.Kind(),
 		src:    cfg.Src.Path,
@@ -87,10 +87,10 @@ func (c Copy) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (c *copyAction) Desc() string { return c.desc }
-func (c *copyAction) Kind() string { return c.kind }
+func (c *copyStep) Desc() string { return c.desc }
+func (c *copyStep) Kind() string { return c.kind }
 
-func (c *copyAction) Inputs() []spec.Resource {
+func (c *copyStep) Inputs() []spec.Resource {
 	var r []spec.Resource
 	if c.owner != "" {
 		r = append(r, spec.UserResource(c.owner))
@@ -100,12 +100,12 @@ func (c *copyAction) Inputs() []spec.Resource {
 	}
 	return r
 }
-func (c *copyAction) SourcePaths() []string {
+func (c *copyStep) SourcePaths() []string {
 	return []string{c.src}
 }
-func (c *copyAction) Promises() []spec.Resource { return []spec.Resource{spec.PathResource(c.dest)} }
+func (c *copyStep) Promises() []spec.Resource { return []spec.Resource{spec.PathResource(c.dest)} }
 
-func (c *copyAction) Ops() []spec.Op {
+func (c *copyStep) Ops() []spec.Op {
 	cp := &copyFileOp{
 		BaseOp: sharedop.BaseOp{
 			SrcSpan:  c.step.Fields["src"].Value,
@@ -135,9 +135,9 @@ func (c *copyAction) Ops() []spec.Op {
 		Mode: c.mode,
 	}
 
-	cp.SetAction(c)
-	chown.SetAction(c)
-	chmod.SetAction(c)
+	cp.SetStep(c)
+	chown.SetStep(c)
+	chmod.SetStep(c)
 
 	chown.AddDependency(cp)
 	chmod.AddDependency(cp)

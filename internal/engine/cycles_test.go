@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 // Scope: cross-cutting tests for the generic cycle-detector used by
-// both the action graph and the op DAG.
+// both the step graph and the op DAG.
 // Exercises: cycles.go (detectCycles parameterised on node type). Uses
 // string-keyed test graphs as the simplest fixture; the same function
-// is invoked with *actionNode and *opNode in production.
+// is invoked with *stepNode and *opNode in production.
 
 package engine
 

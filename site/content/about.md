@@ -312,7 +312,7 @@ reference — here's the short version:
   <span class="r">red</span>       failure
   <span class="b">blue</span>      engine and plan boundaries
   <span class="m">magenta</span>   plan structure
-  <span class="c">cyan</span>      action context
+  <span class="c">cyan</span>      step context
   <span class="d">dim</span>       detail (higher verbosity)
 </div>
 

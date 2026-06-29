@@ -289,19 +289,19 @@ func (n *NoCommandTarget) RunCommand(_ context.Context, _ string) (target.Comman
 	panic("NoCommandTarget.RunCommand called — capability check failed")
 }
 
-type mockTargetType struct {
+type mockTargetKind struct {
 	tgt target.Target
 }
 
-func (mockTargetType) Kind() string   { return "mem" }
-func (mockTargetType) NewConfig() any { return nil }
-func (t mockTargetType) Create(_ context.Context, _ source.Source, _ spec.TargetInstance) (target.Target, error) {
+func (mockTargetKind) Kind() string   { return "mem" }
+func (mockTargetKind) NewConfig() any { return nil }
+func (t mockTargetKind) Create(_ context.Context, _ source.Source, _ spec.DeclaredTarget) (target.Target, error) {
 	return t.tgt, nil
 }
 
-func MockTargetInstance(tgt target.Target) spec.TargetInstance {
-	return spec.TargetInstance{
-		Type: mockTargetType{
+func MockDeclaredTarget(tgt target.Target) spec.DeclaredTarget {
+	return spec.DeclaredTarget{
+		Type: mockTargetKind{
 			tgt: tgt,
 		},
 	}

@@ -13,8 +13,8 @@ import (
 // duplicated here so testkit doesn't have to import the linker
 // package (testkit lives below linker in the dependency stack).
 type BaseRegistry interface {
-	StepType(kind string) (spec.StepType, bool)
-	TargetType(kind string) (spec.TargetType, bool)
+	StepKind(kind string) (spec.StepKind, bool)
+	TargetKind(kind string) (spec.TargetKind, bool)
 	ConverterFor(reflect.Type) (spec.TypeConverter, bool)
 }
 
@@ -39,9 +39,9 @@ func NewEngineRegistry(base BaseRegistry, tests *TestRegistry) *EngineRegistry {
 	return &EngineRegistry{base: base, tests: tests}
 }
 
-// StepType delegates to the base registry — no overlay.
-func (r *EngineRegistry) StepType(kind string) (spec.StepType, bool) {
-	return r.base.StepType(kind)
+// StepKind delegates to the base registry — no overlay.
+func (r *EngineRegistry) StepKind(kind string) (spec.StepKind, bool) {
+	return r.base.StepKind(kind)
 }
 
 // ConverterFor delegates to the base registry.
@@ -49,12 +49,12 @@ func (r *EngineRegistry) ConverterFor(t reflect.Type) (spec.TypeConverter, bool)
 	return r.base.ConverterFor(t)
 }
 
-// TargetType returns the in-memory test target type, otherwise falls
+// TargetKind returns the in-memory test target type, otherwise falls
 // back to the base registry.
-func (r *EngineRegistry) TargetType(kind string) (spec.TargetType, bool) {
+func (r *EngineRegistry) TargetKind(kind string) (spec.TargetKind, bool) {
 	switch kind {
 	case "test.target_in_memory":
-		return MemTargetType{Registry: r.tests}, true
+		return MemTargetKind{Registry: r.tests}, true
 	}
-	return r.base.TargetType(kind)
+	return r.base.TargetKind(kind)
 }

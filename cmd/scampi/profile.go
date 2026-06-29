@@ -18,7 +18,7 @@ import (
 // CPU profile, heap profile, and execution trace are wired in main() as
 // early as possible — args are scanned by hand before urfave/cli runs,
 // so profiling captures flag parsing, command dispatch, and engine
-// boot, not just the action body. The same flags are also registered
+// boot, not just the step body. The same flags are also registered
 // on the root command so --help advertises them and unknown-flag
 // rejection doesn't trip.
 //

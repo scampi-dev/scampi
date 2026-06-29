@@ -34,7 +34,7 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {

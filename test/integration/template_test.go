@@ -62,7 +62,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("Resolve: %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -132,7 +132,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("Resolve: %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -204,7 +204,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -292,7 +292,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -365,7 +365,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -438,7 +438,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -508,7 +508,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -573,7 +573,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -643,7 +643,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -711,7 +711,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -779,7 +779,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -855,7 +855,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -922,7 +922,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -994,7 +994,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -1059,7 +1059,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -1127,7 +1127,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -1187,7 +1187,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -1255,7 +1255,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -1327,7 +1327,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -1399,7 +1399,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {
@@ -1464,7 +1464,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("engine.Resolve() must not return error, got %v", err)
 	}
 
-	resolved.Target = harness.MockTargetInstance(tgt)
+	resolved.Target = harness.MockDeclaredTarget(tgt)
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 	if err != nil {

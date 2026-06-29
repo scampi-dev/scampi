@@ -73,12 +73,12 @@ type (
 		Promises []string          `step:"Cross-deploy resources this step produces" optional:"true"`
 		Inputs   []string          `step:"Cross-deploy resources this step consumes" optional:"true"`
 	}
-	pkgAction struct {
+	pkgStep struct {
 		desc     string
 		packages []string
 		state    State
 		source   spec.PkgSourceRef
-		step     spec.StepInstance
+		step     spec.DeclaredStep
 	}
 )
 
@@ -95,13 +95,13 @@ func (c *PkgConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
 }
 
-func (p Pkg) Plan(step spec.StepInstance) (spec.Action, error) {
+func (p Pkg) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	cfg, ok := step.Config.(*PkgConfig)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &PkgConfig{}, step.Config)
 	}
 
-	return &pkgAction{
+	return &pkgStep{
 		desc:     cfg.Desc,
 		packages: cfg.Packages,
 		state:    parseState(cfg.State),
@@ -110,21 +110,21 @@ func (p Pkg) Plan(step spec.StepInstance) (spec.Action, error) {
 	}, nil
 }
 
-func (a *pkgAction) Desc() string { return a.desc }
-func (a *pkgAction) Kind() string { return "pkg" }
+func (a *pkgStep) Desc() string { return a.desc }
+func (a *pkgStep) Kind() string { return "pkg" }
 
-func (a *pkgAction) Ops() []spec.Op {
+func (a *pkgStep) Ops() []spec.Op {
 	pkgsSource := a.step.Fields["packages"].Value
 
 	// Build the package install/remove op.
 	var pkgOp spec.Op
 	if a.state == StateLatest {
 		o := &ensureLatestPkgOp{packages: a.packages, pkgsSource: pkgsSource}
-		o.SetAction(a)
+		o.SetStep(a)
 		pkgOp = o
 	} else {
 		o := &ensurePkgOp{packages: a.packages, state: a.state, pkgsSource: pkgsSource}
-		o.SetAction(a)
+		o.SetStep(a)
 		pkgOp = o
 	}
 
@@ -142,18 +142,18 @@ func (a *pkgAction) Ops() []spec.Op {
 			URL:       a.source.KeyURL,
 			CachePath: keyCachePath(a.source.KeyURL),
 		}
-		dlOp.SetAction(a)
+		dlOp.SetStep(a)
 		ops = append(ops, dlOp)
 
 		keyOp := &installKeyOp{source: a.source}
-		keyOp.SetAction(a)
+		keyOp.SetStep(a)
 		keyOp.AddDependency(dlOp)
 		ops = append(ops, keyOp)
 		lastDep = keyOp
 	}
 
 	cfgOp := &writeRepoConfigOp{source: a.source}
-	cfgOp.SetAction(a)
+	cfgOp.SetStep(a)
 	if lastDep != nil {
 		cfgOp.AddDependency(lastDep)
 	}

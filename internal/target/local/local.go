@@ -20,7 +20,7 @@ type Local struct{}
 
 func (Local) Kind() string   { return "local" }
 func (Local) NewConfig() any { return &Config{} }
-func (Local) Create(ctx context.Context, _ source.Source, _ spec.TargetInstance) (target.Target, error) {
+func (Local) Create(ctx context.Context, _ source.Source, _ spec.DeclaredTarget) (target.Target, error) {
 	tgt := &POSIXTarget{}
 	tgt.Runner = tgt.RunCommand
 

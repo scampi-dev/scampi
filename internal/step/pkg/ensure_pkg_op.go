@@ -195,7 +195,7 @@ func (op *ensureLatestPkgOp) Check(
 	// refreshing it. Cache refresh is a target mutation and belongs
 	// in Execute. A stale cache may cause Check to miss a pending
 	// upgrade — Execute refreshes before deciding what to install,
-	// so the corrective action still runs accurately.
+	// so the corrective step still runs accurately.
 	t := target.Must[interface {
 		target.PkgManager
 		target.PkgUpdater

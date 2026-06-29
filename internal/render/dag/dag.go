@@ -11,23 +11,23 @@ import (
 
 // PlanDAG is a DAG-ready view of a plan, used by renderers.
 type PlanDAG struct {
-	ActionLayers [][]Action // actions grouped by parallel execution layer
+	StepLayers [][]Step // steps grouped by parallel execution layer
 }
 
-// Action represents an action in the plan DAG.
-type Action struct {
+// Step represents a step in the plan DAG.
+type Step struct {
 	Index     int
 	Desc      string
 	Kind      string
-	DependsOn []int                // action indices this depends on
-	Layers    [][]result.PlannedOp // topologically layered ops within action
+	DependsOn []int                // step indices this depends on
+	Layers    [][]result.PlannedOp // topologically layered ops within step
 }
 
 // Build constructs a DAG view of the plan detail.
 func Build(detail result.PlanDetail) PlanDAG {
-	actions := make([]Action, len(detail.Actions))
-	for i, act := range detail.Actions {
-		actions[i] = Action{
+	steps := make([]Step, len(detail.Steps))
+	for i, act := range detail.Steps {
+		steps[i] = Step{
 			Index:     act.Index,
 			Desc:      act.Desc,
 			Kind:      act.Kind,
@@ -37,22 +37,22 @@ func Build(detail result.PlanDetail) PlanDAG {
 	}
 
 	return PlanDAG{
-		ActionLayers: topoLayersActions(actions),
+		StepLayers: topoLayersSteps(steps),
 	}
 }
 
-// topoLayersActions groups actions by their topological layer.
-// Actions in the same layer have no dependencies on each other and can run in parallel.
-func topoLayersActions(actions []Action) [][]Action {
-	if len(actions) == 0 {
+// topoLayersSteps groups steps by their topological layer.
+// Steps in the same layer have no dependencies on each other and can run in parallel.
+func topoLayersSteps(steps []Step) [][]Step {
+	if len(steps) == 0 {
 		return nil
 	}
 
 	inDegree := make(map[int]int)
 	children := make(map[int][]int)
-	index := make(map[int]Action)
+	index := make(map[int]Step)
 
-	for _, act := range actions {
+	for _, act := range steps {
 		index[act.Index] = act
 		inDegree[act.Index] = len(act.DependsOn)
 		for _, dep := range act.DependsOn {
@@ -60,7 +60,7 @@ func topoLayersActions(actions []Action) [][]Action {
 		}
 	}
 
-	var layers [][]Action
+	var layers [][]Step
 	var ready []int
 
 	for id, deg := range inDegree {
@@ -72,7 +72,7 @@ func topoLayersActions(actions []Action) [][]Action {
 
 	for len(ready) > 0 {
 		var next []int
-		var layer []Action
+		var layer []Step
 
 		for _, id := range ready {
 			layer = append(layer, index[id])
@@ -84,7 +84,7 @@ func topoLayersActions(actions []Action) [][]Action {
 			}
 		}
 
-		slices.SortFunc(layer, func(a, b Action) int {
+		slices.SortFunc(layer, func(a, b Step) int {
 			return a.Index - b.Index
 		})
 

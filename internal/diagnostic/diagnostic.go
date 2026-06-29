@@ -39,7 +39,7 @@ const (
 )
 
 // Deferrable is implemented by errors that reference a missing resource which
-// could be created by an upstream action. The engine uses this to defer aborts
+// could be created by an upstream step. The engine uses this to defer aborts
 // during check mode when the resource is already promised.
 type Deferrable interface {
 	DeferredResource() spec.Resource

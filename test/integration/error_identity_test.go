@@ -47,8 +47,8 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -69,8 +69,8 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(op),
+			Steps: []spec.Step{
+				harness.MkStep(op),
 			},
 		},
 	}
@@ -89,8 +89,8 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx := t.Context()
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -113,8 +113,8 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(op),
+			Steps: []spec.Step{
+				harness.MkStep(op),
 			},
 		},
 	}
@@ -134,8 +134,8 @@ func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
 	em := harness.NoopEmitter()
 
 	ctx, cancel := context.WithCancel(t.Context())
-	cfg := spec.ResolvedConfig{
-		Target: harness.MockTargetInstance(tgt),
+	cfg := spec.Config{
+		Target: harness.MockDeclaredTarget(tgt),
 	}
 
 	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
@@ -159,8 +159,8 @@ func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
 		Deploy: spec.Deploy{
 			ID:   "fakeUnit",
 			Desc: "fakeUnit description",
-			Actions: []spec.Action{
-				harness.MkAction(op),
+			Steps: []spec.Step{
+				harness.MkStep(op),
 			},
 		},
 	}
