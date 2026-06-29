@@ -81,11 +81,11 @@ func TestBuildDeployGraphSingleProducer(t *testing.T) {
 	create := mkResolved(
 		"create",
 		fakeTargetType{kind: "ssh"},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(1000)}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	configure := mkResolved(
 		"configure",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(1000)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 
 	g, err := buildDeployGraph([]spec.ResolvedConfig{create, configure})
@@ -104,9 +104,9 @@ func TestBuildDeployGraphSingleProducer(t *testing.T) {
 }
 
 func TestBuildDeployGraphExternalInput(t *testing.T) {
-	// Configure-only: nobody in this run produces lxc:1000.
+	// Configure-only: nobody in this run produces node:1000.
 	configure := mkResolved("configure",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(1000)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	g, err := buildDeployGraph([]spec.ResolvedConfig{configure})
 	if err != nil {
@@ -141,34 +141,34 @@ func TestBuildDeployGraphMultipleProducers(t *testing.T) {
 	a := mkResolved(
 		"a",
 		fakeTargetType{kind: "ssh"},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(1000)}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	b := mkResolved(
 		"b",
 		fakeTargetType{kind: "ssh"},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(1000)}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	_, err := buildDeployGraph([]spec.ResolvedConfig{a, b})
 	var multi MultipleProducersError
 	if !errors.As(err, &multi) {
 		t.Fatalf("expected MultipleProducersError, got %T: %v", err, err)
 	}
-	if multi.Resource.Name != "1000" {
-		t.Errorf("Resource.Name = %q, want %q", multi.Resource.Name, "1000")
+	if multi.Resource.Name != "node:1000" {
+		t.Errorf("Resource.Name = %q, want %q", multi.Resource.Name, "node:1000")
 	}
 }
 
 func TestBuildDeployGraphCycle(t *testing.T) {
-	// a produces lxc:1000, consumes lxc:2000
-	// b produces lxc:2000, consumes lxc:1000
+	// a produces node:1000, consumes node:2000
+	// b produces node:2000, consumes node:1000
 	// → cycle.
 	a := mkResolved("a",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(2000)}},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(1000)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:2000")}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	b := mkResolved("b",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(1000)}},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(2000)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:2000")}},
 	)
 	_, err := buildDeployGraph([]spec.ResolvedConfig{a, b})
 	var cycle DeployCycleError
@@ -182,14 +182,14 @@ func TestBuildDeployGraphChain(t *testing.T) {
 	a := mkResolved(
 		"a",
 		fakeTargetType{kind: "ssh"},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(1000)}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	b := mkResolved("b",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(1000)}},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(2000)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:2000")}},
 	)
 	c := mkResolved("c",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(2000)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:2000")}},
 	)
 
 	g, err := buildDeployGraph([]spec.ResolvedConfig{a, b, c})
@@ -269,19 +269,19 @@ func levelSizes(levels [][]*deployNode) []int {
 }
 
 func TestBuildDeployGraphFanout(t *testing.T) {
-	// a produces lxc:1000 + lxc:1001, b consumes :1000, c consumes :1001
+	// a produces node:1000 + node:1001, b consumes :1000, c consumes :1001
 	// → b and c run in parallel at level 1.
 	a := mkResolved(
 		"a",
 		fakeTargetType{kind: "ssh"},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(1000)}},
-		fakeStaticStepType{kind: "pve.lxc", promises: []spec.Resource{spec.LXCResource(1001)}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepType{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1001")}},
 	)
 	b := mkResolved("b",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(1000)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	c := mkResolved("c",
-		fakeTargetType{kind: "pve.lxc_target", inputs: []spec.Resource{spec.LXCResource(1001)}},
+		fakeTargetType{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1001")}},
 	)
 
 	g, err := buildDeployGraph([]spec.ResolvedConfig{a, b, c})

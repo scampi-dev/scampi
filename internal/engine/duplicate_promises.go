@@ -12,8 +12,8 @@ import (
 
 // detectDuplicatePromises rejects plans where two actions promise the
 // same Resource. Two actions promising the same resource is always a
-// user error: either two writers will race (e.g. two pve.lxc with the
-// same VMID), or one masks the other (e.g. two posix.user "alice").
+// user error: either two writers will race, or one masks the other
+// (e.g. two posix.user "alice").
 //
 // The first action to promise a given resource is the "winner"; every
 // later action promising the same resource produces a DuplicateResourceError
@@ -107,8 +107,6 @@ func resourceKindLabel(k spec.ResourceKind) string {
 		return "user"
 	case spec.ResourceGroup:
 		return "group"
-	case spec.ResourceContainer:
-		return "container"
 	case spec.ResourceRef:
 		return "ref"
 	default:
@@ -118,8 +116,6 @@ func resourceKindLabel(k spec.ResourceKind) string {
 
 func resourceKindHint(k spec.ResourceKind) string {
 	switch k {
-	case spec.ResourceContainer:
-		return "VMIDs are unique per cluster — change one of the IDs or merge the steps"
 	case spec.ResourceUser:
 		return "merge into a single posix.user step or use distinct names"
 	case spec.ResourceGroup:

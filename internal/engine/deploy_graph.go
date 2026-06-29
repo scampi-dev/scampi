@@ -35,8 +35,7 @@ type deployGraph struct {
 // External inputs (a node consumes a resource that no node in this
 // run produces) are treated as already-satisfied — those nodes
 // become roots. If the resource genuinely doesn't exist at runtime,
-// downstream errors (e.g. LxcUnreachableError on pve.lxc_target)
-// surface that cleanly.
+// downstream errors surface that cleanly.
 func buildDeployGraph(resolved []spec.ResolvedConfig) (*deployGraph, error) {
 	nodes := make([]*deployNode, len(resolved))
 	for i, r := range resolved {
@@ -87,7 +86,7 @@ func buildDeployGraph(resolved []spec.ResolvedConfig) (*deployGraph, error) {
 func collectPromises(r spec.ResolvedConfig) []spec.Resource {
 	var out []spec.Resource
 	for _, step := range r.Steps {
-		// Type-driven (e.g. pve.lxc auto-promises `lxc:<vmid>`).
+		// Type-driven: a step kind auto-promises resources from its config.
 		if p, ok := step.Type.(spec.StaticPromiseProvider); ok {
 			out = append(out, p.StaticPromises(step.Config)...)
 		}
@@ -104,7 +103,7 @@ func collectPromises(r spec.ResolvedConfig) []spec.Resource {
 
 func collectInputs(r spec.ResolvedConfig) []spec.Resource {
 	var out []spec.Resource
-	// Target-driven (e.g. pve.lxc_target consumes `lxc:<vmid>`).
+	// Target-driven: a target kind consumes resources from its config.
 	if p, ok := r.Target.Type.(spec.StaticInputProvider); ok {
 		out = append(out, p.StaticInputs(r.Target.Config)...)
 	}
@@ -277,10 +276,6 @@ func resourceKindName(k spec.ResourceKind) string {
 		return "group"
 	case spec.ResourceRef:
 		return "ref"
-	case spec.ResourceContainer:
-		return "container"
-	case spec.ResourceLXC:
-		return "lxc"
 	case spec.ResourceLabel:
 		return "label"
 	default:

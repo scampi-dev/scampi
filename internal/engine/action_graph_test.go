@@ -57,10 +57,10 @@ func groups(s ...string) []spec.Resource {
 	return r
 }
 
-func containers(s ...string) []spec.Resource {
+func labels(s ...string) []spec.Resource {
 	r := make([]spec.Resource, len(s))
-	for i, c := range s {
-		r[i] = spec.ContainerResource(c)
+	for i, l := range s {
+		r[i] = spec.LabelResource(l)
 	}
 	return r
 }
@@ -256,13 +256,13 @@ func TestBuildActionGraph_MixedResourceChain(t *testing.T) {
 	requiresExactly(t, nodes[2], "dir", nodes[1])
 }
 
-func TestBuildActionGraph_ContainerResource_DistinctIDsParallel(t *testing.T) {
-	// Three pve.lxc-style actions with distinct container slots —
-	// no resource overlap and not barriers, so they run in parallel.
+func TestBuildActionGraph_LabelResource_DistinctIDsParallel(t *testing.T) {
+	// Three actions with distinct label slots — no resource overlap
+	// and not barriers, so they run in parallel.
 	actions := []spec.Action{
-		&mockPromiserAction{desc: "lxc100", promises: containers("pve://midgard/100")},
-		&mockPromiserAction{desc: "lxc101", promises: containers("pve://midgard/101")},
-		&mockPromiserAction{desc: "lxc102", promises: containers("pve://midgard/102")},
+		&mockPromiserAction{desc: "node100", promises: labels("node:100")},
+		&mockPromiserAction{desc: "node101", promises: labels("node:101")},
+		&mockPromiserAction{desc: "node102", promises: labels("node:102")},
 	}
 
 	nodes := buildActionGraph(actions)
@@ -272,12 +272,12 @@ func TestBuildActionGraph_ContainerResource_DistinctIDsParallel(t *testing.T) {
 	}
 }
 
-func TestBuildActionGraph_ContainerResource_NotABarrier(t *testing.T) {
-	// A container-resource action between two path actions must not act
+func TestBuildActionGraph_LabelResource_NotABarrier(t *testing.T) {
+	// A label-resource action between two path actions must not act
 	// as a barrier (regression test for #235).
 	actions := []spec.Action{
 		&mockPromiserAction{desc: "P1", promises: paths("/a")},
-		&mockPromiserAction{desc: "lxc", promises: containers("pve://midgard/100")},
+		&mockPromiserAction{desc: "node", promises: labels("node:100")},
 		&mockPromiserAction{desc: "P2", promises: paths("/b")},
 	}
 

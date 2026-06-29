@@ -25,31 +25,31 @@ func mkStep(kind, file string, line int) spec.StepInstance {
 func TestDetectDuplicatePromises_NoDuplicates(t *testing.T) {
 	ctx := discardCtx(t)
 	actions := []spec.Action{
-		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
-		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/101")},
+		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
+		&mockPromiserAction{kind: "make.node", promises: labels("node:101")},
 	}
 	steps := []spec.StepInstance{
-		mkStep("pve.lxc", "main.scampi", 10),
-		mkStep("pve.lxc", "main.scampi", 20),
+		mkStep("make.node", "main.scampi", 10),
+		mkStep("make.node", "main.scampi", 20),
 	}
 	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestDetectDuplicatePromises_DuplicateContainer(t *testing.T) {
+func TestDetectDuplicatePromises_DuplicateLabel(t *testing.T) {
 	ctx := discardCtx(t)
 	actions := []spec.Action{
-		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
-		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
+		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
+		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
 	}
 	steps := []spec.StepInstance{
-		mkStep("pve.lxc", "main.scampi", 10),
-		mkStep("pve.lxc", "main.scampi", 20),
+		mkStep("make.node", "main.scampi", 10),
+		mkStep("make.node", "main.scampi", 20),
 	}
 	err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps)
 	if err == nil {
-		t.Fatal("expected error for duplicate VMID, got nil")
+		t.Fatal("expected error for duplicate label, got nil")
 	}
 	var abort AbortError
 	if !errors.As(err, &abort) {
@@ -62,11 +62,11 @@ func TestDetectDuplicatePromises_DuplicateContainer(t *testing.T) {
 	if !errors.As(abort.Causes[0], &dup) {
 		t.Fatalf("expected DuplicateResourceError, got %T", abort.Causes[0])
 	}
-	if dup.Resource.Kind != spec.ResourceContainer {
-		t.Errorf("kind = %v, want ResourceContainer", dup.Resource.Kind)
+	if dup.Resource.Kind != spec.ResourceLabel {
+		t.Errorf("kind = %v, want ResourceLabel", dup.Resource.Kind)
 	}
-	if dup.Resource.Name != "pve://midgard/100" {
-		t.Errorf("name = %q, want pve://midgard/100", dup.Resource.Name)
+	if dup.Resource.Name != "node:100" {
+		t.Errorf("name = %q, want node:100", dup.Resource.Name)
 	}
 	if dup.Source.StartLine != 20 {
 		t.Errorf("Source.StartLine = %d, want 20 (the duplicate)", dup.Source.StartLine)
@@ -95,15 +95,15 @@ func TestDetectDuplicatePromises_DuplicatePath(t *testing.T) {
 func TestDetectDuplicatePromises_DistinctNodesIndependent(t *testing.T) {
 	ctx := discardCtx(t)
 	actions := []spec.Action{
-		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
-		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://asgard/100")},
+		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
+		&mockPromiserAction{kind: "make.node", promises: labels("node:200")},
 	}
 	steps := []spec.StepInstance{
-		mkStep("pve.lxc", "main.scampi", 10),
-		mkStep("pve.lxc", "main.scampi", 20),
+		mkStep("make.node", "main.scampi", 10),
+		mkStep("make.node", "main.scampi", 20),
 	}
 	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
-		t.Fatalf("unexpected error for cross-node VMIDs: %v", err)
+		t.Fatalf("unexpected error for distinct labels: %v", err)
 	}
 }
 
@@ -111,11 +111,11 @@ func TestDetectDuplicatePromises_NonPromiserSkipped(t *testing.T) {
 	ctx := discardCtx(t)
 	actions := []spec.Action{
 		&mockAction{kind: "noop"},
-		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
+		&mockPromiserAction{kind: "make.node", promises: labels("node:100")},
 	}
 	steps := []spec.StepInstance{
 		mkStep("noop", "main.scampi", 5),
-		mkStep("pve.lxc", "main.scampi", 10),
+		mkStep("make.node", "main.scampi", 10),
 	}
 	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -128,7 +128,7 @@ func TestDetectDuplicatePromises_AllResourceKinds(t *testing.T) {
 		promises []spec.Resource
 		wantKind spec.ResourceKind
 	}{
-		{"container", containers("pve://m/100"), spec.ResourceContainer},
+		{"label", labels("node:100"), spec.ResourceLabel},
 		{"path", paths("/foo"), spec.ResourcePath},
 		{"user", users("alice"), spec.ResourceUser},
 		{"group", groups("staff"), spec.ResourceGroup},

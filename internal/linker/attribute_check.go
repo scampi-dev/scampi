@@ -18,7 +18,7 @@ import (
 // `f(arg)`, `std.deploy(name=, targets=)`) — the literal lives only
 // in the AST.
 //
-// Decl/struct-literal invocations (`pve.lxc { id = ... }`) are NOT
+// Decl/struct-literal invocations (`foo.thing { id = ... }`) are NOT
 // validated here; they go through runAttributeEvalChecks which sees
 // the eval-resolved values. That gets us comprehensions, let-bindings,
 // and field access for free.

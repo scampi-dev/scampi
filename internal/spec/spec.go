@@ -5,7 +5,6 @@ package spec
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	"scampi.dev/scampi/internal/capability"
@@ -22,8 +21,6 @@ const (
 	ResourceUser
 	ResourceGroup
 	ResourceRef
-	ResourceContainer
-	ResourceLXC   // PVE LXC container, Name = vmid as string
 	ResourceLabel // arbitrary user-named resource (e.g. "realm:skrynet.lan")
 )
 
@@ -33,13 +30,9 @@ type Resource struct {
 	Name string
 }
 
-func PathResource(name string) Resource      { return Resource{Kind: ResourcePath, Name: name} }
-func UserResource(name string) Resource      { return Resource{Kind: ResourceUser, Name: name} }
-func GroupResource(name string) Resource     { return Resource{Kind: ResourceGroup, Name: name} }
-func ContainerResource(name string) Resource { return Resource{Kind: ResourceContainer, Name: name} }
-func LXCResource(vmid int) Resource {
-	return Resource{Kind: ResourceLXC, Name: strconv.Itoa(vmid)}
-}
+func PathResource(name string) Resource  { return Resource{Kind: ResourcePath, Name: name} }
+func UserResource(name string) Resource  { return Resource{Kind: ResourceUser, Name: name} }
+func GroupResource(name string) Resource { return Resource{Kind: ResourceGroup, Name: name} }
 func LabelResource(name string) Resource {
 	return Resource{Kind: ResourceLabel, Name: name}
 }
@@ -78,7 +71,7 @@ type (
 	// StaticInputProvider is implemented by TargetTypes that consume
 	// resources produced by other deploy blocks. The engine uses this
 	// to order plans cross-deploy: a deploy block whose target inputs
-	// `lxc:1000` waits for whichever block promises it. Pure config
+	// a resource waits for whichever block promises it. Pure config
 	// inspection — no live connections, no probes.
 	StaticInputProvider interface {
 		StaticInputs(cfg any) []Resource
@@ -104,10 +97,10 @@ type (
 		Fields   map[string]FieldSpan
 	}
 	// StaticPromiseProvider is implemented by StepTypes that produce
-	// resources visible to other deploy blocks (e.g. pve.lxc creating
-	// an LXC consumed by a sibling block's lxc_target). Pure config
-	// inspection. The op-level Promiser intra-action surface stays
-	// separate — those run after Plan(), this is pre-plan.
+	// resources visible to other deploy blocks, consumed by a sibling
+	// block's target inputs. Pure config inspection. The op-level
+	// Promiser intra-action surface stays separate — those run after
+	// Plan(), this is pre-plan.
 	StaticPromiseProvider interface {
 		StaticPromises(cfg any) []Resource
 	}

@@ -28,7 +28,7 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 	defer tgt.Close()
 
 	// Baseline counters — Create() opens its own sessions for OS,
-	// service-manager, container-runtime, PVE, and escalation
+	// service-manager, container-runtime, and escalation
 	// detection. We measure ops *after* setup so this test asserts
 	// against our own work, not whatever probing Create() did.
 	baseline := tgt.Stats()
