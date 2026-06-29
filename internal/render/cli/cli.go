@@ -229,10 +229,7 @@ func (c *CLI) RenderIndexAll(docs []spec.StepDoc) {
 
 	for _, doc := range docs {
 		kind := c.formatter.fmtMsg(ansi.BrightCyan().Bold(), doc.Kind)
-		pad := kindWidth - layout.VisibleLen(kind)
-		if pad < 0 {
-			pad = 0
-		}
+		pad := max(kindWidth-layout.VisibleLen(kind), 0)
 		prefix := "  " + kind + strings.Repeat(" ", pad) + "  "
 		indent := 2 + kindWidth + 2
 
@@ -522,7 +519,7 @@ func (c *CLI) renderSnippets(snippets []string) []renderEvent {
 			events = append(events, renderEvent{line: "", stream: streamOut})
 		}
 		events = append(events, renderEvent{line: "", stream: streamOut})
-		for _, l := range strings.Split(s, "\n") {
+		for l := range strings.SplitSeq(s, "\n") {
 			events = append(events, renderEvent{
 				line:   c.formatter.fmtMsg(ansi.BrightBlack().Dim(), "  "+l),
 				stream: streamOut,
@@ -566,17 +563,11 @@ func (c *CLI) legendSection(header string, entries []legendEntry) []renderEvent 
 		}
 
 		styled := c.formatter.fmtMsg(e.color, e.glyph)
-		glyphPad := maxGlyphWidth - layout.VisibleLen(styled)
-		if glyphPad < 0 {
-			glyphPad = 0
-		}
+		glyphPad := max(maxGlyphWidth-layout.VisibleLen(styled), 0)
 		line := "  " + styled + strings.Repeat(" ", glyphPad)
 
 		if e.label != "" {
-			labelPad := maxLabelWidth - len(e.label)
-			if labelPad < 0 {
-				labelPad = 0
-			}
+			labelPad := max(maxLabelWidth-len(e.label), 0)
 			line += "  " + c.formatter.fmtMsg(ansi.White(), e.label) + strings.Repeat(" ", labelPad)
 		}
 

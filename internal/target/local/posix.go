@@ -157,8 +157,7 @@ func (POSIXTarget) RunCommand(ctx context.Context, cmd string) (target.CommandRe
 	c.Stderr = &stderr
 	err := c.Run()
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			return target.CommandResult{
 				Stdout:   stdout.String(),
 				Stderr:   stderr.String(),

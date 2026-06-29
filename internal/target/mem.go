@@ -752,7 +752,7 @@ func directChild(path, prefix string) (string, bool) {
 		return "", false
 	}
 	rest := path[len(prefix):]
-	if i := strings.Index(rest, "/"); i >= 0 {
+	if found := strings.Contains(rest, "/"); found {
 		return "", false
 	}
 	return rest, true

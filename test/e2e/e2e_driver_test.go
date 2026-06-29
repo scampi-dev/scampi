@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"maps"
 	"sort"
 	"testing"
 
@@ -37,27 +38,15 @@ func setupMemTarget(t *testing.T, initial E2EFiles) (*target.MemTarget, spec.Dec
 		tgt.Modes[path] = 0o755
 		tgt.Owners[path] = target.Owner{User: "testuser", Group: "testgroup"}
 	}
-	for link, linkTarget := range initial.Symlinks {
-		tgt.Symlinks[link] = linkTarget
-	}
-	for pkg, installed := range initial.Pkgs {
-		tgt.Pkgs[pkg] = installed
-	}
-	for pkg, upgradable := range initial.Upgradable {
-		tgt.Upgradable[pkg] = upgradable
-	}
+	maps.Copy(tgt.Symlinks, initial.Symlinks)
+	maps.Copy(tgt.Pkgs, initial.Pkgs)
+	maps.Copy(tgt.Upgradable, initial.Upgradable)
 	tgt.CacheStale = initial.CacheStale
-	for svc, active := range initial.Services {
-		tgt.Services[svc] = active
-	}
-	for svc, enabled := range initial.EnabledServices {
-		tgt.EnabledServices[svc] = enabled
-	}
+	maps.Copy(tgt.Services, initial.Services)
+	maps.Copy(tgt.EnabledServices, initial.EnabledServices)
 	if len(initial.Commands) > 0 {
 		commands := make(map[string]E2ECommandResult, len(initial.Commands))
-		for k, v := range initial.Commands {
-			commands[k] = v
-		}
+		maps.Copy(commands, initial.Commands)
 		tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 			r, ok := commands[cmd]
 			if !ok {
@@ -80,9 +69,7 @@ func setupMemTarget(t *testing.T, initial E2EFiles) (*target.MemTarget, spec.Dec
 			tgt.Repos[name] = target.RepoConfig{Name: name}
 		}
 	}
-	for name, installed := range initial.RepoKeys {
-		tgt.RepoKeys[name] = installed
-	}
+	maps.Copy(tgt.RepoKeys, initial.RepoKeys)
 	if initial.VersionCodename != "" {
 		tgt.Codename = initial.VersionCodename
 	}

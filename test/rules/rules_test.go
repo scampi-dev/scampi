@@ -205,8 +205,8 @@ func TestImportCapabilities(t *testing.T) {
 	// Patterns ending in /* match any sub-import but not the base.
 	// e.g., "os/*" matches "os/exec" but not "os"
 	matchImport := func(pattern, importPath string) bool {
-		if strings.HasSuffix(pattern, "/*") {
-			base := strings.TrimSuffix(pattern, "/*")
+		if before, ok := strings.CutSuffix(pattern, "/*"); ok {
+			base := before
 			return strings.HasPrefix(importPath, base+"/")
 		}
 		return pattern == importPath

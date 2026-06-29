@@ -1206,8 +1206,8 @@ std.deploy(name = "bench", targets = [host]) {
 			tgt.Files["/etc/fstab"] = []byte(fstab.String())
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				// findmnt --target <dest> --noheadings → exit 0 means mounted.
-				if strings.HasPrefix(cmd, "findmnt --target ") {
-					rest := strings.TrimPrefix(cmd, "findmnt --target ")
+				if after, ok := strings.CutPrefix(cmd, "findmnt --target "); ok {
+					rest := after
 					rest = strings.TrimSuffix(rest, " --noheadings")
 					if mountedTargets[strings.TrimSpace(rest)] {
 						return target.CommandResult{ExitCode: 0}, nil
@@ -1290,8 +1290,8 @@ std.deploy(name = "bench", targets = [host]) {
 			tgt := target.NewMemTarget()
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				// list-N returns "item-N\n" so the desired set matches.
-				if strings.HasPrefix(cmd, "list-") {
-					n := strings.TrimPrefix(cmd, "list-")
+				if after, ok := strings.CutPrefix(cmd, "list-"); ok {
+					n := after
 					return target.CommandResult{ExitCode: 0, Stdout: "item-" + n + "\n"}, nil
 				}
 				return target.CommandResult{ExitCode: 127, Stderr: "command not found"}, nil

@@ -4,6 +4,7 @@ package svcmgr
 
 import (
 	"fmt"
+	"strings"
 
 	"scampi.dev/scampi/internal/target"
 )
@@ -74,10 +75,11 @@ func (b *launchctlBackend) CmdReload(_ string) string { return "" }
 // non-zero exit) if not found.
 func plistFindExpr(name string) string {
 	q := target.ShellQuote(name + ".plist")
-	expr := "ls"
+	var expr strings.Builder
+	expr.WriteString("ls")
 	for _, d := range launchctlDirs {
-		expr += " " + d + "/" + q
+		expr.WriteString(" " + d + "/" + q)
 	}
-	expr += " 2>/dev/null | head -1"
-	return expr
+	expr.WriteString(" 2>/dev/null | head -1")
+	return expr.String()
 }

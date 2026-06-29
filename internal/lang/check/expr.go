@@ -4,6 +4,7 @@ package check
 
 import (
 	"strconv"
+	"strings"
 
 	"scampi.dev/scampi/internal/lang/ast"
 	"scampi.dev/scampi/internal/lang/token"
@@ -342,14 +343,14 @@ func joinSorted(xs []string) string {
 			out[j-1], out[j] = out[j], out[j-1]
 		}
 	}
-	s := ""
+	var s strings.Builder
 	for i, n := range out {
 		if i > 0 {
-			s += ", "
+			s.WriteString(", ")
 		}
-		s += n
+		s.WriteString(n)
 	}
-	return s
+	return s.String()
 }
 
 // typeCheckCallArgs validates positional and keyword call arguments
@@ -361,10 +362,7 @@ func (c *Checker) typeCheckCallArgs(call *ast.CallExpr, ft *FuncType, ufcs bool)
 	if ufcs {
 		recvOffset = 1
 	}
-	availParams := len(ft.Params) - recvOffset
-	if availParams < 0 {
-		availParams = 0
-	}
+	availParams := max(len(ft.Params)-recvOffset, 0)
 
 	// A param is required at the call site only if it has neither a
 	// default value nor an optional type. `param: T?` is optional

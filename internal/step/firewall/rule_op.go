@@ -88,7 +88,7 @@ func (op *ensureRuleOp) checkUFW(
 	}
 
 	needle := fmt.Sprintf("ufw %s %s", op.action, op.port.String())
-	for _, line := range strings.Split(result.Stdout, "\n") {
+	for line := range strings.SplitSeq(result.Stdout, "\n") {
 		if strings.TrimSpace(line) == needle {
 			return spec.CheckSatisfied, nil, nil
 		}

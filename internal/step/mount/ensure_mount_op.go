@@ -179,7 +179,7 @@ func (op *ensureMountOp) findFstabEntry(
 	if err != nil {
 		return false, ""
 	}
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -206,7 +206,7 @@ func (op *ensureMountOp) ensureFstab(
 
 	var lines []string
 	found := false
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
 			fields := strings.Fields(trimmed)
@@ -239,7 +239,7 @@ func (op *ensureMountOp) removeFstab(
 	}
 
 	var lines []string
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
 			fields := strings.Fields(trimmed)

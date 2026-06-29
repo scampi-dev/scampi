@@ -35,7 +35,7 @@ func Walk(node Node, pre func(Node) bool, post func(Node)) {
 
 func isNilPtr(node Node) bool {
 	v := reflect.ValueOf(node)
-	return v.Kind() == reflect.Ptr && v.IsNil()
+	return v.Kind() == reflect.Pointer && v.IsNil()
 }
 
 func walkChildren(node Node, pre func(Node) bool, post func(Node)) {

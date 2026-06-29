@@ -60,8 +60,7 @@ func reflectStruct(cfg any) reflect.Type {
 }
 
 func extractSummary(rt reflect.Type) string {
-	for i := range rt.NumField() {
-		sf := rt.Field(i)
+	for sf := range rt.Fields() {
 		if sf.IsExported() {
 			continue
 		}
@@ -77,8 +76,7 @@ func extractSummary(rt reflect.Type) string {
 
 func extractFields(rt reflect.Type) []spec.FieldDoc {
 	fields := make([]spec.FieldDoc, 0, rt.NumField())
-	for i := range rt.NumField() {
-		sf := rt.Field(i)
+	for sf := range rt.Fields() {
 		if !sf.IsExported() {
 			continue
 		}

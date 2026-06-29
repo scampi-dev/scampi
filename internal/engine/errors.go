@@ -117,12 +117,10 @@ func (e CapabilityMismatchError) Diagnostic() event.Event {
 }
 
 func panicIfNotAbortError(err error) error {
-	var abort AbortError
-	if errors.As(err, &abort) {
+	if abort, ok := errors.AsType[AbortError](err); ok {
 		return abort
 	}
-	var aborted StepAbortedError
-	if errors.As(err, &aborted) {
+	if aborted, ok := errors.AsType[StepAbortedError](err); ok {
 		return aborted
 	}
 	if errors.Is(err, context.Canceled) {
@@ -152,8 +150,7 @@ func emitScopedDiagnostic(ctx diagnostic.Ctx, err error) (diagnostic.Impact, boo
 		return 0, false
 	}
 
-	var re diagnostic.Raisable
-	if errors.As(err, &re) {
+	if re, ok := errors.AsType[diagnostic.Raisable](err); ok {
 		ev := re.Diagnostic()
 		ctx.Emit(ev)
 		if aborts(ev) {

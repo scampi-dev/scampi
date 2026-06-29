@@ -212,7 +212,6 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 	g, ctx := errgroup.WithContext(s.ctx)
 
 	for _, n := range nodes {
-		n := n
 		g.Go(func() error {
 			displayID := diagnostic.OpDisplayID(n.op)
 

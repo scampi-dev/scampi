@@ -386,8 +386,8 @@ func buildTestDataFromType(typ types.Type, depth int) any {
 	}
 
 	m := make(map[string]any)
-	for i := range st.NumFields() {
-		f := st.Field(i)
+	for f := range st.Fields() {
+		f := f
 		if !f.Exported() {
 			continue
 		}

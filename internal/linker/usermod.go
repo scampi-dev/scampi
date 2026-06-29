@@ -3,6 +3,7 @@
 package linker
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -192,9 +193,7 @@ func loadMultiFileModule(
 	// module scope so cross-file references resolve.
 	modScope := check.NewScope(nil, check.ScopeFile)
 	mergedModules := make(map[string]*check.Scope, len(stdModules)+1)
-	for k, v := range stdModules {
-		mergedModules[k] = v
-	}
+	maps.Copy(mergedModules, stdModules)
 	mergedModules[modName] = modScope
 
 	// Phase 1: register all forward declarations from all files

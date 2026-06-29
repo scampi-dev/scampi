@@ -478,10 +478,7 @@ func (op *ensureContainerOp) waitHealthy(ctx context.Context, cm target.Containe
 	if retries == 0 {
 		retries = 3
 	}
-	deadline := op.healthcheck.StartPeriod + poll*time.Duration(retries+1)
-	if deadline < 60*time.Second {
-		deadline = 60 * time.Second
-	}
+	deadline := max(op.healthcheck.StartPeriod+poll*time.Duration(retries+1), 60*time.Second)
 
 	ctx, cancel := context.WithTimeout(ctx, deadline)
 	defer cancel()
@@ -643,11 +640,12 @@ func joinOrNone(ports []string) string {
 	if len(ports) == 0 {
 		return "(none)"
 	}
-	s := ports[0]
+	var s strings.Builder
+	s.WriteString(ports[0])
 	for _, p := range ports[1:] {
-		s += ", " + p
+		s.WriteString(", " + p)
 	}
-	return s
+	return s.String()
 }
 
 // OpDescription

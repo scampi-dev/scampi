@@ -155,16 +155,13 @@ func (e StagingFailedError) Diagnostic() event.Event {
 // DiagnoseTargetError wraps known target-layer errors in diagnostic types.
 // Returns the original error unchanged if not a recognized target error.
 func DiagnoseTargetError(err error) error {
-	var noEsc target.NoEscalationError
-	if errors.As(err, &noEsc) {
+	if noEsc, ok := errors.AsType[target.NoEscalationError](err); ok {
 		return EscalationMissingError{NoEscalationError: noEsc}
 	}
-	var escErr target.EscalationError
-	if errors.As(err, &escErr) {
+	if escErr, ok := errors.AsType[target.EscalationError](err); ok {
 		return EscalationFailedError{EscalationError: escErr}
 	}
-	var stagErr target.StagingError
-	if errors.As(err, &stagErr) {
+	if stagErr, ok := errors.AsType[target.StagingError](err); ok {
 		return StagingFailedError{StagingError: stagErr}
 	}
 	return err

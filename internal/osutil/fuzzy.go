@@ -18,8 +18,7 @@ func RunFuzzyFinder(finder string, choices []string) (string, error) {
 
 	out, err := cmd.Output()
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
 			return "", nil // user cancelled (fzf exits 130, sk exits 1)
 		}
 		return "", err

@@ -154,8 +154,7 @@ func main() {
 		// user sees only the library's message, not a scary "unhandled
 		// error" trace.
 		stopProfiling()
-		var exitErr cli.ExitCoder
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[cli.ExitCoder](err); ok {
 			os.Exit(exitErr.ExitCode())
 		}
 		os.Exit(exitUserError)
@@ -333,12 +332,10 @@ func handleEngineError(name string, err error) error {
 	if err == nil {
 		return nil
 	}
-	var abort engine.AbortError
-	if errors.As(err, &abort) {
+	if _, ok := errors.AsType[engine.AbortError](err); ok {
 		return cli.Exit("", exitUserError)
 	}
-	var cancelled engine.CancelledError
-	if errors.As(err, &cancelled) {
+	if _, ok := errors.AsType[engine.CancelledError](err); ok {
 		return cli.Exit("", exitUserError)
 	}
 	panic(errs.BUG("engine.%s returned unexpected error: %w", name, err))

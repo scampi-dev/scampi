@@ -375,8 +375,8 @@ func (op *unarchiveOp) extractNested(
 		return nil
 	}
 
-	lines := strings.Split(strings.TrimSpace(res.Stdout), "\n")
-	for _, archivePath := range lines {
+	lines := strings.SplitSeq(strings.TrimSpace(res.Stdout), "\n")
+	for archivePath := range lines {
 		archivePath = strings.TrimSpace(archivePath)
 		if archivePath == "" {
 			continue

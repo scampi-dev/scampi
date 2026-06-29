@@ -109,13 +109,13 @@ fmt:
 
 [group('quality')]
 [doc("Lint project (severity: warning|hint)")]
-lint severity='warning':
+lint:
   go tool golangci-lint run
   go tool gomarklint
   go test -run 'TestMarkdownTableAlignment|TestFuncSignatureStyle|TestBareErrorBan' ./test/rules/
   shellcheck **/*.sh
   just license-check
-  just _gopls-hints {{severity}}
+  just _gopls-hints
 
 [group('quality')]
 [doc("Find suspicious unicode characters in code/docs")]
@@ -128,9 +128,8 @@ license-check:
   ./scripts/license-check.sh
 
 [private]
-_gopls-hints severity:
+_gopls-hints:
   #!/usr/bin/env bash
-  [[ "{{severity}}" != "hint" ]] && exit 0
   files=$(find . -name '*.go' -not -name '*_test.go' -not -path './vendor/*' -not -path './.git/*')
   hints=$(echo "$files" | xargs gopls check -severity=hint 2>&1 | grep -v '^$')
   if [[ -n "$hints" ]]; then

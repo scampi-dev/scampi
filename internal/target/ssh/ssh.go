@@ -88,8 +88,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 	client, err := dialWithRetry(ctx, addr, sshCfg)
 	if err != nil {
 		defer func() { _ = closeAgent() }()
-		var ke *knownhosts.KeyError
-		if errors.As(err, &ke) {
+		if ke, ok := errors.AsType[*knownhosts.KeyError](err); ok {
 			if len(ke.Want) == 0 {
 				return nil, UnknownKeyError{
 					Err: err,
@@ -101,8 +100,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 			}
 		}
 
-		var rk *knownhosts.RevokedError
-		if errors.As(err, &rk) {
+		if rk, ok := errors.AsType[*knownhosts.RevokedError](err); ok {
 			return nil, KeyRevokedError{
 				Revoked: toKnownKey(rk.Revoked),
 				Err:     err,

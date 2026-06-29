@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -238,9 +239,7 @@ func mergeData(cfg DataConfig, src source.Source) (map[string]any, error) {
 	data := make(map[string]any)
 
 	// Copy values as base
-	for k, v := range cfg.Values {
-		data[k] = v
-	}
+	maps.Copy(data, cfg.Values)
 
 	// Apply env overrides
 	for envVar, key := range cfg.Env {
@@ -315,10 +314,10 @@ func tmplFileErrorSpan(err error, srcPath string) (spec.SourceSpan, bool) {
 	}
 
 	exprLen := 0
-	if idx := strings.Index(msg, "at <"); idx >= 0 {
-		rest := msg[idx+4:]
-		if end := strings.Index(rest, ">"); end >= 0 {
-			exprLen = len(rest[:end])
+	if _, after, ok := strings.Cut(msg, "at <"); ok {
+		rest := after
+		if before, _, ok := strings.Cut(rest, ">"); ok {
+			exprLen = len(before)
 		}
 	}
 
@@ -361,10 +360,10 @@ func tmplErrorSpan(err error, content string, contentSpan spec.SourceSpan) (spec
 	// Extract the expression (between < and > in the error) for underline.
 	// We underline the variable reference, not the {{ }} delimiters.
 	exprLen := 0
-	if idx := strings.Index(msg, "at <"); idx >= 0 {
-		rest := msg[idx+4:]
-		if end := strings.Index(rest, ">"); end >= 0 {
-			exprLen = len(rest[:end])
+	if _, after, ok := strings.Cut(msg, "at <"); ok {
+		rest := after
+		if before, _, ok := strings.Cut(rest, ">"); ok {
+			exprLen = len(before)
 		}
 	}
 
@@ -408,11 +407,11 @@ func tmplErrorSpan(err error, content string, contentSpan spec.SourceSpan) (spec
 func extractMissingKey(err error) string {
 	const marker = "map has no entry for key "
 	msg := err.Error()
-	idx := strings.Index(msg, marker)
-	if idx < 0 {
+	_, after, ok := strings.Cut(msg, marker)
+	if !ok {
 		return ""
 	}
-	return strings.Trim(msg[idx+len(marker):], "\"")
+	return strings.Trim(after, "\"")
 }
 
 func (op *renderTemplateOp) OpDescription() spec.OpDescription {

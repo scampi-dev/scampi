@@ -102,8 +102,8 @@ func TestStubsMatchGoConfigs(t *testing.T) {
 //     The linker resolves these via the module-prefix path in
 //     linker.linkTarget.
 func lookupStubDecl(decls map[string]map[string]map[string]bool, kind string, isStep bool) (map[string]bool, bool) {
-	if i := strings.IndexByte(kind, '.'); i >= 0 {
-		mod, leaf := kind[:i], kind[i+1:]
+	if before, after, ok := strings.Cut(kind, "."); ok {
+		mod, leaf := before, after
 		if modDecls, ok := decls[mod]; ok {
 			if params, ok := modDecls[leaf]; ok {
 				return params, true
@@ -207,8 +207,8 @@ func missingStubParams(cfg any, stubParams map[string]bool) []string {
 	t := v.Type()
 
 	var missing []string
-	for i := range t.NumField() {
-		f := t.Field(i)
+	for f := range t.Fields() {
+		f := f
 		if !f.IsExported() {
 			continue
 		}

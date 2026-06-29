@@ -185,8 +185,8 @@ type sourceFile struct {
 
 func (r *Resolver) readModule(importPath string) ([]sourceFile, error) {
 	// Intra-project: import starts with this project's module path.
-	if strings.HasPrefix(importPath, r.cfg.ModulePath+"/") {
-		subpath := strings.TrimPrefix(importPath, r.cfg.ModulePath+"/")
+	if after, ok := strings.CutPrefix(importPath, r.cfg.ModulePath+"/"); ok {
+		subpath := after
 		return r.readFromFS(r.cfg.RootFS, subpath)
 	}
 	if importPath == r.cfg.ModulePath {

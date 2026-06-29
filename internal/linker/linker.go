@@ -301,8 +301,7 @@ func resolveStepRefs(si *spec.DeclaredStep, ids map[*eval.StructVal]spec.StepID)
 	if v.Kind() != reflect.Struct {
 		return
 	}
-	for i := range v.NumField() {
-		fv := v.Field(i)
+	for _, fv := range v.Fields() {
 		if !fv.CanInterface() {
 			continue
 		}

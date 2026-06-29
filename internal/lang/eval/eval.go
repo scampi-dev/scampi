@@ -1574,12 +1574,12 @@ func (ev *Evaluator) lookupStep(name string) (*FuncVal, bool) {
 // module's MapVal. Used for imported user-defined decls like
 // adguard.dns_rewrite.
 func (ev *Evaluator) lookupStepQualified(qualName string) (*FuncVal, bool) {
-	dot := strings.IndexByte(qualName, '.')
-	if dot < 0 {
+	before, after, ok := strings.Cut(qualName, ".")
+	if !ok {
 		return nil, false
 	}
-	modName := qualName[:dot]
-	funcName := qualName[dot+1:]
+	modName := before
+	funcName := after
 	modVal, ok := ev.env.get(modName)
 	if !ok {
 		return nil, false

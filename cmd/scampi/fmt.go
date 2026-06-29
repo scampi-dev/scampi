@@ -35,8 +35,8 @@ func fmtCmd() *cli.Command {
 			var files []string
 			for _, arg := range args {
 				recursive := false
-				if strings.HasSuffix(arg, "/...") {
-					arg = strings.TrimSuffix(arg, "/...")
+				if before, ok := strings.CutSuffix(arg, "/..."); ok {
+					arg = before
 					if arg == "" {
 						arg = "."
 					}

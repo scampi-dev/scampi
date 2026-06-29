@@ -103,8 +103,8 @@ func scanProfileFlag(args []string, name string) string {
 		if a == name && i+1 < len(args) {
 			return args[i+1]
 		}
-		if strings.HasPrefix(a, name+"=") {
-			return strings.TrimPrefix(a, name+"=")
+		if after, ok := strings.CutPrefix(a, name+"="); ok {
+			return after
 		}
 	}
 	return ""

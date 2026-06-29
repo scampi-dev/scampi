@@ -4,6 +4,7 @@ package engine
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -20,8 +21,8 @@ func detectCycles[N comparable](roots []N, neighbors func(N) []N) [][]N {
 	var dfs func(n N)
 	dfs = func(n N) {
 		if onStack[n] {
-			for i := len(stack) - 1; i >= 0; i-- {
-				if stack[i] == n {
+			for i, s := range slices.Backward(stack) {
+				if s == n {
 					cycle := append([]N{}, stack[i:]...)
 					cycle = append(cycle, n)
 					cycles = append(cycles, cycle)
