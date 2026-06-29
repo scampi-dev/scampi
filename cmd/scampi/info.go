@@ -39,7 +39,7 @@ shown, including fields, behavior, and examples.`,
 			displ, cleanup := withDisplayer(ctx, opts, nil)
 			defer cleanup()
 
-			em := diagnostic.NewEmitter(pol, displ)
+			dctx := diagnostic.NewCtx(ctx, diagnostic.NewEmitter(pol, displ))
 			args := cmd.Args()
 
 			if args.Len() == 0 {
@@ -47,7 +47,7 @@ shown, including fields, behavior, and examples.`,
 				return nil
 			}
 
-			doc, err := engine.IndexStep(ctx, args.First(), em)
+			doc, err := engine.IndexStep(dctx, args.First())
 			if err != nil {
 				var abort engine.AbortError
 				if !errors.As(err, &abort) {

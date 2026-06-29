@@ -199,13 +199,13 @@ type hookPlan struct {
 
 func plan(
 	cfg spec.ResolvedConfig,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	tgtCaps capability.Capability,
 ) (spec.Plan, ActionDeps, *hookPlan, error) {
 	deployID := spec.DeployID(cfg.DeployName)
 
-	actions, actionSteps, onChange, causes, impacts := planSteps(cfg.Steps, em, tgtCaps)
-	hookActions, hookCauses, hookImpacts := planHooks(cfg.Hooks, em, tgtCaps)
+	actions, actionSteps, onChange, causes, impacts := planSteps(cfg.Steps, ctx, tgtCaps)
+	hookActions, hookCauses, hookImpacts := planHooks(cfg.Hooks, ctx, tgtCaps)
 	causes = append(causes, hookCauses...)
 	impacts = append(impacts, hookImpacts...)
 
@@ -224,18 +224,18 @@ func plan(
 		}
 	}
 
-	if err := validateHooks(em, cfg, hp); err != nil {
+	if err := validateHooks(ctx, cfg, hp); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
-	if err := detectDuplicatePromises(em, actions, actionSteps, cfg.Steps); err != nil {
+	if err := detectDuplicatePromises(ctx, actions, actionSteps, cfg.Steps); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
-	if err := DetectPlanCycles(em, p); err != nil {
+	if err := DetectPlanCycles(ctx, p); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 
 	nodes := buildActionGraph(p.Deploy.Actions)
-	if err := DetectActionCycles(em, nodes); err != nil {
+	if err := DetectActionCycles(ctx, nodes); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 
@@ -267,7 +267,7 @@ func planOneStep(
 
 func planSteps(
 	steps []spec.StepInstance,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	tgtCaps capability.Capability,
 ) ([]spec.Action, []int, map[int][]string, []error, []diagnostic.Impact) {
 	var actions []spec.Action
@@ -279,7 +279,7 @@ func planSteps(
 	for i, step := range steps {
 		act, err := planOneStep(step, i, tgtCaps)
 		if err != nil {
-			impact, _ := emitPlanDiagnostic(em, i, step.Type.Kind(), step.Desc, err)
+			impact, _ := emitPlanDiagnostic(ctx, i, step.Type.Kind(), step.Desc, err)
 			impacts = append(impacts, impact)
 			if act == nil || impact.ShouldAbort() {
 				causes = append(causes, err)
@@ -301,7 +301,7 @@ func planSteps(
 
 func planHooks(
 	hooks map[string][]spec.StepInstance,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	tgtCaps capability.Capability,
 ) (map[string][]spec.Action, []error, []diagnostic.Impact) {
 	actions := make(map[string][]spec.Action)
@@ -314,7 +314,7 @@ func planHooks(
 		for _, step := range steps {
 			act, err := planOneStep(step, -1, tgtCaps)
 			if err != nil {
-				impact, _ := emitPlanDiagnostic(em, -1, step.Type.Kind(), step.Desc, err)
+				impact, _ := emitPlanDiagnostic(ctx, -1, step.Type.Kind(), step.Desc, err)
 				impacts = append(impacts, impact)
 				causes = append(causes, err)
 				hookFailed = true
@@ -332,7 +332,7 @@ func planHooks(
 
 // validateHooks checks that all on_change references point to defined hooks
 // and that hook chains don't form cycles.
-func validateHooks(em diagnostic.Emitter, cfg spec.ResolvedConfig, hp *hookPlan) error {
+func validateHooks(ctx diagnostic.Ctx, cfg spec.ResolvedConfig, hp *hookPlan) error {
 	// Check step on_change references
 	for i, step := range cfg.Steps {
 		for _, hookID := range step.OnChange {
@@ -347,7 +347,7 @@ func validateHooks(em diagnostic.Emitter, cfg spec.ResolvedConfig, hp *hookPlan)
 					StepDesc: step.Desc,
 					Source:   source,
 				}
-				impact, _ := emitPlanDiagnostic(em, i, step.Type.Kind(), step.Desc, err)
+				impact, _ := emitPlanDiagnostic(ctx, i, step.Type.Kind(), step.Desc, err)
 				if impact.ShouldAbort() {
 					return AbortError{Causes: []error{err}}
 				}
@@ -370,7 +370,7 @@ func validateHooks(em diagnostic.Emitter, cfg spec.ResolvedConfig, hp *hookPlan)
 						StepDesc: step.Desc,
 						Source:   source,
 					}
-					impact, _ := emitPlanDiagnostic(em, -1, step.Type.Kind(), "hook:"+id, err)
+					impact, _ := emitPlanDiagnostic(ctx, -1, step.Type.Kind(), "hook:"+id, err)
 					if impact.ShouldAbort() {
 						return AbortError{Causes: []error{err}}
 					}
@@ -380,7 +380,7 @@ func validateHooks(em diagnostic.Emitter, cfg spec.ResolvedConfig, hp *hookPlan)
 	}
 
 	// Detect cycles in hook chains
-	if err := detectHookCycles(em, cfg.Hooks); err != nil {
+	if err := detectHookCycles(ctx, cfg.Hooks); err != nil {
 		return err
 	}
 

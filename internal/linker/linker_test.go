@@ -3,7 +3,6 @@
 package linker_test
 
 import (
-	"context"
 	"testing"
 
 	"scampi.dev/scampi/internal/diagnostic"
@@ -19,6 +18,12 @@ import (
 	"scampi.dev/scampi/internal/std"
 	"scampi.dev/scampi/test/harness"
 )
+
+// captureCtx returns a Ctx that delivers to c, for tests that inspect emitted
+// diagnostics via c.Events.
+func captureCtx(t *testing.T, c *harness.Capture) diagnostic.Ctx {
+	return diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, c))
+}
 
 func TestLinkBasicDeploy(t *testing.T) {
 	src := `
@@ -127,7 +132,7 @@ func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
 	reg := engine.NewRegistry()
 
 	capture := &harness.Capture{}
-	_, err := linker.LoadConfig(diagnostic.NewCtx(context.Background(), capture), "/config.scampi", src, reg)
+	_, err := linker.LoadConfig(captureCtx(t, capture), "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for broken syntax")
 	}
@@ -176,7 +181,7 @@ std.deploy(name = "test", targets = [host]) {
 	reg := engine.NewRegistry()
 
 	capture := &harness.Capture{}
-	_, err := linker.LoadConfig(diagnostic.NewCtx(context.Background(), capture), "/config.scampi", src, reg)
+	_, err := linker.LoadConfig(captureCtx(t, capture), "/config.scampi", src, reg)
 	if err == nil {
 		t.Fatal("expected error for secret() without backend")
 	}

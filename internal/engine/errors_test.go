@@ -10,25 +10,26 @@ import (
 	"scampi.dev/scampi/internal/diagnostic/event"
 )
 
-// recEmitter is a local test-only emitter that captures every event.
-type recEmitter struct {
+// recOutput is a local test Output that captures every event. Embeds Discard
+// for the one-shot no-ops; wrap it in NewEmitter to feed a Ctx.
+type recOutput struct {
+	diagnostic.Discard
 	events []event.Event
 }
 
-func (r *recEmitter) Emit(e event.Event) {
+func (r *recOutput) RenderEvent(e event.Event) {
 	r.events = append(r.events, e)
 }
 
-func (r *recEmitter) Raise(err diagnostic.Raisable) {
-	r.Emit(err.Diagnostic())
+// recCtx returns a Ctx backed by rec, so a test can drive a helper that takes
+// a Ctx and then inspect rec.events.
+func recCtx(t *testing.T, rec *recOutput) diagnostic.Ctx {
+	return diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, rec))
 }
 
-func (r *recEmitter) EmitChange(event.Change)     {}
-func (r *recEmitter) EmitProgress(event.Progress) {}
-
 func TestEmitScopedDiagnostic_Nil(t *testing.T) {
-	rec := &recEmitter{}
-	impact, ok := emitScopedDiagnostic(rec, nil)
+	rec := &recOutput{}
+	impact, ok := emitScopedDiagnostic(recCtx(t, rec), nil)
 
 	if ok {
 		t.Error("expected ok=false for nil error")
@@ -43,8 +44,8 @@ func TestEmitScopedDiagnostic_Nil(t *testing.T) {
 
 func TestEmitScopedDiagnostic_PlainError(t *testing.T) {
 	plain := fmt.Errorf("just a plain error")
-	rec := &recEmitter{}
-	impact, ok := emitScopedDiagnostic(rec, plain)
+	rec := &recOutput{}
+	impact, ok := emitScopedDiagnostic(recCtx(t, rec), plain)
 
 	if ok {
 		t.Error("expected ok=false for plain error")
@@ -58,12 +59,12 @@ func TestEmitScopedDiagnostic_PlainError(t *testing.T) {
 }
 
 func TestEmitScopedDiagnostic_Raisable(t *testing.T) {
-	rec := &recEmitter{}
+	rec := &recOutput{}
 	err := stubRaisable{
 		impact: event.ImpactAbort,
 		tmpl:   event.Template{ID: "test.raisable", Text: "raisable diag"},
 	}
-	impact, ok := emitScopedDiagnostic(rec, err)
+	impact, ok := emitScopedDiagnostic(recCtx(t, rec), err)
 
 	if !ok {
 		t.Fatal("expected ok=true")

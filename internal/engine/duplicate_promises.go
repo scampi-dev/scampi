@@ -19,7 +19,7 @@ import (
 // later action promising the same resource produces a DuplicateResourceError
 // pointing back at the original.
 func detectDuplicatePromises(
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	actions []spec.Action,
 	actionSteps []int,
 	steps []spec.StepInstance,
@@ -54,7 +54,7 @@ func detectDuplicatePromises(
 				OtherLocText: formatSpan(prev.Source),
 			}
 			causes = append(causes, err)
-			emitPlanDiagnostic(em, actionSteps[i], cur.Type.Kind(), cur.Desc, err)
+			emitPlanDiagnostic(ctx, actionSteps[i], cur.Type.Kind(), cur.Desc, err)
 		}
 	}
 

@@ -38,19 +38,19 @@ func testCmd() *cli.Command {
 			defer cleanup()
 
 			pol := cliPolicy(opts)
-			em := diagnostic.NewEmitter(pol, displ)
+			dctx := diagnostic.NewCtx(ctx, diagnostic.NewEmitter(pol, displ))
 			src := source.LocalPosixSource{}
 
 			files, err := findTestFiles(testPath)
 			if err != nil {
-				emitTestDiag(em, &testkit.TestError{
+				emitTestDiag(dctx, &testkit.TestError{
 					Detail: err.Error(),
 					Hint:   "test files must end in _test.scampi",
 				})
 				return cli.Exit("", exitUserError)
 			}
 			if len(files) == 0 {
-				emitTestDiag(em, &testkit.TestError{
+				emitTestDiag(dctx, &testkit.TestError{
 					Detail: "no test files found",
 					Hint:   "test files must end in _test.scampi",
 				})
@@ -60,9 +60,9 @@ func testCmd() *cli.Command {
 			totalPassed, totalFailed := 0, 0
 
 			for _, f := range files {
-				passed, failed, err := runLangTestFile(ctx, em, f, src)
+				passed, failed, err := runLangTestFile(dctx, f, src)
 				if err != nil {
-					emitTestDiag(em, &testkit.TestError{
+					emitTestDiag(dctx, &testkit.TestError{
 						Detail: err.Error(),
 						Hint:   "fix the test file",
 					})
@@ -72,7 +72,7 @@ func testCmd() *cli.Command {
 				totalPassed += passed
 				totalFailed += failed
 
-				emitTestInfo(em, f, &testkit.TestSummary{
+				emitTestInfo(dctx, f, &testkit.TestSummary{
 					Passed: passed,
 					Failed: failed,
 					File:   f,
@@ -132,10 +132,10 @@ func walkTestFiles(root string) ([]string, error) {
 	return files, err
 }
 
-func emitTestDiag(em diagnostic.Emitter, r diagnostic.Raisable) {
-	em.Raise(r)
+func emitTestDiag(ctx diagnostic.Ctx, r diagnostic.Raisable) {
+	ctx.Raise(r)
 }
 
-func emitTestInfo(em diagnostic.Emitter, _ string, r diagnostic.Raisable) {
-	em.Raise(r)
+func emitTestInfo(ctx diagnostic.Ctx, _ string, r diagnostic.Raisable) {
+	ctx.Raise(r)
 }

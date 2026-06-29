@@ -30,11 +30,11 @@ func IndexAll(_ context.Context) []spec.StepDoc {
 // stepKind isn't registered, fires UnknownIndexKindError as a
 // diagnostic through em and returns AbortError so the caller can
 // shape the exit code.
-func IndexStep(_ context.Context, stepKind string, em diagnostic.Emitter) (spec.StepDoc, error) {
+func IndexStep(ctx diagnostic.Ctx, stepKind string) (spec.StepDoc, error) {
 	reg := NewRegistry()
 	_, ok := reg.StepType(stepKind)
 	if !ok {
-		em.Raise(UnknownIndexKindError{Kind: stepKind})
+		ctx.Raise(UnknownIndexKindError{Kind: stepKind})
 		return spec.StepDoc{}, AbortError{}
 	}
 	return loadStepDoc(reg, stepKind), nil

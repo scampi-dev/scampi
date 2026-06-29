@@ -240,7 +240,7 @@ type brokenSibling struct {
 }
 
 func loadSiblingDecls(
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	modName string,
 	modules map[string]*check.Scope,
@@ -276,7 +276,7 @@ func loadSiblingDecls(
 		c.WithScope(scope)
 		c.RegisterForwardDecls(f)
 		if cErrs := c.Errors(); len(cErrs) > 0 {
-			raiseLangErrors(em, cErrs, mf.Path, mf.Data)
+			raiseLangErrors(ctx, cErrs, mf.Path, mf.Data)
 			return nil, nil, diagnostic.ErrAlreadyRaised
 		}
 	}

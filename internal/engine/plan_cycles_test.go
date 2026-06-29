@@ -17,19 +17,16 @@ import (
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
 
-// noopEmitter
-// -----------------------------------------------------------------------------
-
-type noopEmitter struct{}
-
-func (noopEmitter) Emit(event.Event)          {}
-func (noopEmitter) Raise(diagnostic.Raisable) {}
+// discardCtx returns a Ctx whose emitter drops everything, for tests that
+// exercise planning (and its diagnostics) without inspecting them.
+func discardCtx(t *testing.T) diagnostic.Ctx {
+	return diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, diagnostic.Discard{}))
+}
 
 // mockOp
 // -----------------------------------------------------------------------------
@@ -66,7 +63,7 @@ func TestDetectPlanCycles_NoCycle(t *testing.T) {
 		},
 	}
 
-	err := DetectPlanCycles(noopEmitter{}, plan)
+	err := DetectPlanCycles(discardCtx(t), plan)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -86,7 +83,7 @@ func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
 		},
 	}
 
-	err := DetectPlanCycles(noopEmitter{}, plan)
+	err := DetectPlanCycles(discardCtx(t), plan)
 	if err == nil {
 		t.Fatal("expected cycle error")
 	}
@@ -107,7 +104,7 @@ func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
 
 func TestDetectPlanCycles_NoActions(t *testing.T) {
 	plan := spec.Plan{}
-	err := DetectPlanCycles(noopEmitter{}, plan)
+	err := DetectPlanCycles(discardCtx(t), plan)
 	if err != nil {
 		t.Errorf("expected no error for empty plan, got %v", err)
 	}
@@ -121,7 +118,7 @@ func TestDetectHookCycles_NoCycle(t *testing.T) {
 		"a": {{OnChange: []string{"b"}}},
 		"b": {},
 	}
-	err := detectHookCycles(noopEmitter{}, hooks)
+	err := detectHookCycles(discardCtx(t), hooks)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -132,7 +129,7 @@ func TestDetectHookCycles_SimpleCycle(t *testing.T) {
 		"a": {{OnChange: []string{"b"}, Fields: map[string]spec.FieldSpan{}}},
 		"b": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},
 	}
-	err := detectHookCycles(noopEmitter{}, hooks)
+	err := detectHookCycles(discardCtx(t), hooks)
 	if err == nil {
 		t.Fatal("expected cycle error")
 	}
@@ -155,7 +152,7 @@ func TestDetectHookCycles_SelfCycle(t *testing.T) {
 	hooks := map[string][]spec.StepInstance{
 		"a": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},
 	}
-	err := detectHookCycles(noopEmitter{}, hooks)
+	err := detectHookCycles(discardCtx(t), hooks)
 	if err == nil {
 		t.Fatal("expected cycle error")
 	}
@@ -177,12 +174,12 @@ func TestDetectHookCycles_SelfCycle(t *testing.T) {
 }
 
 func TestDetectHookCycles_Empty(t *testing.T) {
-	err := detectHookCycles(noopEmitter{}, nil)
+	err := detectHookCycles(discardCtx(t), nil)
 	if err != nil {
 		t.Errorf("expected no error for nil hooks, got %v", err)
 	}
 
-	err = detectHookCycles(noopEmitter{}, map[string][]spec.StepInstance{})
+	err = detectHookCycles(discardCtx(t), map[string][]spec.StepInstance{})
 	if err != nil {
 		t.Errorf("expected no error for empty hooks, got %v", err)
 	}
@@ -194,7 +191,7 @@ func TestDetectHookCycles_ThreeNodeCycle(t *testing.T) {
 		"b": {{OnChange: []string{"c"}, Fields: map[string]spec.FieldSpan{}}},
 		"c": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},
 	}
-	err := detectHookCycles(noopEmitter{}, hooks)
+	err := detectHookCycles(discardCtx(t), hooks)
 	if err == nil {
 		t.Fatal("expected cycle error")
 	}

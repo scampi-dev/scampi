@@ -18,32 +18,36 @@ type Policy struct {
 	Verbosity        signal.Verbosity
 }
 
-type policyEmitter struct {
+// Emitter is the producer side of the diagnostic pipeline and the system's
+// single serialization point: the engine emits from parallel op/action
+// goroutines, but the mutex delivers events to the Output one call at a time.
+// There is exactly one Emitter type, and because it serializes, every Output
+// is single-threaded and lock-free.
+//
+// Almost nothing holds an Emitter directly: it is created at the command
+// boundary, handed to NewCtx, and from then on threaded as a diagnostic.Ctx.
+// Always used by pointer (it holds a mutex).
+type Emitter struct {
 	pol Policy
 	out Output
-
-	// mu makes the emitter the single serialization point: the engine emits
-	// from parallel op/action goroutines, but RenderEvent is delivered one
-	// call at a time. This is the whole contract — Output implementations are
-	// therefore single-threaded and carry no locks of their own.
-	mu sync.Mutex
+	mu  sync.Mutex
 }
 
 // NewEmitter returns an emitter that forwards events to the output backend,
 // applying the policy's severity remap on the way. Emit/Raise are safe for
 // concurrent use; delivery to the Output is serialized.
-func NewEmitter(policy Policy, out Output) Emitter {
-	return &policyEmitter{pol: policy, out: out}
+func NewEmitter(policy Policy, out Output) *Emitter {
+	return &Emitter{pol: policy, out: out}
 }
 
-func (p *policyEmitter) Raise(err Raisable) {
-	p.Emit(err.Diagnostic())
+func (e *Emitter) Raise(err Raisable) {
+	e.Emit(err.Diagnostic())
 }
 
-func (p *policyEmitter) Emit(ev event.Event) {
+func (e *Emitter) Emit(ev event.Event) {
 	// WarningsAsErrors flips the type but not Impact: the producer
 	// decides whether a diagnostic aborts, not the policy.
-	if p.pol.WarningsAsErrors {
+	if e.pol.WarningsAsErrors {
 		if w, ok := ev.(event.Warning); ok {
 			ev = event.Error{
 				Time:     w.Time,
@@ -52,7 +56,7 @@ func (p *policyEmitter) Emit(ev event.Event) {
 			}
 		}
 	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.out.RenderEvent(ev)
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.out.RenderEvent(ev)
 }

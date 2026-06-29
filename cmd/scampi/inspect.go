@@ -77,16 +77,16 @@ Falls back to plain diff(1).`,
 			defer cleanup()
 
 			resolveOpts := parseResolveOpts(cmd)
-			em := diagnostic.NewEmitter(pol, displ)
+			dctx := diagnostic.NewCtx(ctx, diagnostic.NewEmitter(pol, displ))
 
 			if isDiff && interactive && diffPath == "" {
-				return inspectDiffInteractive(ctx, em, cfg, store, resolveOpts)
+				return inspectDiffInteractive(dctx, cfg, store, resolveOpts)
 			}
 			if isDiff {
-				return inspectDiff(ctx, em, cfg, store, resolveOpts, diffPath)
+				return inspectDiff(dctx, cfg, store, resolveOpts, diffPath)
 			}
 
-			return inspectList(ctx, displ, em, cfg, store, resolveOpts)
+			return inspectList(dctx, displ, cfg, store, resolveOpts)
 		},
 	}
 }
@@ -95,14 +95,13 @@ Falls back to plain diff(1).`,
 // -----------------------------------------------------------------------------
 
 func inspectList(
-	ctx context.Context,
+	ctx diagnostic.Ctx,
 	displ diagnostic.Output,
-	em diagnostic.Emitter,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	resolveOpts spec.ResolveOptions,
 ) error {
-	details, err := engine.InspectList(diagnostic.NewCtx(ctx, em), cfgPath, store, resolveOpts)
+	details, err := engine.InspectList(ctx, cfgPath, store, resolveOpts)
 	if err != nil {
 		return handleEngineError("InspectList", err)
 	}
@@ -113,15 +112,14 @@ func inspectList(
 }
 
 func inspectDiff(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
 	destPath string,
 ) error {
 	if destPath == "" {
-		paths, err := engine.InspectDiffPaths(diagnostic.NewCtx(ctx, em), cfgPath, store, opts)
+		paths, err := engine.InspectDiffPaths(ctx, cfgPath, store, opts)
 		if err != nil {
 			return handleEngineError("InspectDiffPaths", err)
 		}
@@ -135,7 +133,7 @@ func inspectDiff(
 		return nil
 	}
 
-	result, err := engine.InspectDiff(diagnostic.NewCtx(ctx, em), cfgPath, store, opts, destPath)
+	result, err := engine.InspectDiff(ctx, cfgPath, store, opts, destPath)
 	if err != nil {
 		return handleEngineError("InspectDiff", err)
 	}
@@ -145,8 +143,7 @@ func inspectDiff(
 }
 
 func inspectDiffInteractive(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.SourceStore,
 	opts spec.ResolveOptions,
@@ -159,7 +156,7 @@ func inspectDiffInteractive(
 		)
 	}
 
-	paths, err := engine.InspectDiffPaths(diagnostic.NewCtx(ctx, em), cfgPath, store, opts)
+	paths, err := engine.InspectDiffPaths(ctx, cfgPath, store, opts)
 	if err != nil {
 		return handleEngineError("InspectDiffPaths", err)
 	}
@@ -176,7 +173,7 @@ func inspectDiffInteractive(
 		return nil
 	}
 
-	result, err := engine.InspectDiff(diagnostic.NewCtx(ctx, em), cfgPath, store, opts, selected)
+	result, err := engine.InspectDiff(ctx, cfgPath, store, opts, selected)
 	if err != nil {
 		return handleEngineError("InspectDiff", err)
 	}

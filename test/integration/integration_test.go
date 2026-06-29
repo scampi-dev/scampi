@@ -23,7 +23,7 @@ func loadAndResolve(
 	cfgStr string,
 	src source.Source,
 	tgt target.Target,
-	em diagnostic.Emitter,
+	em *diagnostic.Emitter,
 	store *diagnostic.SourceStore,
 ) (*engine.Engine, error) {
 	t.Helper()

@@ -3,8 +3,6 @@
 package main
 
 import (
-	"context"
-
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/linker"
@@ -21,17 +19,14 @@ import (
 // (the legacy evaluation path) so the per-file dispatch in test.go
 // can call either one transparently.
 func runLangTestFile(
-	ctx context.Context,
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	testPath string,
 	src source.Source,
 ) (passed, failed int, err error) {
 	tests := testkit.NewTestRegistry()
 	reg := testkit.NewEngineRegistry(engine.NewRegistry(), tests)
 
-	dctx := diagnostic.NewCtx(ctx, em)
-
-	cfg, err := linker.LoadConfig(dctx, testPath, src, reg)
+	cfg, err := linker.LoadConfig(ctx, testPath, src, reg)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -42,11 +37,11 @@ func runLangTestFile(
 	}
 
 	for _, rc := range resolved {
-		e, engineErr := engine.New(dctx, src, rc)
+		e, engineErr := engine.New(ctx, src, rc)
 		if engineErr != nil {
 			return 0, 0, engineErr
 		}
-		if _, applyErr := e.Apply(dctx); applyErr != nil {
+		if _, applyErr := e.Apply(ctx); applyErr != nil {
 			e.Close()
 			return 0, 0, applyErr
 		}
@@ -65,7 +60,7 @@ func runLangTestFile(
 		}
 		failed++
 		for _, m := range mismatches {
-			em.Raise(&testkit.TestFail{
+			ctx.Raise(&testkit.TestFail{
 				Description: entry.Name + ": " + m.Key,
 				Expected:    m.Matcher,
 				Actual:      m.Reason,

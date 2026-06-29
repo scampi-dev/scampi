@@ -32,3 +32,16 @@ type Output interface {
 	RenderIndexStep(spec.StepDoc)
 	RenderLegend()
 }
+
+// Discard is an Output that drops everything: a silent backend. It also serves
+// as an embeddable base for test Outputs that only care about one method
+// (embed Discard, override that method).
+type Discard struct{}
+
+func (Discard) RenderEvent(event.Event)              {}
+func (Discard) RenderSummary(result.Execution, bool) {}
+func (Discard) RenderPlan(result.Plan)               {}
+func (Discard) RenderInspect(result.Inspect)         {}
+func (Discard) RenderIndexAll([]spec.StepDoc)        {}
+func (Discard) RenderIndexStep(spec.StepDoc)         {}
+func (Discard) RenderLegend()                        {}

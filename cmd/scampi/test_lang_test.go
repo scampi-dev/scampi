@@ -45,10 +45,10 @@ func writeTestFile(t *testing.T, name, content string) string {
 	return path
 }
 
-func newTestEmitter() (diagnostic.Emitter, *nopDisplayer) {
+func newTestCtx() (diagnostic.Ctx, *nopDisplayer) {
 	displ := &nopDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, displ)
-	return em, displ
+	return diagnostic.NewCtx(context.Background(), em), displ
 }
 
 func TestRunLangTestFile_Passing(t *testing.T) {
@@ -82,10 +82,9 @@ std.deploy(name = "smoke", targets = [mock]) {
 }
 `
 	path := writeTestFile(t, "smoke_test.scampi", src)
-	em, displ := newTestEmitter()
+	ctx, displ := newTestCtx()
 	passed, failed, err := runLangTestFile(
-		context.Background(),
-		em,
+		ctx,
 		path,
 		source.LocalPosixSource{},
 	)
@@ -158,10 +157,9 @@ std.deploy(name = "smoke", targets = [mock]) {
 		t.Fatal(err)
 	}
 
-	em, displ := newTestEmitter()
+	ctx, displ := newTestCtx()
 	passed, failed, err := runLangTestFile(
-		context.Background(),
-		em,
+		ctx,
 		testPath,
 		source.LocalPosixSource{},
 	)
@@ -207,10 +205,9 @@ std.deploy(name = "fail", targets = [mock]) {
 }
 `
 	path := writeTestFile(t, "fail_test.scampi", src)
-	em, displ := newTestEmitter()
+	ctx, displ := newTestCtx()
 	passed, failed, err := runLangTestFile(
-		context.Background(),
-		em,
+		ctx,
 		path,
 		source.LocalPosixSource{},
 	)

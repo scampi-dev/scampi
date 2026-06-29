@@ -38,25 +38,25 @@ func (d *langDiagnostic) Diagnostic() event.Event {
 	return event.Error{Impact: event.ImpactAbort, Template: t}
 }
 
-// raiseLangErrors raises each error from the lang pipeline through em
+// raiseLangErrors raises each error from the lang pipeline through ctx
 // as an individual diagnostic. Returns true if any were raised.
-func raiseLangErrors[T error](em diagnostic.Emitter, errs []T, cfgPath string, source []byte) bool {
+func raiseLangErrors[T error](ctx diagnostic.Ctx, errs []T, cfgPath string, source []byte) bool {
 	for _, e := range errs {
-		em.Raise(toLangDiagnostic(e, cfgPath, source))
+		ctx.Raise(toLangDiagnostic(e, cfgPath, source))
 	}
 	return len(errs) > 0
 }
 
 // raiseBrokenSiblings emits one diagnostic per broken sibling file so
 // the user sees why symbols from those files are missing.
-func raiseBrokenSiblings(em diagnostic.Emitter, broken []brokenSibling) {
+func raiseBrokenSiblings(ctx diagnostic.Ctx, broken []brokenSibling) {
 	seen := map[string]bool{}
 	for _, b := range broken {
 		if seen[b.path] {
 			continue
 		}
 		seen[b.path] = true
-		em.Raise(&langDiagnostic{
+		ctx.Raise(&langDiagnostic{
 			code: CodeBrokenSibling,
 			msg:  "sibling file " + b.path + " has errors and was skipped",
 			hint: b.firstErr,

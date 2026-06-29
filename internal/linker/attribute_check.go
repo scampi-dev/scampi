@@ -27,7 +27,7 @@ import (
 // behaviours that need a literal (like @secretkey) bail early on
 // their own.
 func runAttributeStaticChecks(
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	f *ast.File,
 	source []byte,
 	cfgPath string,
@@ -39,9 +39,9 @@ func runAttributeStaticChecks(
 	if registry == nil {
 		return false
 	}
-	ctx := &linkContext{em: em}
+	lc := &linkContext{em: ctx}
 	visitor := &attributeCheckVisitor{
-		ctx:       ctx,
+		ctx:       lc,
 		registry:  registry,
 		fileScope: fileScope,
 		modules:   modules,
@@ -50,7 +50,7 @@ func runAttributeStaticChecks(
 		result:    result,
 	}
 	ast.Walk(f, visitor.enter, nil)
-	return ctx.raised
+	return lc.raised
 }
 
 // attributeCheckVisitor walks the AST and dispatches attribute
@@ -266,7 +266,7 @@ func bindCallArgs(call *ast.CallExpr, ft *check.FuncType) map[int]ast.Expr {
 // emitter immediately and tracks whether any diagnostic was raised so
 // the static-check pass can signal abort to its caller.
 type linkContext struct {
-	em     diagnostic.Emitter
+	em     diagnostic.Ctx
 	raised bool
 }
 

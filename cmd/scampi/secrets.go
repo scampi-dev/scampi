@@ -48,16 +48,16 @@ func (e *secretsInfo) Diagnostic() event.Event {
 // Helpers
 // -----------------------------------------------------------------------------
 
-func emitSecretsInfo(em diagnostic.Emitter, detail string) {
-	em.Raise(&secretsInfo{Detail: detail})
+func emitSecretsInfo(ctx diagnostic.Ctx, detail string) {
+	ctx.Raise(&secretsInfo{Detail: detail})
 }
 
-func secretsEmitter(ctx context.Context) (diagnostic.Emitter, func()) {
+func secretsCtx(ctx context.Context) (diagnostic.Ctx, func()) {
 	opts := mustGlobalOpts(ctx)
 	displ, cleanup := withDisplayer(ctx, opts, nil)
 	pol := cliPolicy(opts)
 	em := diagnostic.NewEmitter(pol, displ)
-	return em, cleanup
+	return diagnostic.NewCtx(ctx, em), cleanup
 }
 
 func cliError(msg string) error {
@@ -233,7 +233,7 @@ func secretsInitCmd() *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			em, cleanup := secretsEmitter(ctx)
+			dctx, cleanup := secretsCtx(ctx)
 			defer cleanup()
 
 			dir, err := osutil.UserConfigDir()
@@ -280,7 +280,7 @@ func secretsInitCmd() *cli.Command {
 				return cliError("writing key file " + keyPath + ": " + err.Error())
 			}
 
-			emitSecretsInfo(em, "identity saved to "+keyPath)
+			emitSecretsInfo(dctx, "identity saved to "+keyPath)
 			_, _ = fmt.Println(identity.Recipient().String())
 			return nil
 		},
@@ -328,7 +328,7 @@ func secretsSetCmd() *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			em, cleanup := secretsEmitter(ctx)
+			dctx, cleanup := secretsCtx(ctx)
 			defer cleanup()
 
 			nargs := cmd.Args().Len()
@@ -384,7 +384,7 @@ func secretsSetCmd() *cli.Command {
 				return cliError(fmt.Sprintf("writing %s: %s", filePath, err))
 			}
 
-			emitSecretsInfo(em, fmt.Sprintf("encrypted %q into %s", key, filePath))
+			emitSecretsInfo(dctx, fmt.Sprintf("encrypted %q into %s", key, filePath))
 			return nil
 		},
 	}
@@ -481,7 +481,7 @@ func secretsDelCmd() *cli.Command {
 		Flags:     []cli.Flag{secretsFileFlag},
 		Before:    requireArgs(1),
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			em, cleanup := secretsEmitter(ctx)
+			dctx, cleanup := secretsCtx(ctx)
 			defer cleanup()
 
 			filePath, err := requireSecretsFile(cmd)
@@ -505,7 +505,7 @@ func secretsDelCmd() *cli.Command {
 				return cliError(fmt.Sprintf("writing %s: %s", filePath, err))
 			}
 
-			emitSecretsInfo(em, fmt.Sprintf("deleted %q from %s", key, filePath))
+			emitSecretsInfo(dctx, fmt.Sprintf("deleted %q from %s", key, filePath))
 			return nil
 		},
 	}
@@ -555,7 +555,7 @@ func secretsRecryptCmd() *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			em, cleanup := secretsEmitter(ctx)
+			dctx, cleanup := secretsCtx(ctx)
 			defer cleanup()
 
 			filePath, err := requireSecretsFile(cmd)
@@ -613,7 +613,7 @@ func secretsRecryptCmd() *cli.Command {
 				return cliError(fmt.Sprintf("writing %s: %s", filePath, err))
 			}
 
-			emitSecretsInfo(em, fmt.Sprintf(
+			emitSecretsInfo(dctx, fmt.Sprintf(
 				"re-encrypted %d key(s) in %s with %d recipient(s)",
 				len(store),
 				filePath,

@@ -24,12 +24,12 @@ import (
 // validated against the resolved value rather than the syntactic
 // literal.
 //
-// Diagnostics are deduped downstream at the diagnostic.policyEmitter
+// Diagnostics are deduped downstream at the diagnostic.Emitter
 // boundary, so overlapping emissions from both walkers (which is
 // expected during the Step 3/4 transition) collapse to one user-
 // visible message per content key.
 func runAttributeEvalChecks(
-	em diagnostic.Emitter,
+	ctx diagnostic.Ctx,
 	result *eval.Result,
 	source []byte,
 	cfgPath string,
@@ -40,7 +40,7 @@ func runAttributeEvalChecks(
 	if registry == nil || result == nil {
 		return false
 	}
-	ctx := &linkContext{em: em}
+	lc := &linkContext{em: ctx}
 	eval.WalkResult(result, func(v eval.Value) bool {
 		sv, ok := v.(*eval.StructVal)
 		if !ok {
@@ -50,10 +50,10 @@ func runAttributeEvalChecks(
 		if dt == nil {
 			return true
 		}
-		dispatchEvalAttributes(ctx, sv, dt, registry, source, cfgPath)
+		dispatchEvalAttributes(lc, sv, dt, registry, source, cfgPath)
 		return true
 	})
-	return ctx.raised
+	return lc.raised
 }
 
 // lookupDeclTypeForStructVal resolves a StructVal's DeclType via its

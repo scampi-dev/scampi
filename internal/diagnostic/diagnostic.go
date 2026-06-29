@@ -45,18 +45,6 @@ type Deferrable interface {
 	DeferredResource() spec.Resource
 }
 
-type Emitter interface {
-	// Emit accepts any event.Event - the sealed union of Error,
-	// Warning, Info, Change, Progress. Use Emit when the event has
-	// already been constructed.
-	Emit(event.Event)
-	// Raise emits the event produced by a Raisable error. The helper
-	// resolves err.Diagnostic() and forwards it through Emit, so call
-	// sites stay close to the error site instead of constructing the
-	// event by hand.
-	Raise(err Raisable)
-}
-
 // Raisable is implemented by errors that map directly onto a
 // renderable event (event.Error, event.Warning, or event.Info).
 // Emitter.Raise routes Raisable errors through Emit; the engine

@@ -147,7 +147,7 @@ func aborts(ev event.Event) bool {
 
 // emitScopedDiagnostic extracts diagnostic(s) from err and emits them.
 // Returns the max impact and whether any diagnostic was emitted.
-func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, bool) {
+func emitScopedDiagnostic(ctx diagnostic.Ctx, err error) (diagnostic.Impact, bool) {
 	if err == nil {
 		return 0, false
 	}
@@ -155,7 +155,7 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 	var re diagnostic.Raisable
 	if errors.As(err, &re) {
 		ev := re.Diagnostic()
-		em.Emit(ev)
+		ctx.Emit(ev)
 		if aborts(ev) {
 			return diagnostic.ImpactAbort, true
 		}
@@ -170,20 +170,20 @@ func emitScopedDiagnostic(em diagnostic.Emitter, err error) (diagnostic.Impact, 
 // stable; they can collapse to a single helper once the callers are
 // touched for unrelated reasons.
 
-func emitEngineDiagnostic(em diagnostic.Emitter, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(em, err)
+func emitEngineDiagnostic(ctx diagnostic.Ctx, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(ctx, err)
 }
 
-func emitPlanDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(em, err)
+func emitPlanDiagnostic(ctx diagnostic.Ctx, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(ctx, err)
 }
 
-func emitActionDiagnostic(em diagnostic.Emitter, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(em, err)
+func emitActionDiagnostic(ctx diagnostic.Ctx, _ int, _, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(ctx, err)
 }
 
-func emitOpDiagnostic(em diagnostic.Emitter, _ int, _, _, _ string, err error) (diagnostic.Impact, bool) {
-	return emitScopedDiagnostic(em, err)
+func emitOpDiagnostic(ctx diagnostic.Ctx, _ int, _, _, _ string, err error) (diagnostic.Impact, bool) {
+	return emitScopedDiagnostic(ctx, err)
 }
 
 // Index errors

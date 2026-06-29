@@ -5,11 +5,21 @@ package linker
 import (
 	"testing"
 
+	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/lang/ast"
 	"scampi.dev/scampi/internal/lang/token"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/test/harness"
 )
+
+// ctxFor returns a Ctx that delivers to c. captureCtx is the common case where
+// the test doesn't need the Capture reference up front (read it back with
+// Ctx.Output()).
+func ctxFor(t *testing.T, c *harness.Capture) diagnostic.Ctx {
+	return diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, c))
+}
+
+func captureCtx(t *testing.T) diagnostic.Ctx { return ctxFor(t, &harness.Capture{}) }
 
 // White-box tests for the validation-style attribute behaviours
 // shipped in std/std.scampi: @nonempty, @filemode, @pattern, @oneof,
@@ -21,9 +31,9 @@ import (
 // step-side validation was deleted in #166 — if any of these
 // behaviours regresses, the migration's safety net is gone.
 
-func newAttrCtx(name, paramName string, arg ast.Expr, args map[string]any) StaticCheckContext {
+func newAttrCtx(t *testing.T, name, paramName string, arg ast.Expr, args map[string]any) StaticCheckContext {
 	return StaticCheckContext{
-		Linker:    &linkContext{em: &harness.Capture{}},
+		Linker:    &linkContext{em: captureCtx(t)},
 		AttrName:  name,
 		AttrArgs:  args,
 		ParamName: paramName,
@@ -34,9 +44,9 @@ func newAttrCtx(name, paramName string, arg ast.Expr, args map[string]any) Stati
 
 // newResolvedCtx mirrors newAttrCtx but populates Resolved instead of
 // ParamArg, exercising the eval-walk dispatch path.
-func newResolvedCtx(name, paramName string, resolved any, args map[string]any) StaticCheckContext {
+func newResolvedCtx(t *testing.T, name, paramName string, resolved any, args map[string]any) StaticCheckContext {
 	return StaticCheckContext{
-		Linker:    &linkContext{em: &harness.Capture{}},
+		Linker:    &linkContext{em: captureCtx(t)},
 		AttrName:  name,
 		AttrArgs:  args,
 		ParamName: paramName,
@@ -47,7 +57,7 @@ func newResolvedCtx(name, paramName string, resolved any, args map[string]any) S
 
 func diags(ctx StaticCheckContext) int {
 	lc := ctx.Linker.(*linkContext)
-	return len(lc.em.(*harness.Capture).Events)
+	return len(lc.em.Output().(*harness.Capture).Events)
 }
 
 // listLitExpr builds a list literal AST node from a slice of items.
@@ -65,7 +75,7 @@ func computedExpr() ast.Expr {
 // -----------------------------------------------------------------------------
 
 func TestNonEmpty_StringLiteralEmpty(t *testing.T) {
-	ctx := newAttrCtx("std.@nonempty", "name", stringLitExpr(""), nil)
+	ctx := newAttrCtx(t, "std.@nonempty", "name", stringLitExpr(""), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for empty string, got %d", diags(ctx))
@@ -73,7 +83,7 @@ func TestNonEmpty_StringLiteralEmpty(t *testing.T) {
 }
 
 func TestNonEmpty_StringLiteralNonEmpty(t *testing.T) {
-	ctx := newAttrCtx("std.@nonempty", "name", stringLitExpr("nginx"), nil)
+	ctx := newAttrCtx(t, "std.@nonempty", "name", stringLitExpr("nginx"), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for non-empty string, got %d", diags(ctx))
@@ -81,7 +91,7 @@ func TestNonEmpty_StringLiteralNonEmpty(t *testing.T) {
 }
 
 func TestNonEmpty_ListLiteralEmpty(t *testing.T) {
-	ctx := newAttrCtx("std.@nonempty", "packages", listLitExpr(), nil)
+	ctx := newAttrCtx(t, "std.@nonempty", "packages", listLitExpr(), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for empty list, got %d", diags(ctx))
@@ -90,7 +100,7 @@ func TestNonEmpty_ListLiteralEmpty(t *testing.T) {
 
 func TestNonEmpty_ListLiteralNonEmpty(t *testing.T) {
 	pkgs := listLitExpr(stringLitExpr("nginx"), stringLitExpr("certbot"))
-	ctx := newAttrCtx("std.@nonempty", "packages", pkgs, nil)
+	ctx := newAttrCtx(t, "std.@nonempty", "packages", pkgs, nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for non-empty list, got %d", diags(ctx))
@@ -98,7 +108,7 @@ func TestNonEmpty_ListLiteralNonEmpty(t *testing.T) {
 }
 
 func TestNonEmpty_ComputedSkipped(t *testing.T) {
-	ctx := newAttrCtx("std.@nonempty", "name", computedExpr(), nil)
+	ctx := newAttrCtx(t, "std.@nonempty", "name", computedExpr(), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
@@ -111,7 +121,7 @@ func TestNonEmpty_ComputedSkipped(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestNonEmpty_ResolvedStringEmpty(t *testing.T) {
-	ctx := newResolvedCtx("std.@nonempty", "name", "", nil)
+	ctx := newResolvedCtx(t, "std.@nonempty", "name", "", nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for empty resolved string, got %d", diags(ctx))
@@ -119,7 +129,7 @@ func TestNonEmpty_ResolvedStringEmpty(t *testing.T) {
 }
 
 func TestNonEmpty_ResolvedStringNonEmpty(t *testing.T) {
-	ctx := newResolvedCtx("std.@nonempty", "name", "nginx", nil)
+	ctx := newResolvedCtx(t, "std.@nonempty", "name", "nginx", nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for resolved non-empty, got %d", diags(ctx))
@@ -127,7 +137,7 @@ func TestNonEmpty_ResolvedStringNonEmpty(t *testing.T) {
 }
 
 func TestNonEmpty_ResolvedSliceEmpty(t *testing.T) {
-	ctx := newResolvedCtx("std.@nonempty", "packages", []string{}, nil)
+	ctx := newResolvedCtx(t, "std.@nonempty", "packages", []string{}, nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for empty resolved slice, got %d", diags(ctx))
@@ -135,7 +145,7 @@ func TestNonEmpty_ResolvedSliceEmpty(t *testing.T) {
 }
 
 func TestNonEmpty_ResolvedSliceNonEmpty(t *testing.T) {
-	ctx := newResolvedCtx("std.@nonempty", "packages", []string{"nginx"}, nil)
+	ctx := newResolvedCtx(t, "std.@nonempty", "packages", []string{"nginx"}, nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for non-empty resolved slice, got %d", diags(ctx))
@@ -143,7 +153,7 @@ func TestNonEmpty_ResolvedSliceNonEmpty(t *testing.T) {
 }
 
 func TestMin_ResolvedBelowRange(t *testing.T) {
-	ctx := newResolvedCtx("std.@min", "port", int64(0), map[string]any{"value": int64(1)})
+	ctx := newResolvedCtx(t, "std.@min", "port", int64(0), map[string]any{"value": int64(1)})
 	MinAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for resolved int below min, got %d", diags(ctx))
@@ -153,7 +163,7 @@ func TestMin_ResolvedBelowRange(t *testing.T) {
 func TestMin_ResolvedInRangeIntKind(t *testing.T) {
 	// Resolved values from reflection may arrive as int (not int64).
 	// Helper must accept both.
-	ctx := newResolvedCtx("std.@min", "port", 100, map[string]any{"value": int64(1)})
+	ctx := newResolvedCtx(t, "std.@min", "port", 100, map[string]any{"value": int64(1)})
 	MinAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for int-kind resolved in range, got %d", diags(ctx))
@@ -161,7 +171,7 @@ func TestMin_ResolvedInRangeIntKind(t *testing.T) {
 }
 
 func TestSize_ResolvedInvalid(t *testing.T) {
-	ctx := newResolvedCtx("std.@size", "memory", "12g", nil)
+	ctx := newResolvedCtx(t, "std.@size", "memory", "12g", nil)
 	SizeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for resolved invalid size, got %d", diags(ctx))
@@ -169,7 +179,7 @@ func TestSize_ResolvedInvalid(t *testing.T) {
 }
 
 func TestSize_ResolvedValid(t *testing.T) {
-	ctx := newResolvedCtx("std.@size", "memory", "512M", nil)
+	ctx := newResolvedCtx(t, "std.@size", "memory", "512M", nil)
 	SizeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for resolved valid size, got %d", diags(ctx))
@@ -177,7 +187,7 @@ func TestSize_ResolvedValid(t *testing.T) {
 }
 
 func TestPath_ResolvedRelativeWithAbsolute(t *testing.T) {
-	ctx := newResolvedCtx("std.@path", "dest", "etc/foo", map[string]any{"absolute": true})
+	ctx := newResolvedCtx(t, "std.@path", "dest", "etc/foo", map[string]any{"absolute": true})
 	PathAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for resolved relative path with absolute=true, got %d", diags(ctx))
@@ -189,7 +199,7 @@ func TestPath_ResolvedRelativeWithAbsolute(t *testing.T) {
 
 func TestFileMode_ValidOctal(t *testing.T) {
 	for _, perm := range []string{"0644", "0755", "0600", "rw-r--r--", "u=rw,g=r,o=r"} {
-		ctx := newAttrCtx("std.@filemode", "perm", stringLitExpr(perm), nil)
+		ctx := newAttrCtx(t, "std.@filemode", "perm", stringLitExpr(perm), nil)
 		FileModeAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %q, got %d", perm, diags(ctx))
@@ -199,7 +209,7 @@ func TestFileMode_ValidOctal(t *testing.T) {
 
 func TestFileMode_Invalid(t *testing.T) {
 	for _, perm := range []string{"yolo", "9999", "rwxrwxrwxrwx", ""} {
-		ctx := newAttrCtx("std.@filemode", "perm", stringLitExpr(perm), nil)
+		ctx := newAttrCtx(t, "std.@filemode", "perm", stringLitExpr(perm), nil)
 		FileModeAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for %q, got %d", perm, diags(ctx))
@@ -208,7 +218,7 @@ func TestFileMode_Invalid(t *testing.T) {
 }
 
 func TestFileMode_ComputedSkipped(t *testing.T) {
-	ctx := newAttrCtx("std.@filemode", "perm", computedExpr(), nil)
+	ctx := newAttrCtx(t, "std.@filemode", "perm", computedExpr(), nil)
 	FileModeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
@@ -220,7 +230,7 @@ func TestFileMode_ComputedSkipped(t *testing.T) {
 
 func TestSize_Valid(t *testing.T) {
 	for _, s := range []string{"1024", "512K", "4M", "8G", "12T", "1.5G", "0.25T", "256B"} {
-		ctx := newAttrCtx("std.@size", "memory", stringLitExpr(s), nil)
+		ctx := newAttrCtx(t, "std.@size", "memory", stringLitExpr(s), nil)
 		SizeAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %q, got %d", s, diags(ctx))
@@ -230,7 +240,7 @@ func TestSize_Valid(t *testing.T) {
 
 func TestSize_Invalid(t *testing.T) {
 	for _, s := range []string{"", "12g", "8 G", "M", "abc", "12X", "1..5G", "-1G", "+1G"} {
-		ctx := newAttrCtx("std.@size", "memory", stringLitExpr(s), nil)
+		ctx := newAttrCtx(t, "std.@size", "memory", stringLitExpr(s), nil)
 		SizeAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for %q, got %d", s, diags(ctx))
@@ -239,7 +249,7 @@ func TestSize_Invalid(t *testing.T) {
 }
 
 func TestSize_ComputedSkipped(t *testing.T) {
-	ctx := newAttrCtx("std.@size", "memory", computedExpr(), nil)
+	ctx := newAttrCtx(t, "std.@size", "memory", computedExpr(), nil)
 	SizeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
@@ -252,7 +262,7 @@ func TestSize_ComputedSkipped(t *testing.T) {
 func TestPattern_Match(t *testing.T) {
 	args := map[string]any{"regex": "^[0-9]+(-[0-9]+)?(/(tcp|udp))?$"}
 	for _, port := range []string{"22", "80/tcp", "8000-9000/udp"} {
-		ctx := newAttrCtx("std.@pattern", "port", stringLitExpr(port), args)
+		ctx := newAttrCtx(t, "std.@pattern", "port", stringLitExpr(port), args)
 		PatternAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %q, got %d", port, diags(ctx))
@@ -263,7 +273,7 @@ func TestPattern_Match(t *testing.T) {
 func TestPattern_NoMatch(t *testing.T) {
 	args := map[string]any{"regex": "^[0-9]+(-[0-9]+)?(/(tcp|udp))?$"}
 	for _, port := range []string{"abc", "22/sctp", "/tcp"} {
-		ctx := newAttrCtx("std.@pattern", "port", stringLitExpr(port), args)
+		ctx := newAttrCtx(t, "std.@pattern", "port", stringLitExpr(port), args)
 		PatternAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for %q, got %d", port, diags(ctx))
@@ -294,7 +304,7 @@ func TestPattern_VerifyExactlyOnePercentS(t *testing.T) {
 		{`%s %s %s`, 1},           // three %s
 	}
 	for _, c := range cases {
-		ctx := newAttrCtx("std.@pattern", "verify", stringLitExpr(c.input), args)
+		ctx := newAttrCtx(t, "std.@pattern", "verify", stringLitExpr(c.input), args)
 		PatternAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != c.want {
 			t.Errorf("verify=%q: expected %d diagnostics, got %d", c.input, c.want, diags(ctx))
@@ -304,7 +314,7 @@ func TestPattern_VerifyExactlyOnePercentS(t *testing.T) {
 
 func TestPattern_BadRegexFails(t *testing.T) {
 	args := map[string]any{"regex": "[invalid"}
-	ctx := newAttrCtx("std.@pattern", "x", stringLitExpr("anything"), args)
+	ctx := newAttrCtx(t, "std.@pattern", "x", stringLitExpr("anything"), args)
 	PatternAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for invalid regex, got %d", diags(ctx))
@@ -313,7 +323,7 @@ func TestPattern_BadRegexFails(t *testing.T) {
 
 func TestPattern_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"regex": "^.+$"}
-	ctx := newAttrCtx("std.@pattern", "x", computedExpr(), args)
+	ctx := newAttrCtx(t, "std.@pattern", "x", computedExpr(), args)
 	PatternAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
@@ -326,7 +336,7 @@ func TestPattern_ComputedSkipped(t *testing.T) {
 func TestOneOf_Allowed(t *testing.T) {
 	args := map[string]any{"values": []any{"present", "absent", "latest"}}
 	for _, v := range []string{"present", "absent", "latest"} {
-		ctx := newAttrCtx("std.@oneof", "state", stringLitExpr(v), args)
+		ctx := newAttrCtx(t, "std.@oneof", "state", stringLitExpr(v), args)
 		OneOfAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %q, got %d", v, diags(ctx))
@@ -337,7 +347,7 @@ func TestOneOf_Allowed(t *testing.T) {
 func TestOneOf_NotAllowed(t *testing.T) {
 	args := map[string]any{"values": []any{"present", "absent", "latest"}}
 	for _, v := range []string{"yolo", "Present", "", "PRESENT"} {
-		ctx := newAttrCtx("std.@oneof", "state", stringLitExpr(v), args)
+		ctx := newAttrCtx(t, "std.@oneof", "state", stringLitExpr(v), args)
 		OneOfAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for %q, got %d", v, diags(ctx))
@@ -347,7 +357,7 @@ func TestOneOf_NotAllowed(t *testing.T) {
 
 func TestOneOf_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"values": []any{"a", "b"}}
-	ctx := newAttrCtx("std.@oneof", "x", computedExpr(), args)
+	ctx := newAttrCtx(t, "std.@oneof", "x", computedExpr(), args)
 	OneOfAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
@@ -360,7 +370,7 @@ func TestOneOf_ComputedSkipped(t *testing.T) {
 func TestPath_AbsoluteRequired_Absolute(t *testing.T) {
 	args := map[string]any{"absolute": true}
 	for _, p := range []string{"/etc/nginx", "/", "/var/log/app.log"} {
-		ctx := newAttrCtx("std.@path", "dest", stringLitExpr(p), args)
+		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(p), args)
 		PathAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %q, got %d", p, diags(ctx))
@@ -371,7 +381,7 @@ func TestPath_AbsoluteRequired_Absolute(t *testing.T) {
 func TestPath_AbsoluteRequired_Relative(t *testing.T) {
 	args := map[string]any{"absolute": true}
 	for _, p := range []string{"etc/nginx", "./relative", "../up"} {
-		ctx := newAttrCtx("std.@path", "dest", stringLitExpr(p), args)
+		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(p), args)
 		PathAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for %q, got %d", p, diags(ctx))
@@ -382,7 +392,7 @@ func TestPath_AbsoluteRequired_Relative(t *testing.T) {
 func TestPath_RelativeAllowedByDefault(t *testing.T) {
 	// Without absolute=true, relative paths are accepted.
 	for _, p := range []string{"etc/nginx", "./relative", "/absolute"} {
-		ctx := newAttrCtx("std.@path", "dest", stringLitExpr(p), nil)
+		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(p), nil)
 		PathAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %q (no absolute=true), got %d", p, diags(ctx))
@@ -393,7 +403,7 @@ func TestPath_RelativeAllowedByDefault(t *testing.T) {
 func TestPath_EmptyRejected(t *testing.T) {
 	// Empty path is always rejected, regardless of the absolute arg.
 	for _, args := range []map[string]any{nil, {"absolute": true}, {"absolute": false}} {
-		ctx := newAttrCtx("std.@path", "dest", stringLitExpr(""), args)
+		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(""), args)
 		PathAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for empty path with args=%v, got %d", args, diags(ctx))
@@ -402,7 +412,7 @@ func TestPath_EmptyRejected(t *testing.T) {
 }
 
 func TestPath_NULRejected(t *testing.T) {
-	ctx := newAttrCtx("std.@path", "dest", stringLitExpr("/etc/\x00bad"), nil)
+	ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr("/etc/\x00bad"), nil)
 	PathAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 diagnostic for NUL byte, got %d", diags(ctx))
@@ -410,7 +420,7 @@ func TestPath_NULRejected(t *testing.T) {
 }
 
 func TestPath_ComputedSkipped(t *testing.T) {
-	ctx := newAttrCtx("std.@path", "dest", computedExpr(), map[string]any{"absolute": true})
+	ctx := newAttrCtx(t, "std.@path", "dest", computedExpr(), map[string]any{"absolute": true})
 	PathAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
@@ -422,7 +432,7 @@ func TestPath_ComputedSkipped(t *testing.T) {
 
 func TestDeprecated_AlwaysWarns(t *testing.T) {
 	args := map[string]any{"message": "use foo() instead"}
-	ctx := newAttrCtx("std.@deprecated", "old_field", stringLitExpr("anything"), args)
+	ctx := newAttrCtx(t, "std.@deprecated", "old_field", stringLitExpr("anything"), args)
 	DeprecatedAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 warning for any use, got %d", diags(ctx))
@@ -430,7 +440,7 @@ func TestDeprecated_AlwaysWarns(t *testing.T) {
 }
 
 func TestDeprecated_NoMessageStillWarns(t *testing.T) {
-	ctx := newAttrCtx("std.@deprecated", "old_field", stringLitExpr("anything"), nil)
+	ctx := newAttrCtx(t, "std.@deprecated", "old_field", stringLitExpr("anything"), nil)
 	DeprecatedAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
 		t.Errorf("expected 1 warning even without message, got %d", diags(ctx))
@@ -439,7 +449,7 @@ func TestDeprecated_NoMessageStillWarns(t *testing.T) {
 
 func TestSince_Noop(t *testing.T) {
 	args := map[string]any{"version": "0.5"}
-	ctx := newAttrCtx("std.@since", "x", stringLitExpr("anything"), args)
+	ctx := newAttrCtx(t, "std.@since", "x", stringLitExpr("anything"), args)
 	SinceAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected 0 diagnostics, got %d", diags(ctx))
@@ -456,7 +466,7 @@ func intLitExpr(value int64) *ast.IntLit {
 func TestMin_InRange(t *testing.T) {
 	args := map[string]any{"value": int64(1)}
 	for _, v := range []int64{1, 100, 65535} {
-		ctx := newAttrCtx("std.@min", "port", intLitExpr(v), args)
+		ctx := newAttrCtx(t, "std.@min", "port", intLitExpr(v), args)
 		MinAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %d, got %d", v, diags(ctx))
@@ -467,7 +477,7 @@ func TestMin_InRange(t *testing.T) {
 func TestMin_BelowRange(t *testing.T) {
 	args := map[string]any{"value": int64(1)}
 	for _, v := range []int64{0, -1, -100} {
-		ctx := newAttrCtx("std.@min", "port", intLitExpr(v), args)
+		ctx := newAttrCtx(t, "std.@min", "port", intLitExpr(v), args)
 		MinAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for %d, got %d", v, diags(ctx))
@@ -477,7 +487,7 @@ func TestMin_BelowRange(t *testing.T) {
 
 func TestMin_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"value": int64(1)}
-	ctx := newAttrCtx("std.@min", "port", computedExpr(), args)
+	ctx := newAttrCtx(t, "std.@min", "port", computedExpr(), args)
 	MinAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))
@@ -487,7 +497,7 @@ func TestMin_ComputedSkipped(t *testing.T) {
 func TestMax_InRange(t *testing.T) {
 	args := map[string]any{"value": int64(65535)}
 	for _, v := range []int64{1, 100, 65535} {
-		ctx := newAttrCtx("std.@max", "port", intLitExpr(v), args)
+		ctx := newAttrCtx(t, "std.@max", "port", intLitExpr(v), args)
 		MaxAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 0 {
 			t.Errorf("expected no diagnostics for %d, got %d", v, diags(ctx))
@@ -498,7 +508,7 @@ func TestMax_InRange(t *testing.T) {
 func TestMax_AboveRange(t *testing.T) {
 	args := map[string]any{"value": int64(65535)}
 	for _, v := range []int64{65536, 70000, 100000} {
-		ctx := newAttrCtx("std.@max", "port", intLitExpr(v), args)
+		ctx := newAttrCtx(t, "std.@max", "port", intLitExpr(v), args)
 		MaxAttribute{}.StaticCheck(ctx)
 		if diags(ctx) != 1 {
 			t.Errorf("expected 1 diagnostic for %d, got %d", v, diags(ctx))
@@ -508,7 +518,7 @@ func TestMax_AboveRange(t *testing.T) {
 
 func TestMax_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"value": int64(65535)}
-	ctx := newAttrCtx("std.@max", "port", computedExpr(), args)
+	ctx := newAttrCtx(t, "std.@max", "port", computedExpr(), args)
 	MaxAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
 		t.Errorf("expected no diagnostics for computed expr, got %d", diags(ctx))

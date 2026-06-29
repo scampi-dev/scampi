@@ -245,9 +245,9 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := &harness.RecordingDisplayer{}
-			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
+			ctx := diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, rec))
 
-			err := engine.DetectPlanCycles(em, tc.build())
+			err := engine.DetectPlanCycles(ctx, tc.build())
 
 			// ---- assert abort ----
 			var abort engine.AbortError

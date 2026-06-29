@@ -34,7 +34,7 @@ std.deploy(name = "main", targets = [host]) {
 	fileScope, modules, result := evalForAttrTest(t, src)
 	capture := &harness.Capture{}
 	raised := runAttributeEvalChecks(
-		capture,
+		ctxFor(t, capture),
 		result,
 		[]byte(src),
 		"test.scampi",
@@ -67,7 +67,7 @@ std.deploy(name = "main", targets = [host]) {
 	fileScope, modules, result := evalForAttrTest(t, src)
 	capture := &harness.Capture{}
 	raised := runAttributeEvalChecks(
-		capture,
+		ctxFor(t, capture),
 		result,
 		[]byte(src),
 		"test.scampi",
@@ -98,7 +98,7 @@ std.deploy(name = "main", targets = [host]) {
 	fileScope, modules, result := evalForAttrTest(t, src)
 	capture := &harness.Capture{}
 	raised := runAttributeEvalChecks(
-		capture,
+		ctxFor(t, capture),
 		result,
 		[]byte(src),
 		"test.scampi",
@@ -137,7 +137,7 @@ func TestEvalWalk_SkipsCrossStepRef(t *testing.T) {
 		Fields:   map[string]eval.Value{"port": &eval.RefVal{}},
 	}
 	capture := &harness.Capture{}
-	ctx := &linkContext{em: capture}
+	ctx := &linkContext{em: ctxFor(t, capture)}
 	dispatchEvalAttributes(ctx, sv, dt, DefaultAttributes(), nil, "test.scampi")
 	if len(capture.Events) != 0 {
 		t.Errorf("expected no diagnostics for RefVal, got %d", len(capture.Events))

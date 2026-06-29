@@ -28,8 +28,6 @@ type (
 		Changes     []event.Change
 		Results     []event.Result
 	}
-	// NoopEmitter discards every event. Implements diagnostic.Emitter.
-	NoopEmitter struct{}
 )
 
 func (r *RecordingDisplayer) RenderEvent(e event.Event) {
@@ -90,5 +88,8 @@ func MarshalSection(header string, v any) string {
 
 func (e Events) String() string { return MarshalSection("EVENTS", e) }
 
-func (NoopEmitter) Emit(event.Event)          {}
-func (NoopEmitter) Raise(diagnostic.Raisable) {}
+// NoopEmitter returns an emitter that discards all events, for tests that run
+// the pipeline but don't inspect output.
+func NoopEmitter() *diagnostic.Emitter {
+	return diagnostic.NewEmitter(diagnostic.Policy{}, diagnostic.Discard{})
+}

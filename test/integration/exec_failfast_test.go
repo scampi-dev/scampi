@@ -55,7 +55,7 @@ func TestExecuteAction_AllOpsSkipped(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
@@ -123,7 +123,7 @@ func TestExecuteAction_LinearSuccess(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
@@ -198,7 +198,7 @@ func TestExecuteAction_FailFast_MiddleOfChain(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
@@ -289,7 +289,7 @@ func TestExecuteAction_BranchFailure(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
@@ -348,7 +348,7 @@ func TestExecuteAction_CheckDiagnostic_Continues(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
@@ -409,7 +409,7 @@ func TestExecuteAction_AbortDuringCheck(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
@@ -473,7 +473,7 @@ func TestExecuteAction_AbortDuringExecution(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{
@@ -534,7 +534,7 @@ func TestExecuteAction_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
-	em := harness.NoopEmitter{}
+	em := harness.NoopEmitter()
 
 	ctx := context.Background()
 	cfg := spec.ResolvedConfig{

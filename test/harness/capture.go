@@ -7,13 +7,12 @@ import (
 	"scampi.dev/scampi/internal/diagnostic/event"
 )
 
-// Capture is an Emitter that buffers every event in arrival order. It
-// satisfies diagnostic.Emitter for tests that want to inspect what a
-// producer raised without going through the full RecordingDisplayer
-// pipeline.
+// Capture is an Output that buffers every event in arrival order, for tests
+// that inspect what a producer raised. Embeds Discard for the one-shot no-ops;
+// wrap it in diagnostic.NewEmitter and keep the reference to read Events.
 type Capture struct {
+	diagnostic.Discard
 	Events []event.Event
 }
 
-func (c *Capture) Emit(e event.Event)          { c.Events = append(c.Events, e) }
-func (c *Capture) Raise(r diagnostic.Raisable) { c.Emit(r.Diagnostic()) }
+func (c *Capture) RenderEvent(e event.Event) { c.Events = append(c.Events, e) }

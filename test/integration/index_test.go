@@ -87,7 +87,7 @@ func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-			doc, err := engine.IndexStep(context.Background(), tt.kind, em)
+			doc, err := engine.IndexStep(diagnostic.NewCtx(t.Context(), em), tt.kind)
 			if err != nil {
 				t.Fatalf("IndexStep(%q) failed: %v", tt.kind, err)
 			}
@@ -126,7 +126,7 @@ func TestIndexStep_UnknownKind_Aborts(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	_, err := engine.IndexStep(context.Background(), "nonexistent", em)
+	_, err := engine.IndexStep(diagnostic.NewCtx(t.Context(), em), "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for unknown kind")
 	}
@@ -141,7 +141,7 @@ func TestIndexStep_FieldsHaveDocumentation(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	doc, _ := engine.IndexStep(context.Background(), "symlink", em)
+	doc, _ := engine.IndexStep(diagnostic.NewCtx(t.Context(), em), "symlink")
 
 	for _, f := range doc.Fields {
 		if f.Desc == "" {
@@ -171,7 +171,7 @@ func TestIndexStep_DefaultsPopulated(t *testing.T) {
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-			doc, err := engine.IndexStep(context.Background(), tt.kind, em)
+			doc, err := engine.IndexStep(diagnostic.NewCtx(t.Context(), em), tt.kind)
 			if err != nil {
 				t.Fatalf("IndexStep(%q) failed: %v", tt.kind, err)
 			}
@@ -197,7 +197,7 @@ func TestIndexStep_RequiredFieldsMarkedCorrectly(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-	doc, _ := engine.IndexStep(context.Background(), "symlink", em)
+	doc, _ := engine.IndexStep(diagnostic.NewCtx(t.Context(), em), "symlink")
 
 	if doc.Kind == "" {
 		t.Fatal("IndexStep returned empty doc")
@@ -234,7 +234,7 @@ func TestIndexStep_ExclusiveFieldsPopulated(t *testing.T) {
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
-			doc, err := engine.IndexStep(context.Background(), tt.kind, em)
+			doc, err := engine.IndexStep(diagnostic.NewCtx(t.Context(), em), tt.kind)
 			if err != nil {
 				t.Fatalf("IndexStep(%q) failed: %v", tt.kind, err)
 			}

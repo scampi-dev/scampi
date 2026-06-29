@@ -23,7 +23,7 @@ func mkStep(kind, file string, line int) spec.StepInstance {
 }
 
 func TestDetectDuplicatePromises_NoDuplicates(t *testing.T) {
-	em := noopEmitter{}
+	ctx := discardCtx(t)
 	actions := []spec.Action{
 		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
 		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/101")},
@@ -32,13 +32,13 @@ func TestDetectDuplicatePromises_NoDuplicates(t *testing.T) {
 		mkStep("pve.lxc", "main.scampi", 10),
 		mkStep("pve.lxc", "main.scampi", 20),
 	}
-	if err := detectDuplicatePromises(em, actions, []int{0, 1}, steps); err != nil {
+	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestDetectDuplicatePromises_DuplicateContainer(t *testing.T) {
-	em := noopEmitter{}
+	ctx := discardCtx(t)
 	actions := []spec.Action{
 		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
 		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
@@ -47,7 +47,7 @@ func TestDetectDuplicatePromises_DuplicateContainer(t *testing.T) {
 		mkStep("pve.lxc", "main.scampi", 10),
 		mkStep("pve.lxc", "main.scampi", 20),
 	}
-	err := detectDuplicatePromises(em, actions, []int{0, 1}, steps)
+	err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps)
 	if err == nil {
 		t.Fatal("expected error for duplicate VMID, got nil")
 	}
@@ -77,7 +77,7 @@ func TestDetectDuplicatePromises_DuplicateContainer(t *testing.T) {
 }
 
 func TestDetectDuplicatePromises_DuplicatePath(t *testing.T) {
-	em := noopEmitter{}
+	ctx := discardCtx(t)
 	actions := []spec.Action{
 		&mockPromiserAction{kind: "dir", promises: paths("/etc/foo")},
 		&mockPromiserAction{kind: "copy", promises: paths("/etc/foo")},
@@ -86,14 +86,14 @@ func TestDetectDuplicatePromises_DuplicatePath(t *testing.T) {
 		mkStep("posix.dir", "main.scampi", 5),
 		mkStep("posix.copy", "main.scampi", 12),
 	}
-	err := detectDuplicatePromises(em, actions, []int{0, 1}, steps)
+	err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps)
 	if err == nil {
 		t.Fatal("expected error for duplicate path, got nil")
 	}
 }
 
 func TestDetectDuplicatePromises_DistinctNodesIndependent(t *testing.T) {
-	em := noopEmitter{}
+	ctx := discardCtx(t)
 	actions := []spec.Action{
 		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
 		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://asgard/100")},
@@ -102,13 +102,13 @@ func TestDetectDuplicatePromises_DistinctNodesIndependent(t *testing.T) {
 		mkStep("pve.lxc", "main.scampi", 10),
 		mkStep("pve.lxc", "main.scampi", 20),
 	}
-	if err := detectDuplicatePromises(em, actions, []int{0, 1}, steps); err != nil {
+	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
 		t.Fatalf("unexpected error for cross-node VMIDs: %v", err)
 	}
 }
 
 func TestDetectDuplicatePromises_NonPromiserSkipped(t *testing.T) {
-	em := noopEmitter{}
+	ctx := discardCtx(t)
 	actions := []spec.Action{
 		&mockAction{kind: "noop"},
 		&mockPromiserAction{kind: "pve.lxc", promises: containers("pve://midgard/100")},
@@ -117,7 +117,7 @@ func TestDetectDuplicatePromises_NonPromiserSkipped(t *testing.T) {
 		mkStep("noop", "main.scampi", 5),
 		mkStep("pve.lxc", "main.scampi", 10),
 	}
-	if err := detectDuplicatePromises(em, actions, []int{0, 1}, steps); err != nil {
+	if err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -135,7 +135,7 @@ func TestDetectDuplicatePromises_AllResourceKinds(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			em := noopEmitter{}
+			ctx := discardCtx(t)
 			actions := []spec.Action{
 				&mockPromiserAction{kind: "x", promises: tc.promises},
 				&mockPromiserAction{kind: "x", promises: tc.promises},
@@ -144,7 +144,7 @@ func TestDetectDuplicatePromises_AllResourceKinds(t *testing.T) {
 				mkStep("x", "main.scampi", 10),
 				mkStep("x", "main.scampi", 20),
 			}
-			err := detectDuplicatePromises(em, actions, []int{0, 1}, steps)
+			err := detectDuplicatePromises(ctx, actions, []int{0, 1}, steps)
 			if err == nil {
 				t.Fatal("expected duplicate error, got nil")
 			}

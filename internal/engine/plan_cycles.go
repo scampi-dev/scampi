@@ -50,7 +50,7 @@ func (e CyclicDependencyError) Diagnostic() event.Event {
 	}
 }
 
-func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
+func DetectPlanCycles(ctx diagnostic.Ctx, plan spec.Plan) error {
 	var roots []spec.Op
 	for _, a := range plan.Deploy.Actions {
 		roots = append(roots, a.Ops()...)
@@ -66,7 +66,7 @@ func DetectPlanCycles(em diagnostic.Emitter, plan spec.Plan) error {
 		for _, cycle := range cycles {
 			cd := CyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
-			em.Raise(cd)
+			ctx.Raise(cd)
 		}
 
 		return err
@@ -113,7 +113,7 @@ func (e ActionCyclicDependencyError) Diagnostic() event.Event {
 }
 
 // detectHookCycles finds cycles in hook on_change chains using DFS.
-func detectHookCycles(em diagnostic.Emitter, hooks map[string][]spec.StepInstance) error {
+func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.StepInstance) error {
 	if len(hooks) == 0 {
 		return nil
 	}
@@ -133,7 +133,7 @@ func detectHookCycles(em diagnostic.Emitter, hooks map[string][]spec.StepInstanc
 		cycle := cycles[0]
 		source := findCycleEdgeSource(hooks, cycle)
 		err := HookCycleError{Chain: cycle, Source: source}
-		em.Raise(err)
+		ctx.Raise(err)
 		return AbortError{Causes: []error{err}}
 	}
 
@@ -160,7 +160,7 @@ func findCycleEdgeSource(hooks map[string][]spec.StepInstance, cycle []string) s
 }
 
 // DetectActionCycles checks for cycles in the action dependency graph.
-func DetectActionCycles(em diagnostic.Emitter, nodes []*actionNode) error {
+func DetectActionCycles(ctx diagnostic.Ctx, nodes []*actionNode) error {
 	rawCycles := dedupCycles(
 		detectCycles(nodes, func(n *actionNode) []*actionNode { return n.requires }),
 		ptrKey[*actionNode],
@@ -177,7 +177,7 @@ func DetectActionCycles(em diagnostic.Emitter, nodes []*actionNode) error {
 			cd := ActionCyclicDependencyError{Cycle: cycle}
 			err.Causes = append(err.Causes, cd)
 
-			em.Raise(cd)
+			ctx.Raise(cd)
 		}
 
 		return err

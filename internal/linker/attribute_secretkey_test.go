@@ -33,7 +33,7 @@ func (b *stubBackend) Lookup(key string) (string, bool, error) {
 
 func (b *stubBackend) Keys() []string { return secret.SortedKeys(b.keys) }
 
-func newSecretCtx(backend *stubBackend, arg ast.Expr) StaticCheckContext {
+func newSecretCtx(t *testing.T, backend *stubBackend, arg ast.Expr) StaticCheckContext {
 	// Wrap nil typed pointer as a true nil interface so the
 	// "no backend configured" path actually fires.
 	var b secret.Backend
@@ -41,7 +41,7 @@ func newSecretCtx(backend *stubBackend, arg ast.Expr) StaticCheckContext {
 		b = backend
 	}
 	return StaticCheckContext{
-		Linker:          &linkContext{em: &harness.Capture{}},
+		Linker:          &linkContext{em: captureCtx(t)},
 		ResolverBackend: b,
 		AttrName:        "secrets.@secretkey",
 		ParamName:       "key",
@@ -53,7 +53,7 @@ func newSecretCtx(backend *stubBackend, arg ast.Expr) StaticCheckContext {
 // capturedEvents reads back the events buffered by a linkContext set up
 // via newSecretCtx (or any other helper that wraps a Capture).
 func capturedEvents(ctx StaticCheckContext) []event.Event {
-	return ctx.Linker.(*linkContext).em.(*harness.Capture).Events
+	return ctx.Linker.(*linkContext).em.Output().(*harness.Capture).Events
 }
 
 func TestSecretKeyAttribute_LiteralFound(t *testing.T) {
@@ -61,7 +61,7 @@ func TestSecretKeyAttribute_LiteralFound(t *testing.T) {
 		keys:     map[string]string{"db.password": "p4ss"},
 		lookupOK: true,
 	}
-	ctx := newSecretCtx(backend, stringLitExpr("db.password"))
+	ctx := newSecretCtx(t, backend, stringLitExpr("db.password"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
 	evs := capturedEvents(ctx)
@@ -75,7 +75,7 @@ func TestSecretKeyAttribute_LiteralNotFound(t *testing.T) {
 		keys:     map[string]string{"db.password": "p4ss"},
 		lookupOK: true,
 	}
-	ctx := newSecretCtx(backend, stringLitExpr("totally.unknown"))
+	ctx := newSecretCtx(t, backend, stringLitExpr("totally.unknown"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
 	evs := capturedEvents(ctx)
@@ -90,7 +90,7 @@ func TestSecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
 	// handles dynamic args in lang/eval.
 	backend := &stubBackend{lookupOK: true}
 	arg := &ast.Ident{Name: "some_var", SrcSpan: token.Span{Start: 1, End: 9}}
-	ctx := newSecretCtx(backend, arg)
+	ctx := newSecretCtx(t, backend, arg)
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
 	if evs := capturedEvents(ctx); len(evs) != 0 {
@@ -101,7 +101,7 @@ func TestSecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
 func TestSecretKeyAttribute_NoBackendSkipped(t *testing.T) {
 	// With no backend configured, the static check should be a no-op
 	// and let the runtime check handle it.
-	ctx := newSecretCtx(nil, stringLitExpr("any.key"))
+	ctx := newSecretCtx(t, nil, stringLitExpr("any.key"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
 	if evs := capturedEvents(ctx); len(evs) != 0 {
@@ -111,7 +111,7 @@ func TestSecretKeyAttribute_NoBackendSkipped(t *testing.T) {
 
 func TestSecretKeyAttribute_LookupError(t *testing.T) {
 	backend := &stubBackend{lookupOK: false}
-	ctx := newSecretCtx(backend, stringLitExpr("db.password"))
+	ctx := newSecretCtx(t, backend, stringLitExpr("db.password"))
 
 	SecretKeyAttribute{}.StaticCheck(ctx)
 	evs := capturedEvents(ctx)
