@@ -139,6 +139,17 @@ func (s *scheduler) emitExecuted(displayID string) {
 	})
 }
 
+// emitBegin fires the step-start event before a step's ops run, the live-region
+// counterpart to emitResult. Out-of-band: it feeds the in-flight set, not the
+// durable record.
+func (s *scheduler) emitBegin() {
+	s.ctx.Emit(event.Begin{
+		Time:  time.Now(),
+		Step:  s.stepRef(),
+		Cause: s.cause(),
+	})
+}
+
 // emitResult fires the step-completion event once a step has settled,
 // carrying its verdict and op breakdown. The verdict honors check vs apply:
 // in check mode a "would change" counts as Changed.
@@ -455,6 +466,7 @@ func (e *Engine) runCheckStep(
 	s.grp = grp
 	s.ctx = ctx.With(gctx)
 
+	s.emitBegin()
 	checkErr := s.runChecks(nodes)
 
 	// Unlike executeStep, we do NOT run the execution phase
@@ -620,6 +632,7 @@ func (e *Engine) runStep(ctx diagnostic.Ctx, idx int, act spec.Step, hookID stri
 	s.grp = grp
 	s.ctx = ctx.With(gctx)
 
+	s.emitBegin()
 	checkErr := s.runChecks(nodes)
 
 	var execErr error

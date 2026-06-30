@@ -79,8 +79,8 @@ type Cause struct {
 
 // Event is the sealed union of everything Emit accepts: the
 // diagnostics (Error, Warning, Info) and the streaming events
-// (Change, Progress). External types cannot join the union - the
-// sealing method isEvent is unexported.
+// (Change, Progress, Begin, Result). External types cannot join the
+// union - the sealing method isEvent is unexported.
 type Event interface{ isEvent() }
 
 // Impact lives on Error only. Warning and Info never abort execution.
@@ -122,6 +122,7 @@ func (Warning) isEvent()  {}
 func (Info) isEvent()     {}
 func (Change) isEvent()   {}
 func (Progress) isEvent() {}
+func (Begin) isEvent()    {}
 func (Result) isEvent()   {}
 
 // Change
@@ -203,6 +204,17 @@ type StepSummary struct {
 	Skipped     int
 	Changed     int
 	WouldChange int
+}
+
+// Begin marks a step entering execution: the live-region counterpart to Result
+// (the finish). Naming is begin/finish, never start. Emitted before a step's ops
+// run; the render layer pairs each Begin with its Result to track the in-flight
+// set and per-deploy progress. Out-of-band like Progress: it is a transient
+// signal for the live region, not part of the durable ordered record.
+type Begin struct {
+	Time  time.Time
+	Step  StepRef
+	Cause Cause
 }
 
 // Result is the completion of one step: emitted on the stream as each step

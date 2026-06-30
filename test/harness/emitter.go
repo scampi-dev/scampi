@@ -26,6 +26,7 @@ type (
 		Events      Events
 		Diagnostics []event.Event // Error/Warning/Info entries
 		Changes     []event.Change
+		Begins      []event.Begin
 		Results     []event.Result
 	}
 )
@@ -37,6 +38,8 @@ func (r *RecordingDisplayer) RenderEvent(e event.Event) {
 		r.Diagnostics = append(r.Diagnostics, v)
 	case event.Change:
 		r.Changes = append(r.Changes, v)
+	case event.Begin:
+		r.Begins = append(r.Begins, v)
 	case event.Result:
 		r.Results = append(r.Results, v)
 	}
