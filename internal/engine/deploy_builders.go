@@ -28,7 +28,7 @@ func driverResources(n *deployNode) []string {
 	}
 	out := make([]string, len(n.inputs))
 	for i, in := range n.inputs {
-		out[i] = resourceKindName(in.Kind) + ":" + in.Name
+		out[i] = displayResource(in)
 	}
 	return out
 }

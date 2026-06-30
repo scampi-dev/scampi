@@ -23,7 +23,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const renderTemplateID = "step.render-template"
+const renderTemplateID = "render_template"
 
 type renderTemplateOp struct {
 	sharedop.BaseOp

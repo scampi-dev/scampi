@@ -18,7 +18,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const copyFileID = "step.copy-file"
+const copyFileID = "copy_file"
 
 type copyFileOp struct {
 	sharedop.BaseOp

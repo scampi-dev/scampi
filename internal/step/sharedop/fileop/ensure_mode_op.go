@@ -16,7 +16,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensureModeID = "step.ensure-mode"
+const ensureModeID = "ensure_mode"
 
 type EnsureModeOp struct {
 	sharedop.BaseOp

@@ -11,6 +11,7 @@ import (
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/errs"
 	"scampi.dev/scampi/internal/source"
@@ -61,7 +62,7 @@ func Plan(
 		mu      sync.Mutex
 		details = make(map[int]result.PlanDetail, len(resolved))
 	)
-	err = runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.Config) error {
+	err = runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, _ event.DeployRef, res spec.Config) error {
 		e, eErr := NewWithTarget(ctx, src, res, allCaps)
 		if eErr != nil {
 			return eErr

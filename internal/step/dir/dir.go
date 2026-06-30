@@ -16,7 +16,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensureDirID = "step.dir"
+const ensureDirID = "dir"
 
 type (
 	Dir       struct{}

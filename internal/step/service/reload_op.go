@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const reloadID = "step.reload-service"
+const reloadID = "reload_service"
 
 type reloadOp struct {
 	sharedop.BaseOp

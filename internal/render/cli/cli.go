@@ -3,9 +3,11 @@
 package cli
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -136,11 +138,20 @@ func (c *CLI) commitRenderEvents(events []renderEvent) {
 // RenderSummary prints the one-line end-of-run summary computed from
 // the aggregated ExecutionReport returned by engine.Check / Apply.
 func (c *CLI) RenderSummary(rep result.Execution, checkOnly bool) {
+	// Count steps, not ops: a step is the unit the user wrote. Ops within a step
+	// (ensure content + owner + perm for one copy) are an implementation detail,
+	// so "3 would change" for a single copy step would be misleading. Each step
+	// counts once, by its overall outcome (failed wins over changed).
 	var changed, wouldChange, failed int
 	for _, ar := range rep.Steps {
-		changed += ar.Summary.Changed
-		wouldChange += ar.Summary.WouldChange
-		failed += ar.Summary.Failed + ar.Summary.Aborted
+		switch {
+		case ar.Summary.Failed+ar.Summary.Aborted > 0:
+			failed++
+		case checkOnly && ar.Summary.WouldChange > 0:
+			wouldChange++
+		case !checkOnly && ar.Summary.Changed > 0:
+			changed++
+		}
 	}
 	var parts []string
 	if checkOnly {
@@ -691,7 +702,26 @@ func (c *CLI) renderProgress(e event.Progress) {
 func (c *CLI) renderResult(e event.Result) {
 	drift := c.stepDrift[e.Step.Index]
 	delete(c.stepDrift, e.Step.Index)
+	// Ops within a step run concurrently, so drift arrives in completion order.
+	// Sort by (op id, field) so a step's rows are stable run-to-run, preserving
+	// the serial-equivalent-output invariant.
+	slices.SortStableFunc(drift, func(a, b event.Change) int {
+		if d := cmp.Compare(a.DisplayID, b.DisplayID); d != 0 {
+			return d
+		}
+		return cmp.Compare(a.Drift.Field, b.Drift.Field)
+	})
 	c.renderStepBlock(e, drift)
+}
+
+// deployTag returns a leading lane tag like " [web]" so interleaved deploys are
+// followable. Empty for single-lane runs (the engine leaves Name unset), so
+// default single-deploy output stays untagged.
+func (c *CLI) deployTag(d event.DeployRef) string {
+	if d.Name == "" {
+		return ""
+	}
+	return c.formatter.fmtfMsg(colDeployTag, " [%s]", d.Name)
 }
 
 func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
@@ -714,21 +744,26 @@ func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
 	}
 
 	header := c.formatter.fmtMsg(col, "  "+glyph) +
+		c.deployTag(res.Step.Deploy) +
 		c.formatter.fmtfMsg(colStepKind, " [%d]%s", displayIndex(res.Step.Index), kindSuffix(res.Step.Kind)) +
 		c.descSuffix(res.Step.Desc) +
 		scopeFromCause(res.Cause)
 	out := []renderEvent{{stream: streamOut, line: header}}
 
-	rows := c.driftRows(drift, v)
-	for i, r := range rows {
-		rail := c.glyphs.opBranch
-		if i == len(rows)-1 {
-			rail = c.glyphs.opLast
+	// Per-field drift is op-level detail: shown from -v up. At default verbosity
+	// the verdict line alone says which steps change, not the field breakdown.
+	if v >= signal.V {
+		rows := c.driftRows(drift, v)
+		for i, r := range rows {
+			rail := c.glyphs.opBranch
+			if i == len(rows)-1 {
+				rail = c.glyphs.opLast
+			}
+			out = append(out, renderEvent{
+				stream: streamOut,
+				line:   "      " + c.formatter.fmtMsg(colOpRail, rail) + " " + r,
+			})
 		}
-		out = append(out, renderEvent{
-			stream: streamOut,
-			line:   "      " + c.formatter.fmtMsg(colOpRail, rail) + " " + r,
-		})
 	}
 	c.commitRenderEvents(out)
 }

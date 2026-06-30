@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensureEnabledID = "step.ensure-service-enabled"
+const ensureEnabledID = "ensure_service_enabled"
 
 type ensureEnabledOp struct {
 	sharedop.BaseOp

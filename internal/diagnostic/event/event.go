@@ -136,11 +136,22 @@ const (
 	ChangeExecuted
 )
 
-// StepRef identifies the step a Change belongs to.
+// DeployRef identifies the deploy lane an event belongs to. Ordinal is unique
+// per lane in a run (assigned level-major, declaration order within a level)
+// and keys the render Sequencer's per-deploy cursor. Name is the deploy block's
+// name, set only when a run has more than one lane so single-deploy output stays
+// untagged; an empty Name means "do not tag".
+type DeployRef struct {
+	Name    string
+	Ordinal int
+}
+
+// StepRef identifies the step a Change belongs to, within its deploy lane.
 type StepRef struct {
-	Index int
-	Kind  string
-	Desc  string
+	Deploy DeployRef
+	Index  int
+	Kind   string
+	Desc   string
 }
 
 // Change is a planned or executed mutation reported by an op. Emitted

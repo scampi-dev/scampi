@@ -24,7 +24,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const downloadID = "step.download"
+const downloadID = "download"
 
 // DownloadOp fetches a remote URL to the source cache. It runs source-side
 // only — no target capabilities required.

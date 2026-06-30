@@ -15,7 +15,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensureRuleID = "step.firewall.ensureRule"
+const ensureRuleID = "firewall.ensure_rule"
 
 type backend int
 

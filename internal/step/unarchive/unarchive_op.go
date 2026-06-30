@@ -27,7 +27,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const unarchiveID = "step.unarchive"
+const unarchiveID = "unarchive"
 
 const maxStderrLines = 10
 

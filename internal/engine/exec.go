@@ -72,6 +72,7 @@ type scheduler struct {
 	tgt target.Target
 
 	// step context
+	deploy    event.DeployRef // lane identity, stamped on every emitted event
 	actIdx    int
 	actKind   string
 	actDesc   string
@@ -92,7 +93,7 @@ type scheduler struct {
 // stepRef and cause tag every event this scheduler emits with the step it
 // belongs to and what triggered it (a hook, or nothing).
 func (s *scheduler) stepRef() event.StepRef {
-	return event.StepRef{Index: s.actIdx, Kind: s.actKind, Desc: s.actDesc}
+	return event.StepRef{Deploy: s.deploy, Index: s.actIdx, Kind: s.actKind, Desc: s.actDesc}
 }
 
 func (s *scheduler) cause() event.Cause {
@@ -442,6 +443,7 @@ func (e *Engine) runCheckStep(
 	s := &scheduler{
 		src:       e.src,
 		tgt:       e.tgt,
+		deploy:    e.deploy,
 		actIdx:    idx,
 		actKind:   act.Kind(),
 		actDesc:   act.Desc(),
@@ -608,6 +610,7 @@ func (e *Engine) runStep(ctx diagnostic.Ctx, idx int, act spec.Step, hookID stri
 	s := &scheduler{
 		src:     e.src,
 		tgt:     e.tgt,
+		deploy:  e.deploy,
 		actIdx:  idx,
 		actKind: act.Kind(),
 		actDesc: act.Desc(),

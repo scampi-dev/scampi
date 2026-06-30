@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const writeRepoConfigID = "step.write-repo-config"
+const writeRepoConfigID = "write_repo_config"
 
 type writeRepoConfigOp struct {
 	sharedop.BaseOp

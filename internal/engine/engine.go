@@ -3,22 +3,25 @@
 package engine
 
 import (
+	"sort"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
 
 type Engine struct {
-	src   source.Source
-	tgt   target.Target
-	cfg   spec.Config
-	store *diagnostic.SourceStore
+	src    source.Source
+	tgt    target.Target
+	cfg    spec.Config
+	store  *diagnostic.SourceStore
+	deploy event.DeployRef // lane identity for events this engine emits
 }
 
 func New(ctx diagnostic.Ctx, src source.Source, cfg spec.Config) (*Engine, error) {
@@ -106,13 +109,14 @@ func forEachResolvedOffline(
 	}
 
 	allCaps := capabilityTarget{caps: capability.All}
-	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.Config) error {
+	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error {
 		e, err := NewWithTarget(ctx, src, res, allCaps)
 		if err != nil {
 			return err
 		}
 		defer e.Close()
 		e.store = store
+		e.deploy = dr
 		return run(ctx, e)
 	})
 }
@@ -140,13 +144,14 @@ func forEachResolved(
 		return err
 	}
 
-	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, res spec.Config) error {
+	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error {
 		e, err := New(ctx, src, res)
 		if err != nil {
 			return err
 		}
 		defer e.Close()
 		e.store = store
+		e.deploy = dr
 		return run(ctx, e)
 	})
 }
@@ -165,15 +170,30 @@ func forEachResolved(
 func runPlansConcurrent(
 	ctx diagnostic.Ctx,
 	resolved []spec.Config,
-	work func(ctx diagnostic.Ctx, res spec.Config) error,
+	work func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error,
 ) error {
 	if len(resolved) == 1 {
-		return work(ctx, resolved[0])
+		// Single lane: empty Name keeps the output untagged.
+		return work(ctx, event.DeployRef{}, resolved[0])
 	}
 
 	graph, err := buildDeployGraph(resolved)
 	if err != nil {
 		return err
+	}
+
+	// Assign lane ordinals level-major, declaration order within a level, so
+	// every deploy has a stable identity for the render Sequencer's per-deploy
+	// cursor and for tagging.
+	ordOf := make(map[*deployNode]int)
+	ord := 0
+	for _, level := range graph.levels {
+		nodes := append([]*deployNode(nil), level...)
+		sort.Slice(nodes, func(i, j int) bool { return nodes[i].idx < nodes[j].idx })
+		for _, n := range nodes {
+			ordOf[n] = ord
+			ord++
+		}
 	}
 
 	var causes []error
@@ -184,7 +204,7 @@ func runPlansConcurrent(
 			// resources the failed producer was supposed to create.
 			break
 		}
-		levelCauses := runLevel(ctx, level, work)
+		levelCauses := runLevel(ctx, level, ordOf, work)
 		causes = append(causes, levelCauses...)
 	}
 
@@ -200,7 +220,8 @@ func runPlansConcurrent(
 func runLevel(
 	ctx diagnostic.Ctx,
 	level []*deployNode,
-	work func(ctx diagnostic.Ctx, res spec.Config) error,
+	ordOf map[*deployNode]int,
+	work func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error,
 ) []error {
 	g, gctx := errgroup.WithContext(ctx)
 	var (
@@ -208,8 +229,9 @@ func runLevel(
 		causes []error
 	)
 	for _, n := range level {
+		dr := event.DeployRef{Name: n.res.DeployName, Ordinal: ordOf[n]}
 		g.Go(func() error {
-			if err := work(ctx.With(gctx), n.res); err != nil {
+			if err := work(ctx.With(gctx), dr, n.res); err != nil {
 				mu.Lock()
 				causes = append(causes, err)
 				mu.Unlock()

@@ -17,25 +17,27 @@ import (
 )
 
 // Sequencer buffers each step's Change/Result events and releases the whole
-// step block to the wrapped Output in ascending step-index order, the
-// moment a cursor reaches a completed step. Diagnostics and progress are
+// step block to the wrapped Output in ascending step-index order, the moment a
+// per-deploy cursor reaches a completed step. Diagnostics and progress are
 // out-of-band and pass through immediately.
 //
-// The cursor keys on event.StepRef.Index, which is unique per deploy phase but
-// reused across phases (hooks) and deploys. When a reused index is observed
-// the Sequencer can no longer order safely, so it drains what it holds and
-// bypasses from there on. Worst case is therefore today's unordered stream, a
-// strict non-regression. Cross-phase/cross-deploy ordering needs a section key
-// the events do not carry yet (#433, SP-C).
+// Each deploy lane (keyed by event.StepRef.Deploy.Ordinal) has its own cursor.
+// Within a lane, step indices are monotonic and unique across phases (hooks
+// continue the index space, they don't reuse it), so the cursor orders the lane
+// cleanly. Across lanes there is NO cursor: lanes release independently and
+// interleave freely, which is the visible cross-deploy parallelism (#433).
 //
 // The Emitter serializes delivery, so RenderEvent / Flush / RenderSummary are
 // never entered concurrently; the Sequencer holds no lock of its own.
 type Sequencer struct {
-	out diagnostic.Output
+	out   diagnostic.Output
+	lanes map[int]*lane
+}
 
+// lane is one deploy's ordered buffer.
+type lane struct {
 	cursor  int
 	pending map[int]*block
-	bypass  bool
 }
 
 type block struct {
@@ -46,26 +48,33 @@ type block struct {
 
 var _ diagnostic.Output = (*Sequencer)(nil)
 
-// New wraps out so the live event stream is released in declaration order.
+// New wraps out so the live event stream is released in declaration order,
+// per deploy lane.
 func New(out diagnostic.Output) *Sequencer {
-	return &Sequencer{out: out, pending: map[int]*block{}}
+	return &Sequencer{out: out, lanes: map[int]*lane{}}
+}
+
+func (s *Sequencer) laneFor(ord int) *lane {
+	l := s.lanes[ord]
+	if l == nil {
+		l = &lane{pending: map[int]*block{}}
+		s.lanes[ord] = l
+	}
+	return l
 }
 
 func (s *Sequencer) RenderEvent(e event.Event) {
-	if s.bypass {
-		s.out.RenderEvent(e)
-		return
-	}
-
 	switch ev := e.(type) {
 	case event.Change:
-		s.collect(ev.Step.Index, e, func(b *block) { b.changes = append(b.changes, ev) })
+		l := s.laneFor(ev.Step.Deploy.Ordinal)
+		s.collect(l, ev.Step.Index, func(b *block) { b.changes = append(b.changes, ev) })
 	case event.Result:
-		s.collect(ev.Step.Index, e, func(b *block) {
+		l := s.laneFor(ev.Step.Deploy.Ordinal)
+		s.collect(l, ev.Step.Index, func(b *block) {
 			b.result = ev
 			b.done = true
 		})
-		s.advance()
+		s.advance(l)
 	default:
 		// Errors, warnings, info, progress: out-of-band, not part of the
 		// ordered step record. Release immediately.
@@ -73,31 +82,26 @@ func (s *Sequencer) RenderEvent(e event.Event) {
 	}
 }
 
-// collect routes a stream event into its step block, or bails to bypass if
-// the index was already released (section reuse).
-func (s *Sequencer) collect(idx int, raw event.Event, mut func(*block)) {
-	if idx < s.cursor {
-		s.drainAndBypass(raw)
-		return
-	}
-	b := s.pending[idx]
+// collect routes a stream event into its step block within the lane.
+func (s *Sequencer) collect(l *lane, idx int, mut func(*block)) {
+	b := l.pending[idx]
 	if b == nil {
 		b = &block{}
-		s.pending[idx] = b
+		l.pending[idx] = b
 	}
 	mut(b)
 }
 
-// advance flushes completed blocks contiguously from the cursor.
-func (s *Sequencer) advance() {
+// advance flushes completed blocks contiguously from the lane's cursor.
+func (s *Sequencer) advance(l *lane) {
 	for {
-		b := s.pending[s.cursor]
+		b := l.pending[l.cursor]
 		if b == nil || !b.done {
 			return
 		}
 		s.flush(b)
-		delete(s.pending, s.cursor)
-		s.cursor++
+		delete(l.pending, l.cursor)
+		l.cursor++
 	}
 }
 
@@ -112,37 +116,36 @@ func (s *Sequencer) flush(b *block) {
 	}
 }
 
-// drainAndBypass releases everything held (in index order) and switches to
-// pass-through. Used when the index space stops being monotonic.
-func (s *Sequencer) drainAndBypass(raw event.Event) {
-	s.drain()
-	s.bypass = true
-	s.out.RenderEvent(raw)
-}
-
-// drain flushes all pending blocks in ascending index order. On abort this is
-// where steps that finished in parallel past a failed/stuck cursor get
-// reported honestly rather than dropped.
+// drain flushes all pending blocks across all lanes, ordered by (lane ordinal,
+// step index) for determinism. On abort this is where steps that finished in
+// parallel past a failed/stuck cursor get reported honestly rather than dropped.
 func (s *Sequencer) drain() {
-	idxs := make([]int, 0, len(s.pending))
-	for i := range s.pending {
-		idxs = append(idxs, i)
+	ords := make([]int, 0, len(s.lanes))
+	for ord := range s.lanes {
+		ords = append(ords, ord)
 	}
-	sort.Ints(idxs)
-	for _, i := range idxs {
-		s.flush(s.pending[i])
-		delete(s.pending, i)
+	sort.Ints(ords)
+	for _, ord := range ords {
+		l := s.lanes[ord]
+		idxs := make([]int, 0, len(l.pending))
+		for i := range l.pending {
+			idxs = append(idxs, i)
+		}
+		sort.Ints(idxs)
+		for _, i := range idxs {
+			s.flush(l.pending[i])
+			delete(l.pending, i)
+		}
 	}
 }
 
-// Flush releases everything still buffered, in declaration order, then
-// switches to pass-through. It MUST run once at end of run, including the abort
-// path where RenderSummary is skipped, or completed-but-buffered steps (the
-// ones that finished in parallel past a failed/cancelled cursor) are stranded
-// and lost. Idempotent: a second call drains an already-empty buffer.
+// Flush releases everything still buffered, in declaration order per lane. It
+// MUST run once at end of run, including the abort path where RenderSummary is
+// skipped, or completed-but-buffered steps (the ones that finished in parallel
+// past a failed/cancelled cursor) are stranded and lost. Idempotent: a second
+// call drains an already-empty buffer.
 func (s *Sequencer) Flush() {
 	s.drain()
-	s.bypass = true
 }
 
 // RenderSummary marks end of run: drain the buffer, then emit the summary.

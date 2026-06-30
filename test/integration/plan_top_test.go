@@ -141,8 +141,8 @@ std.deploy(name = "app", targets = [host]) {
 		needs []string
 	}{
 		{"base", nil, nil},
-		{"middle", []string{"base"}, []string{"label:ready"}},
-		{"app", []string{"middle"}, []string{"label:configured"}},
+		{"middle", []string{"base"}, []string{"[label]ready"}},
+		{"app", []string{"middle"}, []string{"[label]configured"}},
 	}
 	for i, want := range wantPerLevel {
 		nodes := result.Levels[i].Nodes
@@ -227,7 +227,7 @@ std.deploy(name = "right", targets = [host]) {
 	}
 	for _, n := range result.Levels[1].Nodes {
 		assertStringSlice(t, "After", 1, n.After, []string{"base"})
-		assertStringSlice(t, "Needs", 1, n.Needs, []string{"label:ready"})
+		assertStringSlice(t, "Needs", 1, n.Needs, []string{"[label]ready"})
 	}
 }
 

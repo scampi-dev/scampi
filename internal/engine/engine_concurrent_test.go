@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"scampi.dev/scampi/internal/diagnostic"
+	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/spec"
 )
 
@@ -20,10 +21,11 @@ func noopCtx(ctx context.Context) diagnostic.Ctx {
 
 func TestRunPlansConcurrent_Empty(t *testing.T) {
 	calls := 0
-	err := runPlansConcurrent(noopCtx(t.Context()), nil, func(_ diagnostic.Ctx, _ spec.Config) error {
-		calls++
-		return nil
-	})
+	err := runPlansConcurrent(noopCtx(t.Context()), nil,
+		func(_ diagnostic.Ctx, _ event.DeployRef, _ spec.Config) error {
+			calls++
+			return nil
+		})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -35,10 +37,11 @@ func TestRunPlansConcurrent_Empty(t *testing.T) {
 func TestRunPlansConcurrent_Single(t *testing.T) {
 	resolved := []spec.Config{{DeployName: "a"}}
 	var ran atomic.Int32
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, _ spec.Config) error {
-		ran.Add(1)
-		return nil
-	})
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved,
+		func(_ diagnostic.Ctx, _ event.DeployRef, _ spec.Config) error {
+			ran.Add(1)
+			return nil
+		})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -60,17 +63,18 @@ func TestRunPlansConcurrent_RunsInParallel(t *testing.T) {
 	var inFlight atomic.Int32
 	allArrived := make(chan struct{})
 
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, _ spec.Config) error {
-		if inFlight.Add(1) == n {
-			close(allArrived)
-		}
-		select {
-		case <-allArrived:
-		case <-time.After(2 * time.Second):
-			t.Errorf("worker timed out waiting for peers (serial execution?)")
-		}
-		return nil
-	})
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved,
+		func(_ diagnostic.Ctx, _ event.DeployRef, _ spec.Config) error {
+			if inFlight.Add(1) == n {
+				close(allArrived)
+			}
+			select {
+			case <-allArrived:
+			case <-time.After(2 * time.Second):
+				t.Errorf("worker timed out waiting for peers (serial execution?)")
+			}
+			return nil
+		})
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -89,15 +93,16 @@ func TestRunPlansConcurrent_AggregatesErrors(t *testing.T) {
 		{DeployName: "c"},
 	}
 
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.Config) error {
-		switch res.DeployName {
-		case "a":
-			return errA
-		case "b":
-			return errB
-		}
-		return nil
-	})
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved,
+		func(_ diagnostic.Ctx, _ event.DeployRef, res spec.Config) error {
+			switch res.DeployName {
+			case "a":
+				return errA
+			case "b":
+				return errB
+			}
+			return nil
+		})
 
 	var abort AbortError
 	if !errors.As(err, &abort) {
@@ -122,12 +127,13 @@ func TestRunPlansConcurrent_SingleErrorUnwrapped(t *testing.T) {
 		{DeployName: "b"},
 	}
 
-	err := runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.Config) error {
-		if res.DeployName == "b" {
-			return target
-		}
-		return nil
-	})
+	err := runPlansConcurrent(noopCtx(t.Context()), resolved,
+		func(_ diagnostic.Ctx, _ event.DeployRef, res spec.Config) error {
+			if res.DeployName == "b" {
+				return target
+			}
+			return nil
+		})
 
 	if !errors.Is(err, target) {
 		t.Errorf("expected single error returned unwrapped, got %T (%v)", err, err)
@@ -145,15 +151,16 @@ func TestRunPlansConcurrent_SiblingsRunDespiteFailure(t *testing.T) {
 		mu     sync.Mutex
 		ranAll = map[string]bool{}
 	)
-	_ = runPlansConcurrent(noopCtx(t.Context()), resolved, func(_ diagnostic.Ctx, res spec.Config) error {
-		mu.Lock()
-		ranAll[res.DeployName] = true
-		mu.Unlock()
-		if res.DeployName == "a" {
-			return errors.New("a failed")
-		}
-		return nil
-	})
+	_ = runPlansConcurrent(noopCtx(t.Context()), resolved,
+		func(_ diagnostic.Ctx, _ event.DeployRef, res spec.Config) error {
+			mu.Lock()
+			ranAll[res.DeployName] = true
+			mu.Unlock()
+			if res.DeployName == "a" {
+				return errors.New("a failed")
+			}
+			return nil
+		})
 
 	for _, name := range []string{"a", "b", "c"} {
 		if !ranAll[name] {
@@ -182,7 +189,7 @@ func TestRunPlansConcurrent_CtxCancellationPropagates(t *testing.T) {
 	}()
 
 	var observedCancel atomic.Bool
-	_ = runPlansConcurrent(noopCtx(ctx), resolved, func(ctx diagnostic.Ctx, _ spec.Config) error {
+	_ = runPlansConcurrent(noopCtx(ctx), resolved, func(ctx diagnostic.Ctx, _ event.DeployRef, _ spec.Config) error {
 		startOnce.Do(func() { close(started) })
 		select {
 		case <-ctx.Done():

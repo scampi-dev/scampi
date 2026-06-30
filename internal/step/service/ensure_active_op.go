@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensureActiveID = "step.ensure-service-active"
+const ensureActiveID = "ensure_service_active"
 
 type ensureActiveOp struct {
 	sharedop.BaseOp

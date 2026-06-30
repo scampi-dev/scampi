@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const cleanupSysctlID = "step.sysctl.cleanup"
+const cleanupSysctlID = "sysctl.cleanup"
 
 type cleanupSysctlOp struct {
 	sharedop.BaseOp

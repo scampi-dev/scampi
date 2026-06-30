@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const installKeyID = "step.install-repo-key"
+const installKeyID = "install_repo_key"
 
 type installKeyOp struct {
 	sharedop.BaseOp

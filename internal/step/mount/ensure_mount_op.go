@@ -14,7 +14,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensureMountID = "step.mount"
+const ensureMountID = "mount"
 
 type ensureMountOp struct {
 	sharedop.BaseOp

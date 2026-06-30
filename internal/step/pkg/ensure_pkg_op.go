@@ -16,7 +16,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensurePkgID = "step.ensure-pkg"
+const ensurePkgID = "ensure_pkg"
 
 // cacheStaleThreshold is the maximum age we consider a package cache "fresh".
 // If CacheAge reports a younger cache, we skip the refresh on install failure.

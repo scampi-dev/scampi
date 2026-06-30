@@ -22,9 +22,9 @@ type recorder struct{ log []string }
 func (r *recorder) RenderEvent(e event.Event) {
 	switch ev := e.(type) {
 	case event.Change:
-		r.log = append(r.log, fmt.Sprintf("change[%d]%s", ev.Step.Index, ev.DisplayID))
+		r.log = append(r.log, fmt.Sprintf("change[%s%d]%s", lane(ev.Step), ev.Step.Index, ev.DisplayID))
 	case event.Result:
-		r.log = append(r.log, fmt.Sprintf("result[%d]", ev.Step.Index))
+		r.log = append(r.log, fmt.Sprintf("result[%s%d]", lane(ev.Step), ev.Step.Index))
 	case event.Progress:
 		r.log = append(r.log, "progress")
 	case event.Info:
@@ -41,12 +41,29 @@ func (r *recorder) RenderIndexAll([]spec.StepDoc)        {}
 func (r *recorder) RenderIndexStep(spec.StepDoc)         {}
 func (r *recorder) RenderLegend()                        {}
 
+// lane returns a "name:" prefix for named (multi-deploy) lanes, "" otherwise,
+// so single-lane test logs stay terse.
+func lane(s event.StepRef) string {
+	if s.Deploy.Name == "" {
+		return ""
+	}
+	return s.Deploy.Name + ":"
+}
+
 func change(idx int, id string) event.Change {
 	return event.Change{Step: event.StepRef{Index: idx}, DisplayID: id}
 }
 
 func res(idx int) event.Result {
 	return event.Result{Step: event.StepRef{Index: idx}}
+}
+
+// resIn builds a Result in a named deploy lane (name + ordinal).
+func resIn(name string, ord, idx int) event.Result {
+	return event.Result{Step: event.StepRef{
+		Deploy: event.DeployRef{Name: name, Ordinal: ord},
+		Index:  idx,
+	}}
 }
 
 func assertLog(t *testing.T, got, want []string) {
@@ -80,7 +97,7 @@ func TestScrambledCompletionReleasesInOrder(t *testing.T) {
 	assertLog(t, r.log, []string{"result[0]", "result[1]", "result[2]"})
 }
 
-// An step's drift lines stay grouped with its verdict, in declaration order,
+// A step's drift lines stay grouped with its verdict, in declaration order,
 // regardless of interleaved arrival.
 func TestChangesStayGroupedAndOrdered(t *testing.T) {
 	r := &recorder{}
@@ -138,16 +155,31 @@ func TestDiagnosticsAndProgressPassThrough(t *testing.T) {
 	assertLog(t, r.log, []string{"info", "progress", "change[0]a", "result[0]"})
 }
 
-// A reused index (hooks / multi-deploy) can't be ordered safely: drain what's
-// held and pass everything through afterward, dropping nothing.
-func TestIndexCollisionBypasses(t *testing.T) {
+// Each deploy lane orders independently and interleaves freely: a fast lane
+// streams its results without waiting on a slow sibling, while each lane stays
+// internally in declaration order. This is the visible cross-deploy parallelism.
+func TestPerDeployLanesOrderIndependently(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
-	s.RenderEvent(res(0)) // releases [0], cursor -> 1
-	s.RenderEvent(res(0)) // index reuse: bypass kicks in
-	s.RenderEvent(res(0))
+	s.RenderEvent(resIn("dns", 1, 0)) // dns lane cursor 0 -> releases now
+	s.RenderEvent(resIn("web", 0, 1)) // web 1 done, but web cursor 0 -> buffered
+	s.RenderEvent(resIn("dns", 1, 1)) // dns cursor 1 -> releases now (web still buffered)
+	s.RenderEvent(resIn("web", 0, 0)) // web 0 -> releases 0 then the buffered 1
 
-	assertLog(t, r.log, []string{"result[0]", "result[0]", "result[0]"})
+	assertLog(t, r.log, []string{
+		"result[dns:0]", "result[dns:1]", "result[web:0]", "result[web:1]",
+	})
+}
+
+// Hooks continue a lane's index space (N, N+1, ...) rather than reusing it, so
+// the per-lane cursor keeps ordering across the main and hook phases.
+func TestHookIndicesContinueLane(t *testing.T) {
+	r := &recorder{}
+	s := order.New(r)
+	s.RenderEvent(res(0))
+	s.RenderEvent(res(1))
+	s.RenderEvent(res(2)) // hook step, continues the index space
+	assertLog(t, r.log, []string{"result[0]", "result[1]", "result[2]"})
 }
 
 // On abort the command returns before RenderSummary, so a deferred Flush is the

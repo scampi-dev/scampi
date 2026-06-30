@@ -36,14 +36,14 @@ func streamEvents() []event.Event {
 	a4 := ref(4, "service", "restart web")
 
 	return []event.Event{
-		chg(a0, "step.ensure-mode", "perm", "", "-rwxr-xr-x"),
-		chg(a0, "step.dir", "state", "", "directory"),
+		chg(a0, "ensure_mode", "perm", "", "-rwxr-xr-x"),
+		chg(a0, "dir", "state", "", "directory"),
 		res(a0, event.StepChanged),
-		chg(a1, "step.ensure-mode", "perm", "", "-rw-r--r--"),
-		chg(a1, "step.ensure-owner", "owner:group", "", "pskry:staff"),
+		chg(a1, "ensure_mode", "perm", "", "-rw-r--r--"),
+		chg(a1, "ensure_owner", "owner:group", "", "pskry:staff"),
 		res(a1, event.StepChanged),
 		res(a2, event.StepChanged), // signal-only: no drift rows
-		chg(a3, "step.run", "check", "exit 1", "exit 0"),
+		chg(a3, "run", "check", "exit 1", "exit 0"),
 		res(a3, event.StepFailed),
 		res(a4, event.StepUnchanged), // hidden at default, shown at -v
 	}

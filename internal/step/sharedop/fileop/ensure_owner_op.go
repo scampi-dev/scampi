@@ -15,7 +15,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const ensureOwnerID = "step.ensure-owner"
+const ensureOwnerID = "ensure_owner"
 
 type EnsureOwnerOp struct {
 	sharedop.BaseOp

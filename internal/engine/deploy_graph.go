@@ -266,6 +266,14 @@ func (e DeployCycleError) Diagnostic() event.Event {
 	}
 }
 
+// displayResource formats a resource for user-facing output as "[kind]name",
+// e.g. "[path]/etc/app", "[label]shared:ready". The bracketed kind stays
+// visible but is visually distinct from the name, so a value that contains a
+// colon (a label like "realm:skrynet.lan") is never mistaken for "kind:name".
+func displayResource(r spec.Resource) string {
+	return "[" + resourceKindName(r.Kind) + "]" + r.Name
+}
+
 func resourceKindName(k spec.ResourceKind) string {
 	switch k {
 	case spec.ResourcePath:

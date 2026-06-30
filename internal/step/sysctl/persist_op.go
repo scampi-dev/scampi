@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-const persistSysctlID = "step.sysctl.persist"
+const persistSysctlID = "sysctl.persist"
 
 type persistSysctlOp struct {
 	sharedop.BaseOp

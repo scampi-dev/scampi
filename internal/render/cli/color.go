@@ -12,6 +12,8 @@ var (
 	colPlanHeader = ansi.Magenta().Bold()
 	colPlanRail   = ansi.Magenta().Dim()
 
+	colDeployTag = ansi.Blue().Dim()
+
 	colStepKind              = ansi.Cyan().Bold()
 	colStepDesc              = ansi.Cyan()
 	colStepRail              = ansi.Cyan()

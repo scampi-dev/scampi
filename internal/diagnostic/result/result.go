@@ -70,16 +70,20 @@ type DeployPlan struct {
 	Detail     PlanDetail
 }
 
-func (p Plan) isTrivial() bool {
-	if len(p.Levels) != 1 || len(p.Levels[0].Nodes) != 1 {
-		return false
+// HasGraph reports whether the plan has cross-deploy ordering worth drawing a
+// [graph] section for: at least one deploy waits on another. Independent
+// deploys (no edges) add nothing over the per-deploy plan trees, so they don't
+// trigger it regardless of how many there are.
+func (p Plan) HasGraph() bool {
+	for _, level := range p.Levels {
+		for _, n := range level.Nodes {
+			if len(n.After) > 0 {
+				return true
+			}
+		}
 	}
-	return len(p.Levels[0].Nodes[0].After) == 0
+	return false
 }
-
-// HasGraph reports whether the result is worth rendering a cross-deploy graph
-// header for. Renderers should call this before drawing the [graph] section.
-func (p Plan) HasGraph() bool { return !p.isTrivial() }
 
 // PlanDetail / PlannedStep / PlannedOp model the rendered structure of
 // `scampi plan` output: steps in order, each carrying their ops and
