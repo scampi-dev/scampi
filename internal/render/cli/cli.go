@@ -63,6 +63,11 @@ type CLI struct {
 	// arrives, so the whole block renders atomically (header, then railed
 	// drift). No lock: the Emitter serializes delivery (see diagnostic.Output).
 	stepDrift map[int][]event.Change
+
+	// lastDeployName is the lane tag of the most recently rendered step block,
+	// so a lane change can insert a blank separator line. Empty for single-deploy
+	// runs (untagged), which therefore stay gap-free.
+	lastDeployName string
 }
 
 var _ diagnostic.Output = (*CLI)(nil)
@@ -611,9 +616,9 @@ func (c *CLI) RenderLegend() {
 	events = append(events, renderEvent{stream: streamOut, line: ""})
 
 	planBoundary := fmt.Sprintf("%s %s %s", c.glyphs.planStart, c.glyphs.separator, c.glyphs.planEnd)
-	stepHeader := fmt.Sprintf("%s [0] copy", c.glyphs.stepStart)
-	opBranch := fmt.Sprintf("%s %s CopyCheck", c.glyphs.stepRail, c.glyphs.opBranch)
-	opLast := fmt.Sprintf("%s %s CopyExec", c.glyphs.stepRail, c.glyphs.opLast)
+	stepHeader := fmt.Sprintf("%s [1] copy", c.glyphs.stepStart)
+	opBranch := fmt.Sprintf("%s %s copy_file", c.glyphs.stepRail, c.glyphs.opBranch)
+	opLast := fmt.Sprintf("%s %s ensure_mode", c.glyphs.stepRail, c.glyphs.opLast)
 	collapsed := fmt.Sprintf("%s  [2] symlink", c.glyphs.stepStartCollapsed)
 
 	events = append(events, c.legendSection("PLAN", []legendEntry{
@@ -756,10 +761,13 @@ func (c *CLI) regionLines(f *inflight, frame int) []string {
 			shown = shown[:maxPerLane]
 		}
 		for _, r := range shown {
-			line := "  " + c.formatter.fmtMsg(colStepFinishedChanged, spin) +
+			// Spinner stays default/uncolored: the step is still in flight, so
+			// coloring it a verdict color (yellow "changed" etc.) would prejudge an
+			// outcome that hasn't happened yet.
+			line := "  " + spin +
 				c.deployTag(r.ref.Deploy) +
 				c.formatter.fmtfMsg(colStepKind, " [%d]%s", displayIndex(r.ref.Index), kindSuffix(r.ref.Kind)) +
-				c.descSuffix(r.ref.Desc) +
+				c.descSuffix(r.ref.Desc, colStepDesc) +
 				c.formatter.fmtfMsg(colOpDesc, "  (%s)", now.Sub(r.started).Truncate(time.Second))
 			lines = append(lines, c.finalizeRegion(line))
 		}
@@ -800,23 +808,43 @@ func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
 		return
 	}
 
+	var out []renderEvent
+	// Blank line between deploy lanes so interleaved multi-deploy output chunks
+	// visually -- matters most with --color=never, where the lane tag is the only
+	// separator. Single-deploy runs leave Name empty and stay gap-free.
+	if name := res.Step.Deploy.Name; name != "" && c.lastDeployName != "" && name != c.lastDeployName {
+		out = append(out, renderEvent{stream: streamOut, line: ""})
+	}
+	c.lastDeployName = res.Step.Deploy.Name
+
+	// The whole header carries the verdict color (yellow changed / green ok / red
+	// failed), not just the glyph -- the stream is a results view, so the outcome
+	// is what the eye should catch. The deploy tag keeps its own lane color.
 	header := c.formatter.fmtMsg(col, "  "+glyph) +
 		c.deployTag(res.Step.Deploy) +
-		c.formatter.fmtfMsg(colStepKind, " [%d]%s", displayIndex(res.Step.Index), kindSuffix(res.Step.Kind)) +
-		c.descSuffix(res.Step.Desc) +
+		c.formatter.fmtfMsg(col, " [%d]%s", displayIndex(res.Step.Index), kindSuffix(res.Step.Kind)) +
+		c.descSuffix(res.Step.Desc, col) +
 		scopeFromCause(res.Cause)
-	out := []renderEvent{{stream: streamOut, line: header}}
+	out = append(out, renderEvent{stream: streamOut, line: header})
 
-	// Per-field drift is op-level detail: shown from -v up. At default verbosity
-	// the verdict line alone says which steps change, not the field breakdown.
-	// A converged step has no drift, so at -vv it lists its ops as "satisfied"
-	// to stay symmetric with a changed step's op rows.
-	if v >= signal.V {
+	// The verbosity ladder is: default = changed/failed step headers only; -v =
+	// all step headers (ok included), still no ops; -vv = drill into ops. So op
+	// rows are strictly -vv. Per outcome:
+	//   - unchanged: each op with the ok glyph ("<op> ✓")
+	//   - changed/failed: per-field drift ("<field> cur -> des")
+	// Apply emits no per-field drift (executed changes are signal-only), so a
+	// changed step on apply has no rows -- the yellow header is the signal.
+	if v >= signal.VV {
 		var rows []string
-		if res.Outcome == event.StepUnchanged {
+		switch res.Outcome {
+		case event.StepUnchanged:
 			rows = c.satisfiedRows(res.Ops)
-		} else {
+		default:
 			rows = c.driftRows(drift, v)
+			if len(rows) == 0 {
+				// Apply path: no per-field diff, so show each op's exec/ok status.
+				rows = c.applyOpRows(res.Ops, drift)
+			}
 		}
 		for i, r := range rows {
 			rail := c.glyphs.opBranch
@@ -832,11 +860,11 @@ func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
 	c.commitRenderEvents(out)
 }
 
-func (c *CLI) descSuffix(desc string) string {
+func (c *CLI) descSuffix(desc string, col ansi.ANSI) string {
 	if desc == "" {
 		return ""
 	}
-	return c.formatter.fmtfMsg(colStepDesc, " %s %s", c.glyphs.stepKindSep, desc)
+	return c.formatter.fmtfMsg(col, " %s %s", c.glyphs.stepKindSep, desc)
 }
 
 // driftRows formats the visible drift lines for a step, with the op and field
@@ -878,20 +906,55 @@ func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
 	return rows
 }
 
-// satisfiedRows renders a converged step's ops as "satisfied" lines, the
-// counterpart to driftRows so an ok step isn't bald next to a changed one.
-// Unlike driftRows, the op id is always shown: a satisfied row has no field or
-// transition, so the op id is its only payload -- a bald "satisfied" says
-// nothing. Hence it appears from -v, where drift's op column is -vv attribution.
-func (c *CLI) satisfiedRows(ops []string) []string {
+// satisfiedRows renders a converged step's ops as sorted "<op>  ✓" lines, the
+// field-less counterpart to driftRows so an ok step isn't bald next to a changed
+// one. The op id is always shown: these rows carry no field or transition, so
+// the id is their only payload. The ok glyph stands in for a "satisfied" word --
+// terser, and it echoes the step header's verdict glyph. Ids are sorted for
+// stable order run-to-run (ops complete concurrently, so plan order isn't).
+func (c *CLI) satisfiedRows(ids []string) []string {
+	ids = slices.Sorted(slices.Values(ids))
 	opW := 0
-	for _, id := range ops {
+	for _, id := range ids {
 		opW = max(opW, len(id))
 	}
-	rows := make([]string, len(ops))
-	for i, id := range ops {
+	rows := make([]string, len(ids))
+	for i, id := range ids {
 		prefix := c.formatter.fmtfMsg(colOpHeader, "%-*s  ", opW, id)
-		rows[i] = prefix + c.formatter.fmtMsg(colStepFinishedUnchanged, "satisfied")
+		rows[i] = prefix + c.formatter.fmtMsg(colStepFinishedUnchanged, c.glyphs.ok)
+	}
+	return rows
+}
+
+// applyOpRows renders each op of an applied changed step with its status glyph:
+// exec (the op ran a mutation) or ok (already satisfied). Apply carries no
+// per-field diff, so the glyph is the per-op signal, mirroring satisfiedRows.
+// Returns nil when nothing executed -- a check-mode changed step reports field
+// drift through driftRows, or is signal-only, so neither gets a bogus all-ok
+// listing here.
+func (c *CLI) applyOpRows(ids []string, drift []event.Change) []string {
+	executed := map[string]bool{}
+	for _, ch := range drift {
+		if ch.Phase == event.ChangeExecuted {
+			executed[ch.DisplayID] = true
+		}
+	}
+	if len(executed) == 0 {
+		return nil
+	}
+	ids = slices.Sorted(slices.Values(ids))
+	opW := 0
+	for _, id := range ids {
+		opW = max(opW, len(id))
+	}
+	rows := make([]string, len(ids))
+	for i, id := range ids {
+		prefix := c.formatter.fmtfMsg(colOpHeader, "%-*s  ", opW, id)
+		glyph, col := c.glyphs.ok, colStepFinishedUnchanged
+		if executed[id] {
+			glyph, col = c.glyphs.exec, colOpExecChanged
+		}
+		rows[i] = prefix + c.formatter.fmtMsg(col, glyph)
 	}
 	return rows
 }

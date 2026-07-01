@@ -25,6 +25,9 @@ func streamEvents() []event.Event {
 	chg := func(r event.StepRef, op, field, cur, des string) event.Change {
 		return event.Change{Step: r, DisplayID: op, Drift: spec.DriftDetail{Field: field, Current: cur, Desired: des}}
 	}
+	exec := func(r event.StepRef, op string) event.Change {
+		return event.Change{Step: r, Phase: event.ChangeExecuted, DisplayID: op}
+	}
 	res := func(r event.StepRef, o event.StepOutcome) event.Result {
 		return event.Result{Step: r, Outcome: o}
 	}
@@ -34,6 +37,7 @@ func streamEvents() []event.Event {
 	a2 := ref(2, "symlink", "current -> index")
 	a3 := ref(3, "run", "drop a marker")
 	a4 := ref(4, "service", "restart web")
+	a5 := ref(5, "copy", "config file")
 
 	return []event.Event{
 		chg(a0, "ensure_mode", "perm", "", "-rwxr-xr-x"),
@@ -50,6 +54,16 @@ func streamEvents() []event.Event {
 			Step:    a4,
 			Outcome: event.StepUnchanged,
 			Ops:     []string{"ensure_service_active", "ensure_service_enabled"},
+		},
+		// apply-style changed step: executed changes are field-less, so at -vv each
+		// op shows its exec/ok glyph (copy_file + ensure_owner ran; ensure_mode was
+		// already satisfied). Below -vv it's just the header.
+		exec(a5, "ensure_owner"),
+		exec(a5, "copy_file"),
+		event.Result{
+			Step:    a5,
+			Outcome: event.StepChanged,
+			Ops:     []string{"copy_file", "ensure_mode", "ensure_owner"},
 		},
 	}
 }

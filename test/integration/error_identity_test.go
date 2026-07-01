@@ -67,8 +67,8 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(op),
 			},
@@ -111,8 +111,8 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(op),
 			},
@@ -157,8 +157,8 @@ func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(op),
 			},

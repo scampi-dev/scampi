@@ -169,7 +169,7 @@ func planDetail(p spec.Plan, stepDeps StepDeps) result.PlanDetail {
 		}
 	}
 
-	detail := result.PlanDetail{DeployID: string(p.Deploy.ID), DeployDesc: p.Deploy.Desc}
+	detail := result.PlanDetail{DeployID: string(p.Deploy.ID), TargetName: p.Deploy.TargetName}
 	for i, act := range p.Deploy.Steps {
 		start := stepOpBase[i]
 		end := start + len(act.Ops())
@@ -212,9 +212,9 @@ func plan(
 
 	p := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:    deployID,
-			Desc:  cfg.DeployName,
-			Steps: steps,
+			ID:         deployID,
+			TargetName: cfg.TargetName,
+			Steps:      steps,
 		},
 	}
 	hp := &hookPlan{steps: hookSteps, onChange: onChange}

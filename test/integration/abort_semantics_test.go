@@ -38,8 +38,8 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(op),
 			},
@@ -173,8 +173,8 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB),
 			},
@@ -221,8 +221,8 @@ func TestCheck_AbortDiagnostic_StopsStepExecution(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(op),
 				harness.MkStep(noExecOp),
@@ -281,8 +281,8 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB),
 			},
@@ -344,8 +344,8 @@ func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(parent, child),
 			},

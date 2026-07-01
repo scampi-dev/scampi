@@ -90,7 +90,7 @@ func (p Plan) HasGraph() bool {
 // inter-op dependency edges.
 type PlanDetail struct {
 	DeployID   string
-	DeployDesc string
+	TargetName string
 	Steps      []PlannedStep
 }
 

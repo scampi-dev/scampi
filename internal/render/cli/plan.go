@@ -72,8 +72,8 @@ func (p *planRenderer) renderPlan(d result.PlanDetail) []renderEvent {
 	hdr += p.fmt.fmtMsg(colPlanHeader, " execution plan")
 	if d.DeployID != "" {
 		hdr += p.fmt.fmtfMsg(colPlanHeader, ": %s", d.DeployID)
-		if d.DeployDesc != "" {
-			hdr += p.fmt.fmtfMsg(colPlanHeader, " %s %s", p.glyphs.stepKindSep, d.DeployDesc)
+		if d.TargetName != "" {
+			hdr += p.fmt.fmtfMsg(colPlanHeader, " %s %s", p.glyphs.stepKindSep, d.TargetName)
 		}
 	}
 	out = append(out, renderEvent{stream: streamOut, line: hdr})

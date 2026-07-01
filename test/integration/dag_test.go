@@ -42,8 +42,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a, b),
 						},
@@ -67,8 +67,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a, b, c),
 						},
@@ -95,8 +95,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a, b, c, d),
 						},
@@ -116,8 +116,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a),
 						},
@@ -143,8 +143,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a, b, c, d),
 						},
@@ -174,8 +174,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a, b, c, e, f),
 						},
@@ -201,8 +201,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a, b, c, d),
 						},
@@ -226,8 +226,8 @@ func TestPlan_CyclicDependencies(t *testing.T) {
 
 				return spec.Plan{
 					Deploy: spec.Deploy{
-						ID:   "fakeUnit",
-						Desc: "fakeUnit description",
+						ID:         "fakeUnit",
+						TargetName: "fakeUnit description",
 						Steps: []spec.Step{
 							harness.MkStep(a),
 							harness.MkStep(b),

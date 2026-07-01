@@ -22,10 +22,10 @@ type DeployID string
 // Deploy is the execution form of a DeclaredDeploy: a live target plus the
 // planned Steps to run against it.
 type Deploy struct {
-	ID     DeployID
-	Desc   string
-	Target target.Target
-	Steps  []Step
+	ID         DeployID
+	TargetName string
+	Target     target.Target
+	Steps      []Step
 }
 
 // Step is the execution form of a DeclaredStep: the planned work for one step,

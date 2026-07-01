@@ -3,19 +3,14 @@
   ~ [2] copy > static page
   ~ [3] symlink > current -> index
   x [4] run > drop a marker
+  ~ [6] copy > config file
 === v ===
   ~ [1] dir > sandbox root
-      |- state  (absent) -> directory
-      `- perm   (absent) -> -rwxr-xr-x
   ~ [2] copy > static page
-      |- perm         (absent) -> -rw-r--r--
-      `- owner:group  (absent) -> pskry:staff
   ~ [3] symlink > current -> index
   x [4] run > drop a marker
-      `- check  exit 1 -> exit 0
   + [5] service > restart web
-      |- ensure_service_active   satisfied
-      `- ensure_service_enabled  satisfied
+  ~ [6] copy > config file
 === vv ===
   ~ [1] dir > sandbox root
       |- dir          state  (absent) -> directory
@@ -27,5 +22,9 @@
   x [4] run > drop a marker
       `- run  check  exit 1 -> exit 0
   + [5] service > restart web
-      |- ensure_service_active   satisfied
-      `- ensure_service_enabled  satisfied
+      |- ensure_service_active   +
+      `- ensure_service_enabled  +
+  ~ [6] copy > config file
+      |- copy_file     >
+      |- ensure_mode   +
+      `- ensure_owner  >

@@ -31,7 +31,7 @@ func op(idx int, id, text string, deps ...int) result.PlannedOp {
 func planFixture() result.PlanDetail {
 	return result.PlanDetail{
 		DeployID:   "web",
-		DeployDesc: "production",
+		TargetName: "production",
 		Steps: []result.PlannedStep{
 			{
 				Index: 0, Kind: "dir", Desc: "create web root",

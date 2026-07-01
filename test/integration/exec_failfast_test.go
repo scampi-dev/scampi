@@ -44,8 +44,8 @@ func TestExecuteStep_AllOpsSkipped(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB, opC),
 			},
@@ -112,8 +112,8 @@ func TestExecuteStep_LinearSuccess(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB, opC),
 			},
@@ -187,8 +187,8 @@ func TestExecuteStep_FailFast_MiddleOfChain(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				act,
 			},
@@ -278,8 +278,8 @@ func TestExecuteStep_BranchFailure(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB, opC, opD),
 			},
@@ -337,8 +337,8 @@ func TestExecuteStep_CheckDiagnostic_Continues(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA),
 			},
@@ -398,8 +398,8 @@ func TestExecuteStep_AbortDuringCheck(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB),
 			},
@@ -462,8 +462,8 @@ func TestExecuteStep_AbortDuringExecution(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB, opC),
 			},
@@ -523,8 +523,8 @@ func TestExecuteStep_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{
-			ID:   "fakeUnit",
-			Desc: "fakeUnit description",
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
 			Steps: []spec.Step{
 				harness.MkStep(opA, opB),
 			},
