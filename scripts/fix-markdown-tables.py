@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
 """Fix markdown table alignment so all rows have the same width.
 
 Pads each cell so pipe characters align vertically. Preserves separator

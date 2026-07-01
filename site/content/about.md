@@ -194,16 +194,18 @@ import "std/posix"
 let machine = local.target { name = "my-machine" }
 
 std.deploy(name = "demo", targets = [machine]) {
-  posix.dir { path = "/tmp/scampi-demo", perm = "0755" }
-  posix.dir { path = "/tmp/scampi-demo/releases/v1", perm = "0755" }
+  posix.dir { desc = "demo root", path = "/tmp/scampi-demo", perm = "0755" }
+  posix.dir { desc = "release v1", path = "/tmp/scampi-demo/releases/v1", perm = "0755" }
 
   posix.copy {
+    desc  = "release readme"
     src   = posix.source_inline { content = "welcome to scampi\n" }
     dest  = "/tmp/scampi-demo/releases/v1/README"
     perm  = "0644", owner = "root", group = "root"
   }
 
   posix.symlink {
+    desc   = "current release"
     target = "/tmp/scampi-demo/releases/v1"
     link   = "/tmp/scampi-demo/current"
   }
@@ -211,86 +213,68 @@ std.deploy(name = "demo", targets = [machine]) {
 ```
 
 <div class="term-label">1. Plan — see the execution structure</div>
-<div class="term"><span class="cmd">$ scampi plan -v demo.scampi</span>
-<span class="gd">[engine] started</span>
-<span class="b">[plan] planning</span> <span class="bb">demo</span> <span class="b">— 4 steps planned</span>
-<span class="m">┌─┬</span> <span class="mb">execution plan</span>
-<span class="m">│</span> <span class="c">┏━┯ [0] dir</span>
-<span class="m">│</span> <span class="d">┇ └─builtin.dir</span>
-<span class="m">│</span> <span class="d">┇   └─builtin.ensure-mode</span>
-<span class="m">│</span> <span class="c">■</span>
-<span class="m">│</span> <span class="c">┏━┯ [1] dir</span>      <span class="d">← [0]</span>
-<span class="m">│</span> <span class="d">┇ └─builtin.dir</span>
-<span class="m">│</span> <span class="d">┇   └─builtin.ensure-mode</span>
-<span class="m">│</span> <span class="c">■</span>
-<span class="m">│</span> <span class="c">┏━┯ [2] copy</span>     <span class="d">← [0, 1]   ╮ ⏸</span>
-<span class="m">│</span> <span class="d">┇ └─builtin.copy-file       │</span>
-<span class="m">│</span> <span class="d">┇   ├─builtin.ensure-owner  │</span>
-<span class="m">│</span> <span class="d">┇   └─builtin.ensure-mode   │</span>
-<span class="m">│</span> <span class="c">■</span>                           <span class="d">│</span>
-<span class="m">│</span> <span class="c">┏━┯ [3] symlink</span>  <span class="d">← [1, 0]   │</span>
-<span class="m">│</span> <span class="d">┇ └─builtin.symlink         │</span>
-<span class="m">│</span> <span class="c">■</span>                           <span class="d">╯</span>
+<div class="term"><span class="cmd">$ scampi plan demo.scampi -v</span>
+<span class="m">┌─┬</span><span class="mb"> execution plan: demo › my-machine</span>
+<span class="m">│</span><span class="c"> ┏━┯ [1] dir › demo root</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">└─dir</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">  └─ensure_mode</span>
+<span class="m">│</span><span class="c"> ■</span>
+<span class="m">│</span><span class="c"> ┏━┯ [2] dir › release v1</span>           <span class="d">← [1]</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">└─dir</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">  └─ensure_mode</span>
+<span class="m">│</span><span class="c"> ■</span>
+<span class="m">│</span><span class="c"> ┏━┯ [3] copy › release readme</span>      <span class="d">← [1, 2]</span>  <span class="d">╮ ⏸</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">└─copy_file</span>                                <span class="d">│</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">  ├─ensure_owner</span>                           <span class="d">│</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">  └─ensure_mode</span>                            <span class="d">│</span>
+<span class="m">│</span><span class="c"> ■</span>                                            <span class="d">│</span>
+<span class="m">│</span><span class="c"> ┏━┯ [4] symlink › current release</span>  <span class="d">← [2, 1]</span>  <span class="d">│</span>
+<span class="m">│</span> <span class="c">┇ </span><span class="d">└─symlink</span>                                  <span class="d">│</span>
+<span class="m">│</span><span class="c"> ■</span>                                            <span class="d">╯</span>
 <span class="m">└─■</span>
 </div>
 
 <p style="font-size: 0.78rem; color: #7f848e; line-height: 1.5; margin: 0.5rem 0 1rem;">
-[1] depends on [0] (subdirectory). [2] depends on both.
-[3] only needs [1], not [2] — so [2] and [3] run in parallel
-(the ╮⏸╯ group). Inside each step, ops form a DAG: the copy writes
-the file first, then sets permissions and ownership concurrently.
+[2] creates a subdirectory of [1], so it runs after [1]. The copy [3]
+and the symlink [4] both need those directories but not each other, so
+scampi runs them together — that's the bracket down the right-hand
+side. Within a step, ops form their own dependency graph — a DAG
+(directed, acyclic), the same shape as the steps in the plan above: the
+copy writes the file first, then sets permissions and ownership at the
+same time.
 </p>
 
 <div class="term-label">2. Check — inspect what would change (yellow = needs change)</div>
-<div class="term"><span class="cmd">$ scampi check -v demo.scampi</span>
-<span class="c">[dir:0] started...</span>
-<span class="d">[dir:0] 󰏫 builtin.dir — needs change</span>
-<span class="d">         state: (missing) → directory</span>
-<span class="d">[dir:0] 󰏫 builtin.ensure-mode — needs change</span>
-<span class="d">         perm: (missing) → -rwxr-xr-x</span>
-<span class="y">[dir:0] 󰏫 2/2 ops would change</span>
-<span class="c">[dir:1] started...</span>
-<span class="d">[dir:1] 󰏫 builtin.dir — needs change</span>
-<span class="d">         state: (missing) → directory</span>
-<span class="y">[dir:1] 󰏫 2/2 ops would change</span>
-<span class="c">[copy:2] started...</span>
-<span class="d">[copy:2] 󰏫 builtin.copy-file — needs change</span>
-<span class="d">[copy:2] 󰏫 builtin.ensure-mode — needs change</span>
-<span class="d">         perm: (missing) → -rw-r--r--</span>
-<span class="d">[copy:2] 󰏫 builtin.ensure-owner — needs change</span>
-<span class="d">         owner:group: (missing) → root:root</span>
-<span class="y">[copy:2] 󰏫 3/3 ops would change</span>
-<span class="c">[symlink:3] started...</span>
-<span class="d">[symlink:3] 󰏫 builtin.symlink — needs change</span>
-<span class="y">[symlink:3] 󰏫 1/1 ops would change</span>
-<span class="y">[engine] finished (4 would change, 0 failed)</span>
+<div class="term"><span class="cmd">$ scampi check demo.scampi -vv</span>
+<span class="y">  󰏫 [1] dir › demo root</span>
+      <span class="d">├─</span> <span class="d">dir          state  (absent) → directory</span>
+      <span class="d">└─</span> <span class="d">ensure_mode  perm   (absent) → -rwxr-xr-x</span>
+<span class="y">  󰏫 [2] dir › release v1</span>
+      <span class="d">├─</span> <span class="d">dir          state  (absent) → directory</span>
+      <span class="d">└─</span> <span class="d">ensure_mode  perm   (absent) → -rwxr-xr-x</span>
+<span class="y">  󰏫 [3] copy › release readme</span>
+      <span class="d">├─</span> <span class="d">ensure_mode   perm         (absent) → -rw-r--r--</span>
+      <span class="d">└─</span> <span class="d">ensure_owner  owner:group  (absent) → root:root</span>
+<span class="y">  󰏫 [4] symlink › current release</span>
+<span class="y">done: 4 would change</span>
 </div>
 
 <div class="term-label">3. Apply — converge</div>
-<div class="term"><span class="cmd">$ scampi apply -v demo.scampi</span>
-<span class="c">[dir:0] started...</span>
-<span class="d">[dir:0] 󰐊 'builtin.dir' changed</span>
-<span class="y">[dir:0] 󰏫 1/2 ops changed</span>
-<span class="c">[dir:1] started...</span>
-<span class="d">[dir:1] 󰐊 'builtin.dir' changed</span>
-<span class="y">[dir:1] 󰏫 1/2 ops changed</span>
-<span class="c">[symlink:3] started...</span>
-<span class="c">[copy:2] started...</span>
-<span class="d">[symlink:3] 󰐊 'builtin.symlink' changed</span>
-<span class="y">[symlink:3] 󰏫 1/1 ops changed</span>
-<span class="d">[copy:2] 󰐊 'builtin.copy-file' changed</span>
-<span class="d">[copy:2] 󰐊 'builtin.ensure-owner' changed</span>
-<span class="y">[copy:2] 󰏫 2/3 ops changed</span>
-<span class="y">[engine] finished (4 changed, 0 failed)</span>
+<div class="term"><span class="cmd">$ scampi apply demo.scampi</span>
+<span class="y">  󰏫 [1] dir › demo root</span>
+<span class="y">  󰏫 [2] dir › release v1</span>
+<span class="y">  󰏫 [3] copy › release readme</span>
+<span class="y">  󰏫 [4] symlink › current release</span>
+<span class="y">done: 4 changed</span>
 </div>
 
 <div class="term-label">4. Check again — everything green</div>
-<div class="term"><span class="cmd">$ scampi check -v demo.scampi</span>
-<span class="g">[dir:0] 󰄬 up-to-date</span>
-<span class="g">[dir:1] 󰄬 up-to-date</span>
-<span class="g">[copy:2] 󰄬 up-to-date</span>
-<span class="g">[symlink:3] 󰄬 up-to-date</span>
-<span class="g">[engine] finished (0 would change, 0 failed)</span>
+<div class="term"><span class="cmd">$ scampi check demo.scampi -v</span>
+<span class="g">  󰄬 [1] dir › demo root</span>
+<span class="g">  󰄬 [2] dir › release v1</span>
+<span class="g">  󰄬 [3] copy › release readme</span>
+<span class="g">  󰄬 [4] symlink › current release</span>
+<span class="g">done: 0 would change</span>
 </div>
 
 That last block is the whole point. Run it tomorrow, run it after someone
