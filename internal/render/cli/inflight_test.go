@@ -61,3 +61,24 @@ func TestInflight_AllFinished(t *testing.T) {
 		t.Error("expected nothing running after finish")
 	}
 }
+
+func TestInflight_Progress(t *testing.T) {
+	f := newInflight()
+	base := time.Unix(0, 0)
+	step := func(ord, idx int) event.StepRef {
+		return event.StepRef{Deploy: event.DeployRef{Ordinal: ord, RunTotalSteps: 5}, Index: idx}
+	}
+	f.begin(step(0, 0), base)
+	f.begin(step(0, 1), base)
+	f.begin(step(1, 0), base)
+
+	if done, total := f.progress(); done != 0 || total != 5 {
+		t.Fatalf("before any finish: got %d/%d, want 0/5", done, total)
+	}
+	// Finish across two lanes: done sums lane-wide.
+	f.finish(step(0, 0))
+	f.finish(step(1, 0))
+	if done, total := f.progress(); done != 2 || total != 5 {
+		t.Errorf("after 2 finishes: got %d/%d, want 2/5", done, total)
+	}
+}

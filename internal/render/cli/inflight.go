@@ -22,6 +22,7 @@ import (
 type inflight struct {
 	lanes map[int]*laneState // by deploy ordinal
 	order []int              // ordinals in first-seen order, for stable display
+	total int                // run-wide step count (DeployRef.RunTotalSteps)
 }
 
 type laneState struct {
@@ -41,6 +42,7 @@ func newInflight() *inflight {
 
 // begin records a step entering execution.
 func (f *inflight) begin(s event.StepRef, now time.Time) {
+	f.total = s.Deploy.RunTotalSteps // run-level constant; same on every ref
 	l := f.lane(s.Deploy)
 	l.running = append(l.running, runningStep{ref: s, started: now})
 }
@@ -56,6 +58,15 @@ func (f *inflight) finish(s event.StepRef) {
 		}
 	}
 	l.finished++
+}
+
+// progress reports steps finished so far across all lanes, against the run-wide
+// total. total is 0 until the first begin (nothing to show yet).
+func (f *inflight) progress() (done, total int) {
+	for _, l := range f.lanes {
+		done += l.finished
+	}
+	return done, f.total
 }
 
 // anyRunning reports whether any lane has an in-flight step.

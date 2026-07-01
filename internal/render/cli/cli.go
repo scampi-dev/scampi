@@ -775,6 +775,10 @@ func (c *CLI) regionLines(f *inflight, frame int) []string {
 			lines = append(lines, c.finalizeRegion("  "+c.formatter.fmtfMsg(colOpDesc, "(+%d more)", extra)))
 		}
 	}
+	// N-of-M progress footer: finished steps so far against the run-wide total.
+	if done, total := f.progress(); total > 0 {
+		lines = append(lines, c.finalizeRegion("  "+c.formatter.fmtfMsg(colOpDesc, "%d/%d steps", done, total)))
+	}
 	return lines
 }
 

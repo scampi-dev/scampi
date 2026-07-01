@@ -26,11 +26,13 @@ func TestLiveRegionGolden(t *testing.T) {
 	frozen := base.Add(5 * time.Second)
 
 	// Widest lane name is "gateway" (7); set it on every ref so tags pad and the
-	// [N] index lines up across lanes.
+	// [N] index lines up across lanes. total is the run-wide step count for the
+	// N-of-M progress footer.
 	const nameW = 7
+	const total = 9
 	ref := func(ord int, lane string, idx int, kind, desc string) event.StepRef {
 		return event.StepRef{
-			Deploy: event.DeployRef{Name: lane, Ordinal: ord, MaxNameWidth: nameW},
+			Deploy: event.DeployRef{Name: lane, Ordinal: ord, MaxNameWidth: nameW, RunTotalSteps: total},
 			Index:  idx,
 			Kind:   kind,
 			Desc:   desc,
@@ -46,6 +48,11 @@ func TestLiveRegionGolden(t *testing.T) {
 		f.begin(ref(1, "gateway", 1, "user", "svc acct"), base.Add(3*time.Second))
 		f.begin(ref(1, "gateway", 2, "pkg", "nginx"), base.Add(4*time.Second))
 		f.begin(ref(1, "gateway", 3, "service", "restart"), base.Add(5*time.Second))
+		// Two already finished -> footer shows "2/9 steps".
+		f.begin(ref(0, "web", 4, "symlink", "current"), base)
+		f.finish(ref(0, "web", 4, "symlink", "current"))
+		f.begin(ref(0, "web", 5, "run", "warm cache"), base)
+		f.finish(ref(0, "web", 5, "run", "warm cache"))
 		return f
 	}
 

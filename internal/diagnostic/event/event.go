@@ -148,6 +148,10 @@ type DeployRef struct {
 	Name         string
 	Ordinal      int
 	MaxNameWidth int
+	// RunTotalSteps is the step count across every deploy in the run (a run-level
+	// constant, same on every ref, like MaxNameWidth). The live region sums the
+	// finished steps it has seen against this to show N-of-M progress.
+	RunTotalSteps int
 }
 
 // StepRef identifies the step a Change belongs to, within its deploy lane.

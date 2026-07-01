@@ -173,8 +173,9 @@ func runPlansConcurrent(
 	work func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error,
 ) error {
 	if len(resolved) == 1 {
-		// Single lane: empty Name keeps the output untagged.
-		return work(ctx, event.DeployRef{}, resolved[0])
+		// Single lane: empty Name keeps the output untagged; the step total still
+		// drives the live-region progress footer.
+		return work(ctx, event.DeployRef{RunTotalSteps: len(resolved[0].Steps)}, resolved[0])
 	}
 
 	graph, err := buildDeployGraph(resolved)
@@ -187,13 +188,14 @@ func runPlansConcurrent(
 	// cursor and for tagging. nameW is the widest lane name, so the renderer can
 	// pad tags and keep the step indexes aligned across lanes.
 	ordOf := make(map[*deployNode]int)
-	ord, nameW := 0, 0
+	ord, nameW, totalSteps := 0, 0, 0
 	for _, level := range graph.levels {
 		nodes := append([]*deployNode(nil), level...)
 		sort.Slice(nodes, func(i, j int) bool { return nodes[i].idx < nodes[j].idx })
 		for _, n := range nodes {
 			ordOf[n] = ord
 			ord++
+			totalSteps += len(n.res.Steps)
 			if w := len(n.res.DeployName); w > nameW {
 				nameW = w
 			}
@@ -208,7 +210,7 @@ func runPlansConcurrent(
 			// resources the failed producer was supposed to create.
 			break
 		}
-		levelCauses := runLevel(ctx, level, ordOf, nameW, work)
+		levelCauses := runLevel(ctx, level, ordOf, nameW, totalSteps, work)
 		causes = append(causes, levelCauses...)
 	}
 
@@ -226,6 +228,7 @@ func runLevel(
 	level []*deployNode,
 	ordOf map[*deployNode]int,
 	nameW int,
+	totalSteps int,
 	work func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error,
 ) []error {
 	g, gctx := errgroup.WithContext(ctx)
@@ -234,7 +237,12 @@ func runLevel(
 		causes []error
 	)
 	for _, n := range level {
-		dr := event.DeployRef{Name: n.res.DeployName, Ordinal: ordOf[n], MaxNameWidth: nameW}
+		dr := event.DeployRef{
+			Name:          n.res.DeployName,
+			Ordinal:       ordOf[n],
+			MaxNameWidth:  nameW,
+			RunTotalSteps: totalSteps,
+		}
 		g.Go(func() error {
 			if err := work(ctx.With(gctx), dr, n.res); err != nil {
 				mu.Lock()
