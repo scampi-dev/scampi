@@ -184,15 +184,19 @@ func runPlansConcurrent(
 
 	// Assign lane ordinals level-major, declaration order within a level, so
 	// every deploy has a stable identity for the render Sequencer's per-deploy
-	// cursor and for tagging.
+	// cursor and for tagging. nameW is the widest lane name, so the renderer can
+	// pad tags and keep the step indexes aligned across lanes.
 	ordOf := make(map[*deployNode]int)
-	ord := 0
+	ord, nameW := 0, 0
 	for _, level := range graph.levels {
 		nodes := append([]*deployNode(nil), level...)
 		sort.Slice(nodes, func(i, j int) bool { return nodes[i].idx < nodes[j].idx })
 		for _, n := range nodes {
 			ordOf[n] = ord
 			ord++
+			if w := len(n.res.DeployName); w > nameW {
+				nameW = w
+			}
 		}
 	}
 
@@ -204,7 +208,7 @@ func runPlansConcurrent(
 			// resources the failed producer was supposed to create.
 			break
 		}
-		levelCauses := runLevel(ctx, level, ordOf, work)
+		levelCauses := runLevel(ctx, level, ordOf, nameW, work)
 		causes = append(causes, levelCauses...)
 	}
 
@@ -221,6 +225,7 @@ func runLevel(
 	ctx diagnostic.Ctx,
 	level []*deployNode,
 	ordOf map[*deployNode]int,
+	nameW int,
 	work func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error,
 ) []error {
 	g, gctx := errgroup.WithContext(ctx)
@@ -229,7 +234,7 @@ func runLevel(
 		causes []error
 	)
 	for _, n := range level {
-		dr := event.DeployRef{Name: n.res.DeployName, Ordinal: ordOf[n]}
+		dr := event.DeployRef{Name: n.res.DeployName, Ordinal: ordOf[n], MaxNameWidth: nameW}
 		g.Go(func() error {
 			if err := work(ctx.With(gctx), dr, n.res); err != nil {
 				mu.Lock()

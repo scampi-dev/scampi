@@ -6,6 +6,8 @@ package cli
 import (
 	"fmt"
 	"io"
+
+	"scampi.dev/scampi/internal/render/ansi"
 )
 
 type stream uint8
@@ -22,21 +24,28 @@ type renderEvent struct {
 	wrap   bool
 }
 
-// sink writes rendered lines synchronously. It needs no lock: the Emitter
-// serializes the stream path and one-shot callers (plan/inspect/index) touch it
-// from a single goroutine (see diagnostic.Output). No background goroutine and
-// no live region - the TTY status line returns with typed progress in a later
-// phase (#430).
+// sink is the sole writer to the terminal and the owner of the live region: a
+// block of ephemeral lines pinned to the bottom (in-flight steps + progress)
+// that durable output scrolls above. It needs no lock: in stream mode the single
+// consumer goroutine drives it; for one-shot output the Emitter serializes the
+// caller. region is only drawn on a TTY; otherwise emit is a plain writer.
 type sink struct {
 	out io.Writer
 	err io.Writer
+	tty bool
+
+	region []string // current live-region lines (already formatted + width-fit)
+	drawn  int      // region lines currently on screen
 }
 
-func newSink(out, err io.Writer) *sink {
-	return &sink{out: out, err: err}
+func newSink(out, err io.Writer, tty bool) *sink {
+	return &sink{out: out, err: err, tty: tty}
 }
 
+// emit writes durable lines: erase the live region, write the lines, then redraw
+// the region beneath them so it stays pinned to the bottom.
 func (s *sink) emit(events []renderEvent) {
+	s.eraseRegion()
 	for _, e := range events {
 		w := s.out
 		if e.stream == streamErr {
@@ -44,4 +53,36 @@ func (s *sink) emit(events []renderEvent) {
 		}
 		_, _ = fmt.Fprintln(w, e.line)
 	}
+	s.drawRegion()
+}
+
+// setRegion replaces the live-region content and repaints it in place.
+func (s *sink) setRegion(lines []string) {
+	s.region = lines
+	s.eraseRegion()
+	s.drawRegion()
+}
+
+// clearRegion wipes the region for good (end of run), leaving only scrollback.
+func (s *sink) clearRegion() {
+	s.region = nil
+	s.eraseRegion()
+}
+
+func (s *sink) eraseRegion() {
+	if !s.tty || s.drawn == 0 {
+		return
+	}
+	_, _ = fmt.Fprint(s.out, ansi.CursorUp(s.drawn)+ansi.EraseToEnd)
+	s.drawn = 0
+}
+
+func (s *sink) drawRegion() {
+	if !s.tty || len(s.region) == 0 {
+		return
+	}
+	for _, l := range s.region {
+		_, _ = fmt.Fprintln(s.out, l)
+	}
+	s.drawn = len(s.region)
 }

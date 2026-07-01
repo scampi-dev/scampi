@@ -82,6 +82,17 @@ _q cmd:
   fi
   exit $rc
 
+# Update
+# -----------------------------------------------------------------------------
+
+# SCAMPI_UPDATE=1 rewrites golden/snapshot files from the live recording.
+# Only the cli goldens (plan, stream) and the diagnostics snapshots honor
+# it; -count=1 bypasses the cache so every golden actually re-runs.
+[group('update')]
+[doc("Regenerate golden and snapshot files (review the diff before committing)")]
+update:
+  SCAMPI_UPDATE=1 go test -count=1 ./internal/render/cli/... ./test/diagnostics/...
+
 # Focused
 # -----------------------------------------------------------------------------
 

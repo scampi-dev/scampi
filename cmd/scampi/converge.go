@@ -8,7 +8,6 @@ import (
 	"github.com/urfave/cli/v3"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/render/order"
 )
 
 // scampi apply
@@ -46,18 +45,16 @@ changes when the current state differs from the declared state.`,
 
 			store := diagnostic.NewSourceStore()
 
-			displ, cleanup := withDisplayer(ctx, opts, store)
+			displ, cleanup := withStreamDisplayer(ctx, opts, store)
 			defer cleanup()
 
 			resolveOpts := parseResolveOpts(cmd)
-			ordered := order.New(displ)
-			defer ordered.Flush() // drain buffered steps even on abort
-			em := diagnostic.NewEmitter(pol, ordered)
+			em := diagnostic.NewEmitter(pol, displ)
 			report, err := engine.Apply(diagnostic.NewCtx(ctx, em), cfg, store, resolveOpts)
 			if err != nil {
 				return handleEngineError("Apply", err)
 			}
-			ordered.RenderSummary(report, false)
+			displ.RenderSummary(report, false)
 			return nil
 		},
 	}
@@ -99,18 +96,16 @@ the actual system state.`,
 
 			store := diagnostic.NewSourceStore()
 
-			displ, cleanup := withDisplayer(ctx, opts, store)
+			displ, cleanup := withStreamDisplayer(ctx, opts, store)
 			defer cleanup()
 
 			resolveOpts := parseResolveOpts(cmd)
-			ordered := order.New(displ)
-			defer ordered.Flush() // drain buffered steps even on abort
-			em := diagnostic.NewEmitter(pol, ordered)
+			em := diagnostic.NewEmitter(pol, displ)
 			report, err := engine.Check(diagnostic.NewCtx(ctx, em), cfg, store, resolveOpts)
 			if err != nil {
 				return handleEngineError("Check", err)
 			}
-			ordered.RenderSummary(report, true)
+			displ.RenderSummary(report, true)
 			return nil
 		},
 	}

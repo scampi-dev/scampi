@@ -271,6 +271,23 @@ func withDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.Sourc
 	}
 }
 
+// withStreamDisplayer creates the streaming output surface for check/apply: a
+// channel-backed sink with a live region (the engine never blocks on rendering).
+// The cleanup stops the consumer goroutine, draining buffered blocks and wiping
+// the region even on the abort path, then recovers from panics.
+func withStreamDisplayer(
+	ctx context.Context,
+	opts globalOpts,
+	store *diagnostic.SourceStore,
+) (diagnostic.Output, func()) {
+	c := newDisplayer(ctx, opts, store).(*clir.CLI)
+	stream := clir.NewStream(c)
+	return stream, func() {
+		stream.Flush()
+		recoverAndReport(recover())
+	}
+}
+
 // cliPolicy returns the standard diagnostic policy for CLI commands:
 // caller verbosity, dedup enabled, no warnings-as-errors. Special
 // cases (inspect's --diff suppressing plan output) mutate the

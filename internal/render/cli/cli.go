@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/x/term"
 	"scampi.dev/scampi/internal/diagnostic"
@@ -51,6 +52,10 @@ type CLI struct {
 	isTTY bool
 	width int
 
+	// now is the clock for live-region elapsed times; injectable so region
+	// output is deterministic under test. Defaults to time.Now.
+	now func() time.Time
+
 	planRenderer *planRenderer
 	formatter    *formatter
 
@@ -85,10 +90,11 @@ func New(opts Options, store *diagnostic.SourceStore) *CLI {
 	return &CLI{
 		opts:         opts,
 		store:        store,
-		sink:         newSink(out, errw),
+		sink:         newSink(out, errw, isTTY),
 		glyphs:       glyphs,
 		isTTY:        isTTY,
 		width:        width,
+		now:          time.Now,
 		planRenderer: newPlanRenderer(glyphs, width, opts.Verbosity, fmt),
 		formatter:    fmt,
 		stepDrift:    map[int][]event.Change{},
@@ -721,7 +727,58 @@ func (c *CLI) deployTag(d event.DeployRef) string {
 	if d.Name == "" {
 		return ""
 	}
-	return c.formatter.fmtfMsg(colDeployTag, " [%s]", d.Name)
+	tag := c.formatter.fmtfMsg(colDeployTag, " [%s]", d.Name)
+	// Pad shorter names so the [N] step index lines up across lanes.
+	if pad := d.MaxNameWidth - len(d.Name); pad > 0 {
+		tag += strings.Repeat(" ", pad)
+	}
+	return tag
+}
+
+// regionLines formats the ephemeral live region: per deploy lane, up to 3
+// longest-running in-flight steps (spinner, tag, index/kind/desc, elapsed), then
+// "(+N more)" past the cap. Returns nil off-TTY (no region there).
+func (c *CLI) regionLines(f *inflight, frame int) []string {
+	if !c.isTTY {
+		return nil
+	}
+	const maxPerLane = 3
+	spin := ""
+	if n := len(c.glyphs.spinner); n > 0 {
+		spin = c.glyphs.spinner[frame%n]
+	}
+	now := c.now()
+	var lines []string
+	for _, lv := range f.view() {
+		shown, extra := lv.Running, 0
+		if len(shown) > maxPerLane {
+			extra = len(shown) - maxPerLane
+			shown = shown[:maxPerLane]
+		}
+		for _, r := range shown {
+			line := "  " + c.formatter.fmtMsg(colStepFinishedChanged, spin) +
+				c.deployTag(r.ref.Deploy) +
+				c.formatter.fmtfMsg(colStepKind, " [%d]%s", displayIndex(r.ref.Index), kindSuffix(r.ref.Kind)) +
+				c.descSuffix(r.ref.Desc) +
+				c.formatter.fmtfMsg(colOpDesc, "  (%s)", now.Sub(r.started).Truncate(time.Second))
+			lines = append(lines, c.finalizeRegion(line))
+		}
+		if extra > 0 {
+			lines = append(lines, c.finalizeRegion("  "+c.formatter.fmtfMsg(colOpDesc, "(+%d more)", extra)))
+		}
+	}
+	return lines
+}
+
+// finalizeRegion applies the same redact + width-fit + reset that durable lines
+// get in commitRenderEvents, since region lines bypass that path.
+func (c *CLI) finalizeRegion(line string) string {
+	line = c.formatter.redact(line)
+	line = layout.FitLine(line, c.width, c.glyphs.ellipsis)
+	if c.shouldUseColor() {
+		line += ansi.Reset
+	}
+	return line
 }
 
 func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
@@ -752,8 +809,15 @@ func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
 
 	// Per-field drift is op-level detail: shown from -v up. At default verbosity
 	// the verdict line alone says which steps change, not the field breakdown.
+	// A converged step has no drift, so at -vv it lists its ops as "satisfied"
+	// to stay symmetric with a changed step's op rows.
 	if v >= signal.V {
-		rows := c.driftRows(drift, v)
+		var rows []string
+		if res.Outcome == event.StepUnchanged {
+			rows = c.satisfiedRows(res.Ops)
+		} else {
+			rows = c.driftRows(drift, v)
+		}
 		for i, r := range rows {
 			rail := c.glyphs.opBranch
 			if i == len(rows)-1 {
@@ -810,6 +874,24 @@ func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
 		}
 		rows[i] = prefix + c.formatter.fmtfMsg(colOpDesc, "%-*s  %s %s %s",
 			fieldW, r.field, r.cur, c.glyphs.arrow, r.des)
+	}
+	return rows
+}
+
+// satisfiedRows renders a converged step's ops as "satisfied" lines, the
+// counterpart to driftRows so an ok step isn't bald next to a changed one.
+// Unlike driftRows, the op id is always shown: a satisfied row has no field or
+// transition, so the op id is its only payload -- a bald "satisfied" says
+// nothing. Hence it appears from -v, where drift's op column is -vv attribution.
+func (c *CLI) satisfiedRows(ops []string) []string {
+	opW := 0
+	for _, id := range ops {
+		opW = max(opW, len(id))
+	}
+	rows := make([]string, len(ops))
+	for i, id := range ops {
+		prefix := c.formatter.fmtfMsg(colOpHeader, "%-*s  ", opW, id)
+		rows[i] = prefix + c.formatter.fmtMsg(colStepFinishedUnchanged, "satisfied")
 	}
 	return rows
 }

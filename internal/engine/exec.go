@@ -153,7 +153,7 @@ func (s *scheduler) emitBegin() {
 // emitResult fires the step-completion event once a step has settled,
 // carrying its verdict and op breakdown. The verdict honors check vs apply:
 // in check mode a "would change" counts as Changed.
-func (s *scheduler) emitResult(sum event.StepSummary) {
+func (s *scheduler) emitResult(sum event.StepSummary, ops []string) {
 	outcome := event.StepUnchanged
 	switch {
 	case sum.Failed+sum.Aborted > 0:
@@ -168,8 +168,19 @@ func (s *scheduler) emitResult(sum event.StepSummary) {
 		Step:    s.stepRef(),
 		Outcome: outcome,
 		Summary: sum,
+		Ops:     ops,
 		Cause:   s.cause(),
 	})
+}
+
+// opDisplayIDs returns the display IDs of a step's ops, in plan order, so the
+// stream sink can list op-level detail for a satisfied step at -vv.
+func opDisplayIDs(rep result.StepReport) []string {
+	ids := make([]string, len(rep.Ops))
+	for i, or := range rep.Ops {
+		ids[i] = diagnostic.OpDisplayID(or.Op)
+	}
+	return ids
 }
 
 func (s *scheduler) schedule(n *opNode) {
@@ -509,7 +520,7 @@ func (e *Engine) runCheckStep(
 	}
 
 	rep := buildStepReport(act, nodes)
-	s.emitResult(rep.Summary)
+	s.emitResult(rep.Summary, opDisplayIDs(rep))
 	return rep, err
 }
 
@@ -687,7 +698,7 @@ func (e *Engine) runStep(ctx diagnostic.Ctx, idx int, act spec.Step, hookID stri
 	}
 
 	rep := buildStepReport(act, nodes)
-	s.emitResult(rep.Summary)
+	s.emitResult(rep.Summary, opDisplayIDs(rep))
 	return rep, err
 }
 

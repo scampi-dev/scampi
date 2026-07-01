@@ -1,0 +1,14 @@
+=== frame 0 ===
+  | [web]     [1] dir > sandbox root  (5s)
+  | [web]     [2] copy > static page  (4s)
+  | [gateway] [1] run > reload  (3s)
+  | [gateway] [2] user > svc acct  (2s)
+  | [gateway] [3] pkg > nginx  (1s)
+  (+1 more)
+=== frame 1 ===
+  / [web]     [1] dir > sandbox root  (5s)
+  / [web]     [2] copy > static page  (4s)
+  / [gateway] [1] run > reload  (3s)
+  / [gateway] [2] user > svc acct  (2s)
+  / [gateway] [3] pkg > nginx  (1s)
+  (+1 more)

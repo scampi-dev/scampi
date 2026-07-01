@@ -141,10 +141,13 @@ const (
 // per lane in a run (assigned level-major, declaration order within a level)
 // and keys the render Sequencer's per-deploy cursor. Name is the deploy block's
 // name, set only when a run has more than one lane so single-deploy output stays
-// untagged; an empty Name means "do not tag".
+// untagged; an empty Name means "do not tag". MaxNameWidth is the widest lane
+// name in the whole run (a run-level constant, same on every ref), so the
+// renderer can pad tags and keep the step indexes aligned across lanes.
 type DeployRef struct {
-	Name    string
-	Ordinal int
+	Name         string
+	Ordinal      int
+	MaxNameWidth int
 }
 
 // StepRef identifies the step a Change belongs to, within its deploy lane.
@@ -225,5 +228,9 @@ type Result struct {
 	Step    StepRef
 	Outcome StepOutcome
 	Summary StepSummary
-	Cause   Cause
+	// Ops are the step's op display IDs, so -vv can show op-level detail for a
+	// satisfied step (which emits no Change events) symmetrically with a changed
+	// one. Empty below -vv.
+	Ops   []string
+	Cause Cause
 }

@@ -45,7 +45,12 @@ func streamEvents() []event.Event {
 		res(a2, event.StepChanged), // signal-only: no drift rows
 		chg(a3, "run", "check", "exit 1", "exit 0"),
 		res(a3, event.StepFailed),
-		res(a4, event.StepUnchanged), // hidden at default, shown at -v
+		// hidden at default, verdict at -v, op-level "satisfied" rows at -vv.
+		event.Result{
+			Step:    a4,
+			Outcome: event.StepUnchanged,
+			Ops:     []string{"ensure_service_active", "ensure_service_enabled"},
+		},
 	}
 }
 

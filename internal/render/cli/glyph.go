@@ -37,6 +37,8 @@ type glyphSet struct {
 	parallelMid   string
 	parallelBot   string
 	parallelLabel string
+
+	spinner []string // live-region in-flight frames, cycled by the ticker
 }
 
 var (
@@ -75,6 +77,8 @@ var (
 		parallelMid:   "│",
 		parallelBot:   "╯",
 		parallelLabel: "⏸",
+
+		spinner: []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 	}
 
 	asciiGlyphs = glyphSet{
@@ -112,6 +116,8 @@ var (
 		parallelMid:   ")",
 		parallelBot:   ")",
 		parallelLabel: "\"",
+
+		spinner: []string{"|", "/", "-", "\\"},
 	}
 )
 
