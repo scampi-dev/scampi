@@ -36,10 +36,10 @@ func TestDiagnosticCodeUniqueness(t *testing.T) {
 		}
 	}
 	if codeType == nil {
-		t.Fatal("errs.Code type not found — is scampi.dev/scampi/errs in the module?")
+		t.Fatal("errs.Code type not found - is scampi.dev/scampi/errs in the module?")
 	}
 
-	seen := map[string]string{} // value → qualified name
+	seen := map[string]string{} // value -> qualified name
 	scanned := 0
 
 	for _, pkg := range pkgs {
@@ -70,7 +70,7 @@ func TestDiagnosticCodeUniqueness(t *testing.T) {
 	}
 
 	if len(seen) == 0 {
-		t.Fatal("found no errs.Code constants — type resolution may have failed")
+		t.Fatal("found no errs.Code constants - type resolution may have failed")
 	}
 	t.Logf("checked %d unique diagnostic codes across %d packages", len(seen), scanned)
 }

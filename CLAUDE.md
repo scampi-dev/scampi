@@ -123,6 +123,8 @@ Verbosity: `-v` (why), `-vv` (how), `-vvv` (everything)
 
 **Glyphs**: All glyphs/symbols in CLI output MUST go through the `glyphSet` in `render/cli/glyph.go` — never hardcode Unicode characters. The ASCII fallback set must work for every glyph.
 
+**Go source is ASCII-only** — literals AND comments. Message prose uses ASCII punctuation (`1-65535`, `->`, ` - `); tests that need real Unicode (glyph widths, fuzz seeds) write it as escape sequences (`\u2026`). `TestGlyphDiscipline` enforces this across `internal/`, `cmd/`, and `test/`; the only exemptions are `glyph.go` (the canonical glyph source) and `lang/token/pos_test.go` (UTF-8 offset arithmetic).
+
 ## Error Messages
 
 Errors are self-documenting and guiding. A user should be able to reach a valid

@@ -47,11 +47,11 @@ func Test_StepKind_NewConfig_ReturnsPointer(t *testing.T) {
 
 	stepType := findStepKind(pkgs)
 	if stepType == nil {
-		t.Fatal("StepKind interface not found — invariant test is meaningless")
+		t.Fatal("StepKind interface not found - invariant test is meaningless")
 	}
 
 	if !hasNewConfigMethod(stepType) {
-		t.Fatal("StepKind no longer defines NewConfig — update invariant test")
+		t.Fatal("StepKind no longer defines NewConfig - update invariant test")
 	}
 
 	checked := 0
@@ -140,6 +140,6 @@ func Test_StepKind_NewConfig_ReturnsPointer(t *testing.T) {
 	}
 
 	if checked == 0 {
-		t.Fatal("no StepKind implementations found — invariant test not exercised")
+		t.Fatal("no StepKind implementations found - invariant test not exercised")
 	}
 }

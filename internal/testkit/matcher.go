@@ -64,7 +64,7 @@ type Mismatch struct {
 // otherwise.
 //
 // matcher is the eval-time StructVal produced by a `matchers.*`
-// constructor — TypeName carries the matcher kind, Fields carry the
+// constructor - TypeName carries the matcher kind, Fields carry the
 // constructor's kwargs.
 func Match(matcher *eval.StructVal, slot Slot, key string, observed any) *Mismatch {
 	if matcher == nil {
@@ -105,12 +105,12 @@ func Match(matcher *eval.StructVal, slot Slot, key string, observed any) *Mismat
 // matchPresence handles is_present / is_absent against any slot.
 // "Present" means the observed value indicates existence:
 //
-//	SlotFileContent     → string is non-nil (any content, including "")
-//	SlotPackageStatus   → PackagePresent
-//	SlotServiceStatus   → any service entry exists
-//	SlotDirPresence     → true
-//	SlotSymlinkTarget   → non-empty target string
-//	SlotRequestBody     → not meaningful, returns mismatch
+//	SlotFileContent     -> string is non-nil (any content, including "")
+//	SlotPackageStatus   -> PackagePresent
+//	SlotServiceStatus   -> any service entry exists
+//	SlotDirPresence     -> true
+//	SlotSymlinkTarget   -> non-empty target string
+//	SlotRequestBody     -> not meaningful, returns mismatch
 func matchPresence(slot Slot, key, mk string, observed any, wantPresent bool) *Mismatch {
 	present := false
 	switch slot {
@@ -245,7 +245,7 @@ func matchSvcStatus(matcher *eval.StructVal, slot Slot, key string, observed any
 	}
 	// Reduce the language-level enum vocabulary down to the runtime
 	// observation set (running / stopped). The other ServiceState
-	// variants (restarted, reloaded) are transient — they only make
+	// variants (restarted, reloaded) are transient - they only make
 	// sense as desired states, not observed ones.
 	wantNorm := want
 	switch want {
@@ -285,7 +285,7 @@ func matchPkgStatus(matcher *eval.StructVal, slot Slot, key string, observed any
 		got = "present"
 	}
 	// `latest` is a desired state that the runtime can't distinguish
-	// from `present` after the fact — both result in "package is
+	// from `present` after the fact - both result in "package is
 	// installed". Normalize for comparison.
 	wantNorm := want
 	if want == "latest" {

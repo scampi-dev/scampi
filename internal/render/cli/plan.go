@@ -36,7 +36,7 @@ func newPlanRenderer(glyphs glyphSet, width int, verbosity signal.Verbosity, f *
 type planLine struct {
 	gutter   string      // pre-colored rail/marker; always rendered in full
 	id       string      // pre-colored core label: "[N] kind" or "step.name"
-	desc     string      // pre-colored step desc "› ..."; dropped on a narrow term
+	desc     string      // pre-colored step desc (stepKindSep + text); dropped on a narrow term
 	detail   *layout.Col // elidable trailing detail (op parenthetical / op count)
 	isHeader bool
 }

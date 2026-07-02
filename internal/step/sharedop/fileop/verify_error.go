@@ -30,7 +30,7 @@ func (e *VerifyError) Diagnostic() event.Event {
 		Template: event.Template{
 			ID:     CodeVerifyFailed,
 			Text:   `verify command failed (exit {{.ExitCode}}): {{.Cmd}}`,
-			Hint:   `the content did not pass validation — {{.Dest}} was not modified`,
+			Hint:   `the content did not pass validation - {{.Dest}} was not modified`,
 			Help:   "{{.Stderr}}",
 			Data:   e,
 			Source: &e.Source,
@@ -107,11 +107,11 @@ func newVerifyIOError(op string, err error) VerifyIOError {
 func verifyIOAdvice(err error) string {
 	switch {
 	case errors.Is(err, target.ErrPermission):
-		return "the connecting user lacks write permission on the target — check ownership with ls -la"
+		return "the connecting user lacks write permission on the target - check ownership with ls -la"
 	case errors.Is(err, target.ErrNotExist):
-		return "path does not exist on target — check that parent directories are present"
+		return "path does not exist on target - check that parent directories are present"
 	case errors.Is(err, target.ErrCommandNotFound):
-		return "verify command not found — ensure it is installed on the target"
+		return "verify command not found - ensure it is installed on the target"
 	default:
 		return "check target filesystem permissions and connectivity"
 	}

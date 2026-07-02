@@ -19,7 +19,7 @@ import (
 
 // assertEnginePanic verifies the engine raised a BUG panic wrapping origMsg.
 // Bare `recover() == nil` checks let unrelated panics (nil derefs, etc.) pass
-// the test silently — this asserts on the panic value's shape and content.
+// the test silently - this asserts on the panic value's shape and content.
 // Caller invokes via `defer func() { assertEnginePanic(t, recover(), msg) }()`.
 func assertEnginePanic(t *testing.T, r any, origMsg string) {
 	t.Helper()

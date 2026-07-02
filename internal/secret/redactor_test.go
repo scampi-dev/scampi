@@ -42,7 +42,7 @@ func TestRedactor_RedactsMultipleSecrets(t *testing.T) {
 
 func TestRedactor_IgnoresShortSecrets(t *testing.T) {
 	r := NewRedactor()
-	// 3-char secrets are too short — substring redaction would
+	// 3-char secrets are too short - substring redaction would
 	// false-positive on legitimate text containing the same chars.
 	// The threshold is conservative; users with truly short secrets
 	// have a worse problem than redaction failing.
@@ -63,7 +63,7 @@ func TestRedactor_IgnoresEmptyValues(t *testing.T) {
 }
 
 func TestRedactor_HandlesNilReceiver(t *testing.T) {
-	// A nil redactor is a no-op — useful for code paths that may not
+	// A nil redactor is a no-op - useful for code paths that may not
 	// have wiring in place yet (LSP, tests).
 	var r *Redactor
 	if got := r.Redact("plain text"); got != "plain text" {

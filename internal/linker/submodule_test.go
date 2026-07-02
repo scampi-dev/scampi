@@ -148,7 +148,7 @@ func TestLoadLocalSubmodules_SkipsMainModules(t *testing.T) {
 		"module example.com/proj\n",
 	))
 
-	// Subdir with module main — should not be registered.
+	// Subdir with module main - should not be registered.
 	writeFile(t, filepath.Join(dir, "scripts", "run.scampi"), []byte(`
 module main
 let x = 1
@@ -202,7 +202,7 @@ pub decl fetch() std.Step {
 }
 `))
 
-	// Broken sibling — has a lex error (digit-prefixed identifier).
+	// Broken sibling - has a lex error (digit-prefixed identifier).
 	writeFile(t, filepath.Join(dir, "broken.scampi"), []byte(`
 module mylib
 import "std"

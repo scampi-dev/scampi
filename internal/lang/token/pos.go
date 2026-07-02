@@ -7,7 +7,7 @@ import (
 )
 
 // Span is a byte-offset range into the source. Start is inclusive,
-// End is exclusive. Both are byte offsets, not rune offsets — indexing
+// End is exclusive. Both are byte offsets, not rune offsets - indexing
 // into the source slice is O(1). Resolve to line/column via Resolve().
 type Span struct {
 	Start uint32

@@ -10,7 +10,7 @@ import (
 
 // MinElidedCols is the floor for an elidable column. If eliding a column would
 // leave fewer than this many visible characters (the ellipsis aside), the
-// column is dropped entirely rather than rendered as a useless stub like "a…".
+// column is dropped entirely rather than rendered as a useless stub like "a...".
 const MinElidedCols = 6
 
 // Elide is how a column yields width when a row does not fit the terminal.
@@ -19,9 +19,9 @@ type Elide uint8
 const (
 	// Fixed columns never shrink - the protected payload (labels, structure).
 	Fixed Elide = iota
-	// Tail keeps the head and cuts the end: "abcdef…".
+	// Tail keeps the head and cuts the end: "abcdef...".
 	Tail
-	// Middle keeps both ends, eliding the centre: "abc…xyz". For paths, where
+	// Middle keeps both ends, eliding the centre: "abc...xyz". For paths, where
 	// the distinguishing tail must survive.
 	Middle
 	// Drop collapses to MinW filler (a minimal indent), then vanishes entirely.
@@ -177,7 +177,7 @@ func elideTail(s string, maxW int, ellipsis string) string {
 	return takeWidth(s, maxW-runewidth.StringWidth(ellipsis)) + ellipsis
 }
 
-// elideMiddle keeps both ends, eliding the centre: head…tail. Bias the surviving
+// elideMiddle keeps both ends, eliding the centre: head...tail. Bias the surviving
 // width toward the tail so distinguishing suffixes (filenames) outlive prefixes.
 func elideMiddle(s string, maxW int, ellipsis string) string {
 	if runewidth.StringWidth(s) <= maxW {

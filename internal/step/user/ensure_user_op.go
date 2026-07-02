@@ -96,10 +96,10 @@ func (op *ensureUserOp) Check(
 }
 
 // checkHomeOwnership returns a drift entry if op.home exists on the
-// target with the wrong owner. Missing-home is not drift — useradd
+// target with the wrong owner. Missing-home is not drift - useradd
 // -m -d will materialise it on Execute. Targets that don't expose
 // ownership are silently ignored (e.g. a hypothetical Windows or
-// non-POSIX target — the step would have errored earlier anyway).
+// non-POSIX target - the step would have errored earlier anyway).
 func (op *ensureUserOp) checkHomeOwnership(ctx context.Context, tgt target.Target) ([]spec.DriftDetail, error) {
 	fsTgt, fsOk := tgt.(target.Filesystem)
 	ownTgt, ownOk := tgt.(target.Ownership)
@@ -201,7 +201,7 @@ func (op *ensureUserOp) Execute(
 
 // reconcileHomeOwnership chowns op.home to <name>:<name> when the dir
 // exists with a different owner. Returns whether the chown was
-// applied. Missing dir / no-ownership-target → no-op.
+// applied. Missing dir / no-ownership-target -> no-op.
 func (op *ensureUserOp) reconcileHomeOwnership(ctx context.Context, tgt target.Target) (bool, error) {
 	fsTgt, fsOk := tgt.(target.Filesystem)
 	ownTgt, ownOk := tgt.(target.Ownership)

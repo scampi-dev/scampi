@@ -16,10 +16,10 @@ import (
 // one specific stub attribute and assert that the linker rejects
 // them before plan/apply runs. The white-box tests in
 // linker/attribute_validation_test.go cover the StaticCheck contract
-// directly; this file proves the lang → linker → attribute pipeline
+// directly; this file proves the lang -> linker -> attribute pipeline
 // wires up correctly for every annotated step parameter.
 //
-// Each entry is a complete scampi config — they're tiny because the
+// Each entry is a complete scampi config - they're tiny because the
 // goal is to isolate one bad input. Source/target wiring is the same
 // for every case so a single table iteration handles them all.
 

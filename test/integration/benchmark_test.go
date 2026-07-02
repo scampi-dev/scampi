@@ -21,7 +21,7 @@ import (
 // benchSizes returns the scale-out sizes for a benchmark. Default is
 // just {1} so the pre-commit gate's -benchtime=1x smoke runs in tens
 // of milliseconds per bench instead of seconds. Set SCAMPI_BENCH_FULL=1
-// to run the full set — `just test bench` does this automatically.
+// to run the full set - `just test bench` does this automatically.
 func benchSizes(full ...int) []int {
 	if os.Getenv("SCAMPI_BENCH_FULL") != "" {
 		return full
@@ -214,7 +214,7 @@ std.deploy(name = "bench", targets = [host]) {
 // -----------------------------------------------------------------------------
 
 // BenchmarkApplyNoOp_Symlink is the symlink-step variant of
-// BenchmarkApplyNoOp — drift detection on pre-existing symlinks.
+// BenchmarkApplyNoOp - drift detection on pre-existing symlinks.
 func BenchmarkApplyNoOp_Symlink(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
 	for _, size := range sizes {
@@ -279,7 +279,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for dir (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Dir is the directory-step variant — drift
+// BenchmarkApplyNoOp_Dir is the directory-step variant - drift
 // detection on pre-existing dirs with matching mode/owner.
 func BenchmarkApplyNoOp_Dir(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -425,7 +425,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for template (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Template is the template-step variant — drift
+// BenchmarkApplyNoOp_Template is the template-step variant - drift
 // detection on rendered template output that already matches.
 func BenchmarkApplyNoOp_Template(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -499,7 +499,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for pkg (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Pkg is the package-step variant — drift
+// BenchmarkApplyNoOp_Pkg is the package-step variant - drift
 // detection on packages already installed via the MemTarget backend.
 func BenchmarkApplyNoOp_Pkg(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -563,7 +563,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for service (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Service is the service-step variant — drift
+// BenchmarkApplyNoOp_Service is the service-step variant - drift
 // detection on services already in the desired running/enabled state.
 func BenchmarkApplyNoOp_Service(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -628,7 +628,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for group (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Group is the group-step variant — drift detection
+// BenchmarkApplyNoOp_Group is the group-step variant - drift detection
 // on groups already present with the desired GID/members.
 func BenchmarkApplyNoOp_Group(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -695,7 +695,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for user (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_User is the user-step variant — drift detection on
+// BenchmarkApplyNoOp_User is the user-step variant - drift detection on
 // users already present with the desired shell/home/groups.
 func BenchmarkApplyNoOp_User(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -766,7 +766,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for sysctl (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Sysctl is the sysctl-step variant — drift
+// BenchmarkApplyNoOp_Sysctl is the sysctl-step variant - drift
 // detection issues one `sysctl -n` per step, so cmds/op should scale
 // linearly with step count.
 func BenchmarkApplyNoOp_Sysctl(b *testing.B) {
@@ -837,7 +837,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for firewall (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Firewall is the firewall-step variant — drift
+// BenchmarkApplyNoOp_Firewall is the firewall-step variant - drift
 // detection on firewall rules already in place.
 func BenchmarkApplyNoOp_Firewall(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -913,7 +913,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for run step (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Run is the run-step variant — idempotency check
+// BenchmarkApplyNoOp_Run is the run-step variant - idempotency check
 // returns success so the apply command is skipped.
 func BenchmarkApplyNoOp_Run(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
@@ -982,7 +982,7 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for container.instance (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Container is the container.instance variant —
+// BenchmarkApplyNoOp_Container is the container.instance variant -
 // drift detection on containers already running with the desired
 // image / ports / env.
 func BenchmarkApplyNoOp_Container(b *testing.B) {
@@ -1072,24 +1072,24 @@ func BenchmarkApplyNoOp_Unarchive_TarGz(b *testing.B) {
 }
 
 // BenchmarkApplyNoOp_Unarchive_TarXz is the xz-compressed unarchive
-// variant — same drift-detect shape as the .tar.gz bench.
+// variant - same drift-detect shape as the .tar.gz bench.
 func BenchmarkApplyNoOp_Unarchive_TarXz(b *testing.B) {
 	benchUnarchiveNoOp(b, makeTarXz, "/data.tar.xz")
 }
 
 // BenchmarkApplyNoOp_Unarchive_TarZst is the zstd-compressed unarchive
-// variant — same drift-detect shape as the .tar.gz bench.
+// variant - same drift-detect shape as the .tar.gz bench.
 func BenchmarkApplyNoOp_Unarchive_TarZst(b *testing.B) {
 	benchUnarchiveNoOp(b, makeTarZst, "/data.tar.zst")
 }
 
 // BenchmarkApplyNoOp_Unarchive_Tar is the uncompressed-tar unarchive
-// variant — same drift-detect shape as the .tar.gz bench.
+// variant - same drift-detect shape as the .tar.gz bench.
 func BenchmarkApplyNoOp_Unarchive_Tar(b *testing.B) {
 	benchUnarchiveNoOp(b, makeTar, "/data.tar")
 }
 
-// BenchmarkApplyNoOp_Unarchive_Zip is the .zip unarchive variant — same
+// BenchmarkApplyNoOp_Unarchive_Zip is the .zip unarchive variant - same
 // drift-detect shape as the .tar.gz bench.
 func BenchmarkApplyNoOp_Unarchive_Zip(b *testing.B) {
 	benchUnarchiveNoOp(b, makeZip, "/data.zip")
@@ -1161,9 +1161,9 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for mount (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Mount is the mount-step variant — drift detection
+// BenchmarkApplyNoOp_Mount is the mount-step variant - drift detection
 // on mounts already present in /etc/fstab and mounted. Capped at
-// Size-1000 because findFstabEntry is O(N) per step → O(N^2) total.
+// Size-1000 because findFstabEntry is O(N) per step -> O(N^2) total.
 func BenchmarkApplyNoOp_Mount(b *testing.B) {
 	// Cap at 1000: each mount step reads the entire /etc/fstab to find
 	// its line (O(N) per step), so 10000 steps is O(N^2) work that
@@ -1205,7 +1205,7 @@ std.deploy(name = "bench", targets = [host]) {
 			tgt := target.NewMemTarget()
 			tgt.Files["/etc/fstab"] = []byte(fstab.String())
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
-				// findmnt --target <dest> --noheadings → exit 0 means mounted.
+				// findmnt --target <dest> --noheadings -> exit 0 means mounted.
 				if after, ok := strings.CutPrefix(cmd, "findmnt --target "); ok {
 					rest := after
 					rest = strings.TrimSuffix(rest, " --noheadings")
@@ -1255,14 +1255,14 @@ std.deploy(name = "bench", targets = [host]) {
 // Benchmark: Apply() no-op run for run_set (idempotent path)
 // -----------------------------------------------------------------------------
 
-// BenchmarkApplyNoOp_Runset is the run_set-step variant — set-diff
+// BenchmarkApplyNoOp_Runset is the run_set-step variant - set-diff
 // logic where the list command already returns the desired items.
 func BenchmarkApplyNoOp_Runset(b *testing.B) {
 	sizes := benchSizes(1, 10, 100, 1000)
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			// Each run_set step lists exactly one item, and desired
-			// matches it — no add, no remove, no drift.
+			// matches it - no add, no remove, no drift.
 			var cfgEntries strings.Builder
 			for i := range size {
 				fmt.Fprintf(

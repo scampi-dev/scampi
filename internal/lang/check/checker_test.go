@@ -613,10 +613,10 @@ func f(@std.secret name: string) string
 `, "unknown attribute: @std.secret")
 }
 
-// UFCS — `x.f(args)` desugars to `f(x, args)`
+// UFCS - `x.f(args)` desugars to `f(x, args)`
 // -----------------------------------------------------------------------------
 
-// TestUFCSBasic — a free function whose first param matches the
+// TestUFCSBasic - a free function whose first param matches the
 // receiver's type can be called as a method on the receiver.
 func TestUFCSBasic(t *testing.T) {
 	expectNoErrors(t, `
@@ -633,7 +633,7 @@ func test() int {
 `)
 }
 
-// TestUFCSWithExtraArgs — UFCS calls forward additional arguments
+// TestUFCSWithExtraArgs - UFCS calls forward additional arguments
 // past the receiver to the function's remaining parameters.
 func TestUFCSWithExtraArgs(t *testing.T) {
 	expectNoErrors(t, `
@@ -650,7 +650,7 @@ func test() int {
 `)
 }
 
-// TestUFCSChained — chained UFCS calls work because each call's
+// TestUFCSChained - chained UFCS calls work because each call's
 // return value becomes the receiver of the next call.
 func TestUFCSChained(t *testing.T) {
 	expectNoErrors(t, `
@@ -671,7 +671,7 @@ func test() int {
 `)
 }
 
-// TestUFCSReceiverTypeMismatch — if the function's first param type
+// TestUFCSReceiverTypeMismatch - if the function's first param type
 // doesn't accept the receiver's type, UFCS resolution fails. The
 // fallback path then errors via the standard "no field" message
 // because the selector is not a valid field access either.
@@ -690,7 +690,7 @@ func test() int {
 `, "cannot access .double on string")
 }
 
-// TestUFCSFunctionNotInScope — if the named function doesn't exist
+// TestUFCSFunctionNotInScope - if the named function doesn't exist
 // in scope at all, the existing "no field" path fires.
 func TestUFCSFunctionNotInScope(t *testing.T) {
 	expectError(t, `
@@ -703,7 +703,7 @@ func test() int {
 `, "cannot access .nonexistent on int")
 }
 
-// TestUFCSDoesNotShadowModuleAccess — `posix.copy(...)` is a module
+// TestUFCSDoesNotShadowModuleAccess - `posix.copy(...)` is a module
 // member call, not UFCS. The Tier 1 (import-namespace) path runs
 // before any UFCS attempt.
 func TestUFCSDoesNotShadowModuleAccess(t *testing.T) {
@@ -721,7 +721,7 @@ std.deploy(name = "t", targets = [host]) {
 `)
 }
 
-// TestUFCSImportedModuleFunction — UFCS resolves through an
+// TestUFCSImportedModuleFunction - UFCS resolves through an
 // imported module's free functions. `(5).range()` dispatches to
 // `std.range(5)` because `std` is imported and `std.range`'s first
 // parameter accepts an int.
@@ -734,7 +734,7 @@ let zero_to_4 = (5).range()
 `)
 }
 
-// TestUFCSImportedModuleNotImported — without `import "std"`, the
+// TestUFCSImportedModuleNotImported - without `import "std"`, the
 // `range` function isn't reachable and `(5).range()` errors via the
 // standard "no field" path. Confirms imports are gated.
 func TestUFCSImportedModuleNotImported(t *testing.T) {
@@ -745,7 +745,7 @@ let x = (5).range()
 `, "cannot access .range on int")
 }
 
-// TestUFCSLocalShadowsImported — a local function with the same
+// TestUFCSLocalShadowsImported - a local function with the same
 // name as an imported function takes precedence over the import.
 // This mirrors normal lexical-scope shadowing rules.
 func TestUFCSLocalShadowsImported(t *testing.T) {
@@ -763,7 +763,7 @@ let x: int = (5).range()
 `)
 }
 
-// TestUFCSAmbiguousAcrossModules — when two imported modules both
+// TestUFCSAmbiguousAcrossModules - when two imported modules both
 // expose a function with the same name and a matching first param,
 // the checker emits an ambiguity error listing all candidates.
 //
@@ -825,7 +825,7 @@ let n = "hello".length()
 	}
 }
 
-// TestUFCSStructFieldBeatsUFCS — when a struct has a function-typed
+// TestUFCSStructFieldBeatsUFCS - when a struct has a function-typed
 // field, the field-access path wins over the UFCS fallback. (Scampi
 // doesn't have user-defined function-typed fields today, so this
 // just verifies that adding a free function doesn't accidentally
@@ -922,7 +922,7 @@ type X {
 `)
 }
 
-// Control-flow analysis — all paths must return
+// Control-flow analysis - all paths must return
 // -----------------------------------------------------------------------------
 
 func TestNotAllPathsReturn_IfWithoutElse(t *testing.T) {
@@ -1184,7 +1184,7 @@ func hidden() int { return 2 }
 		t.Fatalf("module check errors: %v", errs)
 	}
 
-	// Export only public symbols — simulates what linker/usermod does.
+	// Export only public symbols - simulates what linker/usermod does.
 	modules["helpers"] = mc.FileScope().PublicView()
 
 	// Now check a consumer file that imports "helpers".

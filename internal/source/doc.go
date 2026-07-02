@@ -5,5 +5,5 @@
 //
 // Source-side operations read configs and write to the local cache (downloaded
 // files, inline content). They are distinct from target-side operations, which
-// perform convergence mutations — even when both sides are the same machine.
+// perform convergence mutations - even when both sides are the same machine.
 package source

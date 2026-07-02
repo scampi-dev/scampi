@@ -16,14 +16,14 @@ import (
 //
 // The pool is two cooperating channels:
 //
-//   sem  — capacity = MaxSessions, holds tokens for "in-flight" sessions
-//   free — capacity = MaxSessions, holds idle reusable shellSessions
+//   sem  - capacity = MaxSessions, holds tokens for "in-flight" sessions
+//   free - capacity = MaxSessions, holds idle reusable shellSessions
 //
 // acquire() takes a sem token (blocks if max ops are already running),
 // then either pops a free shell or opens a new one. release() pushes
 // the shell back into free (or drops it if unhealthy) and returns the
 // sem token. The combination caps concurrency at MaxSessions while
-// reusing shells across as many ops as possible — a typical bench
+// reusing shells across as many ops as possible - a typical bench
 // run goes from N-RTTs-per-op to 1-RTT-per-op.
 
 type shellPool struct {
@@ -32,7 +32,7 @@ type shellPool struct {
 	open     func() (*shellSession, error)
 	capacity int
 
-	// counters — exposed via SSHTarget.Stats()
+	// counters - exposed via SSHTarget.Stats()
 	sessionsOpened   atomic.Int64 // total shellSessions ever created
 	sessionsInFlight atomic.Int64 // currently checked out
 	sessionsPeakSeen atomic.Int64 // highwater for sessionsInFlight
@@ -58,7 +58,7 @@ func newShellPool(maxSessions int, open func() (*shellSession, error)) *shellPoo
 // Server-side rejection on open triggers exponential backoff while
 // staying responsive to releases.
 func (p *shellPool) acquire(ctx context.Context) (*shellSession, error) {
-	// Hold a slot for the whole duration — caps concurrency at p.max.
+	// Hold a slot for the whole duration - caps concurrency at p.max.
 	select {
 	case p.sem <- struct{}{}:
 	case <-ctx.Done():
@@ -87,7 +87,7 @@ func (p *shellPool) acquire(ctx context.Context) (*shellSession, error) {
 		p.sessionRetries.Add(1)
 		lastOpenErr = err
 
-		// 3. Backoff before next attempt — but stay responsive to
+		// 3. Backoff before next attempt - but stay responsive to
 		// releases (a session might come back into free during the
 		// wait, and we shouldn't miss it).
 		next := bo.NextBackOff()
@@ -120,7 +120,7 @@ func (p *shellPool) release(s *shellSession) {
 		case p.free <- s:
 			// pooled
 		default:
-			// pool unexpectedly full — close to avoid leak
+			// pool unexpectedly full - close to avoid leak
 			_ = s.close()
 		}
 	} else {
@@ -130,7 +130,7 @@ func (p *shellPool) release(s *shellSession) {
 }
 
 // closeAll drains the free pool and closes every shell. Called from
-// SSHTarget.Close. Sessions still in-flight are not touched here —
+// SSHTarget.Close. Sessions still in-flight are not touched here -
 // they'll be closed by their final release.
 func (p *shellPool) closeAll() {
 	for {

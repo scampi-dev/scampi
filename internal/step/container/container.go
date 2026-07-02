@@ -60,7 +60,7 @@ func parseState(s string) State {
 	case stateAbsent:
 		return StateAbsent
 	default:
-		panic(errs.BUG("invalid container state %q — should have been caught by validate", s))
+		panic(errs.BUG("invalid container state %q - should have been caught by validate", s))
 	}
 }
 
@@ -141,7 +141,7 @@ func (Instance) Plan(step spec.DeclaredStep) (spec.Step, error) {
 }
 
 func (c *InstanceConfig) validate(step spec.DeclaredStep) error {
-	// State and Restart are typed enums in the stub — lang/check
+	// State and Restart are typed enums in the stub - lang/check
 	// rejects non-variant values, so we don't need a runtime
 	// switch-default to catch them.
 

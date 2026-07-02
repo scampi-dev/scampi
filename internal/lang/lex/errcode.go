@@ -6,7 +6,7 @@ import "scampi.dev/scampi/internal/errs"
 
 // Diagnostic codes for lexer errors. These are stable identifiers
 // surfaced to the LSP and (eventually) the error reference docs on
-// scampi.dev — do not rename without updating downstream consumers.
+// scampi.dev - do not rename without updating downstream consumers.
 const (
 	CodeInvalidChar         errs.Code = "lex.InvalidChar"
 	CodeUnterminatedString  errs.Code = "lex.UnterminatedString"

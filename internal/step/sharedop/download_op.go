@@ -27,7 +27,7 @@ import (
 const downloadID = "download"
 
 // DownloadOp fetches a remote URL to the source cache. It runs source-side
-// only — no target capabilities required.
+// only - no target capabilities required.
 type DownloadOp struct {
 	BaseOp
 	URL       string
@@ -73,7 +73,7 @@ func (op *DownloadOp) Check(
 		}
 	}
 
-	// No checksum or no cached file — use HTTP conditional request.
+	// No checksum or no cached file - use HTTP conditional request.
 	meta := op.loadMeta(ctx, src)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, op.URL, nil)
@@ -92,7 +92,7 @@ func (op *DownloadOp) Check(
 
 	resp, err := op.client().Do(req)
 	if err != nil {
-		// Network error during check — report unsatisfied, not an error.
+		// Network error during check - report unsatisfied, not an error.
 		// The download will fail during apply with a proper error.
 		if !cached.Exists {
 			return spec.CheckUnsatisfied, []spec.DriftDetail{{
@@ -100,7 +100,7 @@ func (op *DownloadOp) Check(
 				Desired: op.URL,
 			}}, nil
 		}
-		// Cached file exists but we can't verify — assume stale.
+		// Cached file exists but we can't verify - assume stale.
 		return spec.CheckUnsatisfied, []spec.DriftDetail{{
 			Field:   "remote",
 			Current: "(cached, unverified)",
@@ -342,7 +342,7 @@ func (e ChecksumMismatchError) Diagnostic() event.Event {
 			ID:   CodeChecksumMismatch,
 			Text: `download "{{.URL}}": checksum mismatch`,
 			Hint: "expected {{.Expected}}, got {{.Got}}",
-			Help: "the downloaded content does not match the declared checksum — " +
+			Help: "the downloaded content does not match the declared checksum - " +
 				"verify the URL serves the expected file",
 			Data:   e,
 			Source: &e.Source,

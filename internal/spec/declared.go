@@ -25,7 +25,7 @@ type DeclaredDeploy struct {
 	Name    string                    // block name (key from deploy map)
 	Targets []string                  // references target names
 	Steps   []DeclaredStep            // ordered steps
-	Hooks   map[string][]DeclaredStep // hook ID → steps (execute only when notified)
+	Hooks   map[string][]DeclaredStep // hook ID -> steps (execute only when notified)
 	Source  SourceSpan                // source location
 }
 
@@ -39,7 +39,7 @@ type Config struct {
 	TargetName string                    // which target
 	Target     DeclaredTarget            // resolved target
 	Steps      []DeclaredStep            // steps from the deploy block
-	Hooks      map[string][]DeclaredStep // hook ID → steps (execute only when notified)
+	Hooks      map[string][]DeclaredStep // hook ID -> steps (execute only when notified)
 }
 
 // DeclaredTarget is a target as written: its kind, decoded config, and source

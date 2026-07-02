@@ -121,7 +121,7 @@ func TestBuildDeployGraphExternalInput(t *testing.T) {
 }
 
 func TestBuildDeployGraphIndependentParallel(t *testing.T) {
-	// Two unrelated deploys — no resource flow → both at level 0.
+	// Two unrelated deploys - no resource flow -> both at level 0.
 	a := mkResolved("a", fakeTargetKind{kind: "ssh"})
 	b := mkResolved("b", fakeTargetKind{kind: "rest"})
 
@@ -161,7 +161,7 @@ func TestBuildDeployGraphMultipleProducers(t *testing.T) {
 func TestBuildDeployGraphCycle(t *testing.T) {
 	// a produces node:1000, consumes node:2000
 	// b produces node:2000, consumes node:1000
-	// → cycle.
+	// -> cycle.
 	a := mkResolved("a",
 		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:2000")}},
 		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
@@ -178,7 +178,7 @@ func TestBuildDeployGraphCycle(t *testing.T) {
 }
 
 func TestBuildDeployGraphChain(t *testing.T) {
-	// a → b → c, three levels.
+	// a -> b -> c, three levels.
 	a := mkResolved(
 		"a",
 		fakeTargetKind{kind: "ssh"},
@@ -242,7 +242,7 @@ func TestBuildDeployGraphLabelOrdering(t *testing.T) {
 
 func TestBuildDeployGraphLabelExternalInput(t *testing.T) {
 	// Consumer-only: no producer of "realm:skrynet.lan" in this run.
-	// Treated as external — runs immediately as a root.
+	// Treated as external - runs immediately as a root.
 	dc2 := spec.Config{
 		DeployName: "dc2",
 		TargetName: "dc2",
@@ -270,7 +270,7 @@ func levelSizes(levels [][]*deployNode) []int {
 
 func TestBuildDeployGraphFanout(t *testing.T) {
 	// a produces node:1000 + node:1001, b consumes :1000, c consumes :1001
-	// → b and c run in parallel at level 1.
+	// -> b and c run in parallel at level 1.
 	a := mkResolved(
 		"a",
 		fakeTargetKind{kind: "ssh"},

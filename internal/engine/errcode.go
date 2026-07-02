@@ -6,7 +6,7 @@ import "scampi.dev/scampi/internal/errs"
 
 // Diagnostic codes for engine errors. These are stable identifiers
 // surfaced to the LSP and (eventually) the error reference docs on
-// scampi.dev — do not rename without updating downstream consumers.
+// scampi.dev - do not rename without updating downstream consumers.
 const (
 	CodeLoadConfigError     errs.Code = "engine.LoadConfigError"
 	CodeCapabilityMismatch  errs.Code = "engine.CapabilityMismatch"

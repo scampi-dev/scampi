@@ -36,7 +36,7 @@ func (op *copyFileOp) getContent(ctx context.Context, src source.Source, tgt tar
 	)
 	if op.srcRef.Kind == spec.SourceTarget {
 		// Read from the target itself (#286). Composes with everything
-		// that already takes posix.Source — same drift / perm /
+		// that already takes posix.Source - same drift / perm /
 		// ownership management, just a different read side.
 		fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 		data, err = fsTgt.ReadFile(ctx, op.src)

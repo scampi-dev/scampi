@@ -512,7 +512,7 @@ func (e *Engine) runCheckStep(
 			// upstream (#330).
 			err = StepAbortedError{Cause: checkErr}
 		default:
-			// Raw error that never went through the diagnostic pipeline —
+			// Raw error that never went through the diagnostic pipeline -
 			// pass through so panicIfNotAbortError raises a BUG panic.
 			err = checkErr
 		}
@@ -691,7 +691,7 @@ func (e *Engine) runStep(ctx diagnostic.Ctx, idx int, act spec.Step, hookID stri
 			// upstream (#330).
 			err = StepAbortedError{Cause: err}
 		default:
-			// Raw error that never went through the diagnostic pipeline —
+			// Raw error that never went through the diagnostic pipeline -
 			// pass through so panicIfNotAbortError raises a BUG panic.
 		}
 	}

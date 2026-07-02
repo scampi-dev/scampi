@@ -180,7 +180,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("apply failed")
 	}
 
-	// Only the check-time list call should have happened — no second list,
+	// Only the check-time list call should have happened - no second list,
 	// no add, no remove, since live == desired.
 	if len(resp.calls) != 1 {
 		t.Fatalf("expected 1 list call, got %d: %v", len(resp.calls), resp.calls)
@@ -268,7 +268,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 
 	calls := tgt.CommandStrings()
-	// list (fail) → init → list (succeed) → add alice.
+	// list (fail) -> init -> list (succeed) -> add alice.
 	wantSubseq := []string{"list", "init-container", "list", "add alice"}
 	if !containsSubsequence(calls, wantSubseq) {
 		t.Fatalf("commands = %v\n  want subsequence %v", calls, wantSubseq)
@@ -276,7 +276,7 @@ std.deploy(name = "test", targets = [host]) {
 }
 
 func TestRunSet_AddOnly_LeavesOrphans(t *testing.T) {
-	// User declared `add` but no `remove` — orphans must NOT trigger
+	// User declared `add` but no `remove` - orphans must NOT trigger
 	// drift. Live set has an item not in desired; the step must still
 	// be considered satisfied (one-way reconciliation).
 	cfgStr := `
@@ -306,7 +306,7 @@ std.deploy(name = "test", targets = [host]) {
 		t.Fatalf("apply failed")
 	}
 
-	// Only the check-time list call: live ⊇ desired, add disabled means
+	// Only the check-time list call: live is a superset of desired, add disabled means
 	// no drift to act on.
 	if len(resp.calls) != 1 {
 		t.Fatalf("expected only 1 list call, got %d: %v", len(resp.calls), resp.calls)

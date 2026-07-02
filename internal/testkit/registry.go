@@ -35,7 +35,7 @@ func NewTestRegistry() *TestRegistry {
 // AddMemTarget records a new in-memory POSIX mock with its
 // expectations. Called by MemTargetKind.Create during link.
 //
-// Returns the canonical entry for the given name — either a fresh
+// Returns the canonical entry for the given name - either a fresh
 // one (newly registered) or the existing entry if one is already
 // registered with that name. Multi-deploy tests rely on this: each
 // engine.New call wraps a separate Config and triggers its

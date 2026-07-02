@@ -42,7 +42,7 @@ func parseState(s string) State {
 	case stateAbsent:
 		return StateAbsent
 	default:
-		panic(errs.BUG("invalid user state %q — should have been caught by Validate", s))
+		panic(errs.BUG("invalid user state %q - should have been caught by Validate", s))
 	}
 }
 

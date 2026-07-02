@@ -575,7 +575,7 @@ std.deploy(name = "test", targets = [host]) {
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 		if strings.HasPrefix(cmd, "command -v ") {
-			// Tool not available — force Go-native path
+			// Tool not available - force Go-native path
 			return target.CommandResult{ExitCode: 1}, nil
 		}
 		if strings.HasPrefix(cmd, "mkdir -p ") {

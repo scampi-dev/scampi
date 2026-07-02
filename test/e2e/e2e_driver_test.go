@@ -13,7 +13,7 @@ import (
 )
 
 // setupMemTarget builds a fresh MemTarget seeded from the scenario's
-// initial state (the `target.json` payload — files, dirs, perms,
+// initial state (the `target.json` payload - files, dirs, perms,
 // services, packages, etc.).
 //
 // The /tmp placeholder file forces /tmp to exist as a directory; some
@@ -96,7 +96,7 @@ func setupMemTarget(t *testing.T, initial E2EFiles) (*target.MemTarget, spec.Dec
 }
 
 // verifyMemTarget asserts that the post-Apply MemTarget state matches
-// the scenario's expectations (the `expect.json` target block — files,
+// the scenario's expectations (the `expect.json` target block - files,
 // perms, services, packages, etc.).
 func verifyMemTarget(t *testing.T, tgt *target.MemTarget, expect E2EFiles) {
 	t.Helper()

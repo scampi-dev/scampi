@@ -129,7 +129,7 @@ func TestStdReadFile_PreservesInteriorNewlines(t *testing.T) {
 	}
 }
 
-// Live filesystem smoke test — confirms the builtin works end-to-end
+// Live filesystem smoke test - confirms the builtin works end-to-end
 // when wired with real os.ReadFile, not just the in-memory mock.
 func TestStdReadFile_RealFilesystem(t *testing.T) {
 	dir := t.TempDir()

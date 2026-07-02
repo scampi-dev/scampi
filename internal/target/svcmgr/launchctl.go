@@ -23,7 +23,7 @@ type launchctlBackend struct {
 func newLaunchctl(run func(cmd string) (int, error)) *launchctlBackend {
 	domain := "system"
 	if code, err := run("test $(id -u) -ne 0"); err == nil && code == 0 {
-		// Non-root user — use gui domain.
+		// Non-root user - use gui domain.
 		if exitCode, e := run("id -u"); e == nil && exitCode == 0 {
 			// We can't capture stdout through the run callback (exit code only),
 			// so we use the simpler heuristic: non-root = gui/UID and assume

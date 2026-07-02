@@ -10,7 +10,7 @@ import (
 // SourceStore caches source file contents so the renderer can display
 // source-context lines in diagnostic error messages.
 //
-// SourceStore is safe for concurrent use — multiple plan workers writing
+// SourceStore is safe for concurrent use - multiple plan workers writing
 // source paths in parallel and the renderer reading lines must not race.
 type SourceStore struct {
 	mu    sync.RWMutex

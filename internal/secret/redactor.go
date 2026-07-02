@@ -44,14 +44,14 @@ const minRedactLen = 4
 // `${...}` interpolation ends up as plain bytes in the op config
 // (op fields are Go strings; the eval-side taint is lost), so
 // post-hoc substring matching is the only place we can catch every
-// downstream rendering — diagnostics, hints, inspect dumps, plan
-// previews — uniformly.
+// downstream rendering - diagnostics, hints, inspect dumps, plan
+// previews - uniformly.
 //
 // False positives are possible if a secret happens to be a common
 // substring (a four-character hex prefix that appears elsewhere).
 // In practice this is rare for typical passwords / API keys / tokens.
 // False negatives happen only when the secret has been transformed
-// (hashed, base64'd, etc.) before rendering — at which point the
+// (hashed, base64'd, etc.) before rendering - at which point the
 // rendered value isn't really the secret.
 //
 // The zero value and a nil pointer are both usable as a no-op
@@ -102,7 +102,7 @@ func (r *Redactor) Redact(s string) string {
 	return s
 }
 
-// Size returns the number of registered secrets — useful for tests
+// Size returns the number of registered secrets - useful for tests
 // and for plan-time diagnostics ("redacted N secret values").
 func (r *Redactor) Size() int {
 	if r == nil {

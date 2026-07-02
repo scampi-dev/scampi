@@ -480,7 +480,7 @@ func checkFieldList(
 	closeLine := fset.Position(fl.Closing).Line
 
 	if openLine == closeLine {
-		return // all on one line — fine
+		return // all on one line - fine
 	}
 
 	// Multi-line: each field must be on its own line.
@@ -646,7 +646,7 @@ func TestMarkdownTableAlignment(t *testing.T) {
 func TestBareErrorBan(t *testing.T) {
 	root := repoRoot(t)
 
-	// Always banned — use typed errors or errs.BUG instead.
+	// Always banned - use typed errors or errs.BUG instead.
 	hardBanned := []string{
 		"fmt.Errorf",
 		"errors.New",
@@ -678,11 +678,11 @@ func TestBareErrorBan(t *testing.T) {
 		}
 		rel = filepath.ToSlash(rel)
 
-		// errs/ defines the wrappers — always exempt
+		// errs/ defines the wrappers - always exempt
 		if strings.HasPrefix(rel, "internal/errs/") {
 			return nil
 		}
-		// test/ is test infrastructure — always exempt
+		// test/ is test infrastructure - always exempt
 		if strings.HasPrefix(rel, "test/") {
 			return nil
 		}
@@ -714,7 +714,7 @@ func TestBareErrorBan(t *testing.T) {
 			// managed-environment surface wraps OS/transport errors with
 			// context, and ops surface them through typed diagnostics that
 			// carry the ID and span. Anywhere else (linker, engine, steps)
-			// it needs the same rationale comment as errs.Errorf — an
+			// it needs the same rationale comment as errs.Errorf - an
 			// unwrapped WrapErrf on a user-facing path reaches the user
 			// without ID, hint, or span (see #441).
 			if name == "errs.WrapErrf" && strings.HasPrefix(rel, "internal/target/") {
@@ -805,59 +805,64 @@ func hasRationaleAboveBlock(file *ast.File, fset *token.FileSet, callLine int) b
 	return false
 }
 
-// TestGlyphDiscipline rejects non-ASCII Unicode in string and rune literals
-// anywhere under internal/render/. CLI glyphs must go through the glyphSet in
-// render/cli/glyph.go (which has both fancy and ASCII variants), never be
-// hardcoded — otherwise --ascii output ships fancy glyphs. The layout
-// primitives take the elision marker as a parameter for the same reason
-// (#442).
+// TestGlyphDiscipline bans non-ASCII bytes in Go source - literals AND
+// comments - across internal/, cmd/, and test/. CLI glyphs go through the
+// glyphSet in render/cli/glyph.go (fancy + ASCII variants); message prose is
+// plain ASCII ("1-65535", "->", " - "); functional unicode in tests uses
+// escape sequences (like \u2026) so the source file stays ASCII (#442).
 //
-// Comments are allowed to contain Unicode (they don't reach output).
-// Test files are allowed (they may assert on rendered fancy output).
-// glyph.go itself is the canonical glyph source — exempt by design.
+// Exempt: glyph.go (the canonical glyph source) and token/pos_test.go
+// (UTF-8 byte-offset arithmetic is unreadable as escapes).
 func TestGlyphDiscipline(t *testing.T) {
-	root := "../../internal/render"
+	roots := []string{"../../internal", "../../cmd", "../../test"}
+	exempt := map[string]bool{
+		"internal/render/cli/glyph.go":    true,
+		"internal/lang/token/pos_test.go": true,
+	}
 
-	fset := token.NewFileSet()
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !strings.HasSuffix(p, ".go") {
-			return nil
-		}
-		base := filepath.Base(p)
-		if base == "glyph.go" || strings.HasSuffix(base, "_test.go") {
-			return nil
-		}
-
-		f, perr := parser.ParseFile(fset, p, nil, 0)
-		if perr != nil {
-			return perr
-		}
-
-		ast.Inspect(f, func(n ast.Node) bool {
-			lit, ok := n.(*ast.BasicLit)
-			if !ok || (lit.Kind != token.STRING && lit.Kind != token.CHAR) {
-				return true
+	repo := repoRoot(t)
+	for _, root := range roots {
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
 			}
-			for _, r := range lit.Value {
-				if r > 127 {
-					pos := fset.Position(lit.Pos())
-					rel, _ := filepath.Rel(root, pos.Filename)
-					t.Errorf(
-						"render/%s:%d: non-ASCII rune %q in %s literal — "+
-							"use glyphSet from render/cli/glyph.go (fancy + ASCII fallback) instead of hardcoding",
-						rel, pos.Line, r, strings.ToLower(lit.Kind.String()),
-					)
-					break
+			if d.IsDir() || !strings.HasSuffix(p, ".go") {
+				return nil
+			}
+			abs, aerr := filepath.Abs(p)
+			if aerr != nil {
+				return aerr
+			}
+			rel, rerr := filepath.Rel(repo, abs)
+			if rerr != nil {
+				return rerr
+			}
+			rel = filepath.ToSlash(rel)
+			if exempt[rel] {
+				return nil
+			}
+
+			data, rderr := os.ReadFile(p)
+			if rderr != nil {
+				return rderr
+			}
+			for i, line := range strings.Split(string(data), "\n") {
+				for _, r := range line {
+					if r > 127 {
+						t.Errorf(
+							"%s:%d: non-ASCII rune %q - the codebase is ASCII-only: glyphs go "+
+								"through render/cli/glyph.go, prose uses ASCII punctuation, and "+
+								"functional unicode in tests uses escape sequences",
+							rel, i+1, r,
+						)
+						break
+					}
 				}
 			}
-			return true
+			return nil
 		})
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

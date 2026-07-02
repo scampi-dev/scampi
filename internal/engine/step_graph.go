@@ -76,7 +76,7 @@ func buildStepGraph(steps []spec.Step) []*stepNode {
 	// -----------------------------------------------------------------------------
 	// Steps without resources act as barriers (memory fences): nothing
 	// may reorder across them. Instead of connecting every barrier to every
-	// other node (O(n²) edges), we chain consecutive barriers and fan edges
+	// other node (O(n^2) edges), we chain consecutive barriers and fan edges
 	// in/out to neighboring resource-aware nodes. This produces identical
 	// execution order with O(n) edges.
 	var lastBarrier *stepNode

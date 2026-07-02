@@ -64,7 +64,7 @@ func (c *Checker) qualifiedAttrName(a *ast.Attribute) string {
 // expressions into a map of resolved Go values. Positional arguments
 // bind to the attribute type's first field (or are wrapped into a
 // list for variadic single-list-field types); named arguments bind
-// by name. Non-literal arguments resolve to nil — behaviours should
+// by name. Non-literal arguments resolve to nil - behaviours should
 // check for nil before using a value.
 //
 // Resolution is best-effort: the type checker has already validated
@@ -96,7 +96,7 @@ func (c *Checker) resolveAttributeArgs(a *ast.Attribute) map[string]any {
 		return out
 	}
 
-	// Single positional → first field.
+	// Single positional -> first field.
 	if len(a.Positionals) == 1 && len(at.Fields) > 0 {
 		field := at.Fields[0]
 		if v, ok := literalValue(a.Positionals[0]); ok {
@@ -114,7 +114,7 @@ func (c *Checker) resolveAttributeArgs(a *ast.Attribute) map[string]any {
 
 // lookupAttrTypeForArgs is a side-effect-free lookup of an attribute
 // type by its dotted name reference. Used by resolveAttributeArgs to
-// find the schema for binding without emitting diagnostics — those
+// find the schema for binding without emitting diagnostics - those
 // are handled separately by checkAttribute.
 func (c *Checker) lookupAttrTypeForArgs(name *ast.DottedName) *AttrType {
 	switch len(name.Parts) {
@@ -142,7 +142,7 @@ func (c *Checker) lookupAttrTypeForArgs(name *ast.DottedName) *AttrType {
 
 // literalValue extracts a Go value from a literal AST expression.
 // Returns false for non-literal expressions (variables, calls,
-// arithmetic, etc.) — those aren't supported in attribute arguments.
+// arithmetic, etc.) - those aren't supported in attribute arguments.
 func literalValue(e ast.Expr) (any, bool) {
 	switch v := e.(type) {
 	case *ast.StringLit:
@@ -228,7 +228,7 @@ func (c *Checker) resolveAttrType(name *ast.DottedName, useSpan token.Span) *Att
 //  1. Marker (zero fields): no arguments accepted
 //  2. Single non-list field: at most one positional binds to the
 //     field; otherwise must be named
-//  3. Single list field: positionals are sugar — they're wrapped
+//  3. Single list field: positionals are sugar - they're wrapped
 //     into an implicit list literal and bound. A lone positional
 //     that is itself a list literal binds directly. Variadic always
 //     picks the wrap interpretation when there are multiple args.
@@ -244,7 +244,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 		return
 	}
 
-	// Build a map of field name → field def for keyword binding
+	// Build a map of field name -> field def for keyword binding
 	// and a "bound" set so we can detect missing required fields.
 	byName := make(map[string]*FieldDef, len(at.Fields))
 	for _, f := range at.Fields {
@@ -253,7 +253,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 	bound := make(map[string]bool, len(at.Fields))
 
 	// Bind positionals to fields. The rules above determine the
-	// shape — we apply them strictly here.
+	// shape - we apply them strictly here.
 	switch {
 	case len(a.Positionals) == 0:
 		// Nothing to bind positionally.
@@ -268,7 +268,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 		if len(a.Positionals) == 1 {
 			if t := c.typeOf(a.Positionals[0]); t != nil {
 				if !IsAssignableTo(t, field.Type) {
-					// Not the list itself — try as a single element.
+					// Not the list itself - try as a single element.
 					if !IsAssignableTo(t, listT.Elem) {
 						c.errAt(
 							a.Positionals[0].Span(), "lang.AttrBindError",
@@ -311,7 +311,7 @@ func (c *Checker) bindAttribute(a *ast.Attribute, at *AttrType) {
 
 	default:
 		// Multiple positionals on a multi-field type (or a
-		// single-field non-list type) — disallowed.
+		// single-field non-list type) - disallowed.
 		c.errAt(
 			a.SrcSpan, CodeAttrError,
 			"attribute @"+at.Name+" accepts at most one positional argument; "+

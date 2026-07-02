@@ -51,10 +51,10 @@ func LoadUserModulesFromMod(m *mod.Module, modules map[string]*check.Scope) []ev
 	var userMods []eval.UserModule
 
 	// Implicit self-registration: the module declared by scampi.mod
-	// is always available by its own path — no self-require needed.
+	// is always available by its own path - no self-require needed.
 	// This mirrors Go where `import "github.com/foo/bar/sub"` works
 	// within the bar module without requiring yourself.
-	// Skip if the dir only has `module main` files — those are user
+	// Skip if the dir only has `module main` files - those are user
 	// configs, not importable modules.
 	if m.Module != "" {
 		selfDir := filepath.Dir(m.Filename)
@@ -71,7 +71,7 @@ func LoadUserModulesFromMod(m *mod.Module, modules map[string]*check.Scope) []ev
 	// Local subdirectory modules: scan all subdirs under the module
 	// root for .scampi files. Each subdir that produces a valid
 	// non-main module becomes importable by its full path
-	// (<module-path>/<subdir>). This is the Go package convention —
+	// (<module-path>/<subdir>). This is the Go package convention -
 	// no require entry needed for directories in your own module.
 	if m.Module != "" {
 		modRoot := filepath.Dir(m.Filename)
@@ -198,7 +198,7 @@ func loadMultiFileModule(
 
 	// Phase 1: register all forward declarations from all files
 	// into the shared scope. This makes every func/decl/type
-	// visible to every file before body-checking runs — the Go
+	// visible to every file before body-checking runs - the Go
 	// package model where all files in a dir share one namespace.
 	for _, p := range allParsed {
 		c := check.New(mergedModules)
@@ -255,7 +255,7 @@ func loadSiblingDecls(
 	scope := check.NewScope(nil, check.ScopeFile)
 	for _, mf := range siblings {
 		if filepath.Base(mf.Path) == base {
-			continue // skip the file being checked — Check will add its own decls
+			continue // skip the file being checked - Check will add its own decls
 		}
 		l := lex.New(mf.Path, mf.Data)
 		p := parse.New(l)
@@ -285,7 +285,7 @@ func loadSiblingDecls(
 // loadSiblingUserModules builds eval.UserModule entries for sibling
 // files in the same directory that declare the same module name. This
 // gives the evaluator access to non-pub functions defined in sibling
-// files — the eval-layer counterpart of loadSiblingDecls (which only
+// files - the eval-layer counterpart of loadSiblingDecls (which only
 // feeds the type checker).
 func loadSiblingUserModules(
 	cfgPath string,
@@ -405,7 +405,7 @@ func readModuleDir(dir string) []moduleFile {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".scampi") {
 			continue
 		}
-		// Skip test files — they're not part of the module's
+		// Skip test files - they're not part of the module's
 		// public API.
 		if strings.HasSuffix(e.Name(), "_test.scampi") {
 			continue

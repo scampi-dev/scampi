@@ -8,7 +8,7 @@ import (
 )
 
 // parseBlock parses statements until it sees RBrace (does NOT consume
-// the RBrace itself — caller expects it).
+// the RBrace itself - caller expects it).
 func (p *Parser) parseBlock() *ast.Block {
 	start := p.cur.Pos
 	var stmts []ast.Stmt

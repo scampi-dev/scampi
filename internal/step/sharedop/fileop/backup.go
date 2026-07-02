@@ -16,7 +16,7 @@ import (
 func Backup(ctx context.Context, tgt target.Filesystem, dest string) error {
 	data, err := tgt.ReadFile(ctx, dest)
 	if err != nil {
-		return nil // file doesn't exist — nothing to back up
+		return nil // file doesn't exist - nothing to back up
 	}
 	stamp := time.Now().UTC().Format("20060102T150405")
 	return tgt.WriteFile(ctx, dest+"."+stamp+".bak", data)

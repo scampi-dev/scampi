@@ -10,8 +10,8 @@ import (
 )
 
 // Fixtures live as pairs in testdata/:
-//   <name>.scampi.unformatted  — input to scampi fmt (ext keeps `scampi fmt ./...` from rewriting it)
-//   <name>.expected.scampi     — golden output
+//   <name>.scampi.unformatted  - input to scampi fmt (ext keeps `scampi fmt ./...` from rewriting it)
+//   <name>.expected.scampi     - golden output
 
 func TestGoldenFiles(t *testing.T) {
 	entries, err := os.ReadDir("testdata")

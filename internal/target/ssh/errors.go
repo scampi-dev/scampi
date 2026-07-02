@@ -184,7 +184,7 @@ func (e KeyRevokedError) Diagnostic() event.Event {
 		Template: event.Template{
 			ID:   CodeKeyRevoked,
 			Text: "host SSH-key revoked",
-			Hint: "this host key was explicitly revoked in known_hosts — do not connect unless you trust the host",
+			Hint: "this host key was explicitly revoked in known_hosts - do not connect unless you trust the host",
 			Help: `revoked host key:
 	  {{.Revoked.Filename}}:{{.Revoked.Line}}: {{.Revoked.Type}} {{.Revoked.Fingerprint}}`,
 			Data: e,

@@ -33,7 +33,7 @@ type deployGraph struct {
 // topo-sorts them into execution levels.
 //
 // External inputs (a node consumes a resource that no node in this
-// run produces) are treated as already-satisfied — those nodes
+// run produces) are treated as already-satisfied - those nodes
 // become roots. If the resource genuinely doesn't exist at runtime,
 // downstream errors surface that cleanly.
 func buildDeployGraph(resolved []spec.Config) (*deployGraph, error) {
@@ -64,7 +64,7 @@ func buildDeployGraph(resolved []spec.Config) (*deployGraph, error) {
 		}
 	}
 
-	// Wire deps. Inputs without a producer in this run are external —
+	// Wire deps. Inputs without a producer in this run are external -
 	// no edge added.
 	for _, n := range nodes {
 		for _, in := range n.inputs {
@@ -177,7 +177,7 @@ func findCycle(nodes []*deployNode) []*deployNode {
 					return c
 				}
 			case gray:
-				// Found a back edge — slice the stack from dep to here.
+				// Found a back edge - slice the stack from dep to here.
 				start := 0
 				for i, s := range stack {
 					if s == dep {

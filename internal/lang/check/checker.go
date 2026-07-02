@@ -28,7 +28,7 @@ type Checker struct {
 
 	// modName is the name of the module being checked (set from
 	// f.Module at the start of Check). Used to qualify single-segment
-	// attribute references on Field.Attributes — for example, an
+	// attribute references on Field.Attributes - for example, an
 	// `@nonempty` annotation on a field declared in `module std`
 	// resolves to the qualified name `std.@nonempty`.
 	modName string
@@ -39,7 +39,7 @@ type Checker struct {
 	// that operate after the walk (LSP completion, hover) can look
 	// up nested bindings here even though their original scopes
 	// have been popped from c.scope. Last-write-wins on shadowing
-	// — sufficient for completion, not enough for any feature that
+	// - sufficient for completion, not enough for any feature that
 	// needs scope-correct visibility. A future scope-tree refactor
 	// will subsume this.
 	allBindings map[string]*Symbol
@@ -83,7 +83,7 @@ func (c *Checker) FileScope() *Scope { return c.scope }
 func (c *Checker) AllBindings() map[string]*Symbol { return c.allBindings }
 
 // recordBinding records a non-import symbol in the flat fallback
-// map. Imports are excluded — they only make sense in their file
+// map. Imports are excluded - they only make sense in their file
 // scope and would pollute the fallback lookups.
 func (c *Checker) recordBinding(sym *Symbol) {
 	if sym == nil || sym.Kind == SymImport {
@@ -128,7 +128,7 @@ func (c *Checker) Check(f *ast.File) {
 }
 
 // RegisterForwardDecls runs only the import + forward-declaration
-// pass of Check — no body walking. Used by multi-file module loading
+// pass of Check - no body walking. Used by multi-file module loading
 // to populate a shared scope before any file's bodies are checked.
 // RegisterForwardDecls registers only top-level declarations (not
 // imports) into the checker's scope. Used by multi-file module
@@ -277,7 +277,7 @@ func (c *Checker) checkImport(imp *ast.ImportDecl) {
 	// full path is registered, accept it. Fall back to leaf lookup
 	// ONLY for std modules (paths starting with "std" or single-
 	// segment names like "std"). This prevents bare `import "adguard"`
-	// from resolving — user modules must use their full require path.
+	// from resolving - user modules must use their full require path.
 	_, ok := c.modules[imp.Path]
 	if !ok && isStdImportPath(imp.Path) {
 		_, ok = c.modules[leaf]
@@ -316,7 +316,7 @@ func importLeaf(path string) string {
 // -----------------------------------------------------------------------------
 
 func (c *Checker) registerDecl(d ast.Decl) {
-	// In module main, everything is implicitly public — there are
+	// In module main, everything is implicitly public - there are
 	// no importers to hide from.
 	isMain := c.modName == "main"
 
@@ -384,7 +384,7 @@ func (c *Checker) registerDecl(d ast.Decl) {
 
 func (c *Checker) checkTypeDecl(d *ast.TypeDecl) {
 	if d.Fields == nil {
-		return // opaque type — nothing to check
+		return // opaque type - nothing to check
 	}
 	sym := c.scope.Lookup(d.Name.Name)
 	if sym == nil {
@@ -443,7 +443,7 @@ func (c *Checker) checkAttrTypeDecl(d *ast.AttrTypeDecl) {
 			c.errAt(f.SrcSpan, CodeUnknownAttrField, "unknown type in attribute field "+f.Name.Name)
 			continue
 		}
-		// Attribute fields cannot themselves carry attributes —
+		// Attribute fields cannot themselves carry attributes -
 		// keeping the model finite. Diagnose if anyone tries it.
 		if len(f.Attributes) > 0 {
 			c.errAt(f.Attributes[0].SrcSpan, CodeAttrFieldCarries,
@@ -520,7 +520,7 @@ func (c *Checker) checkFuncDecl(d *ast.FuncDecl) {
 //
 //   - A block definitely returns if its last statement is `return expr`.
 //   - An if/else definitely returns if both branches definitely return.
-//   - Everything else (for loops, bare statements) does not count —
+//   - Everything else (for loops, bare statements) does not count -
 //     require an explicit return after the loop.
 func definitelyReturns(b *ast.Block) bool {
 	if b == nil || len(b.Stmts) == 0 {

@@ -29,7 +29,7 @@ import (
 // handshake (~2 RTTs) over the lifetime of the session instead of
 // paying it per op.
 //
-// Framing — the shell wrapper for each command is:
+// Framing - the shell wrapper for each command is:
 //
 //   { <user-cmd>; } 2><tmp>
 //   __SC_RC=$?
@@ -45,13 +45,13 @@ import (
 //   <stderr of user-cmd>          (exactly errBytes bytes, no terminator)
 //
 // The sentinel is `__SC_END_<128-bit-nonce>_<seq>__`. The nonce is
-// per-session, the seq increments per command — both are needed so
+// per-session, the seq increments per command - both are needed so
 // that a malicious or accidental command output containing the
 // sentinel cannot collide. Length-prefixed stderr (the `errBytes`
 // field) means we never have to scan for a stderr terminator.
 
 // shellSession is a single long-lived shell on the target. Not safe
-// for concurrent use — the pool serialises Run calls per session.
+// for concurrent use - the pool serialises Run calls per session.
 type shellSession struct {
 	sess   *ssh.Session
 	stdin  io.WriteCloser
@@ -89,7 +89,7 @@ func openShellSession(client *ssh.Client) (*shellSession, error) {
 	}
 
 	// /bin/sh is the lowest-common-denominator POSIX shell. Our
-	// wrapper uses only printf, wc, cat, rm — POSIX, no bashisms.
+	// wrapper uses only printf, wc, cat, rm - POSIX, no bashisms.
 	// Pass -s so the shell reads commands from stdin even when no
 	// args are given (some shells need this hint).
 	if err := sess.Start("/bin/sh -s"); err != nil {
@@ -124,7 +124,7 @@ func (s *shellSession) healthy() bool {
 	return !s.unsafe
 }
 
-// markUnsafe flags the session for disposal — it must not be reused.
+// markUnsafe flags the session for disposal - it must not be reused.
 // Called on any I/O error or on cancellation.
 func (s *shellSession) markUnsafe() {
 	s.mu.Lock()
@@ -134,7 +134,7 @@ func (s *shellSession) markUnsafe() {
 
 // run sends one command into the shell, parses the framed result.
 //
-// Cancellation: ctx.Done closes the shell — the shell is unrecoverable
+// Cancellation: ctx.Done closes the shell - the shell is unrecoverable
 // after that and the pool will drop it on release. This is fine; the
 // pool reopens lazily on next acquire.
 func (s *shellSession) run(ctx context.Context, cmd string) (target.CommandResult, error) {
@@ -163,7 +163,7 @@ func (s *shellSession) run(ctx context.Context, cmd string) (target.CommandResul
 		cmd, tmp, tmp, sentinel, tmp, tmp,
 	)
 
-	// Watch ctx in a goroutine — on cancel, kill the session so the
+	// Watch ctx in a goroutine - on cancel, kill the session so the
 	// blocking ReadBytes below unblocks with an error.
 	doneRead := make(chan struct{})
 	defer close(doneRead)
@@ -261,7 +261,7 @@ func (s *shellSession) close() error {
 	s.unsafe = true
 	s.mu.Unlock()
 
-	// Best-effort polite shutdown; ignore errors — we're closing.
+	// Best-effort polite shutdown; ignore errors - we're closing.
 	_, _ = io.WriteString(s.stdin, "exit 0\n")
 	_ = s.stdin.Close()
 	return s.sess.Close()

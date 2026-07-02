@@ -304,7 +304,7 @@ func (e EscalationError) Error() string {
 // privilege escalation on a target. Callers store this alongside the
 // detected tool (if any) so diagnostics can distinguish "no sudo/doas
 // installed" from "sudo present but won't escalate without a password"
-// (#314 — the latter case used to hang silently on the first escalated op).
+// (#314 - the latter case used to hang silently on the first escalated op).
 type EscalateReason int
 
 const (
@@ -319,7 +319,7 @@ const (
 // usable. Reason distinguishes the cause so the diagnostic can
 // point the user at the right fix.
 type NoEscalationError struct {
-	Op     string // "read", "write", "chmod", "apk install", …
+	Op     string // "read", "write", "chmod", "apk install", ...
 	Path   string
 	Reason EscalateReason
 }
@@ -328,7 +328,7 @@ func (e NoEscalationError) Error() string {
 	switch e.Reason {
 	case EscalateRequiresPassword:
 		return fmt.Sprintf(
-			"%s %s: sudo/doas requires a password — configure NOPASSWD or run scampi as root",
+			"%s %s: sudo/doas requires a password - configure NOPASSWD or run scampi as root",
 			e.Op, e.Path,
 		)
 	default:

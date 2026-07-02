@@ -83,7 +83,7 @@ func (b Base) RemovePkgs(ctx context.Context, pkgs []string) error {
 func (b Base) UpdateCache(ctx context.Context) error {
 	if !b.PkgBackend.SupportsUpgrade() {
 		return errs.BUG(
-			"%s backend does not support upgrade checks — capability should have prevented this call",
+			"%s backend does not support upgrade checks - capability should have prevented this call",
 			b.PkgBackend.Kind.String(),
 		)
 	}
@@ -111,7 +111,7 @@ func (b Base) IsUpgradable(ctx context.Context, pkg string) (bool, error) {
 	if !b.PkgBackend.SupportsUpgrade() {
 		return false, errs.BUG(
 			"%s backend does not support upgrade checks"+
-				" — capability should have prevented this call",
+				" - capability should have prevented this call",
 			b.PkgBackend.Kind.String(),
 		)
 	}

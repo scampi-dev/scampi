@@ -30,13 +30,13 @@ func TestAddMemTarget_DedupesByName(t *testing.T) {
 	}
 }
 
-// Seed functions with wrong-typed inputs — should not panic
+// Seed functions with wrong-typed inputs - should not panic
 // -----------------------------------------------------------------------------
 
 func TestSeedMemTarget_WrongTypes(t *testing.T) {
 	mock := target.NewMemTarget()
 
-	// All fields are wrong types — should be silently skipped.
+	// All fields are wrong types - should be silently skipped.
 	initial := &eval.StructVal{
 		TypeName: "InitialState",
 		RetType:  "InitialState",
@@ -50,7 +50,7 @@ func TestSeedMemTarget_WrongTypes(t *testing.T) {
 	}
 	seedMemTarget(mock, initial)
 
-	// Nothing should have been seeded — no panic.
+	// Nothing should have been seeded - no panic.
 	if len(mock.Files) != 0 {
 		t.Errorf("files: %d", len(mock.Files))
 	}

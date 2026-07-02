@@ -102,7 +102,7 @@ func TestBuildStepGraph_PathDependency(t *testing.T) {
 }
 
 func TestBuildStepGraph_NonPatherSequential(t *testing.T) {
-	// Consecutive barriers chain: A→B→C (transitive ordering, O(n) edges)
+	// Consecutive barriers chain: A->B->C (transitive ordering, O(n) edges)
 	steps := []spec.Step{
 		&mockStep{desc: "A"},
 		&mockStep{desc: "B"},
@@ -118,7 +118,7 @@ func TestBuildStepGraph_NonPatherSequential(t *testing.T) {
 
 func TestBuildStepGraph_NonPatherBarrier(t *testing.T) {
 	// Fence semantics: barriers chain and fan in/out to neighboring path
-	// nodes. P1→N1→P2→N2 with fan-in edges from Pathers between barriers.
+	// nodes. P1->N1->P2->N2 with fan-in edges from Pathers between barriers.
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "P1", promises: paths("/p1")},
 		&mockStep{desc: "N1"},
@@ -225,7 +225,7 @@ func TestBuildStepGraph_CrossKindIndependent(t *testing.T) {
 }
 
 func TestBuildStepGraph_UserPromiserNotBarrier(t *testing.T) {
-	// A user step with resources is NOT a barrier — parallel path steps
+	// A user step with resources is NOT a barrier - parallel path steps
 	// should not be serialized through it.
 	// P1, user, P2 with no resource overlap: P1 and P2 run in parallel,
 	// user is not a barrier because it has resources (user promise).
@@ -243,7 +243,7 @@ func TestBuildStepGraph_UserPromiserNotBarrier(t *testing.T) {
 }
 
 func TestBuildStepGraph_MixedResourceChain(t *testing.T) {
-	// group → user (consumes group) → dir (consumes user and path)
+	// group -> user (consumes group) -> dir (consumes user and path)
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "group", promises: groups("staff")},
 		&mockPromiserStep{desc: "user", inputs: groups("staff"), promises: users("app")},
@@ -257,7 +257,7 @@ func TestBuildStepGraph_MixedResourceChain(t *testing.T) {
 }
 
 func TestBuildStepGraph_LabelResource_DistinctIDsParallel(t *testing.T) {
-	// Three steps with distinct label slots — no resource overlap
+	// Three steps with distinct label slots - no resource overlap
 	// and not barriers, so they run in parallel.
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "node100", promises: labels("node:100")},

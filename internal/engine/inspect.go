@@ -246,7 +246,7 @@ func (e multipleDiffableOpsError) Diagnostic() event.Event {
 		Impact: event.ImpactAbort,
 		Template: event.Template{
 			ID:   CodeMultipleDiffableOps,
-			Text: `found {{.Count}} diffable ops — narrow your filter`,
+			Text: `found {{.Count}} diffable ops - narrow your filter`,
 			Hint: "destinations:\n{{range .Paths}}  {{.}}\n{{end}}",
 			Data: e,
 		},

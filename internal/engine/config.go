@@ -16,7 +16,7 @@ import (
 )
 
 // LoadConfig decodes and validates user configuration by running the
-// scampi pipeline (lex → parse → check → eval → link).
+// scampi pipeline (lex -> parse -> check -> eval -> link).
 func LoadConfig(
 	ctx diagnostic.Ctx,
 	cfgPath string,

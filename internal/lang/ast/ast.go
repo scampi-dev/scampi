@@ -61,7 +61,7 @@ func (*ImportDecl) astNode()           {}
 func (*ImportDecl) declNode()          {}
 
 // TypeDecl is a type declaration. With fields: `type Name { field: type, ... }`.
-// Without fields (nil): `type Name` — an opaque forward declaration.
+// Without fields (nil): `type Name` - an opaque forward declaration.
 type TypeDecl struct {
 	Name    *Ident
 	Fields  []*Field // nil for opaque types
@@ -75,7 +75,7 @@ func (*TypeDecl) declNode()          {}
 
 // AttrTypeDecl is an attribute type declaration: `type @name { ... }`.
 // Attribute types live in a separate `@`-prefixed namespace from
-// regular types — they cannot be used in type expressions or
+// regular types - they cannot be used in type expressions or
 // instantiated as struct literals. They're consumed only as `@name`
 // or `@name(args)` decorations on Fields and other annotatable
 // positions.
@@ -297,8 +297,8 @@ func (*IntLit) exprNode()          {}
 // and embedded Expr parts.
 //
 // Multi-line literals (backtick-delimited) carry MultiLine=true
-// and Indent — the common indent prefix taken from the line
-// containing the closing backtick — so eval can dedent the
+// and Indent - the common indent prefix taken from the line
+// containing the closing backtick - so eval can dedent the
 // assembled string.
 type StringLit struct {
 	Parts     []StringPart
@@ -408,7 +408,7 @@ type FieldInit struct {
 	SrcSpan token.Span
 }
 
-// BlockExpr is `expr { stmts }` — fills a block[T] value with a
+// BlockExpr is `expr { stmts }` - fills a block[T] value with a
 // statement body to produce a T. The target expression must evaluate
 // to a block[T] type.
 type BlockExpr struct {
@@ -546,7 +546,7 @@ func (*MapComp) exprNode()          {}
 // Field is a typed field declaration: name: type = default
 // Used in struct decls, step/func params. Attributes are prefix
 // annotations like `@nonempty` or `@path(absolute=true)` that decorate
-// the field. The lang itself attaches no semantics — the linker and
+// the field. The lang itself attaches no semantics - the linker and
 // LSP consume them.
 type Field struct {
 	Name       *Ident
@@ -559,7 +559,7 @@ type Field struct {
 // Attribute is a prefix annotation `@name` or `@name(args)` attached
 // to a Field, declaration, or other annotatable position. The lang
 // parses and validates the structural shape but does not interpret
-// the semantics — that lives in the linker (Go behaviour) and LSP
+// the semantics - that lives in the linker (Go behaviour) and LSP
 // (UX providers).
 type Attribute struct {
 	Name        *DottedName // @name or @module.name

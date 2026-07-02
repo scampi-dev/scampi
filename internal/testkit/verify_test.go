@@ -11,7 +11,7 @@ import (
 )
 
 // expectState builds an ExpectedState StructVal with the given
-// per-slot map of (key → matcher StructVal). Slots with nil maps
+// per-slot map of (key -> matcher StructVal). Slots with nil maps
 // are omitted entirely (None).
 func expectState(slots map[string]map[string]*eval.StructVal) *eval.StructVal {
 	sv := &eval.StructVal{

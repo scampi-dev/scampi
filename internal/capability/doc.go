@@ -7,9 +7,7 @@
 //
 // Formally, capabilities are elements of a finite set. A step declares a set of
 // required capabilities R. A target declares a set of provided capabilities P.
-// A step is valid for a target if and only if:
-//
-//	R ⊆ P
+// A step is valid for a target if and only if R is a subset of P.
 //
 // Capabilities are atomic and compositional. Higher-level concepts are expressed
 // as named sets composed from smaller capabilities, not via inheritance or
@@ -19,11 +17,11 @@
 //
 //	R = {Filesystem, Ownership, FileMode}
 //	P = {Filesystem, Ownership, FileMode, Symlink}
-//	⇒ planning succeeds because R ⊆ P
+//	=> planning succeeds because R is a subset of P
 //
 //	R = {Symlink}
 //	P = {Filesystem}
-//	⇒ planning fails because Symlink ∉ P
+//	=> planning fails because Symlink is not in P
 //
 // The capability model supports conjunction only; disjunction and negation are
 // intentionally not supported.

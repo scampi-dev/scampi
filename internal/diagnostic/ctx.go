@@ -10,8 +10,8 @@ import (
 
 // Ctx bundles a context.Context with the Emitter so call sites thread one
 // value, not a (ctx, em) pair. It is the only emit surface threaded through the
-// codebase — functions that need to emit take a Ctx and call Emit/Raise; the
-// bare *Emitter lives only at the NewEmitter → NewCtx boundary.
+// codebase - functions that need to emit take a Ctx and call Emit/Raise; the
+// bare *Emitter lives only at the NewEmitter -> NewCtx boundary.
 type Ctx struct {
 	context.Context
 	em *Emitter
@@ -21,7 +21,7 @@ func NewCtx(ctx context.Context, em *Emitter) Ctx {
 	return Ctx{Context: ctx, em: em}
 }
 
-// With rebinds to a derived base context — for fork points (errgroup,
+// With rebinds to a derived base context - for fork points (errgroup,
 // context.WithCancel).
 func (c Ctx) With(ctx context.Context) Ctx {
 	c.Context = ctx

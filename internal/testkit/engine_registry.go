@@ -9,7 +9,7 @@ import (
 )
 
 // BaseRegistry is the lookup surface the test runner needs from a
-// base engine registry. Exactly the shape of linker.Registry —
+// base engine registry. Exactly the shape of linker.Registry -
 // duplicated here so testkit doesn't have to import the linker
 // package (testkit lives below linker in the dependency stack).
 type BaseRegistry interface {
@@ -19,8 +19,8 @@ type BaseRegistry interface {
 }
 
 // EngineRegistry wraps a BaseRegistry and overlays the two test
-// target types — `test.target_in_memory` and `test.target_rest_mock`
-// — both bound to the supplied TestRegistry so every constructor
+// target types - `test.target_in_memory` and `test.target_rest_mock`
+// - both bound to the supplied TestRegistry so every constructor
 // call during link registers itself for later verification.
 //
 // Step type lookups pass through to the base unchanged. Target type
@@ -39,7 +39,7 @@ func NewEngineRegistry(base BaseRegistry, tests *TestRegistry) *EngineRegistry {
 	return &EngineRegistry{base: base, tests: tests}
 }
 
-// StepKind delegates to the base registry — no overlay.
+// StepKind delegates to the base registry - no overlay.
 func (r *EngineRegistry) StepKind(kind string) (spec.StepKind, bool) {
 	return r.base.StepKind(kind)
 }

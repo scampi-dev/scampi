@@ -525,7 +525,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	for _, c := range rec.Changes {
 		if c.Phase == event.ChangeExecuted {
-			t.Error("expected no op executions — image default args should not cause drift")
+			t.Error("expected no op executions - image default args should not cause drift")
 			break
 		}
 	}
@@ -741,7 +741,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	for _, c := range rec.Changes {
 		if c.Phase == event.ChangeExecuted {
-			t.Error("expected no op executions — image healthcheck should not cause drift")
+			t.Error("expected no op executions - image healthcheck should not cause drift")
 			break
 		}
 	}

@@ -243,7 +243,7 @@ func TestMultiLineString_LiteralNewlines(t *testing.T) {
 }
 
 func TestMultiLineString_DoubleQuoteNoEscape(t *testing.T) {
-	// Interior `"` is just a literal — no quoting needed in backtick.
+	// Interior `"` is just a literal - no quoting needed in backtick.
 	src := "`he said \"hi\"`"
 	assertTokens(t, src, []want{
 		{token.StringMulti, `he said "hi"`},
@@ -265,7 +265,7 @@ func TestMultiLineString_Interpolation(t *testing.T) {
 
 func TestMultiLineString_NestedInterpInsideMulti(t *testing.T) {
 	// Verify that the multi flag is restored after RInterp closes the
-	// interp frame — the second segment still allows newlines.
+	// interp frame - the second segment still allows newlines.
 	src := "`a${x}\nb`"
 	assertTokens(t, src, []want{
 		{token.StringMultiBeg, "a"},

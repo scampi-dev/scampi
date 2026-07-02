@@ -23,7 +23,7 @@ import (
 // the Data struct.
 //
 // Adding a new Raisable or OpDescription type is automatically picked up
-// — no manual registration.
+// - no manual registration.
 func TestAllTemplatesRender(t *testing.T) {
 	cfg := &packages.Config{
 		Mode: packages.NeedSyntax |
@@ -199,7 +199,7 @@ func extractFromMethod(
 				return true
 			}
 
-			// Found the method — look for composite literal in return statements
+			// Found the method - look for composite literal in return statements
 			ast.Inspect(fn.Body, func(n ast.Node) bool {
 				ret, ok := n.(*ast.ReturnStmt)
 				if !ok {
@@ -288,7 +288,7 @@ func findCompositeLit(expr ast.Expr) *ast.CompositeLit {
 
 // extractStringFields extracts string literal values from a composite literal
 // for the given field names. Fails the test if a wanted field is present but
-// is not a string literal — all template text must be statically analyzable.
+// is not a string literal - all template text must be statically analyzable.
 func extractStringFields(t *testing.T, typeName string, cl *ast.CompositeLit, fieldNames []string) map[string]string {
 	t.Helper()
 

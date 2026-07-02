@@ -92,13 +92,13 @@ func TestDetectCycles_UnreachableNodes(t *testing.T) {
 		"B": {"C"},
 		"C": {"B"},
 	}
-	// Only root A — cycle B->C->B is unreachable
+	// Only root A - cycle B->C->B is unreachable
 	cycles := detectCycles([]string{"A"}, func(n string) []string { return adj[n] })
 	if len(cycles) != 0 {
 		t.Errorf("expected no cycles from root A, got %d", len(cycles))
 	}
 
-	// All roots — cycle is found
+	// All roots - cycle is found
 	cycles = detectCycles([]string{"A", "B", "C"}, func(n string) []string { return adj[n] })
 	if len(cycles) == 0 {
 		t.Error("expected cycle when B is a root")

@@ -6,7 +6,7 @@
 // harness loads, plans, applies against a MemTarget, and asserts the
 // recorded diagnostics match.
 //
-// Exercises: the full lang → engine → diagnostic pipeline. Anchors
+// Exercises: the full lang -> engine -> diagnostic pipeline. Anchors
 // diagnostic IDs, severities, source spans, and scopes against regressions.
 //
 // Snapshot regen: set SCAMPI_UPDATE=1 to rewrite every expect.json from the

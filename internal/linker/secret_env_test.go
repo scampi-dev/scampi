@@ -65,7 +65,7 @@ func TestSecretEnvBuiltin_DefaultDoesNotRegister(t *testing.T) {
 	if s.V != "fallback-default-value" {
 		t.Errorf("V = %q, want fallback-default-value", s.V)
 	}
-	// Defaults are inline text in the config — not from a secret
+	// Defaults are inline text in the config - not from a secret
 	// store. Registering them would mask user-visible literals.
 	if r.Size() != 0 {
 		t.Errorf("redactor.Size = %d, want 0 (default must not register)", r.Size())
@@ -100,7 +100,7 @@ func TestSecretEnvBuiltin_AcceptsKwargDefault(t *testing.T) {
 
 func TestSecretEnvBuiltin_NilRedactorIsNoOp(t *testing.T) {
 	// LSP and similar paths may not have a redactor wired. The
-	// builtin must still resolve the value cleanly — secrets just
+	// builtin must still resolve the value cleanly - secrets just
 	// won't be masked downstream (LSP doesn't render to terminal).
 	fn := secretEnvBuiltin(mockEnv(map[string]string{"X": "y-actual-value"}), nil)
 	v, errMsg := fn([]eval.Value{&eval.StringVal{V: "X"}}, nil)

@@ -84,7 +84,7 @@ type PortOutOfRangeError struct {
 }
 
 func (e PortOutOfRangeError) Error() string {
-	return fmt.Sprintf("%s %d is out of range (1–65535)", e.Field, e.Value)
+	return fmt.Sprintf("%s %d is out of range (1-65535)", e.Field, e.Value)
 }
 
 func (e PortOutOfRangeError) Diagnostic() event.Event {

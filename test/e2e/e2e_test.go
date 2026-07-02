@@ -189,7 +189,7 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 
 	err := run()
 
-	// Assert diagnostics first — they're recorded regardless of error/success
+	// Assert diagnostics first - they're recorded regardless of error/success
 	if len(expect.Diagnostics) > 0 {
 		gotDiags := rec.CollectDiagnosticIDs()
 		if !stringSlicesEqual(gotDiags, expect.Diagnostics) {

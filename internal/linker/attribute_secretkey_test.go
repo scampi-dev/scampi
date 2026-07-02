@@ -86,7 +86,7 @@ func TestSecretKeyAttribute_LiteralNotFound(t *testing.T) {
 }
 
 func TestSecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
-	// A non-literal expression should be skipped — the runtime check
+	// A non-literal expression should be skipped - the runtime check
 	// handles dynamic args in lang/eval.
 	backend := &stubBackend{lookupOK: true}
 	arg := &ast.Ident{Name: "some_var", SrcSpan: token.Span{Start: 1, End: 9}}

@@ -175,7 +175,7 @@ func parseListStdout(stdout string) []string {
 // diff computes the add/remove sets given live and desired identifier
 // lists. addEnabled and removeEnabled gate each side: if the user did
 // not declare an `add` template, missing items are not flagged as
-// drift (and vice versa) — that's how you get one-way reconciliation
+// drift (and vice versa) - that's how you get one-way reconciliation
 // (e.g. "manage adds, leave orphans alone").
 func diff(live, desired []string, addEnabled, removeEnabled bool) setPlan {
 	liveSet := toSet(live)

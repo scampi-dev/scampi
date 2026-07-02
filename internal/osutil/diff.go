@@ -59,7 +59,7 @@ func RunDiffTool(ctx context.Context, tool, destPath string, current, desired []
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// diff(1) exits 1 when files differ — not an error for us.
+	// diff(1) exits 1 when files differ - not an error for us.
 	if err := cmd.Run(); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
 			return nil
@@ -72,7 +72,7 @@ func RunDiffTool(ctx context.Context, tool, destPath string, current, desired []
 }
 
 // ResolveDiffTool picks a diff tool from environment variables.
-// Lookup order: SCAMPI_DIFFTOOL → DIFFTOOL → EDITOR → "diff".
+// Lookup order: SCAMPI_DIFFTOOL -> DIFFTOOL -> EDITOR -> "diff".
 func ResolveDiffTool() string {
 	for _, env := range []string{"SCAMPI_DIFFTOOL", "DIFFTOOL", "EDITOR"} {
 		if v := os.Getenv(env); v != "" {

@@ -671,7 +671,7 @@ std.deploy(name = "test", targets = [host]) {
 
 // TestTemplate_Error_ExecError verifies template execution errors are reported.
 func TestTemplate_Error_ExecError(t *testing.T) {
-	// Calls len on nil — triggers an exec error distinct from missingkey=error
+	// Calls len on nil - triggers an exec error distinct from missingkey=error
 	cfgStr := `
 module main
 import "std"

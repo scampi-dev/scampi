@@ -114,7 +114,7 @@ type LinkContext interface {
 // name (with the leading `@`, e.g. `std.@secretkey`).
 //
 // User-defined attribute types declared in third-party scampi modules
-// are intentionally absent from this registry — they type-check at
+// are intentionally absent from this registry - they type-check at
 // the lang level but have no runtime behaviour. Future tooling (or a
 // future lang-level hook mechanism, see #159 future work) can attach
 // behaviour to them.
@@ -146,7 +146,7 @@ func (r *AttributeRegistry) Lookup(qualifiedName string) AttributeBehaviour {
 }
 
 // Names returns the qualified names of every registered attribute,
-// in unspecified order. Useful for diagnostics ("did you mean…?")
+// in unspecified order. Useful for diagnostics ("did you mean...?")
 // and for tests.
 func (r *AttributeRegistry) Names() []string {
 	out := make([]string, 0, len(r.behaviours))

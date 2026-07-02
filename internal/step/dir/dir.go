@@ -54,7 +54,7 @@ func (d Dir) Plan(step spec.DeclaredStep) (spec.Step, error) {
 
 	// Path absoluteness and perm format are validated at link time
 	// by @std.path(absolute=true) and @std.filemode on the stub.
-	// Owner/group mutual requirement is cross-field — stays here.
+	// Owner/group mutual requirement is cross-field - stays here.
 	if cfg.Owner != "" && cfg.Group == "" {
 		return nil, PartialOwnershipError{
 			Set: "owner", Missing: "group",
@@ -163,7 +163,7 @@ func (op *ensureDirOp) Check(
 		return spec.CheckUnsatisfied, nil, err
 	}
 
-	// Non-directory at the desired-dir path → drift. Remove + mkdir
+	// Non-directory at the desired-dir path -> drift. Remove + mkdir
 	// in Execute. Refusing here would force users into `posix.run {
 	// rm -f ... && mkdir ... }` workarounds for the common case
 	// where a package or installer dropped a placeholder file (#280).
@@ -203,7 +203,7 @@ func (op *ensureDirOp) Execute(
 		if info.IsDir() {
 			return spec.Result{Changed: false}, nil
 		}
-		// Existing entry isn't a directory — replace it. Remove()
+		// Existing entry isn't a directory - replace it. Remove()
 		// refuses to recursively delete non-empty directories
 		// (filesystem ENOTEMPTY surfaces cleanly), so the only
 		// silent-data-loss risk is a regular file the user

@@ -60,7 +60,7 @@ func FuzzCLI(f *testing.F) {
 		// nonsense
 		"",
 		"   ",
-		"🎉",
+		"\U0001F389",
 		"apply --only=foo --targets=bar nonexistent.scampi",
 	}
 

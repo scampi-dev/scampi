@@ -269,7 +269,7 @@ std.deploy(name = "web", targets = [vps]) {
 }
 
 // TestLinkZeroSpansWithoutSource verifies that without WithSource(),
-// linked instances carry zero-valued spans — the back-compat path for
+// linked instances carry zero-valued spans - the back-compat path for
 // callers that don't plumb source bytes.
 func TestLinkZeroSpansWithoutSource(t *testing.T) {
 	cfg := evalAndLink(t, `module main

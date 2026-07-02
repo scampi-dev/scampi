@@ -916,7 +916,7 @@ func columnTypeName(sl *ast.StructLit) string {
 }
 
 // fieldsCompatible reports whether b's fields are prefix-compatible with a.
-// Items join a group when their shared leading field names match — extra
+// Items join a group when their shared leading field names match - extra
 // trailing fields on either side are fine.
 func fieldsCompatible(a, b []string) bool {
 	n := min(len(a), len(b))
@@ -976,7 +976,7 @@ func (p *printer) emitColumnGroup(stmts []ast.Stmt) {
 }
 
 // computeColumnWidths measures the max value width per column. Only
-// items where the column is NOT the last field contribute — the last
+// items where the column is NOT the last field contribute - the last
 // field is never padded, so its width shouldn't inflate padding for
 // items that have more fields after it.
 func (p *printer) computeColumnWidths(lits []*ast.StructLit) []int {
@@ -990,7 +990,7 @@ func (p *printer) computeColumnWidths(lits []*ast.StructLit) []int {
 	for _, sl := range lits {
 		for col, fi := range sl.Fields {
 			if col == len(sl.Fields)-1 {
-				continue // last field — never padded, skip
+				continue // last field - never padded, skip
 			}
 			w := p.measureExpr(fi.Value)
 			if w > maxWidths[col] {

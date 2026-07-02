@@ -127,7 +127,7 @@ func extractionAdvice(stderr string) string {
 	if strings.Contains(lower, "cannot open") ||
 		strings.Contains(lower, "permission denied") ||
 		strings.Contains(lower, "operation not permitted") {
-		return "target contains files not writable by the connecting user — check ownership with ls -la"
+		return "target contains files not writable by the connecting user - check ownership with ls -la"
 	}
 	return "check that the archive is not corrupt and required tools are installed"
 }
@@ -141,7 +141,7 @@ type PartialOwnershipError struct {
 }
 
 func (e PartialOwnershipError) Error() string {
-	return fmt.Sprintf("%s is set but %s is empty — set both or neither", e.Set, e.Missing)
+	return fmt.Sprintf("%s is set but %s is empty - set both or neither", e.Set, e.Missing)
 }
 
 func (e PartialOwnershipError) Diagnostic() event.Event {

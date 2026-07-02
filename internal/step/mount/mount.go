@@ -84,7 +84,7 @@ func parseFsType(s string) FsType {
 	case fsCeph:
 		return FsCeph
 	default:
-		panic(errs.BUG("invalid mount fs_type %q — should have been caught by lang typechecker", s))
+		panic(errs.BUG("invalid mount fs_type %q - should have been caught by lang typechecker", s))
 	}
 }
 
@@ -208,7 +208,7 @@ func (Mount) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	case stateAbsent:
 		state = StateAbsent
 	default:
-		panic(errs.BUG("invalid mount state %q — should have been caught by lang typechecker", cfg.State))
+		panic(errs.BUG("invalid mount state %q - should have been caught by lang typechecker", cfg.State))
 	}
 
 	if state == StateAbsent && cfg.Src == "" {

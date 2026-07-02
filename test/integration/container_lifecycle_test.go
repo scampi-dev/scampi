@@ -216,7 +216,7 @@ std.deploy(name = "test", targets = [host]) {
 `, name)
 	applyContainerConfig(t, cfgStr, tgt)
 
-	// Update env — should trigger recreate
+	// Update env - should trigger recreate
 	cfgStr2 := fmt.Sprintf(`
 module main
 import "std"

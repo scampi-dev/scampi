@@ -16,14 +16,14 @@ import (
 // expect is the StructVal produced by `test.ExpectedState{...}` in
 // scampi. Its Fields map carries one entry per slot kind
 // (files, packages, services, dirs, symlinks); each slot is a
-// MapVal of string → Matcher StructVal. Slots that are nil or
+// MapVal of string -> Matcher StructVal. Slots that are nil or
 // NoneVal are skipped.
 //
 // The mock argument carries the runtime state recorded during
 // engine apply. Slot lookups consult the mock's maps directly.
 //
 // Mismatches are returned in a stable order: first by slot kind
-// (files → packages → services → dirs → symlinks), then by key
+// (files -> packages -> services -> dirs -> symlinks), then by key
 // alphabetically. This makes diagnostic output deterministic across
 // runs.
 func VerifyMemTarget(expect *eval.StructVal, mock *target.MemTarget) []Mismatch {
@@ -67,7 +67,7 @@ func VerifyMemTarget(expect *eval.StructVal, mock *target.MemTarget) []Mismatch 
 }
 
 // verifySlot looks up the named slot field on the ExpectedState
-// struct, walks its map of (key → matcher StructVal) entries in
+// struct, walks its map of (key -> matcher StructVal) entries in
 // sorted order, calls Match for each one, and returns every
 // mismatch found.
 func verifySlot(
@@ -82,7 +82,7 @@ func verifySlot(
 	}
 	mp, ok := raw.(*eval.MapVal)
 	if !ok {
-		// Slot omitted entirely (None) or wrong shape — both
+		// Slot omitted entirely (None) or wrong shape - both
 		// mean "no expectations to verify here".
 		return nil
 	}
@@ -149,8 +149,8 @@ func observePackage(mock *target.MemTarget, name string) any {
 
 func observeService(mock *target.MemTarget, name string) any {
 	// A service entry exists if it's been touched (started, stopped,
-	// enabled, disabled, etc.) — return its current observed state.
-	// Absent service → return nil so presence matchers can detect it.
+	// enabled, disabled, etc.) - return its current observed state.
+	// Absent service -> return nil so presence matchers can detect it.
 	_, knownActive := mock.Services[name]
 	_, knownEnabled := mock.EnabledServices[name]
 	if !knownActive && !knownEnabled {

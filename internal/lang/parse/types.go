@@ -9,10 +9,10 @@ import (
 
 // parseTypeExpr parses a type expression:
 //
-//	T              — named type (possibly dotted)
-//	T[T, T]        — generic type
-//	T?             — optional type
-//	T[T]?          — combined
+//	T              - named type (possibly dotted)
+//	T[T, T]        - generic type
+//	T?             - optional type
+//	T[T]?          - combined
 func (p *Parser) parseTypeExpr() ast.TypeExpr {
 	var t ast.TypeExpr
 

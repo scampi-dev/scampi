@@ -24,7 +24,7 @@ func detectDuplicatePromises(
 	stepSources []int,
 	declared []spec.DeclaredStep,
 ) error {
-	winners := map[spec.Resource]int{} // resource → step index of first promiser
+	winners := map[spec.Resource]int{} // resource -> step index of first promiser
 	var causes []error
 
 	for i, step := range steps {
@@ -91,7 +91,7 @@ func (e DuplicateResourceError) Diagnostic() event.Event {
 		Template: event.Template{
 			ID: CodeDuplicateResource,
 			Text: `duplicate {{.KindLabel}} "{{.Resource.Name}}"` +
-				` — already declared by {{.OtherKind}} at {{.OtherLocText}}`,
+				` - already declared by {{.OtherKind}} at {{.OtherLocText}}`,
 			Hint:   `{{.HintText}}`,
 			Data:   e,
 			Source: &e.Source,
@@ -121,9 +121,9 @@ func resourceKindHint(k spec.ResourceKind) string {
 	case spec.ResourceGroup:
 		return "merge into a single posix.group step or use distinct names"
 	case spec.ResourcePath:
-		return "two steps cannot manage the same path — merge them or pick distinct destinations"
+		return "two steps cannot manage the same path - merge them or pick distinct destinations"
 	default:
-		return "two steps cannot promise the same resource — remove or rename one"
+		return "two steps cannot promise the same resource - remove or rename one"
 	}
 }
 

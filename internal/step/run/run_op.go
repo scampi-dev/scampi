@@ -30,7 +30,7 @@ type runOp struct {
 // metacharacters pass through unmolested. Keys are sorted so the
 // generated command is stable across runs (debuggable, diffable).
 //
-// Empty map → empty prefix (no overhead for the zero-env case).
+// Empty map -> empty prefix (no overhead for the zero-env case).
 func envPrefix(env map[string]string) string {
 	if len(env) == 0 {
 		return ""

@@ -29,7 +29,7 @@ func (AbortError) Error() string {
 // request a hard abort. The scheduler treats this as a real failure so
 // downstream steps don't run against a broken upstream. The user-visible
 // diagnostic has already been emitted; this error only carries propagation
-// state — Unwrap exposes the original cause for errors.As callers.
+// state - Unwrap exposes the original cause for errors.As callers.
 type StepAbortedError struct {
 	Cause error
 }

@@ -252,7 +252,7 @@ func secretsInitCmd() *cli.Command {
 				}
 				if !term.IsTerminal(os.Stdin.Fd()) {
 					return cliError(
-						"refusing to overwrite key in non-interactive mode — this is destructive and irreversible",
+						"refusing to overwrite key in non-interactive mode - this is destructive and irreversible",
 					)
 				}
 				_, _ = fmt.Fprintf(os.Stderr,
@@ -363,7 +363,7 @@ func secretsSetCmd() *cli.Command {
 			}
 
 			if plaintext == "" {
-				return usageError(cmd, "refusing to store empty secret — pass a value as the second argument")
+				return usageError(cmd, "refusing to store empty secret - pass a value as the second argument")
 			}
 
 			encrypted, err := secret.EncryptValue(plaintext, recipients)
@@ -575,7 +575,7 @@ func secretsRecryptCmd() *cli.Command {
 			if len(recipients) == 1 {
 				if !term.IsTerminal(os.Stdin.Fd()) {
 					return cliError(
-						"no --recipient given — this would drop all other recipients; " +
+						"no --recipient given - this would drop all other recipients; " +
 							"pass -r explicitly or run interactively",
 					)
 				}

@@ -62,7 +62,7 @@ func parseAction(s string) Action {
 	case "reject":
 		return ActionReject
 	default:
-		panic(errs.BUG("invalid firewall action %q — should have been caught by validate", s))
+		panic(errs.BUG("invalid firewall action %q - should have been caught by validate", s))
 	}
 }
 
@@ -73,7 +73,7 @@ func parseProto(s string) target.PortProto {
 	case "udp":
 		return target.ProtoUDP
 	default:
-		panic(errs.BUG("invalid protocol %q — should have been caught by validate", s))
+		panic(errs.BUG("invalid protocol %q - should have been caught by validate", s))
 	}
 }
 

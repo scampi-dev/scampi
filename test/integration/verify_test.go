@@ -363,7 +363,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Verify: idempotency — verify is not re-run when content matches
+// Verify: idempotency - verify is not re-run when content matches
 // -----------------------------------------------------------------------------
 
 func TestVerify_CopyIdempotentSkipsVerify(t *testing.T) {

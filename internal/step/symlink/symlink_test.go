@@ -12,7 +12,7 @@ import (
 )
 
 // Apply-side behavioral scenarios (overwrite-regular-file, idempotent,
-// retarget-wrong-link) live in test/testdata/e2e/symlink-* — they drive
+// retarget-wrong-link) live in test/testdata/e2e/symlink-* - they drive
 // real scampi configs through engine.Apply against MemTarget. This
 // file keeps only Check-only behavior (drift detail for non-applicable
 // states) and pure-function unit tests.

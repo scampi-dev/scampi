@@ -54,7 +54,7 @@ func WithRedactor(r *secret.Redactor) AnalyzeOption {
 	return func(o *analyzeOpts) { o.redactor = r }
 }
 
-// Analyze runs the full lang pipeline (lex → parse → check → eval →
+// Analyze runs the full lang pipeline (lex -> parse -> check -> eval ->
 // attribute static checks) without performing the final Link step.
 // Returns the analysis result and an error wrapping the first
 // failing phase's diagnostics. Suitable for both the linker
@@ -197,7 +197,7 @@ func Analyze(
 }
 
 // LoadConfig reads a .scampi file, runs the full lang pipeline
-// (lex → parse → check → eval → link), and returns a spec.DeclaredConfig
+// (lex -> parse -> check -> eval -> link), and returns a spec.DeclaredConfig
 // ready for the engine.
 func LoadConfig(
 	ctx diagnostic.Ctx,
@@ -324,8 +324,8 @@ func secretGetBuiltin(redactor *secret.Redactor) eval.BuiltinFunc {
 }
 
 // secretEnvBuiltin returns a BuiltinFunc for std.secret_env(name, default).
-// Mirrors std.env semantics — read env via the source's lookup, fall back
-// to default on miss — but registers every successful resolution with
+// Mirrors std.env semantics - read env via the source's lookup, fall back
+// to default on miss - but registers every successful resolution with
 // the redactor so the value gets masked in subsequent rendered output.
 // See #282.
 func secretEnvBuiltin(envLookup func(string) (string, bool), redactor *secret.Redactor) eval.BuiltinFunc {
@@ -340,7 +340,7 @@ func secretEnvBuiltin(envLookup func(string) (string, bool), redactor *secret.Re
 		}
 		// Default fallback: secrets are still values, so a default
 		// for an unset secret env is a plain string (not registered
-		// — it didn't come from the env). The user opting into
+		// - it didn't come from the env). The user opting into
 		// secret_env wants the *real* value redacted; the default is
 		// literally inline text in the config.
 		def := ""
@@ -364,7 +364,7 @@ func secretEnvBuiltin(envLookup func(string) (string, bool), redactor *secret.Re
 // stdReadFileBuiltin returns a BuiltinFunc for std.read_file(path).
 // Reads a UTF-8 file from the source side, resolved relative to the
 // calling config's directory (matching `posix.source_local`'s
-// resolution). Trims one trailing newline — the typical case is
+// resolution). Trims one trailing newline - the typical case is
 // "ssh-key\n" or "config\n" where the literal newline isn't part of
 // the value.
 //

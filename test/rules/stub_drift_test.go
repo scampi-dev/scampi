@@ -90,12 +90,12 @@ func TestStubsMatchGoConfigs(t *testing.T) {
 // set. Mirrors linker/linker.go's resolution chain for steps and
 // targets:
 //
-//   - dotted kind (`container.instance`, `rest.request`) → look up
+//   - dotted kind (`container.instance`, `rest.request`) -> look up
 //     leaf decl ("instance"/"request") in the matching module file
-//   - undotted step kind (`copy`, `pkg`) → search every module for a
+//   - undotted step kind (`copy`, `pkg`) -> search every module for a
 //     leaf decl with that name; first hit wins
 //   - undotted target kind matching a module name (`ssh`, `local`,
-//     `rest`) → look for `decl target` inside that module. Every
+//     `rest`) -> look for `decl target` inside that module. Every
 //     target stub follows this convention: a module per target,
 //     `decl target(...)` as the single declaration. User-side reads
 //     `ssh.target { ... }`, `local.target { ... }`, `rest.target { ... }`.
@@ -130,8 +130,8 @@ func lookupStubDecl(decls map[string]map[string]map[string]bool, kind string, is
 }
 
 // loadStubDecls walks std/*.scampi and std/*/*.scampi via the embed
-// FS, parses each, and returns a nested map of module name → leaf
-// decl name → set of parameter names. The module name comes from the
+// FS, parses each, and returns a nested map of module name -> leaf
+// decl name -> set of parameter names. The module name comes from the
 // stub's `module foo` header; the leaf is the last segment of the
 // dotted decl name.
 func loadStubDecls(t *testing.T) map[string]map[string]map[string]bool {
@@ -213,7 +213,7 @@ func missingStubParams(cfg any, stubParams map[string]bool) []string {
 			continue
 		}
 		if f.Tag.Get("step") == "" {
-			// Untagged exported fields are internal — not part
+			// Untagged exported fields are internal - not part
 			// of the user-facing schema.
 			continue
 		}

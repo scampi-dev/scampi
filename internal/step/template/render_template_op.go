@@ -217,7 +217,7 @@ func (op *renderTemplateOp) getTemplateContent(
 	)
 	if op.srcRef.Kind == spec.SourceTarget {
 		// Read from the target itself (#286). Same payoff as
-		// posix.copy + source_target — the template can pull its
+		// posix.copy + source_target - the template can pull its
 		// source from a file produced by an earlier step on the
 		// same target.
 		fsTgt := target.Must[target.Filesystem](renderTemplateID, tgt)

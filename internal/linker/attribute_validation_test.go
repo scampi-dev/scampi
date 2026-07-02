@@ -28,7 +28,7 @@ func captureCtx(t *testing.T) diagnostic.Ctx { return ctxFor(t, &harness.Capture
 //
 // Mirrors the pattern in attribute_secretkey_test.go. The point is
 // fast, focused coverage of the contract the linker relies on after
-// step-side validation was deleted in #166 — if any of these
+// step-side validation was deleted in #166 - if any of these
 // behaviours regresses, the migration's safety net is gone.
 
 func newAttrCtx(t *testing.T, name, paramName string, arg ast.Expr, args map[string]any) StaticCheckContext {
@@ -115,7 +115,7 @@ func TestNonEmpty_ComputedSkipped(t *testing.T) {
 	}
 }
 
-// Resolved-path coverage — eval-walk hands Resolved to the behaviour
+// Resolved-path coverage - eval-walk hands Resolved to the behaviour
 // instead of an AST literal. These cases verify the fallback chain
 // works without a ParamArg AST node.
 // -----------------------------------------------------------------------------
@@ -284,7 +284,7 @@ func TestPattern_NoMatch(t *testing.T) {
 func TestPattern_VerifyExactlyOnePercentS(t *testing.T) {
 	// The regex shipped on copy.verify and template.verify:
 	// requires exactly one %s, allows other %X tokens. The runtime
-	// uses strings.Replace(verifyCmd, "%s", tmpFile, 1) — only the
+	// uses strings.Replace(verifyCmd, "%s", tmpFile, 1) - only the
 	// first %s is substituted, so multi-%s would silently misbehave.
 	// %% and %X (X != s) are fine because the shell sees them as
 	// literal characters, not printf format directives.
@@ -300,7 +300,7 @@ func TestPattern_VerifyExactlyOnePercentS(t *testing.T) {
 		{`echo 100%% done %s`, 0}, // %% is allowed (literal in shell)
 		{`%s`, 0},                 // bare %s
 		{`visudo -cf`, 1},         // no %s
-		{`diff %s %s`, 1},         // two %s — the bug we're guarding against
+		{`diff %s %s`, 1},         // two %s - the bug we're guarding against
 		{`%s %s %s`, 1},           // three %s
 	}
 	for _, c := range cases {

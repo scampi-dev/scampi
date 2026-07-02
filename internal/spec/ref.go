@@ -6,7 +6,7 @@ import "fmt"
 
 // StepID is a unique identifier assigned to each step during scampi
 // evaluation. Used internally for ref() targeting and output registry
-// keying — never exposed to the user.
+// keying - never exposed to the user.
 type StepID uint64
 
 // Ref is a runtime value reference from one step to another's settled

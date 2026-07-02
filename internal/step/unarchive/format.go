@@ -17,7 +17,7 @@ const (
 	formatTarZst
 	formatTar
 	formatZip
-	_formatCount // sentinel — must be last
+	_formatCount // sentinel - must be last
 )
 
 type formatEntry struct {

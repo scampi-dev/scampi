@@ -177,7 +177,7 @@ func TestRunPlansConcurrent_CtxCancellationPropagates(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(t.Context())
 	// Signal from inside the worker as soon as one has entered its
-	// blocking select — only then is it meaningful to cancel and
+	// blocking select - only then is it meaningful to cancel and
 	// observe in-flight cancellation. The old `time.Sleep(20ms)`
 	// approximated this and was flaky under load.
 	started := make(chan struct{})

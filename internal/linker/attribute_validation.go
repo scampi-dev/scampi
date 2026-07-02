@@ -19,7 +19,7 @@ import (
 // @deprecated, @since, @path. Each behaviour validates literal
 // arguments at link time and emits a typed diagnostic when they
 // don't satisfy the rule. Non-literal arguments fall through to the
-// runtime — the lang itself doesn't have arbitrary value checking,
+// runtime - the lang itself doesn't have arbitrary value checking,
 // so anything dynamic just runs as the program intends and any
 // failures surface from the actual op when it executes.
 
@@ -61,7 +61,7 @@ func literalList(ctx StaticCheckContext) (int, bool) {
 }
 
 // NonEmptyAttribute fails when the annotated parameter binds to a
-// literal empty value. Handles both string and list literals — the
+// literal empty value. Handles both string and list literals - the
 // "must not be empty" rule reads identically for either shape, and
 // list-typed params (e.g. pkg.packages) deserve the same fast-fail
 // treatment as string-typed ones. Hint and Help come from the
@@ -91,7 +91,7 @@ func (NonEmptyAttribute) StaticCheck(ctx StaticCheckContext) {
 // perm.ParsePerm so the static check accepts the same formats as
 // the runtime check (octal, ls-style, posix style). The error
 // rendering pulls Hint and Help from the attribute type's doc
-// comment in std/std.scampi — single source of truth.
+// comment in std/std.scampi - single source of truth.
 type FileModeAttribute struct{}
 
 func (FileModeAttribute) StaticCheck(ctx StaticCheckContext) {
@@ -107,7 +107,7 @@ func (FileModeAttribute) StaticCheck(ctx StaticCheckContext) {
 // SizeAttribute validates that the annotated string parameter is a
 // recognised human-readable byte amount. Accepts bare integers (bytes)
 // or numbers with an uppercase unit suffix B/K/M/G/T, optionally with
-// a decimal point. Lowercase suffixes are rejected — keeping it case-
+// a decimal point. Lowercase suffixes are rejected - keeping it case-
 // sensitive avoids ambiguity in mixed-case configs.
 type SizeAttribute struct{}
 
@@ -140,7 +140,7 @@ func (PatternAttribute) StaticCheck(ctx StaticCheckContext) {
 	}
 	re, err := regexp.Compile(rawRegex)
 	if err != nil {
-		// Bad regex on the attribute itself — surface as a fatal so
+		// Bad regex on the attribute itself - surface as a fatal so
 		// stub authors notice.
 		ctx.Linker.Raise(newAttrDocError(
 			ctx,
@@ -294,7 +294,7 @@ func (PathAttribute) StaticCheck(ctx StaticCheckContext) {
 
 // newAttrDocError builds an attrDocError from a StaticCheckContext.
 // The error's Hint and Help are derived from the attribute type's
-// doc comment via splitDoc — single source of truth lives in the
+// doc comment via splitDoc - single source of truth lives in the
 // `type @name { ... }` declaration in std/std.scampi.
 func newAttrDocError(ctx StaticCheckContext, message string) *attrDocError {
 	hint, help := splitDoc(ctx.AttrDoc)

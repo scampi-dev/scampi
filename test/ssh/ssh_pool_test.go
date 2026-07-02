@@ -27,7 +27,7 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 	tgt := harness.ConnectSSH(t, env)
 	defer tgt.Close()
 
-	// Baseline counters — Create() opens its own sessions for OS,
+	// Baseline counters - Create() opens its own sessions for OS,
 	// service-manager, container-runtime, and escalation
 	// detection. We measure ops *after* setup so this test asserts
 	// against our own work, not whatever probing Create() did.
@@ -58,7 +58,7 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 
 	stats := tgt.Stats()
 	if stats.DialCount != 1 {
-		t.Errorf("DialCount = %d, want 1 — connection should be pooled per target", stats.DialCount)
+		t.Errorf("DialCount = %d, want 1 - connection should be pooled per target", stats.DialCount)
 	}
 	wantCommands := int64(sequentialOps + parallelOps)
 	gotCommands := stats.CommandsRun - baseline.CommandsRun
@@ -68,11 +68,11 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 	}
 	// SessionsOpened is now a measure of pool churn, not command
 	// count. With persistent shells, a small handful of sessions
-	// should serve every command. Cap is loose — small fluctuations
+	// should serve every command. Cap is loose - small fluctuations
 	// based on parallelism timing are fine.
 	gotSessions := stats.SessionsOpened - baseline.SessionsOpened
 	if gotSessions > int64(parallelOps) {
-		t.Errorf("SessionsOpened delta = %d, want at most %d — shells should be reused",
+		t.Errorf("SessionsOpened delta = %d, want at most %d - shells should be reused",
 			gotSessions, parallelOps)
 	}
 }
@@ -146,7 +146,7 @@ func TestSSH_RetryHandlesContention(t *testing.T) {
 		t.Fatalf("MaxSessions = %d, expected positive (slot pool size)", maxSessions)
 	}
 
-	// 3× the slot pool capacity in parallel. With each holding a
+	// 3x the slot pool capacity in parallel. With each holding a
 	// session for ~50ms, this guarantees the server-side cap is hit
 	// AND the client-side slot pool saturates. Both backpressure
 	// mechanisms get exercised. All ops must still complete.
@@ -208,7 +208,7 @@ func TestSSH_RunCommand_ContextCancellation(t *testing.T) {
 	}
 	// `saturating` fires before each goroutine calls RunCommand. Slot
 	// acquisition happens inside RunCommand, so we have to wait for
-	// the pool's semaphore to fill. Poll instead of fixed-sleep —
+	// the pool's semaphore to fill. Poll instead of fixed-sleep -
 	// fast on local, robust on slow CI. We watch SessionsAcquired
 	// (semaphore tokens held) rather than SessionsInFlight because
 	// the ssh server's MaxStartups may keep some opens in retry,
@@ -223,7 +223,7 @@ func TestSSH_RunCommand_ContextCancellation(t *testing.T) {
 	}
 
 	// This call should block on slot acquire, then return ctx.Err()
-	// when ctx is cancelled — not hang or panic.
+	// when ctx is cancelled - not hang or panic.
 	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
 	defer cancel()
 
@@ -235,7 +235,7 @@ func TestSSH_RunCommand_ContextCancellation(t *testing.T) {
 		t.Fatal("expected context-cancelled error, got success")
 	}
 	if elapsed > 1*time.Second {
-		t.Errorf("RunCommand took %v after ctx cancel — should have returned promptly", elapsed)
+		t.Errorf("RunCommand took %v after ctx cancel - should have returned promptly", elapsed)
 	}
 
 	// Drain the saturating ops so the test cleans up.

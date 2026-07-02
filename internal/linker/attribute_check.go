@@ -15,7 +15,7 @@ import (
 // sites whose parameters carry `@`-attributes and dispatches the
 // registered AttributeBehaviour for each. This path covers shapes
 // where eval consumed the call's args (`secrets.get("key")`, plain
-// `f(arg)`, `std.deploy(name=, targets=)`) — the literal lives only
+// `f(arg)`, `std.deploy(name=, targets=)`) - the literal lives only
 // in the AST.
 //
 // Decl/struct-literal invocations (`foo.thing { id = ... }`) are NOT
@@ -23,7 +23,7 @@ import (
 // the eval-resolved values. That gets us comprehensions, let-bindings,
 // and field access for free.
 //
-// Non-literal call args (let-bound, computed, etc.) skip silently —
+// Non-literal call args (let-bound, computed, etc.) skip silently -
 // behaviours that need a literal (like @secretkey) bail early on
 // their own.
 func runAttributeStaticChecks(
@@ -66,7 +66,7 @@ type attributeCheckVisitor struct {
 }
 
 // enter dispatches attribute checks for AST shapes whose call-site
-// arguments don't survive eval — UFCS and plain function calls.
+// arguments don't survive eval - UFCS and plain function calls.
 // Decl/struct-literal invocations are validated via the eval-walker
 // (see attribute_eval_walk.go) which sees the resolved values rather
 // than the syntactic AST.
@@ -157,7 +157,7 @@ func (v *attributeCheckVisitor) checkCall(call *ast.CallExpr, ft *check.FuncType
 	}
 	argFor := bindCallArgs(call, ft)
 
-	// For UFCS calls, the receiver is param 0 but isn't in Args —
+	// For UFCS calls, the receiver is param 0 but isn't in Args -
 	// it lives in call.Fn.(*SelectorExpr).X. Shift all arg indices
 	// up by 1 so they align with the function's parameter list.
 	if call.UFCS {
@@ -184,7 +184,7 @@ func (v *attributeCheckVisitor) checkCall(call *ast.CallExpr, ft *check.FuncType
 			continue
 		}
 		// Non-literal args (let-bound, computed, etc.) skip silently
-		// — eval has consumed the value, so there's nothing to
+		// - eval has consumed the value, so there's nothing to
 		// validate statically. Behaviours that absolutely need a
 		// literal (@secretkey) bail early on their own.
 		for _, attr := range p.Attributes {

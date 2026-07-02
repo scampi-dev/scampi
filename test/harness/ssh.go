@@ -25,7 +25,7 @@ const (
 )
 
 // SSHTestPort is the host port that the SSH container is bound to.
-// Set at StartSharedContainer time — the compose file uses an ephemeral
+// Set at StartSharedContainer time - the compose file uses an ephemeral
 // host port (binding `"22"`) so multiple test packages can run their own
 // sshd container in parallel without colliding.
 var SSHTestPort int
@@ -54,7 +54,7 @@ type SSHTestEnv struct {
 
 // StartSharedContainer starts the SSH container once for all tests in
 // the calling package. The project name namespaces the compose project
-// — each test package passes its own (e.g. "scampi-test-ssh",
+// - each test package passes its own (e.g. "scampi-test-ssh",
 // "scampi-test-e2e") so two packages can run their own container in
 // parallel. Called from TestMain.
 func StartSharedContainer(project string) error {
@@ -123,7 +123,7 @@ func RecreateContainer(t *testing.T) {
 	t.Helper()
 
 	if SharedComposeFile == "" || sharedProject == "" {
-		t.Fatal("RecreateContainer: no compose file — TestMain did not start a container")
+		t.Fatal("RecreateContainer: no compose file - TestMain did not start a container")
 	}
 
 	cmd := exec.Command(
@@ -185,7 +185,7 @@ func lookupHostPort(project, file, service string, containerPort int) (int, erro
 	if err != nil {
 		return 0, fmt.Errorf("docker compose port %s %d: %w", service, containerPort, err)
 	}
-	// Take the last `:PORT` segment — handles both IPv4 and IPv6 outputs.
+	// Take the last `:PORT` segment - handles both IPv4 and IPv6 outputs.
 	s := strings.TrimSpace(string(out))
 	idx := strings.LastIndex(s, ":")
 	if idx < 0 {

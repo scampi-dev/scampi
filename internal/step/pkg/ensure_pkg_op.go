@@ -21,7 +21,7 @@ const ensurePkgID = "ensure_pkg"
 // cacheStaleThreshold is the maximum age we consider a package cache "fresh".
 // If CacheAge reports a younger cache, we skip the refresh on install failure.
 // Set low (1s) so backends that report real ages still effectively always
-// refresh — raise once we trust the heuristic.
+// refresh - raise once we trust the heuristic.
 const cacheStaleThreshold = 1 * time.Second
 
 type ensurePkgOp struct {
@@ -194,7 +194,7 @@ func (op *ensureLatestPkgOp) Check(
 	// Check is read-only: use the existing pkg cache rather than
 	// refreshing it. Cache refresh is a target mutation and belongs
 	// in Execute. A stale cache may cause Check to miss a pending
-	// upgrade — Execute refreshes before deciding what to install,
+	// upgrade - Execute refreshes before deciding what to install,
 	// so the corrective step still runs accurately.
 	t := target.Must[interface {
 		target.PkgManager
@@ -241,7 +241,7 @@ func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt t
 		target.PkgUpdater
 	}](ensurePkgID, tgt)
 
-	// Refresh the pkg cache before deciding what to install — Check
+	// Refresh the pkg cache before deciding what to install - Check
 	// uses cached metadata which may be stale.
 	if err := t.UpdateCache(ctx); err != nil {
 		return spec.Result{}, PkgCacheError{

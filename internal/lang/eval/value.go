@@ -2,7 +2,7 @@
 
 // Package eval is the scampi tree-walking evaluator. It takes a
 // parsed and type-checked AST and produces generic runtime values.
-// The evaluator has no knowledge of engine concepts — it just evaluates
+// The evaluator has no knowledge of engine concepts - it just evaluates
 // typed configuration language into values the caller interprets.
 package eval
 
@@ -130,7 +130,7 @@ type BlockVal struct {
 func (*BlockVal) valueTag()        {}
 func (v *BlockVal) String() string { return "block(" + v.FuncName + ")" }
 
-// BlockResultVal is a filled block[T] — the result of supplying a
+// BlockResultVal is a filled block[T] - the result of supplying a
 // statement body to a block[T] value. It carries the config fields
 // from the original call plus the values collected from the body.
 type BlockResultVal struct {
@@ -165,7 +165,7 @@ func (v *FuncVal) String() string { return "func " + v.Name }
 // user modules (#269) so importing a module doesn't trigger eager
 // evaluation of every exported binding (and every secret fetch /
 // network call those bindings might do). The thunk is resolved on
-// first access — at the selector / dotted-name lookup site that
+// first access - at the selector / dotted-name lookup site that
 // pulls the value out of the module's exported map.
 type ThunkVal struct {
 	eval   func() Value
@@ -194,7 +194,7 @@ func (v *ThunkVal) Force() Value {
 // forceValue collapses a ThunkVal to its computed value; passes other
 // values through unchanged. Call at every site where a value is
 // pulled out of a container that may hold thunks (module pubMap,
-// fullMap, etc.) — keeps thunk semantics from leaking past the
+// fullMap, etc.) - keeps thunk semantics from leaking past the
 // access boundary.
 func forceValue(v Value) Value {
 	if t, ok := v.(*ThunkVal); ok {
@@ -218,7 +218,7 @@ func (v *RefVal) String() string { return "ref(..," + v.Expr + ")" }
 // an arbitrary Go object produced by a caller-registered BuiltinFunc
 // during eval. Unlike StructVal (which holds user-provided config
 // fields as map[string]Value), OpaqueVal carries runtime state that
-// the eval layer cannot interpret — the caller constructs it and
+// the eval layer cannot interpret - the caller constructs it and
 // later type-asserts Inner to recover the concrete type.
 //
 // Example: secrets.from_age() constructs a secret.Backend at eval
@@ -227,7 +227,7 @@ func (v *RefVal) String() string { return "ref(..," + v.Expr + ")" }
 // secret.Backend to validate literal keys.
 type OpaqueVal struct {
 	TypeName string // matches the stub's return type (e.g. "SecretResolver")
-	Inner    any    // concrete Go value — eval never touches this
+	Inner    any    // concrete Go value - eval never touches this
 }
 
 func (*OpaqueVal) valueTag()        {}
@@ -237,7 +237,7 @@ func (v *OpaqueVal) String() string { return v.TypeName }
 // -----------------------------------------------------------------------------
 
 // Result is the output of evaluating a scampi program. It
-// contains only generic typed values — no engine-specific types.
+// contains only generic typed values - no engine-specific types.
 // The caller (linker) interprets these based on RetType/TypeName.
 type Result struct {
 	Bindings map[string]Value // all top-level let bindings

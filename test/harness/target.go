@@ -232,11 +232,11 @@ func (p *PkgOnlyTarget) Capabilities() capability.Capability {
 }
 
 func (p *PkgOnlyTarget) UpdateCache(_ context.Context) error {
-	panic("PkgOnlyTarget.UpdateCache called — capability check failed")
+	panic("PkgOnlyTarget.UpdateCache called - capability check failed")
 }
 
 func (p *PkgOnlyTarget) IsUpgradable(_ context.Context, _ string) (bool, error) {
-	panic("PkgOnlyTarget.IsUpgradable called — capability check failed")
+	panic("PkgOnlyTarget.IsUpgradable called - capability check failed")
 }
 
 // SymlinkOnlyTarget advertises Symlink but not Filesystem.
@@ -253,23 +253,23 @@ func (s *SymlinkOnlyTarget) Capabilities() capability.Capability {
 }
 
 func (s *SymlinkOnlyTarget) Stat(_ context.Context, _ string) (fs.FileInfo, error) {
-	panic("SymlinkOnlyTarget.Stat called — capability check failed")
+	panic("SymlinkOnlyTarget.Stat called - capability check failed")
 }
 
 func (s *SymlinkOnlyTarget) ReadFile(_ context.Context, _ string) ([]byte, error) {
-	panic("SymlinkOnlyTarget.ReadFile called — capability check failed")
+	panic("SymlinkOnlyTarget.ReadFile called - capability check failed")
 }
 
 func (s *SymlinkOnlyTarget) WriteFile(_ context.Context, _ string, _ []byte) error {
-	panic("SymlinkOnlyTarget.WriteFile called — capability check failed")
+	panic("SymlinkOnlyTarget.WriteFile called - capability check failed")
 }
 
 func (s *SymlinkOnlyTarget) Remove(_ context.Context, _ string) error {
-	panic("SymlinkOnlyTarget.Remove called — capability check failed")
+	panic("SymlinkOnlyTarget.Remove called - capability check failed")
 }
 
 func (s *SymlinkOnlyTarget) Mkdir(_ context.Context, _ string, _ fs.FileMode) error {
-	panic("SymlinkOnlyTarget.Mkdir called — capability check failed")
+	panic("SymlinkOnlyTarget.Mkdir called - capability check failed")
 }
 
 // NoCommandTarget advertises Filesystem but not Command.
@@ -286,7 +286,7 @@ func (n *NoCommandTarget) Capabilities() capability.Capability {
 }
 
 func (n *NoCommandTarget) RunCommand(_ context.Context, _ string) (target.CommandResult, error) {
-	panic("NoCommandTarget.RunCommand called — capability check failed")
+	panic("NoCommandTarget.RunCommand called - capability check failed")
 }
 
 type mockTargetKind struct {

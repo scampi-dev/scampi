@@ -161,8 +161,8 @@ func (c *CLI) refreshGeometry() {
 
 func (c *CLI) commitRenderEvents(events []renderEvent) {
 	for i := range events {
-		// Redact at the central choke point so every line — diagnostic,
-		// inspect, plan render, status update — passes through the
+		// Redact at the central choke point so every line - diagnostic,
+		// inspect, plan render, status update - passes through the
 		// secret mask. Targeted redaction inside fmtTemplate /
 		// EmitInspect is intentional defense-in-depth; this catches
 		// anything that builds a renderEvent directly. See #281.
@@ -467,7 +467,7 @@ func fieldDescWithDefault(f spec.FieldDoc) string {
 // partitionFields splits fields into exclusive groups (in encounter order),
 // required fields, and optional fields.
 func partitionFields(fields []spec.FieldDoc) (groups [][]spec.FieldDoc, required, optional []spec.FieldDoc) {
-	seen := make(map[string]int) // group name → index into groups
+	seen := make(map[string]int) // group name -> index into groups
 	for _, f := range fields {
 		switch {
 		case f.Exclusive != "":
@@ -868,7 +868,7 @@ func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
 	// The verbosity ladder is: default = changed/failed step headers only; -v =
 	// all step headers (ok included), still no ops; -vv = drill into ops. So op
 	// rows are strictly -vv. Per outcome:
-	//   - unchanged: each op with the ok glyph ("<op> ✓")
+	//   - unchanged: each op with the ok glyph ("<op> OK")
 	//   - changed/failed: per-field drift ("<field> cur -> des")
 	// Apply emits no per-field drift (executed changes are signal-only), so a
 	// changed step on apply has no rows -- the yellow header is the signal.
@@ -942,7 +942,7 @@ func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
 	return rows
 }
 
-// satisfiedRows renders a converged step's ops as sorted "<op>  ✓" lines, the
+// satisfiedRows renders a converged step's ops as sorted "<op>  OK" lines, the
 // field-less counterpart to driftRows so an ok step isn't bald next to a changed
 // one. The op id is always shown: these rows carry no field or transition, so
 // the id is their only payload. The ok glyph stands in for a "satisfied" word --
@@ -997,8 +997,8 @@ func (c *CLI) applyOpRows(ids []string, drift []event.Change) []string {
 
 // displayIndex maps an engine step index (0-based, an array position) to its
 // user-facing ordinal (1-based). The single conversion point: engine internals
-// stay 0-based, every surface that shows an index to a human — plan, the
-// check/apply stream, future --json — routes through here so a "[3]" means the
+// stay 0-based, every surface that shows an index to a human - plan, the
+// check/apply stream, future --json - routes through here so a "[3]" means the
 // same step everywhere. Never print a raw index + 1 anywhere else.
 func displayIndex(engineIndex int) int { return engineIndex + 1 }
 

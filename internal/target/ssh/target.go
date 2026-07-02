@@ -36,7 +36,7 @@ import (
 // one `/bin/sh` running on the target; commands are streamed into
 // the shell's stdin and parsed back out of stdout. This amortises
 // the channel-open + exec handshake (~2 RTTs) over the lifetime of
-// the session — every op past the first pays only the command's own
+// the session - every op past the first pays only the command's own
 // RTT. Critical at WAN latency.
 //
 // The pool caps concurrent in-flight sessions at MaxSessions
@@ -55,7 +55,7 @@ import (
 
 // DefaultMaxSessions is the pool size used when Config.MaxSessions
 // is unset. Matches OpenSSH's sshd_config default of MaxSessions=10
-// — conservative enough to never hammer a stock server.
+// - conservative enough to never hammer a stock server.
 const DefaultMaxSessions = 10
 
 // SSHStats reports per-target SSH usage counters.
@@ -68,7 +68,7 @@ const DefaultMaxSessions = 10
 //     sessions executing commands at the same instant.
 //   - SessionRetries counts how many times opening a shell was
 //     retried after the server rejected the channel open. Non-zero
-//     means we hit server-side rate limits — diagnostic for tuning
+//     means we hit server-side rate limits - diagnostic for tuning
 //     MaxSessions.
 //   - CommandsRun is the total RunCommand calls served. Compare with
 //     SessionsOpened to see the reuse ratio.

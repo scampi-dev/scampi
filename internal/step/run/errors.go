@@ -52,7 +52,7 @@ func (e PostApplyCheckError) Diagnostic() event.Event {
 		Template: event.Template{
 			ID:   CodePostApplyCheckFailed,
 			Text: `post-apply check failed: {{.CheckCmd}}`,
-			Hint: `apply ran ({{.ApplyCmd}}) but the check still fails — ` +
+			Hint: `apply ran ({{.ApplyCmd}}) but the check still fails - ` +
 				`confirm the apply step actually achieves the condition that {{.CheckCmd}} tests for`,
 			Help:   `{{.Stderr}}`,
 			Data:   e,

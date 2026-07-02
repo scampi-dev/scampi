@@ -165,7 +165,7 @@ func forEachResolved(
 // abort). ctx cancellation (e.g. SIGINT) propagates to all in-flight
 // plans. See #275.
 //
-// Concurrency within a level is unbounded — see #236 for the
+// Concurrency within a level is unbounded - see #236 for the
 // rationale and follow-ups for a tunable cap if real configs hit
 // shared-infra limits.
 func runPlansConcurrent(
@@ -208,7 +208,7 @@ func runPlansConcurrent(
 	var causes []error
 	for _, level := range graph.levels {
 		if len(causes) > 0 {
-			// Upstream level produced failures — skip downstream nodes
+			// Upstream level produced failures - skip downstream nodes
 			// rather than racing them into ops that depend on
 			// resources the failed producer was supposed to create.
 			break

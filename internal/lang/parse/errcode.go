@@ -9,7 +9,7 @@ import (
 
 // Diagnostic codes for parser errors. These are stable identifiers
 // surfaced to the LSP and (eventually) the error reference docs on
-// scampi.dev — do not rename without updating downstream consumers.
+// scampi.dev - do not rename without updating downstream consumers.
 
 // Semantic parse errors
 // -----------------------------------------------------------------------------
@@ -24,7 +24,7 @@ const (
 	CodeUnexpectedPub      errs.Code = "parse.UnexpectedPub"
 )
 
-// Expected-token parse errors — grouped by expected token, not by
+// Expected-token parse errors - grouped by expected token, not by
 // context. The error message carries the context ("in type body",
 // "in for-loop"), the code identifies the class of syntax error.
 // -----------------------------------------------------------------------------

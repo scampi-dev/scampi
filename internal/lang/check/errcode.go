@@ -5,7 +5,7 @@ package check
 import "scampi.dev/scampi/internal/errs"
 
 // Diagnostic codes for checker errors. These are stable identifiers
-// used by the LSP for code step matching — do not rename them
+// used by the LSP for code step matching - do not rename them
 // without updating the corresponding code step handlers.
 const (
 	CodeUndefined          errs.Code = "lang.Undefined"
@@ -58,7 +58,7 @@ const (
 	CodeNotAllPathsReturn  errs.Code = "lang.NotAllPathsReturn"
 	CodeError              errs.Code = "lang.Error"
 
-	// Eval-time codes — used by lang/eval for runtime errors that
+	// Eval-time codes - used by lang/eval for runtime errors that
 	// don't overlap with checker codes above.
 	CodeForInRequiresList errs.Code = "lang.ForInRequiresList"
 	CodeCannotEvaluate    errs.Code = "lang.CannotEvaluate"

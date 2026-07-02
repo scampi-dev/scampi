@@ -39,7 +39,7 @@ func (e Error) Error() string {
 		b.WriteString(")")
 	}
 	if e.Hint != "" {
-		b.WriteString(" — ")
+		b.WriteString(" - ")
 		b.WriteString(e.Hint)
 	}
 	return b.String()

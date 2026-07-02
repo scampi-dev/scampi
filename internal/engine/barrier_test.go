@@ -19,17 +19,17 @@ import (
 // effects scampi cannot statically reason about: a `run` is arbitrary
 // shell, a `pkg` install can drop files anywhere on disk, a `service`
 // start may rewrite `/etc` via post-start units. Every one of these
-// has to fence — concurrent execution against any sibling step is
+// has to fence - concurrent execution against any sibling step is
 // unsafe.
 //
 // The mechanism today: such steps don't implement spec.Promiser
 // (or implement it trivially) and `hasResources` reports false, which
 // makes `buildStepGraph` chain them as barriers. These tests pin
-// that contract: regressing the barrier is silent in the engine —
+// that contract: regressing the barrier is silent in the engine -
 // nothing crashes, you just race.
 
 // asStep plans a step instance (StepID is irrelevant for graph
-// shape — the engine only cares about Type/Config) and returns the
+// shape - the engine only cares about Type/Config) and returns the
 // resulting step.
 func asStep(t *testing.T, st spec.StepKind, cfg any) spec.Step {
 	t.Helper()
@@ -46,7 +46,7 @@ func TestRunStepIsBarrier(t *testing.T) {
 		Check: "true",
 	})
 	if hasResources(act) {
-		// posix.run is arbitrary shell — concurrent execution alongside
+		// posix.run is arbitrary shell - concurrent execution alongside
 		// any other step is unsafe.
 		t.Fatal("posix.run step must be a barrier")
 	}
@@ -78,7 +78,7 @@ func TestServiceStepIsBarrier(t *testing.T) {
 }
 
 func TestSerialDeployBlockOrders_PkgServiceRun(t *testing.T) {
-	// dc1-v2-shaped sequence: pkg → service → run → run → run → service.
+	// dc1-v2-shaped sequence: pkg -> service -> run -> run -> run -> service.
 	// Every step is opaque (barrier), so the fence builder must chain
 	// them strictly: each step depends on the immediately preceding
 	// one. If anyone adds Promiser to one of these step types without
@@ -114,7 +114,7 @@ func TestSerialDeployBlockOrders_PkgServiceRun(t *testing.T) {
 
 func TestBarrierFencesAcrossPatherSteps(t *testing.T) {
 	// posix.copy declares a path resource (it's a Pather, NOT a barrier).
-	// A run between two copies must still fence — the run can read or
+	// A run between two copies must still fence - the run can read or
 	// write anything, including files copy is touching.
 	steps := []spec.Step{
 		asStep(t, copy.Copy{}, &copy.CopyConfig{

@@ -118,7 +118,7 @@ func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.DeclaredStep) 
 		return nil
 	}
 
-	// Build adjacency: hook ID → hook IDs it references via on_change
+	// Build adjacency: hook ID -> hook IDs it references via on_change
 	adj := map[string][]string{}
 	roots := make([]string, 0, len(hooks))
 	for id, steps := range hooks {
@@ -142,7 +142,7 @@ func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.DeclaredStep) 
 
 // findCycleEdgeSource locates the on_change field span for the edge that
 // closes the cycle. The cycle slice is [A, ..., X, A] so the closing edge
-// is from X → A.
+// is from X -> A.
 func findCycleEdgeSource(hooks map[string][]spec.DeclaredStep, cycle []string) spec.SourceSpan {
 	from := cycle[len(cycle)-2]
 	to := cycle[len(cycle)-1]

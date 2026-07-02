@@ -164,7 +164,7 @@ func (e InvalidTemplateError) Diagnostic() event.Event {
 			ID: CodeInvalidTemplate,
 			Text: `run_set {{.Field}} template mixes {{"{{ item }}"}} with ` +
 				`{{"{{ items }}"}} or {{"{{ items_csv }}"}}: {{.Cmd}}`,
-			Hint:   `pick one — per-item runs the command once per element, batch runs it once with all elements`,
+			Hint:   `pick one - per-item runs the command once per element, batch runs it once with all elements`,
 			Data:   e,
 			Source: &e.Source,
 		},
@@ -172,7 +172,7 @@ func (e InvalidTemplateError) Diagnostic() event.Event {
 }
 
 // NothingToDeclareError is raised at plan time when neither add
-// nor remove is provided — the step would be a noop forever.
+// nor remove is provided - the step would be a noop forever.
 type NothingToDeclareError struct {
 	Source spec.SourceSpan
 }

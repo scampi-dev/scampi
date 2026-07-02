@@ -49,7 +49,7 @@ std.deploy(name = "main", targets = [host]) {
 }
 
 // TestEvalWalk_LetBoundValidPasses proves the walker emits nothing
-// when the resolved value satisfies all attributes — exactly the
+// when the resolved value satisfies all attributes - exactly the
 // regression that issue-184 is fixing for real configs.
 func TestEvalWalk_LetBoundValidPasses(t *testing.T) {
 	src := `module main
@@ -118,7 +118,7 @@ std.deploy(name = "main", targets = [host]) {
 // time; static checks defer to the runtime.
 func TestEvalWalk_SkipsCrossStepRef(t *testing.T) {
 	// Build a minimal DeclType with one annotated param, then dispatch
-	// directly with a RefVal Field — bypassing scope lookup so we
+	// directly with a RefVal Field - bypassing scope lookup so we
 	// test only the per-StructVal dispatch logic.
 	dt := &check.DeclType{
 		Name: "fake_decl",

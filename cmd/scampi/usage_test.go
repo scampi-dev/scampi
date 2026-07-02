@@ -145,7 +145,7 @@ func TestUsageError_ResolveFlags(t *testing.T) {
 }
 
 func TestUsageError_ValidUsageStillWorks(t *testing.T) {
-	// legend has no required args or flags — should succeed.
+	// legend has no required args or flags - should succeed.
 	out, code := run("legend")
 	if code != 0 {
 		t.Errorf("exit code = %d, want 0; output:\n%s", code, out)

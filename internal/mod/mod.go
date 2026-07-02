@@ -128,7 +128,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 			if m.Module != "" {
 				return nil, ParseError{
 					Detail: "duplicate module directive",
-					Hint:   "remove the duplicate — only one module directive is allowed",
+					Hint:   "remove the duplicate - only one module directive is allowed",
 					Source: m.span(lineNum),
 				}
 			}
@@ -214,7 +214,7 @@ func parseDependency(m *Module, line string, lineNum int, indirect bool) (*Depen
 		}
 	}
 	// Version can be a semver tag (v1.0.0), branch (main), or
-	// module-prefixed tag (npm-v0.1.0). No strict validation —
+	// module-prefixed tag (npm-v0.1.0). No strict validation -
 	// git clone will reject truly invalid refs downstream.
 	return &Dependency{Path: path, Version: version, Line: lineNum, Indirect: indirect}, nil
 }

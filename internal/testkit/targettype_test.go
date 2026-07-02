@@ -11,7 +11,7 @@ import (
 )
 
 // initialState builds an `initial` value tree the way the linker
-// would hand it to MemTargetKind.Create — a *eval.StructVal with
+// would hand it to MemTargetKind.Create - a *eval.StructVal with
 // per-slot map / list fields.
 func initialState(t *testing.T) *eval.StructVal {
 	t.Helper()
@@ -136,7 +136,7 @@ func TestMemTargetKind_NilInitialAndExpect(t *testing.T) {
 }
 
 func TestMemTargetKind_NilRegistry(t *testing.T) {
-	// Without a registry the constructor still works — the mock is
+	// Without a registry the constructor still works - the mock is
 	// returned but not tracked. Useful for one-off Go-side tests.
 	tt := MemTargetKind{Registry: nil}
 	got, err := tt.Create(t.Context(), nil, spec.DeclaredTarget{

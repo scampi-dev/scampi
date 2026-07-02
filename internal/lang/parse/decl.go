@@ -187,7 +187,7 @@ func (p *Parser) parseTypeDecl() ast.Decl {
 	}
 
 	// An empty body `{}` must round-trip as a non-nil zero-length
-	// slice — Fields == nil is the checker's signal for an opaque
+	// slice - Fields == nil is the checker's signal for an opaque
 	// type (no body at all), which is a different concept.
 	if fields == nil {
 		fields = []*ast.Field{}
@@ -214,7 +214,7 @@ func (p *Parser) parseAttrTypeDecl(start uint32) *ast.AttrTypeDecl {
 		return nil
 	}
 	// Body is required (even empty `{}` for markers). Unlike regular
-	// type declarations, attribute types are never opaque — there is
+	// type declarations, attribute types are never opaque - there is
 	// no use case for a forward declaration without a body.
 	p.expect(token.LBrace, "attribute type body")
 	fields := p.parseFields(token.RBrace)

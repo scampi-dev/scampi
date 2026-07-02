@@ -64,7 +64,7 @@ func (c Copy) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	// We still parse perm here because the runtime needs the
 	// fs.FileMode value, but a parse error reaching this point
 	// indicates a non-literal expression (e.g. perm = std.env(...))
-	// that bypassed the static check — fail with the same error
+	// that bypassed the static check - fail with the same error
 	// shape as the link-time check would have produced.
 	mode, err := perm.ParsePerm(cfg.Perm, step.Fields["perm"].Value)
 	if err != nil {

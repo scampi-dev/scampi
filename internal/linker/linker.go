@@ -17,7 +17,7 @@ import (
 )
 
 // Registry provides step and target type lookups. Implemented by
-// engine.Registry — defined as an interface here to avoid a cycle.
+// engine.Registry - defined as an interface here to avoid a cycle.
 type Registry interface {
 	StepKind(kind string) (spec.StepKind, bool)
 	TargetKind(kind string) (spec.TargetKind, bool)
@@ -129,7 +129,7 @@ func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.DeclaredCo
 
 // structValSpans converts the eval-side token spans on a StructVal
 // into a (Source, Fields) pair the engine can use for diagnostics. If
-// the link config has no source bytes, returns zero values — callers
+// the link config has no source bytes, returns zero values - callers
 // that only care about Type/Config see the same DeclaredStep shape as
 // before this plumbing existed.
 func structValSpans(sv *eval.StructVal, lc *linkConfig) (spec.SourceSpan, map[string]spec.FieldSpan) {
@@ -286,9 +286,9 @@ func linkDeploy(bv *eval.BlockResultVal, reg Registry, lc *linkConfig) (spec.Dec
 
 // resolveStepRefs walks a DeclaredStep's config looking for RefVal
 // values (produced by std.ref()) and replaces them with spec.Ref
-// using the StructVal → StepID mapping from linking. RefVals can
+// using the StructVal -> StepID mapping from linking. RefVals can
 // appear in map[string]any fields because the linker's setValue
-// converts eval.Value → Go native types, but RefVal is special —
+// converts eval.Value -> Go native types, but RefVal is special -
 // it passes through as-is (narrow interface path).
 func resolveStepRefs(si *spec.DeclaredStep, ids map[*eval.StructVal]spec.StepID) {
 	if si.Config == nil {

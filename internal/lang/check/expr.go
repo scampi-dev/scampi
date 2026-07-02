@@ -100,7 +100,7 @@ func (c *Checker) resolveDottedName(dn *ast.DottedName) Type {
 func (c *Checker) resolveSelector(sel *ast.SelectorExpr) Type {
 	name := sel.Sel.Name
 
-	// Module namespace member access (import.member) — check before
+	// Module namespace member access (import.member) - check before
 	// typeOf to avoid "undefined" errors on import namespace names.
 	if id, ok := sel.X.(*ast.Ident); ok {
 		sym := c.scope.Lookup(id.Name)
@@ -154,7 +154,7 @@ func (c *Checker) resolveModuleMember(modName string, parts []*ast.Ident, span t
 	if len(parts) == 1 {
 		return sym.Type
 	}
-	// Deeper access (e.g. std.PkgState.present → enum variant).
+	// Deeper access (e.g. std.PkgState.present -> enum variant).
 	return c.chainAccess(sym.Type, parts[1:], span)
 }
 
@@ -198,7 +198,7 @@ func (c *Checker) checkCall(call *ast.CallExpr) Type {
 	// UFCS detection: `x.f(args)` semantically calls `f(x, args)`
 	// when no field/module member matches but a free function `f`
 	// in scope accepts x's type. We detect this by annotating the
-	// CallExpr — no AST rewrite, so source spans and diagnostics
+	// CallExpr - no AST rewrite, so source spans and diagnostics
 	// from `x.f(...)` keep their original shape. Downstream
 	// consumers (eval) read the flag and dispatch accordingly.
 	if ft, mod := c.detectUFCS(call); ft != nil {
@@ -233,21 +233,21 @@ type ufcsCandidate struct {
 // where x is a value, not a module, and f is a free function whose
 // first parameter accepts x's type). Returns the resolved function
 // type and the module name (empty for local-scope matches), or
-// (nil, "") when this isn't a UFCS site — caller falls through to
+// (nil, "") when this isn't a UFCS site - caller falls through to
 // the standard typeOf path.
 //
 // Resolution walks two layers in priority order:
 //
-//  1. Local scope — top-level decls in the current file. A local
+//  1. Local scope - top-level decls in the current file. A local
 //     match wins outright; imports are not consulted.
-//  2. Imported modules — every module the current file `import`s
+//  2. Imported modules - every module the current file `import`s
 //     gets checked. If multiple imports have a matching function
 //     for the same receiver type, an ambiguity error is emitted at
 //     the call site and the function is treated as unresolved.
 //
 // Module access (`posix.copy(...)`) and struct-field-call
 // (`obj.method(...)` where method is a function-typed field) are
-// not UFCS — both are handled by the existing
+// not UFCS - both are handled by the existing
 // typeOf/resolveSelector path and this function leaves them alone
 // so the field/member resolution wins by design.
 func (c *Checker) detectUFCS(call *ast.CallExpr) (*FuncType, string) {
@@ -255,20 +255,20 @@ func (c *Checker) detectUFCS(call *ast.CallExpr) (*FuncType, string) {
 	if !ok {
 		return nil, ""
 	}
-	// Skip module-namespace access — `posix.copy(...)` is not UFCS.
+	// Skip module-namespace access - `posix.copy(...)` is not UFCS.
 	if id, ok := sel.X.(*ast.Ident); ok {
 		if sym := c.scope.Lookup(id.Name); sym != nil && sym.Kind == SymImport {
 			return nil, ""
 		}
 	}
 	// Type the receiver. If it can't be typed, leave the call
-	// alone — typeOf will emit the right error in the main path.
+	// alone - typeOf will emit the right error in the main path.
 	xType := c.typeOf(sel.X)
 	if xType == nil {
 		return nil, ""
 	}
 	// Skip when the receiver's struct type already has a field
-	// matching `sel.Sel.Name` — that's a struct-field call, not
+	// matching `sel.Sel.Name` - that's a struct-field call, not
 	// UFCS. Field access wins by design.
 	if st, ok := xType.(*StructType); ok {
 		for _, f := range st.Fields {
@@ -291,7 +291,7 @@ func (c *Checker) detectUFCS(call *ast.CallExpr) (*FuncType, string) {
 
 	// Tier 2: imported modules. Walk every module the current file
 	// imports and collect candidates whose first param accepts the
-	// receiver type. More than one match → ambiguity error.
+	// receiver type. More than one match -> ambiguity error.
 	// Imports live in the file scope, so walk up the scope chain.
 	var candidates []ufcsCandidate
 	for _, sym := range c.scope.AllImports() {
@@ -327,7 +327,7 @@ func (c *Checker) detectUFCS(call *ast.CallExpr) (*FuncType, string) {
 		c.errAt(
 			call.SrcSpan, CodeAmbiguousUFCS,
 			"ambiguous UFCS: "+name+" matches "+joinSorted(names)+
-				" — call one of them explicitly to disambiguate",
+				" - call one of them explicitly to disambiguate",
 		)
 		return nil, ""
 	}
@@ -573,7 +573,7 @@ func (c *Checker) checkIndex(idx *ast.IndexExpr) Type {
 	if xType == nil {
 		return nil
 	}
-	// Unwrap optional: T?[k] → T[k] (user is expected to nil-check first).
+	// Unwrap optional: T?[k] -> T[k] (user is expected to nil-check first).
 	if opt, ok := xType.(*Optional); ok {
 		xType = opt.Inner
 	}

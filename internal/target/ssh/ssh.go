@@ -124,7 +124,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 	// UseConcurrentWrites engages pkg/sftp's concurrent in-flight
 	// write path; without it File.ReadFrom falls back to sequential
 	// 32KB writes that bottleneck around 5 MB/s on LAN (#417). Safe
-	// for our usage: we don't resume partial writes — a write error
+	// for our usage: we don't resume partial writes - a write error
 	// fails the op, the caller never observes a half-written file.
 	sftpClient, err := sftp.NewClient(client, sftp.UseConcurrentWrites(true))
 	if err != nil {
@@ -256,8 +256,8 @@ func buildSSHConfig(
 // EOFs. These are the failure shapes you get when sshd is at
 // MaxStartups (it drops or resets the new connection without a clean
 // rejection), when the network is briefly flaky, or when the server
-// is mid-restart. Permanent failures — auth errors, wrong host,
-// refused connection — propagate immediately so misconfig bails fast.
+// is mid-restart. Permanent failures - auth errors, wrong host,
+// refused connection - propagate immediately so misconfig bails fast.
 func dialWithRetry(ctx context.Context, addr string, sshCfg *ssh.ClientConfig) (*ssh.Client, error) {
 	var client *ssh.Client
 	op := func() error {
@@ -302,7 +302,7 @@ func isTransientDialError(err error) bool {
 	case strings.Contains(msg, "connection reset"):
 		return true
 	case strings.Contains(msg, "EOF"):
-		// Server dropped the connection — typical sshd MaxStartups
+		// Server dropped the connection - typical sshd MaxStartups
 		// behavior. Worth a retry with backoff.
 		return true
 	}

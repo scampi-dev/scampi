@@ -61,7 +61,7 @@ type Config struct {
 	StdModules map[string]*check.Scope
 }
 
-// Module is a resolved import — its parsed AST and exported scope.
+// Module is a resolved import - its parsed AST and exported scope.
 type Module struct {
 	Path  string
 	File  *ast.File

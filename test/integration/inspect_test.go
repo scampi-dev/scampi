@@ -185,7 +185,7 @@ func TestInspect_StepFilter(t *testing.T) {
 	e := makeInspectEngine(t, []spec.Step{act})
 	defer e.Close()
 
-	// Without filter: multiple ops → abort.
+	// Without filter: multiple ops -> abort.
 	_, err := e.InspectDiffFile(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), "")
 	var abort engine.AbortError
 	if !errors.As(err, &abort) {

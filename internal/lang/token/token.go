@@ -23,7 +23,7 @@ const (
 	StringCont // text segment between two interpolations
 	StringEnd  // final text segment of interpolated string
 
-	// Multi-line string variants — same shape as the kinds above but
+	// Multi-line string variants - same shape as the kinds above but
 	// produced for `...` literals where newlines are literal and no
 	// interior `"` escaping is required. Eval applies common-indent
 	// dedent at the StringLit boundary.

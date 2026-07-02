@@ -2,7 +2,7 @@
 
 // Package escalate provides privilege-escalated stat helpers.
 // GNU (Linux) and BSD (macOS/FreeBSD) stat formats are both
-// supported — callers pick the right variant for their platform.
+// supported - callers pick the right variant for their platform.
 package escalate
 
 import (

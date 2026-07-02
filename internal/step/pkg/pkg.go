@@ -57,7 +57,7 @@ func parseState(s string) State {
 	case stateLatest:
 		return StateLatest
 	default:
-		panic(errs.BUG("invalid pkg state %q — should have been caught by Validate", s))
+		panic(errs.BUG("invalid pkg state %q - should have been caught by Validate", s))
 	}
 }
 
@@ -132,8 +132,8 @@ func (a *pkgStep) Ops() []spec.Op {
 		return []spec.Op{pkgOp}
 	}
 
-	// Third-party source — build the repo setup DAG:
-	//   download key → install key → write repo config → install packages
+	// Third-party source - build the repo setup DAG:
+	//   download key -> install key -> write repo config -> install packages
 	var ops []spec.Op
 	var lastDep spec.Op
 

@@ -255,9 +255,9 @@ func (p *Parser) parseCallArgs() []*ast.CallArg {
 // body until the given end token. Handles both `name = value` field inits
 // and bare statements (step invocations, let, for, if). Disambiguates:
 //
-//   - `ident =` → field init
-//   - `let/for/if/return` → statement
-//   - anything else → expression statement (e.g. `std.pkg { ... }`)
+//   - `ident =` -> field init
+//   - `let/for/if/return` -> statement
+//   - anything else -> expression statement (e.g. `std.pkg { ... }`)
 func (p *Parser) parseBlockContent(end token.Kind) ([]*ast.FieldInit, []ast.Stmt) {
 	var fields []*ast.FieldInit
 	var stmts []ast.Stmt

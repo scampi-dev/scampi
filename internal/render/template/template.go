@@ -9,7 +9,7 @@ import (
 	"scampi.dev/scampi/internal/errs"
 )
 
-// Funcs is the shared FuncMap available in all scampi templates —
+// Funcs is the shared FuncMap available in all scampi templates -
 // both diagnostic render templates and user-facing posix.template.
 var Funcs = template.FuncMap{
 	"join":       join,

@@ -31,7 +31,7 @@ func mapFields(fields map[string]eval.Value, cfg any, lc *linkConfig) error {
 			continue
 		}
 		name := ToSnake(f.Name)
-		// Keywords can't be field names — check common renames.
+		// Keywords can't be field names - check common renames.
 		if name == "type" {
 			name = "fs_type"
 		}
@@ -64,7 +64,7 @@ func setValue(dst reflect.Value, src eval.Value, lc *linkConfig) error {
 			return nil
 		}
 	}
-	// StructVal needs type-specific handling first — check before
+	// StructVal needs type-specific handling first - check before
 	// the generic interface path.
 	if sv, ok := src.(*eval.StructVal); ok {
 		return setStructVal(dst, sv, lc)
@@ -131,7 +131,7 @@ func setValue(dst reflect.Value, src eval.Value, lc *linkConfig) error {
 			}
 			dst.Set(m)
 		case reflect.Struct:
-			// Map with string keys → struct fields by snake_case match.
+			// Map with string keys -> struct fields by snake_case match.
 			fields := make(map[string]eval.Value)
 			for i, k := range sv.Keys {
 				if sk, ok := k.(*eval.StringVal); ok {
@@ -148,12 +148,12 @@ func setValue(dst reflect.Value, src eval.Value, lc *linkConfig) error {
 	case *eval.NoneVal:
 		// Leave as zero value.
 	case *eval.StructVal:
-		// Handled by setStructVal above — should not reach here.
+		// Handled by setStructVal above - should not reach here.
 	}
 	return nil
 }
 
-// setStructVal handles StructVal → Go type conversion.
+// setStructVal handles StructVal -> Go type conversion.
 func setStructVal(dst reflect.Value, sv *eval.StructVal, lc *linkConfig) error {
 	dstType := dst.Type()
 

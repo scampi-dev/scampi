@@ -17,9 +17,9 @@ type ScopeKind uint8
 
 const (
 	ScopeFile  ScopeKind = iota // top-level file scope
-	ScopeFunc                   // inside a func body — mutation allowed
+	ScopeFunc                   // inside a func body - mutation allowed
 	ScopeDecl                   // inside a step body
-	ScopeBlock                  // for/if/else block — inherits parent kind
+	ScopeBlock                  // for/if/else block - inherits parent kind
 )
 
 // Symbol is a named binding in a scope.
@@ -55,7 +55,7 @@ func NewScope(parent *Scope, kind ScopeKind) *Scope {
 }
 
 // Define adds a symbol to this scope. Returns false if the name is
-// already defined in this scope (not parent scopes — shadowing is OK).
+// already defined in this scope (not parent scopes - shadowing is OK).
 func (s *Scope) Define(sym *Symbol) bool {
 	if _, exists := s.symbols[sym.Name]; exists {
 		return false

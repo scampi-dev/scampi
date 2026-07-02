@@ -89,11 +89,11 @@ func testCmd() *cli.Command {
 
 // findTestFiles resolves the test path argument into a list of *_test.scampi files.
 //
-//   - ""             → *_test.scampi in current dir
-//   - "./..."        → recursive from current dir
-//   - "path/..."     → recursive from path
-//   - "path/to/dir"  → *_test.scampi in that dir
-//   - "file.scampi"    → that specific file
+//   - ""             -> *_test.scampi in current dir
+//   - "./..."        -> recursive from current dir
+//   - "path/..."     -> recursive from path
+//   - "path/to/dir"  -> *_test.scampi in that dir
+//   - "file.scampi"  -> that specific file
 func findTestFiles(arg string) ([]string, error) {
 	if arg == "" {
 		return filepath.Glob("*_test.scampi")

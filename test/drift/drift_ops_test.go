@@ -351,7 +351,7 @@ func TestDrift_Pkg_Latest_CheckIsReadOnly(t *testing.T) {
 	_ = collectDrift(t, ops, src, tgt)
 
 	if !tgt.CacheStale {
-		t.Error("Check refreshed the pkg cache (CacheStale -> false) — Check must be read-only")
+		t.Error("Check refreshed the pkg cache (CacheStale -> false) - Check must be read-only")
 	}
 }
 

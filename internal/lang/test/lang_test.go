@@ -62,7 +62,7 @@ func walkFixtures(t *testing.T, root string, fn func(*testing.T, string, []byte)
 	}
 }
 
-// Parse tests — verify AST shape
+// Parse tests - verify AST shape
 // -----------------------------------------------------------------------------
 
 type parseExpected struct {
@@ -112,7 +112,7 @@ func TestParse(t *testing.T) {
 	})
 }
 
-// Error tests — verify diagnostics
+// Error tests - verify diagnostics
 // -----------------------------------------------------------------------------
 
 func TestErrors(t *testing.T) {
@@ -145,7 +145,7 @@ func TestErrors(t *testing.T) {
 	})
 }
 
-// Eval tests — full pipeline → runtime values
+// Eval tests - full pipeline -> runtime values
 // -----------------------------------------------------------------------------
 
 type evalExpected struct {
@@ -321,7 +321,7 @@ func assertDeploys(t *testing.T, r *eval.Result, want []expectDeploy) {
 	}
 }
 
-// (assertSecrets removed — SecretsConfig no longer exists, secrets
+// (assertSecrets removed - SecretsConfig no longer exists, secrets
 // are now per-resolver values via std/secrets module)
 
 // Shared assertions

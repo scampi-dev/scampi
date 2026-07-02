@@ -159,7 +159,7 @@ func (l *Lexer) skipWSAndComments() (token.Token, bool) {
 			switch next {
 			case '/':
 				// Line comment: skip to end-of-line. Don't consume the
-				// newline — the next iteration handles it for ASI.
+				// newline - the next iteration handles it for ASI.
 				cstart := uint32(l.pos)
 				l.pos += 2
 				for l.pos < len(l.src) && l.src[l.pos] != '\n' {
@@ -435,9 +435,9 @@ func (l *Lexer) scanPunct(start uint32) (token.Token, bool) {
 
 // enterString is called on the opening delimiter of a string
 // literal. The opening byte is `"` for normal single-line strings
-// or “ ` “ for multi-line strings. Multi-line strings allow
+// or " ` " for multi-line strings. Multi-line strings allow
 // literal newlines and unescaped `"` and only terminate on a
-// matching closing “ ` “.
+// matching closing " ` ".
 func (l *Lexer) enterString() token.Token {
 	multi := l.src[l.pos] == '`'
 	l.pos++ // consume opening delimiter
@@ -452,7 +452,7 @@ func (l *Lexer) enterString() token.Token {
 // StringMultiEnd).
 //
 // In multi-line mode, embedded newlines and unescaped `"` chars
-// are preserved literally; only “ ` “ terminates a segment.
+// are preserved literally; only " ` " terminates a segment.
 //
 // The emitted segment token's Pos/End cover ONLY the text content
 // of the segment (not the surrounding delimiter or ${ markers).

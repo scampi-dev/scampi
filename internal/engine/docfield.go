@@ -22,11 +22,11 @@ import (
 //
 // Field-level tags (on exported fields):
 //
-//	step:"Description text"        — field description (required tag)
-//	optional:"true"                — marks field as optional (default: required)
-//	default:"present"              — display default (implies optional)
-//	example:"/etc/app/config.yaml" — example value (pipe-delimited for multiple)
-//	exclusive:"group-name"         — mutual exclusion group (fields sharing a name are alternatives)
+//	step:"Description text"        - field description (required tag)
+//	optional:"true"                - marks field as optional (default: required)
+//	default:"present"              - display default (implies optional)
+//	example:"/etc/app/config.yaml" - example value (pipe-delimited for multiple)
+//	exclusive:"group-name"         - mutual exclusion group (fields sharing a name are alternatives)
 func docFromConfig(kind string, cfg any) spec.StepDoc {
 	rt := reflectStruct(cfg)
 	fields := extractFields(rt)

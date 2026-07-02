@@ -157,7 +157,7 @@ func (op *ensureSymlinkOp) Check(
 		}
 	}
 
-	// Non-symlink at link path → drift. Remove + symlink in Execute.
+	// Non-symlink at link path -> drift. Remove + symlink in Execute.
 	// Refusing here forced users into `posix.run { ln -sf ... }` for
 	// the common case where a package dropped a stock config and we
 	// want to replace it with a symlink to the real one (#279).
@@ -190,7 +190,7 @@ func (op *ensureSymlinkOp) Check(
 }
 
 // describeNonSymlink returns a human-readable label for the entry at
-// the link path when it isn't a symlink — used as the "current" value
+// the link path when it isn't a symlink - used as the "current" value
 // in drift details.
 func describeNonSymlink(info fs.FileInfo) string {
 	switch {
@@ -219,7 +219,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 		// Existing entry. If it's already the symlink we want, done.
 		// Otherwise remove and recreate (regular file, wrong-target
 		// symlink, empty directory). Remove() refuses to recursively
-		// delete a non-empty directory — the filesystem error
+		// delete a non-empty directory - the filesystem error
 		// surfaces with the dir intact.
 		if info.Mode()&fs.ModeSymlink != 0 {
 			current, _ := t.Readlink(ctx, op.link)

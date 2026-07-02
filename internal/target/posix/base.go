@@ -116,7 +116,7 @@ func (b Base) ChownRecursive(ctx context.Context, path string, owner target.Owne
 
 // DetectEscalation probes for a usable escalation tool. It checks
 // sudo first, then doas. For each, it verifies the tool exists AND
-// runs non-interactively (`tool -n true`) — a tool that requires a
+// runs non-interactively (`tool -n true`) - a tool that requires a
 // password is no good to us: the first escalated op would hang on a
 // prompt that never reaches a TTY (#314).
 //
@@ -136,7 +136,7 @@ func DetectEscalation(
 		if err != nil || probe.ExitCode != 0 {
 			continue
 		}
-		// Tool is installed — confirm non-interactive escalation.
+		// Tool is installed - confirm non-interactive escalation.
 		nopass, err := run(ctx, tool+" -n true")
 		if err == nil && nopass.ExitCode == 0 {
 			return tool, target.EscalateOK

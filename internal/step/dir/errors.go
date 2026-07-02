@@ -16,7 +16,7 @@ type PartialOwnershipError struct {
 }
 
 func (e PartialOwnershipError) Error() string {
-	return fmt.Sprintf("%s is set but %s is empty — set both or neither", e.Set, e.Missing)
+	return fmt.Sprintf("%s is set but %s is empty - set both or neither", e.Set, e.Missing)
 }
 
 func (e PartialOwnershipError) Diagnostic() event.Event {

@@ -58,7 +58,7 @@ func (u Unarchive) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	// dest absoluteness and perm format are link-time checks via
 	// @std.path(absolute=true) and @std.filemode on the stub.
 	// Archive format detection (filename-based) and owner/group
-	// mutual requirement are runtime/cross-field — they stay.
+	// mutual requirement are runtime/cross-field - they stay.
 	formatPath := cfg.Src.Path
 	if cfg.Src.Kind == spec.SourceRemote {
 		formatPath = cfg.Src.URL

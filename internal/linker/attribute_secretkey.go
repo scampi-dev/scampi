@@ -52,7 +52,7 @@ func (SecretKeyAttribute) StaticCheck(ctx StaticCheckContext) {
 // stringLiteralValue extracts the literal string value from an
 // expression if it is a single-segment string literal with no
 // interpolation. Returns "" for any other shape (computed strings,
-// concatenations, function calls, etc.) — those defer to the runtime
+// concatenations, function calls, etc.) - those defer to the runtime
 // check in lang/eval.
 func stringLiteralValue(e ast.Expr) string {
 	sl, ok := e.(*ast.StringLit)

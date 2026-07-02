@@ -145,9 +145,9 @@ func detectPlaceholder(cmd string) templatePlaceholder {
 	hasCSV := containsAny(cmd, placeholderForms[tplBatchCSV])
 	switch {
 	case hasItem && (hasItems || hasCSV):
-		return -1 // mixed — caller treats as invalid
+		return -1 // mixed - caller treats as invalid
 	case hasItems && hasCSV:
-		return tplBatchSpace // both batch forms — fold to space (rare; CSV is the strict subset)
+		return tplBatchSpace // both batch forms - fold to space (rare; CSV is the strict subset)
 	case hasItem:
 		return tplPerItem
 	case hasItems:

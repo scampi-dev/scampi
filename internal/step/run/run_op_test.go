@@ -6,16 +6,16 @@ import "testing"
 
 func TestEnvPrefix_Empty(t *testing.T) {
 	if got := envPrefix(nil); got != "" {
-		t.Errorf("nil env → %q, want empty", got)
+		t.Errorf("nil env -> %q, want empty", got)
 	}
 	if got := envPrefix(map[string]string{}); got != "" {
-		t.Errorf("empty map → %q, want empty", got)
+		t.Errorf("empty map -> %q, want empty", got)
 	}
 }
 
 func TestEnvPrefix_Single(t *testing.T) {
 	// ShellQuote always single-quotes for safety; even shell-safe
-	// values come out wrapped. That's intentional — the prefix is
+	// values come out wrapped. That's intentional - the prefix is
 	// machine-generated, not for human readability.
 	got := envPrefix(map[string]string{"FOO": "bar"})
 	want := "FOO='bar' "
@@ -25,7 +25,7 @@ func TestEnvPrefix_Single(t *testing.T) {
 }
 
 func TestEnvPrefix_DeterministicOrdering(t *testing.T) {
-	// Sorted keys → stable output across runs. Important for
+	// Sorted keys -> stable output across runs. Important for
 	// debuggability, diffability, and the renderer (line equality
 	// matters for live updates).
 	got := envPrefix(map[string]string{

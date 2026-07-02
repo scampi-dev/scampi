@@ -18,7 +18,7 @@
 // The pipeline crosses between worlds in two hops:
 //
 //	linker          -> DeclaredConfig                 (declare)
-//	engine.Resolve  -> Config (one per deploy×target) (select)
+//	engine.Resolve  -> Config (one per deployxtarget) (select)
 //	StepKind.Plan   -> Plan{ Deploy{ Step{ Op } } }   (plan, then execute)
 //
 // Config is the hinge: a resolved selection (one deploy plus one target) whose

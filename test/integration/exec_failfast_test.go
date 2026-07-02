@@ -84,7 +84,7 @@ func TestExecuteStep_AllOpsSkipped(t *testing.T) {
 
 // Dependency graph:
 //
-//	A → B → C
+//	A -> B -> C
 //
 // All ops:
 //
@@ -152,13 +152,13 @@ func TestExecuteStep_LinearSuccess(t *testing.T) {
 
 // Dependency graph:
 //
-//	A → B → C
+//	A -> B -> C
 //
 // Behavior:
 //
-//	A.Execute → Success
-//	B.Execute → Abort
-//	C.Execute → MUST NOT be called
+//	A.Execute -> Success
+//	B.Execute -> Abort
+//	C.Execute -> MUST NOT be called
 func TestExecuteStep_FailFast_MiddleOfChain(t *testing.T) {
 	var act *harness.FakeStep
 
@@ -246,10 +246,10 @@ func TestExecuteStep_FailFast_MiddleOfChain(t *testing.T) {
 //
 // Behavior:
 //
-//	A.Execute → Success
-//	B.Execute → Success
-//	C.Execute → Abort
-//	D.Execute → MUST NOT be called
+//	A.Execute -> Success
+//	B.Execute -> Success
+//	C.Execute -> Abort
+//	D.Execute -> MUST NOT be called
 func TestExecuteStep_BranchFailure(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
@@ -326,8 +326,8 @@ func TestExecuteStep_BranchFailure(t *testing.T) {
 //
 // Behavior:
 //
-//	A.Check   → Diagnostic (Warning, Continue)
-//	A.Execute → Success
+//	A.Check   -> Diagnostic (Warning, Continue)
+//	A.Execute -> Success
 func TestExecuteStep_CheckDiagnostic_Continues(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
@@ -375,13 +375,13 @@ func TestExecuteStep_CheckDiagnostic_Continues(t *testing.T) {
 
 // Dependency graph:
 //
-//	A → B
+//	A -> B
 //
 // Behavior:
 //
-//	A.Check   → Diagnostic (Abort)
-//	A.Execute → MUST NOT be called
-//	B.Execute → MUST NOT be called
+//	A.Check   -> Diagnostic (Abort)
+//	A.Execute -> MUST NOT be called
+//	B.Execute -> MUST NOT be called
 func TestExecuteStep_AbortDuringCheck(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
@@ -433,13 +433,13 @@ func TestExecuteStep_AbortDuringCheck(t *testing.T) {
 
 // Dependency graph:
 //
-//	A → B → C
+//	A -> B -> C
 //
 // Behavior:
 //
-//	A.Execute → Success
-//	B.Execute → Abort
-//	C.Execute → MUST NOT be called
+//	A.Execute -> Success
+//	B.Execute -> Abort
+//	C.Execute -> MUST NOT be called
 func TestExecuteStep_AbortDuringExecution(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
@@ -498,13 +498,13 @@ func TestExecuteStep_AbortDuringExecution(t *testing.T) {
 
 // Dependency graph:
 //
-//	A → B
+//	A -> B
 //
 // Behavior:
 //
-//	A.Check   → Satisfied (Skipped)
-//	A.Execute → MUST NOT be called
-//	B.Execute → Success
+//	A.Check   -> Satisfied (Skipped)
+//	A.Execute -> MUST NOT be called
+//	B.Execute -> Success
 func TestExecuteStep_SkippedUpstream_ExecutesDownstream(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",

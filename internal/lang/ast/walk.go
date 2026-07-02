@@ -11,13 +11,13 @@ import "reflect"
 //
 // Walk is the single place that encodes "what are the children of each
 // node type, in what order." Consumers (type checker, LSP, formatter,
-// evaluator) supply the logic via callbacks — they never need to know
+// evaluator) supply the logic via callbacks - they never need to know
 // about traversal order.
 //
 // Walk tolerates typed-nil interface values. AST nodes like
 // `IfStmt.Else *Block` are routinely nil (no else branch), and naively
 // passing them through `Walk(n.Else, ...)` would wrap a nil pointer
-// in a non-nil Node interface — an interface comparison against nil
+// in a non-nil Node interface - an interface comparison against nil
 // would then return false and a downstream type-switch would panic
 // trying to deref it. The reflect check below catches that.
 func Walk(node Node, pre func(Node) bool, post func(Node)) {
@@ -229,7 +229,7 @@ func walkChildren(node Node, pre func(Node) bool, post func(Node)) {
 	}
 }
 
-// Helpers that handle nil-checks and interface→concrete dispatching.
+// Helpers that handle nil-checks and interface->concrete dispatching.
 
 func walkExpr(e Expr, pre func(Node) bool, post func(Node)) {
 	if e != nil {

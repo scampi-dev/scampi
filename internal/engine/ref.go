@@ -57,7 +57,7 @@ func buildRefResolver(outputs *stepOutputs, checkMode bool) spec.RefResolver {
 			}
 			return nil, RefError{
 				Expr:   ref.Expr,
-				Detail: "referenced step has no output — is it included in the steps list?",
+				Detail: "referenced step has no output - is it included in the steps list?",
 				Source: src,
 			}
 		}

@@ -53,7 +53,7 @@ func parseState(s string) State {
 	case stateReloaded:
 		return StateReloaded
 	default:
-		panic(errs.BUG("invalid service state %q — should have been caught by Validate", s))
+		panic(errs.BUG("invalid service state %q - should have been caught by Validate", s))
 	}
 }
 

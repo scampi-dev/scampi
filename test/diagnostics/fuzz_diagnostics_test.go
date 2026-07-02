@@ -552,7 +552,7 @@ frobnicate(name = "test")`,
 		}
 
 		err := apply()
-		// All errors are acceptable — the no-panic invariant above
+		// All errors are acceptable - the no-panic invariant above
 		// is what matters. Lang pipeline errors, engine errors, and
 		// diagnostic errors are all valid outcomes for fuzz input.
 		_ = err

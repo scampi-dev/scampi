@@ -16,9 +16,9 @@ const (
 )
 
 // ResolveIdentities finds age identities using a three-step chain:
-//  1. $SCAMPI_AGE_KEY — raw private key string
-//  2. $SCAMPI_AGE_KEY_FILE — path to a key file
-//  3. ~/.config/scampi/age.key — default location
+//  1. $SCAMPI_AGE_KEY - raw private key string
+//  2. $SCAMPI_AGE_KEY_FILE - path to a key file
+//  3. ~/.config/scampi/age.key - default location
 //
 // lookupEnv and readFile are injected so the caller decides where
 // "the environment" and "the filesystem" come from (source abstraction

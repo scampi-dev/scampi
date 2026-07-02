@@ -112,7 +112,7 @@ func dispatchEvalAttributes(
 		if !ok {
 			continue // optional, omitted at the call site
 		}
-		// NoneVal: literal `none` or absent optional — skip; behaviours
+		// NoneVal: literal `none` or absent optional - skip; behaviours
 		// can't validate "no value provided".
 		if _, isNone := evalVal.(*eval.NoneVal); isNone {
 			continue

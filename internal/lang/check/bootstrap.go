@@ -15,13 +15,13 @@ import (
 // filesystem. Returns a map of module names (from each file's module
 // declaration) to their checked scopes.
 //
-// Submodule stubs may import other submodules — bootstrap iterates
+// Submodule stubs may import other submodules - bootstrap iterates
 // to a fixed point so the order in which fs.WalkDir visits files
 // doesn't matter. Each pass checks every module whose imports are
 // already satisfied; the loop terminates when either every module
 // has been checked or a pass made no progress (in which case the
-// remaining modules have unresolved imports — e.g. an actual cycle
-// or a typo — and we surface their first error).
+// remaining modules have unresolved imports - e.g. an actual cycle
+// or a typo - and we surface their first error).
 func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
 	rootFile, rootName, err := parseRootModule(fsys)
 	if err != nil {
@@ -46,7 +46,7 @@ func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
 	// module against the current `modules` map. If a module checks
 	// cleanly, it joins `modules` and is removed from `pending`. If
 	// no module makes progress on a pass, the remaining ones are
-	// either cyclic or refer to modules that don't exist — bail with
+	// either cyclic or refer to modules that don't exist - bail with
 	// the first error we hit.
 	for len(pending) > 0 {
 		progressed := false
@@ -62,7 +62,7 @@ func BootstrapModules(fsys fs.FS) (map[string]*Scope, error) {
 		}
 		if !progressed {
 			// Pick any remaining module and surface its real error
-			// — at this point its imports definitely won't resolve,
+			// - at this point its imports definitely won't resolve,
 			// so the checker error is the meaningful one.
 			for _, file := range pending {
 				c := New(modules)

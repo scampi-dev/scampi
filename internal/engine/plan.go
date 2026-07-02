@@ -194,8 +194,8 @@ type StepDeps [][]int
 // hookPlan holds planned hook steps and the mapping from step index
 // to the hook IDs it should notify on change.
 type hookPlan struct {
-	steps    map[string][]spec.Step // hook ID → planned steps
-	onChange map[int][]string       // step index → hook IDs
+	steps    map[string][]spec.Step // hook ID -> planned steps
+	onChange map[int][]string       // step index -> hook IDs
 }
 
 func plan(

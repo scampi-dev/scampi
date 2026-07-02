@@ -447,7 +447,7 @@ std.deploy(name = "test", targets = [host]) {
 	src.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{
 		"db_pass": "hunter2",
 	})
-	// No SCAMPI_AGE_KEY — block the default-file fallback
+	// No SCAMPI_AGE_KEY - block the default-file fallback
 	src.Env["SCAMPI_AGE_KEY_FILE"] = "/nonexistent/scampi-test/age.key"
 
 	rec := &harness.RecordingDisplayer{}

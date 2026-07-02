@@ -23,7 +23,7 @@ type EnvLookupFunc func(name string) (value string, found bool)
 // stub name (e.g. "secrets.from_age") during eval. The eval layer
 // invokes it when a bodyless stub func matches a registered name and
 // forwards the call's positional and keyword arguments. All domain
-// logic lives in the caller — the eval layer just passes values
+// logic lives in the caller - the eval layer just passes values
 // through.
 //
 // Builtins typically return an OpaqueVal wrapping runtime state that
@@ -50,7 +50,7 @@ type Evaluator struct {
 	// stubFS is the stdlib stub filesystem for enum/type extraction.
 	stubFS fs.FS
 
-	// declReturns maps "module.decl" → return type name (e.g. "Step",
+	// declReturns maps "module.decl" -> return type name (e.g. "Step",
 	// "Target"). Built from stubs at init time.
 	declReturns map[string]string
 
@@ -66,12 +66,12 @@ type Evaluator struct {
 	// would normally error on missing or unparseable input. Used by
 	// analysis tools (e.g. the LSP) where inputs may be placeholders
 	// rather than the real apply-time values. Apply-time eval must
-	// never set this — runtime input errors are real bugs there.
+	// never set this - runtime input errors are real bugs there.
 	lenient bool
 
 	// builtinFuncs are caller-registered functions dispatched by
 	// qualified name (e.g. "secrets.from_age"). The eval layer
-	// treats them as opaque — all domain logic lives in the caller.
+	// treats them as opaque - all domain logic lives in the caller.
 	builtinFuncs map[string]BuiltinFunc
 
 	// source holds the original source bytes for string extraction.
@@ -100,7 +100,7 @@ type Evaluator struct {
 	// only stores the pub-filtered map for external callers.
 	modInternalMaps map[string]*MapVal
 
-	// typeDefaults maps type name → AST fields for user-defined types
+	// typeDefaults maps type name -> AST fields for user-defined types
 	// that have field defaults. Used by evalStructLit to fill in
 	// omitted fields.
 	typeDefaults map[string][]*ast.Field
@@ -132,7 +132,7 @@ func WithEnv(fn EnvLookupFunc) Option {
 // default instead. Used by analysis tools (the LSP, future
 // `scampi check --analyze`, etc.) where some inputs are placeholder
 // values rather than the real apply-time ones. Apply-time eval
-// should never set this — runtime input errors are real bugs there.
+// should never set this - runtime input errors are real bugs there.
 // See #264.
 func WithLenient() Option {
 	return func(e *Evaluator) { e.lenient = true }
@@ -140,7 +140,7 @@ func WithLenient() Option {
 
 // WithBuiltinFunc registers a named function dispatched by qualified
 // name (e.g. "secrets.from_age") during eval. The eval layer has no
-// knowledge of what the function does — all domain logic stays in
+// knowledge of what the function does - all domain logic stays in
 // the caller. Multiple calls with different names accumulate.
 func WithBuiltinFunc(qualName string, fn BuiltinFunc) Option {
 	return func(e *Evaluator) {
@@ -186,7 +186,7 @@ func WithUserModules(mods []UserModule) Option {
 
 // WithSiblingModules registers sibling module files (same `module`
 // declaration, different file) directly into the top-level env so
-// their functions are callable by bare name — the same-package model.
+// their functions are callable by bare name - the same-package model.
 // Unlike WithUserModules (which namespaces under the module name),
 // sibling functions are peers of the current file's own declarations.
 func WithSiblingModules(mods []UserModule) Option {
@@ -259,7 +259,7 @@ func (ev *Evaluator) registerStubInfo() {
 		if len(bodied) > 0 {
 			modScope := newEnv(ev.env)
 			// Inject all module symbols (funcs, enums, types) as bare
-			// names so same-module references work — including enum
+			// names so same-module references work - including enum
 			// defaults like Console.xtermjs.
 			for i, k := range modMap.Keys {
 				if sk, ok := k.(*StringVal); ok {
@@ -365,7 +365,7 @@ func (ev *Evaluator) registerUserModules() {
 		// Second pass: top-level let-bindings. Each gets wrapped in a
 		// ThunkVal so the cost of evaluation (incl. side effects like
 		// `secrets.from_age` reading the keystore, or any apply-time
-		// builtin fetches) is paid lazily — only when an importer
+		// builtin fetches) is paid lazily - only when an importer
 		// actually references the binding. Chains like
 		//
 		//   let _age = secrets.from_age(...)
@@ -397,7 +397,7 @@ func (ev *Evaluator) registerUserModules() {
 		}
 		// Inject every other module symbol (funcs, decls, enums, types)
 		// into moduleScope so thunked `pub let` expressions can resolve
-		// bare references to siblings — e.g.
+		// bare references to siblings - e.g.
 		// `pub let default_palette = [Color.red]` needs to see Color
 		// when its thunk fires. Without this, defaults that capture
 		// module-internal names fail with "undefined" at call time.
@@ -414,7 +414,7 @@ func (ev *Evaluator) registerUserModules() {
 
 // registerSiblingModules injects functions from sibling files (same
 // module, different file) directly into the top-level env. These are
-// callable by bare name — same-package visibility.
+// callable by bare name - same-package visibility.
 func (ev *Evaluator) registerSiblingModules() {
 	for _, um := range ev.siblingModules {
 		for _, d := range um.File.Decls {
@@ -465,9 +465,9 @@ type stubFunc struct {
 
 // stubInfo holds extracted metadata from parsed stub files.
 type stubInfo struct {
-	enums       map[string]map[string][]string // module → enum �� variants
-	declReturns map[string]string              // "module.decl" → return type name
-	funcs       map[string][]stubFunc          // module → func stubs
+	enums       map[string]map[string][]string // module -> enum -> variants
+	declReturns map[string]string              // "module.decl" -> return type name
+	funcs       map[string][]stubFunc          // module -> func stubs
 }
 
 // extractStubInfo parses all .scampi files in the FS and returns enum
@@ -643,7 +643,7 @@ func (ev *Evaluator) evalFile(f *ast.File) {
 			if _, ok := d.(*ast.LetDecl); ok {
 				ev.evalDecl(d)
 			}
-			// Skip func/decl/type/enum — already registered above.
+			// Skip func/decl/type/enum - already registered above.
 		} else {
 			ev.evalStmt(f.Stmts[si])
 			si++
@@ -886,7 +886,7 @@ func (ev *Evaluator) evalExpr(e ast.Expr) Value {
 		// Force any ThunkVal (lazy `pub let` from a user module, #269)
 		// at the access boundary, mirroring evalSelector / evalDottedName.
 		// Without this, downstream consumers that switch on Value type
-		// (linker → evalToGo for `any`-typed fields) silently turn
+		// (linker -> evalToGo for `any`-typed fields) silently turn
 		// thunked lists into Go nil, breaking rest.resource drift
 		// comparison. See the list-drift bug.
 		return forceValue(v)
@@ -963,7 +963,7 @@ func (ev *Evaluator) evalString(s *ast.StringLit) Value {
 //   - text segments have escapes resolved (same as regular strings).
 //   - the indent prefix from the closing backtick's line is stripped
 //     from every line of every text segment that begins at a line
-//     boundary. Interpolated values are NOT dedented — they're
+//     boundary. Interpolated values are NOT dedented - they're
 //     inlined verbatim wherever they fall.
 //   - exactly one leading newline immediately after the opening
 //     backtick is consumed (if present), so `\nfoo\n` reads as
@@ -972,7 +972,7 @@ func (ev *Evaluator) evalString(s *ast.StringLit) Value {
 // Implementation: dedent operates on each text segment independently,
 // tracking whether the assembled output ended with a newline (so the
 // next segment's first line is also a "line start" eligible for
-// dedent). Interp segments don't reset the line-start tracker — but
+// dedent). Interp segments don't reset the line-start tracker - but
 // if the interp produces a string containing a newline, the next text
 // segment's first line is treated as starting a fresh line.
 func (ev *Evaluator) evalMultiLineString(s *ast.StringLit) string {
@@ -1012,7 +1012,7 @@ func (ev *Evaluator) evalMultiLineString(s *ast.StringLit) string {
 // Returns the dedented string and whether s ends at a line start
 // (i.e. ends with '\n').
 //
-// A line that does not start with the full prefix is left as-is —
+// A line that does not start with the full prefix is left as-is -
 // dedent doesn't trim partial matches. This matches Java text-block
 // semantics: the closing-marker indent defines a maximum strip, but
 // shorter-indented lines aren't padded or mangled.
@@ -1052,7 +1052,7 @@ func stripIndent(s, prefix string, atLineStart bool) (string, bool) {
 
 func (ev *Evaluator) evalSelector(sel *ast.SelectorExpr) Value {
 	// Force the receiver: when sel.X is an Ident whose env binding is
-	// a ThunkVal (a `pub let` in a user module — see #269), the
+	// a ThunkVal (a `pub let` in a user module - see #269), the
 	// selector access has to drive the thunk before peering into a
 	// concrete StructVal/MapVal.
 	x := forceValue(ev.evalExpr(sel.X))
@@ -1099,7 +1099,7 @@ func (ev *Evaluator) evalDottedName(dn *ast.DottedName) Value {
 
 func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 	// UFCS dispatch: when the type checker has marked this call
-	// as `x.f(args)` ≡ `f(x, args)`, evaluate the receiver from
+	// as `x.f(args)` == `f(x, args)`, evaluate the receiver from
 	// `call.Fn.(*ast.SelectorExpr).X`, look up `f` (either at
 	// top-level env when UFCSModule is empty, or via the imported
 	// module's MapVal when set), and prepend the receiver as the
@@ -1130,7 +1130,7 @@ func (ev *Evaluator) evalCall(call *ast.CallExpr) Value {
 	argMap := make(map[string]Value, len(call.Args))
 	positional := leadingArgs
 	for _, a := range call.Args {
-		// Force at the call boundary — args derived from a thunked
+		// Force at the call boundary - args derived from a thunked
 		// `pub let` (#269) must materialise before reaching builtin
 		// or user-defined receivers that type-assert on Value kind.
 		v := forceValue(ev.evalExpr(a.Value))
@@ -1259,7 +1259,7 @@ func (ev *Evaluator) callRange(positional []Value, kwargs map[string]Value) Valu
 // callUnique implements std.unique: order-preserving dedupe of a list.
 // Equality is structural via valuesEqual (handles primitives + enum
 // variants which are encoded as StringVal). Linear scan over a small
-// out slice — lists in scampi configs are typically <100 items.
+// out slice - lists in scampi configs are typically <100 items.
 // See #292.
 func (ev *Evaluator) callUnique(positional []Value, kwargs map[string]Value) Value {
 	var items []Value
@@ -1396,7 +1396,7 @@ func (ev *Evaluator) callEnv(positional []Value, kwargs map[string]Value, span t
 }
 
 func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string]Value, callSpan token.Span) Value {
-	// Stub func (no body) — produce value based on return type.
+	// Stub func (no body) - produce value based on return type.
 	if fv.body == nil && fv.RetType != "" {
 		fields := make(map[string]Value, len(fv.Params))
 		for i, name := range fv.Params {
@@ -1456,7 +1456,7 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 	// If this is a user module function (QualName has a module
 	// prefix), bind the module's sibling functions into the body
 	// scope so bare references like `get_nginx_proxy_hosts()` work
-	// within the module — same as Go's intra-package visibility.
+	// within the module - same as Go's intra-package visibility.
 	// Uses modInternalMaps (full pub+non-pub set) rather than the
 	// env map (pub-only) so non-pub helpers are reachable.
 	if dot := strings.IndexByte(fv.QualName, '.'); dot > 0 {
@@ -1527,7 +1527,7 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 			// proper StructVals with declReturns resolution. Stubs
 			// (no body) fall through to the normal struct-lit path.
 			//
-			// Return the result directly — don't emitValue here.
+			// Return the result directly - don't emitValue here.
 			// The caller handles emission: ExprStmt emits via
 			// evalStmt; LetStmt binds without emitting so the user
 			// can let-bind and re-emit later (ref() pattern).
@@ -1620,7 +1620,7 @@ func (ev *Evaluator) expandUserStep(fv *FuncVal, fields map[string]Value) Value 
 	prevEnv := ev.env
 	ev.env = child
 	// Walk the body. If we encounter a return statement, evaluate
-	// its value and emit it as a step — user module decls like
+	// its value and emit it as a step - user module decls like
 	// `decl dns_rewrite(...) { return rest.resource { ... } }` use
 	// return to produce their step value. Non-return statements
 	// (let bindings, if/for, bare expression steps) are handled
@@ -1781,7 +1781,7 @@ func (ev *Evaluator) evalListComp(comp *ast.ListComp) Value {
 
 // asBool unwraps a BoolVal at the given span. The type checker
 // rejects most non-bool uses, but optional-typed values (`T?`) can
-// be `none` at runtime — emit a typed diagnostic and return false
+// be `none` at runtime - emit a typed diagnostic and return false
 // instead of panicking.
 func (ev *Evaluator) asBool(v Value, span token.Span) bool {
 	if bv, ok := v.(*BoolVal); ok {
@@ -1907,7 +1907,7 @@ func valueIn(needle Value, haystack Value) bool {
 }
 
 // resolveMultiEscapes processes escape sequences for backtick-delimited
-// strings. Only `\\`, “ \` “, and `\$` are recognized — every other
+// strings. Only `\\`, " \` ", and `\$` are recognized - every other
 // `\X` is preserved verbatim (including the backslash). This keeps
 // embedded shell scripts, JSON, and similar formats readable: `\n`
 // inside a regex stays `\n`, `\<newline>` stays as bash line
@@ -1989,8 +1989,8 @@ func structLitTypeName(lit *ast.StructLit) string {
 }
 
 // structLitQualifiedName returns "module.decl" for a struct lit like
-// posix.copy { ... } → "posix.copy". For unqualified names like
-// User { ... } → "User".
+// posix.copy { ... } -> "posix.copy". For unqualified names like
+// User { ... } -> "User".
 func structLitQualifiedName(lit *ast.StructLit) string {
 	if lit.Type == nil {
 		return ""

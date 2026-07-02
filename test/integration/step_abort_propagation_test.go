@@ -57,7 +57,7 @@ func TestExecutePlan_OpAborted_NonAbortImpact_BlocksDownstream(t *testing.T) {
 
 	// Engine treats every non-AbortError/CancelledError as a BUG panic, so
 	// any propagated step-abort error must satisfy errors.As(AbortError)
-	// or errors.As(StepAbortedError) — either way, non-nil is the contract.
+	// or errors.As(StepAbortedError) - either way, non-nil is the contract.
 	var abort engine.AbortError
 	var aborted engine.StepAbortedError
 	if !errors.As(err, &abort) && !errors.As(err, &aborted) {

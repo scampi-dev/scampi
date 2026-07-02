@@ -90,10 +90,10 @@ func TestItemTemplate_Render_PerItem(t *testing.T) {
 func TestItemTemplate_Render_Empty(t *testing.T) {
 	tpl, _ := parseTemplate("add", "addone {{ item }}", anySpan())
 	if got := tpl.render(nil); got != nil {
-		t.Errorf("nil items → %v, want nil", got)
+		t.Errorf("nil items -> %v, want nil", got)
 	}
 	if got := tpl.render([]string{}); got != nil {
-		t.Errorf("empty items → %v, want nil", got)
+		t.Errorf("empty items -> %v, want nil", got)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestDiff_BothSides(t *testing.T) {
 }
 
 func TestDiff_OnlyAdd_RemoveDisabled(t *testing.T) {
-	// User declared `add` but no `remove` — orphans must NOT be reported
+	// User declared `add` but no `remove` - orphans must NOT be reported
 	// as drift (one-way reconciliation).
 	got := diff([]string{"keep-me"}, []string{"new"}, true, false)
 	if !reflect.DeepEqual(got.toAdd, []string{"new"}) {

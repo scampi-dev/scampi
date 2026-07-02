@@ -12,7 +12,7 @@ import (
 )
 
 // runLangTestFile runs a single scampi test file end-to-end:
-// link → resolve → apply against mock targets → verify each
+// link -> resolve -> apply against mock targets -> verify each
 // registered mock against its declared `expect` field. Mismatches
 // turn into TestFail diagnostics; clean apply + clean verify counts
 // as one passing test per mock entry. Designed to mirror runTestFile

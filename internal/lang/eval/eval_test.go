@@ -172,7 +172,7 @@ let body = `+"`"+`
 
 func TestEvalMultiLineString_BashLineContinuationLiteral(t *testing.T) {
 	// Backslash followed by anything other than \\, \`, \$ is preserved
-	// verbatim — bash line-continuation `\\\n` stays as `\\\n` in the
+	// verbatim - bash line-continuation `\\\n` stays as `\\\n` in the
 	// resolved string, not a single newline.
 	r := evalSrc(t, `
 module main
@@ -200,7 +200,7 @@ func TestEvalMultiLineString_BackslashNStaysLiteral(t *testing.T) {
 
 func TestEvalMultiLineString_InterpDoesNotDedent(t *testing.T) {
 	// An interpolated value containing newlines must NOT have the
-	// closing-marker indent stripped from its content lines — only
+	// closing-marker indent stripped from its content lines - only
 	// surrounding text segments dedent.
 	r := evalSrc(t, `
 module main
@@ -452,7 +452,7 @@ let vps = ssh.target { name = "vps", host = "10.0.0.1", user = "root" }
 // `Matcher` type. The default stub-func code path lifts each call
 // into a StructVal with TypeName = the func name and Fields = the
 // kwargs. The verifier (in target/test/) reads those two fields to
-// dispatch by matcher kind. This test pins that contract — if it
+// dispatch by matcher kind. This test pins that contract - if it
 // breaks, the verifier breaks too.
 func TestEvalMatchers(t *testing.T) {
 	src := `
@@ -510,7 +510,7 @@ let m_pkg     = matchers.has_pkg_status(posix.PkgState.present)
 
 	// Status matchers carry the enum variant value verbatim. The
 	// evaluator currently represents enum values as StringVal of
-	// the variant name — pin that so the verifier can read it.
+	// the variant name - pin that so the verifier can read it.
 	svc, ok := r.Bindings["m_svc"].(*StructVal)
 	if !ok {
 		t.Fatalf("m_svc: not a StructVal")
@@ -583,7 +583,7 @@ let found = "b" in xs
 	_ = r
 }
 
-// UFCS — runtime dispatch for `x.f(args)` resolves to `f(x, args)`
+// UFCS - runtime dispatch for `x.f(args)` resolves to `f(x, args)`
 // when no field on x matches and a free function f exists.
 // -----------------------------------------------------------------------------
 
@@ -632,7 +632,7 @@ let result = (3).inc().double().inc()
 	if !ok {
 		t.Fatalf("expected IntVal, got %T", v)
 	}
-	// (3).inc() = 4 → .double() = 8 → .inc() = 9
+	// (3).inc() = 4 -> .double() = 8 -> .inc() = 9
 	if iv.V != 9 {
 		t.Errorf("expected 9, got %d", iv.V)
 	}
@@ -661,7 +661,7 @@ let result = (10).add(32)
 	}
 }
 
-// TestEvalUFCSDoesNotShadowModuleAccess — `posix.copy(...)` is a
+// TestEvalUFCSDoesNotShadowModuleAccess - `posix.copy(...)` is a
 // module member call. The Tier 1 path runs before any UFCS attempt.
 // Intra-module pub visibility
 // -----------------------------------------------------------------------------
@@ -771,7 +771,7 @@ func internal_mul(a: int, b: int) int {
 	sc := check.New(modules)
 	sc.Check(sf)
 
-	// The consumer is in the same module — calls by bare name.
+	// The consumer is in the same module - calls by bare name.
 	consumerSrc := `
 module helpers
 let result = internal_mul(6, 7)
@@ -835,7 +835,7 @@ pub func visible() int { return 1 }
 	}
 	modules["helpers"] = mc.FileScope().PublicView()
 
-	// The checker should reject this — but even if it doesn't, the
+	// The checker should reject this - but even if it doesn't, the
 	// evaluator's pub-only env map should not expose "hidden".
 	consumerSrc := `
 module main
@@ -875,7 +875,7 @@ let result = helpers.visible()
 	}
 }
 
-// UFCS — runtime dispatch
+// UFCS - runtime dispatch
 // -----------------------------------------------------------------------------
 
 func TestEvalUFCSDoesNotShadowModuleAccess(t *testing.T) {
@@ -940,7 +940,7 @@ let missing = s["nope"]
 
 // Regression: bare identifier access to a user-module `pub let`
 // returned the raw ThunkVal without forcing. Downstream consumers
-// (linker → evalToGo → switch on type) didn't recognize ThunkVal
+// (linker -> evalToGo -> switch on type) didn't recognize ThunkVal
 // and fell through to nil, silently turning list-valued state
 // fields into Go nil. Symptom in the wild: rest.resource drift
 // comparator saw "[..] vs null" and fired PUT every run.

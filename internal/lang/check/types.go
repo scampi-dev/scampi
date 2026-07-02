@@ -14,7 +14,7 @@ type Type interface {
 	String() string
 }
 
-// Builtin scalar types. These are singletons — compare with ==.
+// Builtin scalar types. These are singletons - compare with ==.
 var (
 	StringType = &Builtin{Name: "string"}
 	IntType    = &Builtin{Name: "int"}
@@ -69,7 +69,7 @@ type OpaqueType struct {
 func (*OpaqueType) typeTag()         {}
 func (o *OpaqueType) String() string { return o.Name }
 
-// BlockType is `block[T]` — a value that needs a statement block to
+// BlockType is `block[T]` - a value that needs a statement block to
 // produce a T. Each fill produces an independent T value.
 type BlockType struct {
 	Inner Type // the type produced when the block is filled
@@ -97,7 +97,7 @@ type FieldDef struct {
 // ResolvedAttribute is a single `@name(args)` annotation on a field
 // after the type checker has resolved the attribute reference and
 // bound its literal arguments to the declared schema fields. Args
-// carries field-name → resolved Go value mappings (string, int,
+// carries field-name -> resolved Go value mappings (string, int,
 // bool, []any), with absent fields meaning "use the schema default".
 type ResolvedAttribute struct {
 	// QualifiedName is the fully qualified attribute type name
@@ -106,7 +106,7 @@ type ResolvedAttribute struct {
 
 	// Args holds the bound argument values resolved from literal
 	// expressions at the call site. Non-literal arguments aren't
-	// supported in attribute references — the type checker rejects
+	// supported in attribute references - the type checker rejects
 	// them at lang time.
 	Args map[string]any
 
@@ -145,7 +145,7 @@ func (f *FuncType) String() string {
 	return "func(...) " + f.Ret.String()
 }
 
-// DeclType is the type of a decl declaration — distinct from FuncType
+// DeclType is the type of a decl declaration - distinct from FuncType
 // because decl invocations use block syntax, not call syntax.
 type DeclType struct {
 	Name    string // may be dotted: "container.instance"
@@ -161,7 +161,7 @@ func (s *DeclType) String() string {
 
 // AttrType is an attribute type declared via `type @name { ... }`.
 // It lives in a separate `@`-prefixed namespace from regular types
-// and cannot be used in type expressions or struct literals — only
+// and cannot be used in type expressions or struct literals - only
 // as an `@name(args)` decoration on annotatable positions.
 //
 // Marker attribute types have an empty Fields list. Single-field
@@ -185,8 +185,8 @@ func (a *AttrType) String() string {
 }
 
 // IsAssignableTo reports whether a value of type src can be used
-// where type dst is expected. Handles optional promotion (T → T?),
-// none → T?, and any escape hatch.
+// where type dst is expected. Handles optional promotion (T -> T?),
+// none -> T?, and any escape hatch.
 func IsAssignableTo(src, dst Type) bool {
 	if src == dst {
 		return true
@@ -209,7 +209,7 @@ func IsAssignableTo(src, dst Type) bool {
 		return IsAssignableTo(src, opt.Inner)
 	}
 	// Structural equality for collections. An empty list literal `[]`
-	// types as `list[any]` because there's no element to inspect — let
+	// types as `list[any]` because there's no element to inspect - let
 	// it flow into any concrete `list[T]` (#228). Non-empty lists go
 	// through the recursive element-type check.
 	if sl, ok := src.(*List); ok {

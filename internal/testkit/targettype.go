@@ -14,7 +14,7 @@ import (
 // MemTargetConfig is the linker-mapped config for a
 // `test.target_in_memory(...)` call. The Initial and Expect fields
 // hold the raw eval StructVals so the constructor can interpret them
-// against runtime mock state — typed as eval.Value (narrower than
+// against runtime mock state - typed as eval.Value (narrower than
 // `any`) so the linker preserves the raw eval StructVals instead
 // of converting them to Go-native types. This lets Create() read
 // the nested matcher shapes directly.
@@ -63,7 +63,7 @@ func (t MemTargetKind) Create(
 		if expect, ok := cfg.Expect.(*eval.StructVal); ok {
 			entry.Expect = expect
 		}
-		// Dedupe by name — multi-deploy tests trigger Create once
+		// Dedupe by name - multi-deploy tests trigger Create once
 		// per Config but want to share a single backing
 		// MemTarget so the verifier sees the combined state.
 		canonical := t.Registry.AddMemTarget(entry)
@@ -78,7 +78,7 @@ func (t MemTargetKind) Create(
 // seedMemTarget reads the `initial` StructVal from a
 // test.target_in_memory call and pre-populates the mock's state
 // maps. Slot fields that are absent or the wrong shape are skipped
-// — type-checking has already validated structure, so this is just
+// - type-checking has already validated structure, so this is just
 // a lenient runtime walk.
 func seedMemTarget(mock *target.MemTarget, initial *eval.StructVal) {
 	if initial == nil {
@@ -101,7 +101,7 @@ func seedFiles(mock *target.MemTarget, raw eval.Value) {
 		if !ok {
 			continue
 		}
-		// File values are source composables — for the simple
+		// File values are source composables - for the simple
 		// `posix.source_inline { content = "..." }` case the
 		// content is a literal string we can drop straight into
 		// the mock's Files map. Other source kinds are seeded as
@@ -144,7 +144,7 @@ func seedServices(mock *target.MemTarget, raw eval.Value) {
 		if !ok {
 			continue
 		}
-		// posix.ServiceState variants — running and "transient"
+		// posix.ServiceState variants - running and "transient"
 		// states (restarted, reloaded) all imply "running" at
 		// seed time. stopped is the only false case.
 		mock.Services[name.V] = state.V != "stopped"

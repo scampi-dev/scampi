@@ -27,7 +27,7 @@ func (e *Engine) executeHooks(
 	// Collect notified hooks from step results, preserving notification order.
 	var queue []string
 	notified := map[string]bool{}
-	triggerBy := map[string]string{} // hook ID → desc of step that triggered it
+	triggerBy := map[string]string{} // hook ID -> desc of step that triggered it
 
 	for i, ar := range stepReport.Steps {
 		onChange, ok := hp.onChange[i]
@@ -49,7 +49,7 @@ func (e *Engine) executeHooks(
 		}
 	}
 
-	// Execute notified hooks. Process queue — new entries may be appended
+	// Execute notified hooks. Process queue - new entries may be appended
 	// by hook chaining.
 	var hookReports []result.StepReport
 	executed := map[string]bool{}
