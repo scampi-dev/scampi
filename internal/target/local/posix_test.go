@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func Test_RunCommand_Success(t *testing.T) {
+func Test_RunCommand_ReturnsStdoutOnSuccess(t *testing.T) {
 	var tgt POSIXTarget
 	result, err := tgt.RunCommand(t.Context(), "echo hello")
 	if err != nil {
@@ -21,7 +21,7 @@ func Test_RunCommand_Success(t *testing.T) {
 	}
 }
 
-func Test_RunCommand_Failure(t *testing.T) {
+func Test_RunCommand_ReturnsNonZeroExitOnFailure(t *testing.T) {
 	var tgt POSIXTarget
 	result, err := tgt.RunCommand(t.Context(), "false")
 	if err != nil {
@@ -32,7 +32,7 @@ func Test_RunCommand_Failure(t *testing.T) {
 	}
 }
 
-func Test_RunCommand_Stderr(t *testing.T) {
+func Test_RunCommand_ReturnsStderr(t *testing.T) {
 	var tgt POSIXTarget
 	result, err := tgt.RunCommand(t.Context(), "echo oops >&2")
 	if err != nil {
@@ -46,7 +46,7 @@ func Test_RunCommand_Stderr(t *testing.T) {
 	}
 }
 
-func Test_RunCommand_ContextCancellation(t *testing.T) {
+func Test_RunCommand_HonorsContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 

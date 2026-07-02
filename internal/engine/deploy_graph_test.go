@@ -77,7 +77,7 @@ func mkResolved(name string, target spec.TargetKind, steps ...spec.StepKind) spe
 	}
 }
 
-func Test_BuildDeployGraph_SingleProducer(t *testing.T) {
+func Test_BuildDeployGraph_OrdersConsumerAfterProducer(t *testing.T) {
 	create := mkResolved(
 		"create",
 		fakeTargetKind{kind: "ssh"},
@@ -103,7 +103,7 @@ func Test_BuildDeployGraph_SingleProducer(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_ExternalInput(t *testing.T) {
+func Test_BuildDeployGraph_TreatsUnproducedInputAsExternal(t *testing.T) {
 	// Configure-only: nobody in this run produces node:1000.
 	configure := mkResolved("configure",
 		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
@@ -120,7 +120,7 @@ func Test_BuildDeployGraph_ExternalInput(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_IndependentParallel(t *testing.T) {
+func Test_BuildDeployGraph_ParallelizesIndependentDeploys(t *testing.T) {
 	// Two unrelated deploys - no resource flow -> both at level 0.
 	a := mkResolved("a", fakeTargetKind{kind: "ssh"})
 	b := mkResolved("b", fakeTargetKind{kind: "rest"})
@@ -137,7 +137,7 @@ func Test_BuildDeployGraph_IndependentParallel(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_MultipleProducers(t *testing.T) {
+func Test_BuildDeployGraph_RejectsMultipleProducers(t *testing.T) {
 	a := mkResolved(
 		"a",
 		fakeTargetKind{kind: "ssh"},
@@ -158,7 +158,7 @@ func Test_BuildDeployGraph_MultipleProducers(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_Cycle(t *testing.T) {
+func Test_BuildDeployGraph_RejectsCycle(t *testing.T) {
 	// a produces node:1000, consumes node:2000
 	// b produces node:2000, consumes node:1000
 	// -> cycle.
@@ -177,7 +177,7 @@ func Test_BuildDeployGraph_Cycle(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_Chain(t *testing.T) {
+func Test_BuildDeployGraph_OrdersChainIntoLevels(t *testing.T) {
 	// a -> b -> c, three levels.
 	a := mkResolved(
 		"a",
@@ -206,7 +206,7 @@ func Test_BuildDeployGraph_Chain(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_LabelOrdering(t *testing.T) {
+func Test_BuildDeployGraph_OrdersByDeclaredLabels(t *testing.T) {
 	// dc1 promises "realm:skrynet.lan" via a step config; dc2 inputs
 	// it. Engine orders dc2 after dc1.
 	dc1 := spec.Config{
@@ -240,7 +240,7 @@ func Test_BuildDeployGraph_LabelOrdering(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_LabelExternalInput(t *testing.T) {
+func Test_BuildDeployGraph_TreatsUnproducedLabelAsExternal(t *testing.T) {
 	// Consumer-only: no producer of "realm:skrynet.lan" in this run.
 	// Treated as external - runs immediately as a root.
 	dc2 := spec.Config{
@@ -268,7 +268,7 @@ func levelSizes(levels [][]*deployNode) []int {
 	return sizes
 }
 
-func Test_BuildDeployGraph_Fanout(t *testing.T) {
+func Test_BuildDeployGraph_ParallelizesFanoutConsumers(t *testing.T) {
 	// a produces node:1000 + node:1001, b consumes :1000, c consumes :1001
 	// -> b and c run in parallel at level 1.
 	a := mkResolved(

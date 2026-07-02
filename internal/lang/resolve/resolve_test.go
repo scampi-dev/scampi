@@ -19,7 +19,7 @@ func stdModules(t *testing.T) map[string]*check.Scope {
 	return modules
 }
 
-func Test_Resolve_IntraProject(t *testing.T) {
+func Test_Resolve_FindsIntraProjectModule(t *testing.T) {
 	root := fstest.MapFS{
 		"targets.scampi": &fstest.MapFile{
 			Data: []byte(`
@@ -45,7 +45,7 @@ let host = "10.0.0.1"
 	}
 }
 
-func Test_Resolve_StdModule(t *testing.T) {
+func Test_Resolve_FindsStdModules(t *testing.T) {
 	r := New(Config{
 		ModulePath: "example.com/myproject",
 		StdModules: stdModules(t),
@@ -60,7 +60,7 @@ func Test_Resolve_StdModule(t *testing.T) {
 	}
 }
 
-func Test_Resolve_LocalDep(t *testing.T) {
+func Test_Resolve_FindsLocalDep(t *testing.T) {
 	root := fstest.MapFS{
 		"modules/utils.scampi": &fstest.MapFile{
 			Data: []byte(`
@@ -90,7 +90,7 @@ func helper() string { return "ok" }
 	}
 }
 
-func Test_Resolve_RemoteDep(t *testing.T) {
+func Test_Resolve_FindsRemoteDep(t *testing.T) {
 	cache := fstest.MapFS{
 		"example.com/lib@v2.0.0/core.scampi": &fstest.MapFile{
 			Data: []byte(`
@@ -116,7 +116,7 @@ type Config { name: string }
 	}
 }
 
-func Test_Resolve_NotFound(t *testing.T) {
+func Test_Resolve_ReportsUnknownModule(t *testing.T) {
 	r := New(Config{
 		ModulePath: "example.com/myproject",
 		RootFS:     fstest.MapFS{},
@@ -131,7 +131,7 @@ func Test_Resolve_NotFound(t *testing.T) {
 	}
 }
 
-func Test_Resolve_Cached(t *testing.T) {
+func Test_Resolve_CachesResolvedModules(t *testing.T) {
 	root := fstest.MapFS{
 		"utils.scampi": &fstest.MapFile{
 			Data: []byte(`
@@ -152,7 +152,7 @@ let x = 1
 	}
 }
 
-func Test_Resolve_Directory(t *testing.T) {
+func Test_Resolve_AggregatesDirectoryFiles(t *testing.T) {
 	root := fstest.MapFS{
 		"targets/ssh.scampi": &fstest.MapFile{
 			Data: []byte(`
@@ -184,7 +184,7 @@ let api_url = "https://api.example.com"
 	}
 }
 
-func Test_Resolve_DirPrecedence(t *testing.T) {
+func Test_Resolve_DirectoryWinsOverFile(t *testing.T) {
 	root := fstest.MapFS{
 		"targets/main.scampi": &fstest.MapFile{
 			Data: []byte(`

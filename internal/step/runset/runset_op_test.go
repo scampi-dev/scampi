@@ -9,7 +9,7 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-func Test_ParseTemplate_PlaceholderForms(t *testing.T) {
+func Test_ParseTemplate_ClassifiesPlaceholderForms(t *testing.T) {
 	cases := []struct {
 		name string
 		cmd  string
@@ -33,14 +33,14 @@ func Test_ParseTemplate_PlaceholderForms(t *testing.T) {
 	}
 }
 
-func Test_ParseTemplate_MissingPlaceholder(t *testing.T) {
+func Test_ParseTemplate_RejectsMissingPlaceholder(t *testing.T) {
 	_, err := parseTemplate("add", "samba-tool group addmembers admins", anySpan())
 	if _, ok := err.(MissingTemplateError); !ok {
 		t.Fatalf("expected MissingTemplateError, got %T: %v", err, err)
 	}
 }
 
-func Test_ParseTemplate_MixedPlaceholders(t *testing.T) {
+func Test_ParseTemplate_RejectsMixedPlaceholders(t *testing.T) {
 	_, err := parseTemplate("add", "do {{ item }} or {{ items }}", anySpan())
 	if _, ok := err.(InvalidTemplateError); !ok {
 		t.Fatalf("expected InvalidTemplateError, got %T: %v", err, err)
@@ -57,7 +57,7 @@ func Test_ParseTemplate_EmptyReturnsNil(t *testing.T) {
 	}
 }
 
-func Test_ItemTemplate_RenderBatch(t *testing.T) {
+func Test_ItemTemplate_RendersBatchCSV(t *testing.T) {
 	tpl, err := parseTemplate("add", "samba-tool group addmembers admins {{ items_csv }}", anySpan())
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func Test_ItemTemplate_RenderBatch(t *testing.T) {
 	}
 }
 
-func Test_ItemTemplate_RenderBatchSpace(t *testing.T) {
+func Test_ItemTemplate_RendersBatchSpaceSeparated(t *testing.T) {
 	tpl, _ := parseTemplate("add", "ip route add {{ items }}", anySpan())
 	got := tpl.render([]string{"a", "b"})
 	want := []string{"ip route add a b"}
@@ -78,7 +78,7 @@ func Test_ItemTemplate_RenderBatchSpace(t *testing.T) {
 	}
 }
 
-func Test_ItemTemplate_RenderPerItem(t *testing.T) {
+func Test_ItemTemplate_RendersPerItem(t *testing.T) {
 	tpl, _ := parseTemplate("add", "addone {{ item }}", anySpan())
 	got := tpl.render([]string{"a", "b", "c"})
 	want := []string{"addone a", "addone b", "addone c"}
@@ -87,7 +87,7 @@ func Test_ItemTemplate_RenderPerItem(t *testing.T) {
 	}
 }
 
-func Test_ItemTemplate_RenderEmpty(t *testing.T) {
+func Test_ItemTemplate_RendersNilForEmptyItems(t *testing.T) {
 	tpl, _ := parseTemplate("add", "addone {{ item }}", anySpan())
 	if got := tpl.render(nil); got != nil {
 		t.Errorf("nil items -> %v, want nil", got)
@@ -97,7 +97,7 @@ func Test_ItemTemplate_RenderEmpty(t *testing.T) {
 	}
 }
 
-func Test_ParseListStdout_Cases(t *testing.T) {
+func Test_ParseListStdout_TrimsAndDedupes(t *testing.T) {
 	cases := []struct {
 		name string
 		in   string
@@ -119,7 +119,7 @@ func Test_ParseListStdout_Cases(t *testing.T) {
 	}
 }
 
-func Test_Diff_BothSides(t *testing.T) {
+func Test_Diff_ComputesAddAndRemove(t *testing.T) {
 	live := []string{"alice", "bob", "stale"}
 	desired := []string{"bob", "carol"}
 	got := diff(live, desired, true, true)
@@ -133,7 +133,7 @@ func Test_Diff_BothSides(t *testing.T) {
 	}
 }
 
-func Test_Diff_OnlyAddRemoveDisabled(t *testing.T) {
+func Test_Diff_SkipsOrphansWhenRemoveDisabled(t *testing.T) {
 	// User declared `add` but no `remove` - orphans must NOT be reported
 	// as drift (one-way reconciliation).
 	got := diff([]string{"keep-me"}, []string{"new"}, true, false)
@@ -145,7 +145,7 @@ func Test_Diff_OnlyAddRemoveDisabled(t *testing.T) {
 	}
 }
 
-func Test_Diff_OnlyRemoveAddDisabled(t *testing.T) {
+func Test_Diff_SkipsAdditionsWhenAddDisabled(t *testing.T) {
 	got := diff([]string{"orphan"}, []string{"declared"}, false, true)
 	if got.toAdd != nil {
 		t.Errorf("toAdd should be nil when add disabled, got %v", got.toAdd)
@@ -155,7 +155,7 @@ func Test_Diff_OnlyRemoveAddDisabled(t *testing.T) {
 	}
 }
 
-func Test_Diff_Converged(t *testing.T) {
+func Test_Diff_ReturnsEmptyWhenConverged(t *testing.T) {
 	got := diff([]string{"a", "b"}, []string{"a", "b"}, true, true)
 	if got.toAdd != nil || got.toRemove != nil {
 		t.Errorf("converged but got add=%v remove=%v", got.toAdd, got.toRemove)
@@ -170,7 +170,7 @@ func Test_DedupePreserve_KeepsFirstOccurrence(t *testing.T) {
 	}
 }
 
-func Test_EnvPrefix_Sorted(t *testing.T) {
+func Test_EnvPrefix_SortsKeys(t *testing.T) {
 	got := envPrefix(map[string]string{"BETA": "2", "ALPHA": "1"})
 	want := "ALPHA='1' BETA='2' "
 	if got != want {

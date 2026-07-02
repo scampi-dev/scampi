@@ -45,7 +45,7 @@ func run(args ...string) (output string, exitCode int) {
 	return string(out), 0
 }
 
-func Test_UsageError_GlobalFlagMissingValue(t *testing.T) {
+func Test_UsageError_ShowsRootHelpOnGlobalFlag(t *testing.T) {
 	out, code := run("--color")
 
 	if code != 1 {
@@ -63,7 +63,7 @@ func Test_UsageError_GlobalFlagMissingValue(t *testing.T) {
 	}
 }
 
-func Test_UsageError_SubcommandFlagMissingValue(t *testing.T) {
+func Test_UsageError_ShowsSubcommandHelpOnFlag(t *testing.T) {
 	out, code := run("inspect", "--only")
 
 	if code != 1 {
@@ -85,7 +85,7 @@ func Test_UsageError_SubcommandFlagMissingValue(t *testing.T) {
 	}
 }
 
-func Test_UsageError_InvalidColorValue(t *testing.T) {
+func Test_UsageError_RejectsInvalidColorValue(t *testing.T) {
 	out, code := run("--color", "bogus")
 
 	if code != 1 {
@@ -102,7 +102,7 @@ func Test_UsageError_InvalidColorValue(t *testing.T) {
 	}
 }
 
-func Test_UsageError_ColorEatsSubcommand(t *testing.T) {
+func Test_UsageError_RejectsSubcommandAsColorValue(t *testing.T) {
 	// --color with space-separated value that happens to be a subcommand name.
 	// The validator should reject "apply" as a color value.
 	out, code := run("--color", "apply")
@@ -118,7 +118,7 @@ func Test_UsageError_ColorEatsSubcommand(t *testing.T) {
 	}
 }
 
-func Test_UsageError_ResolveFlags(t *testing.T) {
+func Test_UsageError_ShowsHelpForResolveFlags(t *testing.T) {
 	// Verify all resolve flags show help on missing value.
 	for _, tt := range []struct {
 		cmd  string
@@ -146,7 +146,7 @@ func Test_UsageError_ResolveFlags(t *testing.T) {
 	}
 }
 
-func Test_UsageError_ValidUsageStillWorks(t *testing.T) {
+func Test_UsageError_AllowsValidUsage(t *testing.T) {
 	// legend has no required args or flags - should succeed.
 	out, code := run("legend")
 	if code != 0 {
@@ -154,7 +154,7 @@ func Test_UsageError_ValidUsageStillWorks(t *testing.T) {
 	}
 }
 
-func Test_UsageError_ValidColorFlag(t *testing.T) {
+func Test_UsageError_AllowsValidColorFlag(t *testing.T) {
 	// --color=never with a working subcommand should succeed.
 	out, code := run("--color=never", "legend")
 	if code != 0 {

@@ -19,7 +19,7 @@ import (
 // Connection Tests
 // -----------------------------------------------------------------------------
 
-func Test_SSH_Connect(t *testing.T) {
+func Test_SSH_ConnectsAndDetectsCapabilities(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -33,7 +33,7 @@ func Test_SSH_Connect(t *testing.T) {
 	}
 }
 
-func Test_SSH_ConnectWrongKey(t *testing.T) {
+func Test_SSH_RejectsWrongKey(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -70,7 +70,7 @@ func Test_SSH_ConnectWrongKey(t *testing.T) {
 	}
 }
 
-func Test_SSH_ConnectNoSuchHost(t *testing.T) {
+func Test_SSH_ErrorsOnUnknownHost(t *testing.T) {
 	// Need a valid key to get past auth method check
 	keyPath := harness.GenerateTempKey(t)
 	defer func() { _ = os.Remove(keyPath) }()
@@ -104,7 +104,7 @@ func Test_SSH_ConnectNoSuchHost(t *testing.T) {
 	}
 }
 
-func Test_SSH_ConnectInvalidTimeout(t *testing.T) {
+func Test_SSH_RejectsInvalidTimeout(t *testing.T) {
 	sshType := ssh.SSH{}
 	cfg := &ssh.Config{
 		Host:     "localhost",
@@ -139,7 +139,7 @@ func Test_SSH_ConnectInvalidTimeout(t *testing.T) {
 	}
 }
 
-func Test_SSH_ConnectPublicKeyAsPrivate(t *testing.T) {
+func Test_SSH_RejectsPublicKeyAsPrivate(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -181,7 +181,7 @@ func Test_SSH_ConnectPublicKeyAsPrivate(t *testing.T) {
 // SFTP Operation Tests
 // -----------------------------------------------------------------------------
 
-func Test_SSH_ReadWriteFile(t *testing.T) {
+func Test_SSH_RoundTripsFileContent(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -213,7 +213,7 @@ func Test_SSH_ReadWriteFile(t *testing.T) {
 	}
 }
 
-func Test_SSH_ReadFileNotExist(t *testing.T) {
+func Test_SSH_ReadFileReturnsErrNotExist(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -232,7 +232,7 @@ func Test_SSH_ReadFileNotExist(t *testing.T) {
 	}
 }
 
-func Test_SSH_Stat(t *testing.T) {
+func Test_SSH_StatReportsSizeAndType(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -264,7 +264,7 @@ func Test_SSH_Stat(t *testing.T) {
 	}
 }
 
-func Test_SSH_StatNotExist(t *testing.T) {
+func Test_SSH_StatReturnsErrNotExist(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -283,7 +283,7 @@ func Test_SSH_StatNotExist(t *testing.T) {
 	}
 }
 
-func Test_SSH_Chmod(t *testing.T) {
+func Test_SSH_ChmodSetsMode(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -319,7 +319,7 @@ func Test_SSH_Chmod(t *testing.T) {
 // Symlink Tests
 // -----------------------------------------------------------------------------
 
-func Test_SSH_Symlink(t *testing.T) {
+func Test_SSH_SymlinkCreatesAndResolves(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -366,7 +366,7 @@ func Test_SSH_Symlink(t *testing.T) {
 // Ownership Tests
 // -----------------------------------------------------------------------------
 
-func Test_SSH_HasUser(t *testing.T) {
+func Test_SSH_HasUserFindsByNameAndUID(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -391,7 +391,7 @@ func Test_SSH_HasUser(t *testing.T) {
 	}
 }
 
-func Test_SSH_HasGroup(t *testing.T) {
+func Test_SSH_HasGroupFindsByNameAndGID(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -416,7 +416,7 @@ func Test_SSH_HasGroup(t *testing.T) {
 	}
 }
 
-func Test_SSH_GetOwner(t *testing.T) {
+func Test_SSH_GetOwnerReturnsUserAndGroup(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -440,7 +440,7 @@ func Test_SSH_GetOwner(t *testing.T) {
 	}
 }
 
-func Test_SSH_Chown(t *testing.T) {
+func Test_SSH_WritesFilesAsConnectingUser(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 

@@ -25,7 +25,7 @@ import (
 //
 //	Check = Satisfied
 //	Execute = MUST NOT be called
-func Test_ExecuteStep_AllOpsSkipped(t *testing.T) {
+func Test_ExecuteStep_SkipsSatisfiedOps(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
@@ -90,7 +90,7 @@ func Test_ExecuteStep_AllOpsSkipped(t *testing.T) {
 //
 //	Check = Unsatisfied
 //	Execute = Success
-func Test_ExecuteStep_LinearSuccess(t *testing.T) {
+func Test_ExecuteStep_ExecutesEachOpOnce(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -159,7 +159,7 @@ func Test_ExecuteStep_LinearSuccess(t *testing.T) {
 //	A.Execute -> Success
 //	B.Execute -> Abort
 //	C.Execute -> MUST NOT be called
-func Test_ExecuteStep_FailFastMiddleOfChain(t *testing.T) {
+func Test_ExecuteStep_StopsChainAtFirstFailure(t *testing.T) {
 	var act *harness.FakeStep
 
 	opA := &harness.FakeOp{
@@ -250,7 +250,7 @@ func Test_ExecuteStep_FailFastMiddleOfChain(t *testing.T) {
 //	B.Execute -> Success
 //	C.Execute -> Abort
 //	D.Execute -> MUST NOT be called
-func Test_ExecuteStep_BranchFailure(t *testing.T) {
+func Test_ExecuteStep_FailureBlocksOnlyDownstreamBranch(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -382,7 +382,7 @@ func Test_ExecuteStep_CheckDiagnosticContinues(t *testing.T) {
 //	A.Check   -> Diagnostic (Abort)
 //	A.Execute -> MUST NOT be called
 //	B.Execute -> MUST NOT be called
-func Test_ExecuteStep_AbortDuringCheck(t *testing.T) {
+func Test_ExecuteStep_CheckAbortPreventsExecution(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.DiagCheckFn(signal.Error, diagnostic.ImpactAbort),
@@ -440,7 +440,7 @@ func Test_ExecuteStep_AbortDuringCheck(t *testing.T) {
 //	A.Execute -> Success
 //	B.Execute -> Abort
 //	C.Execute -> MUST NOT be called
-func Test_ExecuteStep_AbortDuringExecution(t *testing.T) {
+func Test_ExecuteStep_ExecAbortStopsDownstream(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),

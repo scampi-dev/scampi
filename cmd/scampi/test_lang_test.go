@@ -50,7 +50,7 @@ func newTestCtx(t *testing.T) (diagnostic.Ctx, *nopDisplayer) {
 	return diagnostic.NewCtx(t.Context(), em), displ
 }
 
-func Test_RunLangTestFile_Passing(t *testing.T) {
+func Test_RunLangTestFile_ReportsPassOnMatch(t *testing.T) {
 	src := `module main
 
 import "std"
@@ -104,7 +104,7 @@ std.deploy(name = "smoke", targets = [mock]) {
 // the same-package test model (like Go). Regression test: the sibling
 // loading guard used <= 1 which bailed when the entry file was a test
 // file (excluded from readModuleDir).
-func Test_RunLangTestFile_SiblingModuleAccess(t *testing.T) {
+func Test_RunLangTestFile_LoadsSiblingModule(t *testing.T) {
 	dir := t.TempDir()
 
 	// Sibling module file with a non-pub function.
@@ -173,7 +173,7 @@ std.deploy(name = "smoke", targets = [mock]) {
 	}
 }
 
-func Test_RunLangTestFile_Failing(t *testing.T) {
+func Test_RunLangTestFile_ReportsFailOnMismatch(t *testing.T) {
 	src := `module main
 
 import "std"

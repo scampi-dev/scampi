@@ -112,7 +112,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_RunSet_BothSides(t *testing.T) {
+func Test_RunSet_RemovesBeforeAdds(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -151,7 +151,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_RunSet_NoopWhenConverged(t *testing.T) {
+func Test_RunSet_SkipsExecutionWhenConverged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -187,7 +187,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_RunSet_PerItemTemplate(t *testing.T) {
+func Test_RunSet_RunsAddPerItem(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -313,7 +313,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_RunSet_EnvPrefixApplied(t *testing.T) {
+func Test_RunSet_AppliesEnvPrefix(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-// Test_SSH_ConnectionPoolOneTCPDialPerTarget is the acceptance test for
+// Test_SSH_UsesOneTCPDialPerTarget is the acceptance test for
 // #238: confirms that the per-target SSH connection is reused across
 // every RunCommand. DialCount must be exactly 1 for the target's
 // lifetime, regardless of how many ops run sequentially or in parallel.
@@ -20,7 +20,7 @@ import (
 // multiplexed session per host" rests on. If a regression introduces a
 // stray re-dial somewhere (e.g. someone adds a "fresh client" pattern
 // for retries), DialCount will go above 1 and this test fails.
-func Test_SSH_ConnectionPoolOneTCPDialPerTarget(t *testing.T) {
+func Test_SSH_UsesOneTCPDialPerTarget(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -77,13 +77,13 @@ func Test_SSH_ConnectionPoolOneTCPDialPerTarget(t *testing.T) {
 	}
 }
 
-// Test_SSH_RunCommandMultiLine is the acceptance test for the
+// Test_SSH_RunCommandHandlesMultiLine is the acceptance test for the
 // multi-line command bug discovered while testing #297 backtick
 // strings. A user command with a literal trailing newline used to
 // produce a `<NL>; }` sequence in the persistent-shell wrapper that
 // bash rejects as a syntax error, causing the framed sentinel to
 // never be written and the read loop to panic on EOF.
-func Test_SSH_RunCommandMultiLine(t *testing.T) {
+func Test_SSH_RunCommandHandlesMultiLine(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -178,10 +178,10 @@ func Test_SSH_RetryHandlesContention(t *testing.T) {
 		parallelOps, stats.SessionsPeakInFlight, stats.SessionRetries)
 }
 
-// Test_SSH_RunCommandContextCancellation verifies that an op blocked
+// Test_SSH_RunCommandHonorsContextCancel verifies that an op blocked
 // waiting for a slot returns promptly when its context is cancelled,
 // rather than hanging forever.
-func Test_SSH_RunCommandContextCancellation(t *testing.T) {
+func Test_SSH_RunCommandHonorsContextCancel(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 

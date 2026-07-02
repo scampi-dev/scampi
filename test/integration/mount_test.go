@@ -38,7 +38,7 @@ func mountCommandFunc(mounts map[string]bool) func(string) (target.CommandResult
 	}
 }
 
-func Test_Mount_CreateAndMount(t *testing.T) {
+func Test_Mount_WritesFstabAndMounts(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -80,7 +80,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Mount_Idempotent(t *testing.T) {
+func Test_Mount_CheckPassesWhenConverged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -114,7 +114,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Mount_DriftRemount(t *testing.T) {
+func Test_Mount_RemountsWhenUnmounted(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -152,7 +152,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Mount_Absent(t *testing.T) {
+func Test_Mount_AbsentRemovesFstabAndUnmounts(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -199,7 +199,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Mount_Unmounted(t *testing.T) {
+func Test_Mount_UnmountedWritesFstabWithoutMounting(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -246,7 +246,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Mount_OptsChange(t *testing.T) {
+func Test_Mount_UpdatesFstabOnOptsChange(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -290,7 +290,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Mount_AbsentAlreadyGone(t *testing.T) {
+func Test_Mount_AbsentCheckPassesWhenAlreadyGone(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

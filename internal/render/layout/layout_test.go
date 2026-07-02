@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_WrapText_Cases(t *testing.T) {
+func Test_WrapText_WrapsAtWordBoundaries(t *testing.T) {
 	tests := []struct {
 		name   string
 		text   string

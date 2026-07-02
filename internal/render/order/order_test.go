@@ -74,7 +74,7 @@ func assertLog(t *testing.T, got, want []string) {
 }
 
 // In declaration order, each Result releases its block immediately.
-func Test_Sequencer_InOrder(t *testing.T) {
+func Test_Sequencer_ReleasesInDeclarationOrder(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(change(0, "a"))
@@ -99,7 +99,7 @@ func Test_Sequencer_ScrambledCompletionReleasesInOrder(t *testing.T) {
 
 // A step's drift lines stay grouped with its verdict, in declaration order,
 // regardless of interleaved arrival.
-func Test_Sequencer_ChangesStayGroupedAndOrdered(t *testing.T) {
+func Test_Sequencer_KeepsChangesGroupedAndOrdered(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(change(1, "x"))
@@ -116,7 +116,7 @@ func Test_Sequencer_ChangesStayGroupedAndOrdered(t *testing.T) {
 
 // A missing step (cancelled, no Result) doesn't wedge the buffer: completed
 // later blocks drain at summary, in order.
-func Test_Sequencer_DrainOnSummary(t *testing.T) {
+func Test_Sequencer_DrainsCompletedAtSummary(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
@@ -144,7 +144,7 @@ func Test_Sequencer_AbortDrainsCompletedPastCursor(t *testing.T) {
 
 // Diagnostics and Begin are out-of-band: released immediately, never held
 // behind buffered step blocks.
-func Test_Sequencer_DiagnosticsAndBeginPassThrough(t *testing.T) {
+func Test_Sequencer_PassesThroughDiagnosticsAndBegin(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(event.Info{})
@@ -158,7 +158,7 @@ func Test_Sequencer_DiagnosticsAndBeginPassThrough(t *testing.T) {
 // Each deploy lane orders independently and interleaves freely: a fast lane
 // streams its results without waiting on a slow sibling, while each lane stays
 // internally in declaration order. This is the visible cross-deploy parallelism.
-func Test_Sequencer_PerDeployLanesOrderIndependently(t *testing.T) {
+func Test_Sequencer_ReleasesLanesIndependently(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(resIn("dns", 1, 0)) // dns lane cursor 0 -> releases now
@@ -173,7 +173,7 @@ func Test_Sequencer_PerDeployLanesOrderIndependently(t *testing.T) {
 
 // Hooks continue a lane's index space (N, N+1, ...) rather than reusing it, so
 // the per-lane cursor keeps ordering across the main and hook phases.
-func Test_Sequencer_HookIndicesContinueLane(t *testing.T) {
+func Test_Sequencer_ContinuesLaneAcrossHookIndices(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))

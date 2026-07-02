@@ -12,7 +12,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-func Test_DiagnoseTargetError_EscalationFailed(t *testing.T) {
+func Test_DiagnoseTargetError_WrapsEscalationFailed(t *testing.T) {
 	orig := target.EscalationError{
 		Tool: "sudo", Op: "chmod", Path: "/etc/foo",
 		Stderr: "not permitted", ExitCode: 1,
@@ -37,7 +37,7 @@ func Test_DiagnoseTargetError_EscalationFailed(t *testing.T) {
 	}
 }
 
-func Test_DiagnoseTargetError_EscalationMissing(t *testing.T) {
+func Test_DiagnoseTargetError_WrapsEscalationMissing(t *testing.T) {
 	orig := target.NoEscalationError{Op: "apk install"}
 
 	wrapped := DiagnoseTargetError(orig)
@@ -56,7 +56,7 @@ func Test_DiagnoseTargetError_EscalationMissing(t *testing.T) {
 	}
 }
 
-func Test_DiagnoseTargetError_StagingError(t *testing.T) {
+func Test_DiagnoseTargetError_WrapsStagingError(t *testing.T) {
 	orig := target.StagingError{
 		Path: "/etc/config",
 		Err:  fmt.Errorf("disk full"),
@@ -78,7 +78,7 @@ func Test_DiagnoseTargetError_StagingError(t *testing.T) {
 	}
 }
 
-func Test_DiagnoseTargetError_PassthroughUnknown(t *testing.T) {
+func Test_DiagnoseTargetError_PassesThroughUnknown(t *testing.T) {
 	orig := fmt.Errorf("some other error")
 
 	wrapped := DiagnoseTargetError(orig)
@@ -88,7 +88,7 @@ func Test_DiagnoseTargetError_PassthroughUnknown(t *testing.T) {
 	}
 }
 
-func Test_EscalationErrors_StableEventIDs(t *testing.T) {
+func Test_Escalation_UsesStableEventIDs(t *testing.T) {
 	missing := EscalationMissingError{NoEscalationError: target.NoEscalationError{Op: "chmod", Path: "/etc/foo"}}
 	failed := EscalationFailedError{EscalationError: target.EscalationError{
 		Tool: "sudo", Op: "chmod", Path: "/etc/foo", ExitCode: 1,

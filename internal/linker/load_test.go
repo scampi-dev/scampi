@@ -135,7 +135,7 @@ func Test_StdReadFile_PreservesInteriorNewlines(t *testing.T) {
 
 // Live filesystem smoke test - confirms the builtin works end-to-end
 // when wired with real os.ReadFile, not just the in-memory mock.
-func Test_StdReadFile_RealFilesystem(t *testing.T) {
+func Test_StdReadFile_LoadsFromRealFilesystem(t *testing.T) {
 	dir := t.TempDir()
 	keyPath := filepath.Join(dir, "host.pub")
 	if err := os.WriteFile(keyPath, []byte("real-key-from-disk\n"), 0o644); err != nil {
@@ -189,7 +189,7 @@ func Test_SecretEnvBuiltin_ResolvesAndRegisters(t *testing.T) {
 	}
 }
 
-func Test_SecretEnvBuiltin_DefaultDoesNotRegister(t *testing.T) {
+func Test_SecretEnvBuiltin_DoesNotRegisterDefault(t *testing.T) {
 	r := secret.NewRedactor()
 	fn := secretEnvBuiltin(mockEnv(nil), r)
 
@@ -243,7 +243,7 @@ func Test_SecretEnvBuiltin_AcceptsKwargDefault(t *testing.T) {
 	}
 }
 
-func Test_SecretEnvBuiltin_NilRedactorIsNoOp(t *testing.T) {
+func Test_SecretEnvBuiltin_ResolvesWithNilRedactor(t *testing.T) {
 	// LSP and similar paths may not have a redactor wired. The
 	// builtin must still resolve the value cleanly - secrets just
 	// won't be masked downstream (LSP doesn't render to terminal).

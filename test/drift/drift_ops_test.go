@@ -102,7 +102,7 @@ func assertDrift(
 // copyFileOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_CopyFileMissing(t *testing.T) {
+func Test_Drift_ReportsMissingCopyDest(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/src.txt"] = []byte("hello")
 	tgt := target.NewMemTarget()
@@ -120,7 +120,7 @@ func Test_Drift_CopyFileMissing(t *testing.T) {
 	assertDrift(t, details, "content", "", "5 bytes")
 }
 
-func Test_Drift_CopyFileContentDiffers(t *testing.T) {
+func Test_Drift_ReportsCopyContentDiff(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/src.txt"] = []byte("new content")
 	tgt := target.NewMemTarget()
@@ -142,7 +142,7 @@ func Test_Drift_CopyFileContentDiffers(t *testing.T) {
 // renderTemplateOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_RenderTemplateMissing(t *testing.T) {
+func Test_Drift_ReportsMissingTemplateDest(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/tmpl.txt"] = []byte("Hello {{.Name}}")
 	tgt := target.NewMemTarget()
@@ -164,7 +164,7 @@ func Test_Drift_RenderTemplateMissing(t *testing.T) {
 	assertDrift(t, details, "content", "", "11 bytes")
 }
 
-func Test_Drift_RenderTemplateContentDiffers(t *testing.T) {
+func Test_Drift_ReportsTemplateContentDiff(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/tmpl.txt"] = []byte("Hello {{.Name}}")
 	tgt := target.NewMemTarget()
@@ -191,7 +191,7 @@ func Test_Drift_RenderTemplateContentDiffers(t *testing.T) {
 // ensureSymlinkOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_SymlinkMissing(t *testing.T) {
+func Test_Drift_ReportsMissingSymlink(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	// Create a file so the parent dir exists implicitly
@@ -212,7 +212,7 @@ func Test_Drift_SymlinkMissing(t *testing.T) {
 	assertDrift(t, details, "target", "", "/usr/bin/real")
 }
 
-func Test_Drift_SymlinkWrongTarget(t *testing.T) {
+func Test_Drift_ReportsSymlinkTargetDiff(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	tgt.Symlinks["/usr/local/bin/mylink"] = "/usr/bin/old"
@@ -237,7 +237,7 @@ func Test_Drift_SymlinkWrongTarget(t *testing.T) {
 // EnsureModeOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_EnsureModeMissing(t *testing.T) {
+func Test_Drift_ReportsModeOnMissingFile(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
@@ -246,7 +246,7 @@ func Test_Drift_EnsureModeMissing(t *testing.T) {
 	assertDrift(t, details, "perm", "", "-rw-r--r--")
 }
 
-func Test_Drift_EnsureModeDiffers(t *testing.T) {
+func Test_Drift_ReportsModeDiff(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	tgt.Files["/etc/app.conf"] = []byte("content")
@@ -266,7 +266,7 @@ func Test_Drift_EnsureModeDiffers(t *testing.T) {
 // EnsureOwnerOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_EnsureOwnerMissing(t *testing.T) {
+func Test_Drift_ReportsOwnerOnMissingFile(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 
@@ -277,7 +277,7 @@ func Test_Drift_EnsureOwnerMissing(t *testing.T) {
 	assertDrift(t, details, "owner:group", "", "app:staff")
 }
 
-func Test_Drift_EnsureOwnerDiffers(t *testing.T) {
+func Test_Drift_ReportsOwnerDiff(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	tgt.Files["/etc/app.conf"] = []byte("content")
@@ -296,7 +296,7 @@ func Test_Drift_EnsureOwnerDiffers(t *testing.T) {
 // ensurePkgOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_PkgNotInstalled(t *testing.T) {
+func Test_Drift_ReportsPkgNotInstalled(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	// vim not installed
@@ -313,7 +313,7 @@ func Test_Drift_PkgNotInstalled(t *testing.T) {
 	assertDrift(t, details, "state", "vim: not installed", "present")
 }
 
-func Test_Drift_PkgUpgradable(t *testing.T) {
+func Test_Drift_ReportsPkgUpgradable(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	tgt.Pkgs["vim"] = true
@@ -355,7 +355,7 @@ func Test_Drift_PkgLatestCheckIsReadOnly(t *testing.T) {
 	}
 }
 
-func Test_Drift_PkgWantAbsent(t *testing.T) {
+func Test_Drift_ReportsPkgInstalledWhenWantAbsent(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	tgt.Pkgs["vim"] = true
@@ -381,7 +381,7 @@ func sysctlMemTarget(cmdFunc func(string) (target.CommandResult, error)) *target
 	return tgt
 }
 
-func Test_Drift_SysctlValueDiffers(t *testing.T) {
+func Test_Drift_ReportsSysctlValueDiff(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
@@ -401,7 +401,7 @@ func Test_Drift_SysctlValueDiffers(t *testing.T) {
 	assertDrift(t, details, "net.ipv4.ip_forward", "0", "1")
 }
 
-func Test_Drift_SysctlAlreadySatisfied(t *testing.T) {
+func Test_Drift_ReportsNoDriftWhenSysctlSatisfied(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
@@ -426,7 +426,7 @@ func Test_Drift_SysctlAlreadySatisfied(t *testing.T) {
 // persistSysctlOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_SysctlDropInMissing(t *testing.T) {
+func Test_Drift_ReportsMissingSysctlDropIn(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
@@ -452,7 +452,7 @@ func Test_Drift_SysctlDropInMissing(t *testing.T) {
 	)
 }
 
-func Test_Drift_SysctlDropInContentDiffers(t *testing.T) {
+func Test_Drift_ReportsSysctlDropInContentDiff(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
@@ -482,7 +482,7 @@ func Test_Drift_SysctlDropInContentDiffers(t *testing.T) {
 // cleanupSysctlOp
 // -----------------------------------------------------------------------------
 
-func Test_Drift_SysctlCleanupStaleDropIn(t *testing.T) {
+func Test_Drift_ReportsStaleSysctlDropIn(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
@@ -509,7 +509,7 @@ func Test_Drift_SysctlCleanupStaleDropIn(t *testing.T) {
 	)
 }
 
-func Test_Drift_SysctlCleanupNoDropIn(t *testing.T) {
+func Test_Drift_ReportsNoDriftWithoutSysctlDropIn(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {

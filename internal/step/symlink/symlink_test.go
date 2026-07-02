@@ -51,7 +51,7 @@ func Test_EnsureSymlink_DriftReportsDirectory(t *testing.T) {
 	}
 }
 
-func Test_ResolveTarget_Cases(t *testing.T) {
+func Test_ResolveTarget_RelativizesAgainstLinkDir(t *testing.T) {
 	tests := []struct {
 		name   string
 		target string

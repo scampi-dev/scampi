@@ -62,7 +62,7 @@ func Test_Redactor_IgnoresEmptyValues(t *testing.T) {
 	}
 }
 
-func Test_Redactor_HandlesNilReceiver(t *testing.T) {
+func Test_Redactor_TreatsNilReceiverAsNoop(t *testing.T) {
 	// A nil redactor is a no-op - useful for code paths that may not
 	// have wiring in place yet (LSP, tests).
 	var r *Redactor

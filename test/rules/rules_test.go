@@ -628,10 +628,19 @@ func Test_Rule_MarkdownTableAlignment(t *testing.T) {
 		}
 	}
 
-	// Check README.md
-	readme := filepath.Join(root, "README.md")
-	if _, err := os.Stat(readme); err == nil {
-		walkFile(t, "README.md", readme)
+	// Root-level markdown and the GitHub templates.
+	rootDocs := []string{
+		"README.md", "CLAUDE.md", "CONTRIBUTING.md", "SECURITY.md",
+		"TERMINOLOGY.md",
+		".github/PULL_REQUEST_TEMPLATE.md",
+		".github/ISSUE_TEMPLATE/bug.md",
+		".github/ISSUE_TEMPLATE/feature.md",
+	}
+	for _, doc := range rootDocs {
+		p := filepath.Join(root, doc)
+		if _, err := os.Stat(p); err == nil {
+			walkFile(t, doc, p)
+		}
 	}
 }
 
@@ -952,8 +961,17 @@ func dirHasProdGo(t *testing.T, dir string) bool {
 // Test_Subject_Expectation / Benchmark_Subject_Expectation - exactly two
 // UpperCamel segments, so every test declares what it tests and what it
 // expects. Enforcement rules use the Rule subject (Test_Rule_GlyphDiscipline),
-// which fits the same shape. Exempt: TestMain (harness protocol) and Fuzz*
-// (no expectation to state).
+// which fits the same shape.
+//
+// The expectation must actually EXPECT something: it needs a verb from the
+// vocabulary below, so scenario labels don't masquerade as expectations
+// (Test_SSH_RejectsWrongKey, not Test_SSH_ConnectWrongKey). A genuinely new
+// verb fails here on purpose - add it to the list after checking the name
+// states an asserted outcome, not an input.
+//
+// Exempt: TestMain (harness protocol), Fuzz* (no expectation to state),
+// Benchmark_* (they measure a scenario, they don't assert), and Test_Rule_*
+// (the rule name is the payload).
 func Test_Rule_TestNaming(t *testing.T) {
 	roots := []string{"../../internal", "../../cmd", "../../test"}
 	nameRe := regexp.MustCompile(`^(Test|Benchmark)(_[A-Z][A-Za-z0-9]*){2}$`)
@@ -985,15 +1003,28 @@ func Test_Rule_TestNaming(t *testing.T) {
 				if name == "TestMain" {
 					continue
 				}
-				if nameRe.MatchString(name) {
+				pos := fset.Position(fn.Pos())
+				if !nameRe.MatchString(name) {
+					t.Errorf(
+						"%s:%d: %s does not match Test_Subject_Expectation "+
+							"(exactly two UpperCamel segments)",
+						p, pos.Line, name,
+					)
 					continue
 				}
-				pos := fset.Position(fn.Pos())
-				t.Errorf(
-					"%s:%d: %s does not match Test_Subject_Expectation "+
-						"(exactly two UpperCamel segments)",
-					p, pos.Line, name,
-				)
+				if isBench || strings.HasPrefix(name, "Test_Rule_") {
+					continue
+				}
+				expectation := name[strings.LastIndex(name, "_")+1:]
+				if !containsExpectationVerb(expectation) {
+					t.Errorf(
+						"%s:%d: %s names a scenario, not an expectation - state the "+
+							"asserted outcome with a verb (Test_SSH_RejectsWrongKey, not "+
+							"Test_SSH_ConnectWrongKey); if the verb is genuinely new, add "+
+							"it to expectationVerbs",
+						p, pos.Line, name,
+					)
+				}
 			}
 			return nil
 		})
@@ -1001,4 +1032,64 @@ func Test_Rule_TestNaming(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// expectationVerbs is the third-person-singular vocabulary an expectation
+// segment must draw from. Deliberately curated: a miss forces the question
+// "am I naming what the test asserts, or just its input?".
+var expectationVerbs = []string{
+	"Aborts", "Accepts", "Adds", "Aggregates",
+	"Aligns", "Allows", "Anchors", "Applies",
+	"Assigns", "Bans", "Becomes", "Binds",
+	"Blocks", "Bootstraps", "Bounds", "Buffers",
+	"Caches", "Calls", "Canonicalizes", "Caps",
+	"Carries", "Chains", "Classifies", "Clears",
+	"Collapses", "Compiles", "Computes", "Connects",
+	"Continues", "Converges", "Copies", "Counts",
+	"Creates", "Decrypts", "Dedents", "Dedupes", "Defers",
+	"Deletes", "Detects", "Disables", "Discards",
+	"Does", "Drains", "Draws", "Drops",
+	"Elides", "Emits", "Enforces", "Errors",
+	"Escapes", "Evaluates", "Executes", "Exports",
+	"Extracts", "Fails", "Falls", "Fences",
+	"Fills", "Filters", "Finds", "Fires",
+	"Fits", "Forces", "Formats", "Forwards",
+	"Handles", "Honors", "Ignores", "Includes",
+	"Inserts", "Is", "Keeps", "Leaves", "Limits",
+	"Loads", "Maps", "Matches", "Mirrors",
+	"Mixes", "Mounts", "Narrows", "Needs",
+	"Normalizes", "Omits", "Orders", "Overrides",
+	"Panics", "Parallelizes", "Parses", "Passes",
+	"Picks", "Populates", "Prepends", "Preserves",
+	"Quotes",
+	"Prevents", "Probes", "Propagates", "Recreates",
+	"Redacts", "Redraws", "Registers", "Rejects",
+	"Relativizes", "Releases", "Remounts", "Removes",
+	"Renders", "Reports", "Requires", "Resolves",
+	"Respects", "Returns", "Rewrites", "Runs",
+	"Searches", "Seeds", "Separates", "Serializes",
+	"Sets", "Shows", "Skips", "Sorts",
+	"Stays", "Stops", "Succeeds", "Sums",
+	"Survives", "Tracks", "Treats", "Triggers",
+	"Trims", "Trips", "Unescapes", "Unmounts", "Unwraps",
+	"Updates", "Uses", "Verifies", "Waits",
+	"Walks", "Warns", "Wins", "Wraps",
+	"Writes", "Yields",
+}
+
+// containsExpectationVerb splits an UpperCamel expectation into words and
+// reports whether any is a known verb.
+func containsExpectationVerb(expectation string) bool {
+	word := ""
+	for _, r := range expectation {
+		if r >= 'A' && r <= 'Z' && word != "" {
+			if slices.Contains(expectationVerbs, word) {
+				return true
+			}
+			word = string(r)
+			continue
+		}
+		word += string(r)
+	}
+	return slices.Contains(expectationVerbs, word)
 }

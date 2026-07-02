@@ -28,7 +28,7 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-func Test_Diagnostics_Golden(t *testing.T) {
+func Test_Diagnostics_MatchesSnapshots(t *testing.T) {
 	root := harness.AbsPath("../testdata/diagnostics")
 
 	entries := harness.ReadDirOrDie(root)

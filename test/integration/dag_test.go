@@ -17,7 +17,7 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-func Test_Plan_CyclicDependencies(t *testing.T) {
+func Test_Plan_DetectsAllOpCycles(t *testing.T) {
 	mkFakeOp := func(name string) *harness.FakeOp {
 		return &harness.FakeOp{
 			Name:    name,

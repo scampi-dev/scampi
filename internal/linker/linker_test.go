@@ -25,7 +25,7 @@ func captureCtx(t *testing.T, c *harness.Capture) diagnostic.Ctx {
 	return diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, c))
 }
 
-func Test_Link_BasicDeploy(t *testing.T) {
+func Test_Link_ResolvesBasicDeploy(t *testing.T) {
 	src := `
 module main
 import "std"
@@ -71,7 +71,7 @@ std.deploy(name = "web", targets = [vps]) {
 	}
 }
 
-func Test_Link_UnresolvedStep(t *testing.T) {
+func Test_Link_RejectsUnresolvedStep(t *testing.T) {
 	result := &eval.Result{
 		Exprs: []eval.Value{
 			&eval.BlockResultVal{
@@ -102,7 +102,7 @@ func Test_Link_UnresolvedStep(t *testing.T) {
 	}
 }
 
-func Test_Link_UnresolvedTarget(t *testing.T) {
+func Test_Link_RejectsUnresolvedTarget(t *testing.T) {
 	result := &eval.Result{
 		Bindings: map[string]eval.Value{
 			"bad": &eval.StructVal{
@@ -126,7 +126,7 @@ func Test_Link_UnresolvedTarget(t *testing.T) {
 	}
 }
 
-func Test_LoadConfig_ParseErrorDiagnostic(t *testing.T) {
+func Test_LoadConfig_ReportsParseErrorWithSpan(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte("module main\n@@@ garbage\n")
 	reg := engine.NewRegistry()
@@ -165,7 +165,7 @@ func firstDiagnosticTemplate(t *testing.T, capture *harness.Capture) event.Templ
 	return event.Template{}
 }
 
-func Test_LoadConfig_SecretErrorDiagnostic(t *testing.T) {
+func Test_LoadConfig_ReportsSecretErrorAtCallSite(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(`module main
 import "std"
@@ -268,10 +268,10 @@ std.deploy(name = "web", targets = [vps]) {
 	}
 }
 
-// Test_Link_ZeroSpansWithoutSource verifies that without WithSource(),
+// Test_Link_LeavesSpansZeroWithoutSource verifies that without WithSource(),
 // linked instances carry zero-valued spans - the back-compat path for
 // callers that don't plumb source bytes.
-func Test_Link_ZeroSpansWithoutSource(t *testing.T) {
+func Test_Link_LeavesSpansZeroWithoutSource(t *testing.T) {
 	cfg := evalAndLink(t, `module main
 import "std"
 import "std/posix"

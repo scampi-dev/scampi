@@ -9,7 +9,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-func Test_Detect_BackendPreference(t *testing.T) {
+func Test_Detect_PicksFirstAvailableBackend(t *testing.T) {
 	tests := []struct {
 		name     string
 		cmds     map[string]int // command -> exit code
@@ -67,7 +67,7 @@ func Test_Detect_BackendPreference(t *testing.T) {
 	}
 }
 
-func Test_TemplateBackend_Commands(t *testing.T) {
+func Test_TemplateBackend_FormatsCommands(t *testing.T) {
 	tests := []struct {
 		backend string
 		method  string
@@ -110,7 +110,7 @@ func Test_TemplateBackend_Commands(t *testing.T) {
 	}
 }
 
-func Test_TemplateBackend_QuotesSpecialChars(t *testing.T) {
+func Test_TemplateBackend_EscapesSpecialChars(t *testing.T) {
 	b := backends["systemd"]
 	got := b.CmdStart("it's a test")
 	want := "systemctl start 'it'\\''s a test'"
@@ -119,7 +119,7 @@ func Test_TemplateBackend_QuotesSpecialChars(t *testing.T) {
 	}
 }
 
-func Test_TemplateBackend_Properties(t *testing.T) {
+func Test_TemplateBackend_ReportsNameAndNeedsRoot(t *testing.T) {
 	tests := []struct {
 		backend   string
 		name      string
@@ -141,7 +141,7 @@ func Test_TemplateBackend_Properties(t *testing.T) {
 	}
 }
 
-func Test_LaunchctlBackend_Commands(t *testing.T) {
+func Test_LaunchctlBackend_FormatsCommands(t *testing.T) {
 	b := &launchctlBackend{domain: "system"}
 
 	if b.Name() != "launchctl" {
@@ -193,14 +193,14 @@ func Test_LaunchctlBackend_Commands(t *testing.T) {
 	}
 }
 
-func Test_Launchctl_UserDomain(t *testing.T) {
+func Test_Launchctl_UserDomainNeedsNoRoot(t *testing.T) {
 	b := &launchctlBackend{domain: "user"}
 	if b.NeedsRoot() {
 		t.Error("user domain should not NeedsRoot()")
 	}
 }
 
-func Test_NewLaunchctl_RootDetection(t *testing.T) {
+func Test_NewLaunchctl_PicksDomainByRoot(t *testing.T) {
 	// Root user: test $(id -u) -ne 0 exits non-zero.
 	root := newLaunchctl(fakeRunner(map[string]int{
 		"test $(id -u) -ne 0": 1,
@@ -219,7 +219,7 @@ func Test_NewLaunchctl_RootDetection(t *testing.T) {
 	}
 }
 
-func Test_ShellQuote_Cases(t *testing.T) {
+func Test_ShellQuote_WrapsAndEscapesValues(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string

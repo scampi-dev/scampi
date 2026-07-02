@@ -135,7 +135,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Verify_CopyMissingPlaceholder(t *testing.T) {
+func Test_Verify_RejectsCopyVerifyWithoutPlaceholder(t *testing.T) {
 	// Missing-%s placeholder is caught at link time by the
 	// `@std.pattern(regex=".*%s.*")` attribute on copy.verify, not
 	// at plan/apply time. The config is rejected before any target
@@ -171,7 +171,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Verify_CopyWithoutVerifyUnchanged(t *testing.T) {
+func Test_Verify_CopyWithoutVerifyStillWrites(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -328,8 +328,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Verify_TemplateMissingPlaceholder(t *testing.T) {
-	// Same as Test_Verify_CopyMissingPlaceholder: the missing-%s
+func Test_Verify_RejectsTemplateVerifyWithoutPlaceholder(t *testing.T) {
+	// Same as Test_Verify_RejectsCopyVerifyWithoutPlaceholder: the missing-%s
 	// rule lives on the stub via @std.pattern, so the link step
 	// rejects the config before plan/apply runs.
 	cfgStr := `
@@ -416,7 +416,7 @@ std.deploy(name = "test", targets = [host]) {
 // Verify: temp file cleanup on failure
 // -----------------------------------------------------------------------------
 
-func Test_Verify_TempFileCleanedUpOnFailure(t *testing.T) {
+func Test_Verify_RemovesTempFileOnFailure(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

@@ -23,7 +23,7 @@ import (
 // goal is to isolate one bad input. Source/target wiring is the same
 // for every case so a single table iteration handles them all.
 
-func Test_AttributeRejection_LinkTime(t *testing.T) {
+func Test_Linker_RejectsInvalidStepAttributes(t *testing.T) {
 	cases := []struct {
 		name string
 		cfg  string

@@ -27,7 +27,7 @@ func recCtx(t *testing.T, rec *recOutput) diagnostic.Ctx {
 	return diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, rec))
 }
 
-func Test_EmitScopedDiagnostic_Nil(t *testing.T) {
+func Test_EmitScopedDiagnostic_IgnoresNilError(t *testing.T) {
 	rec := &recOutput{}
 	impact, ok := emitScopedDiagnostic(recCtx(t, rec), nil)
 
@@ -42,7 +42,7 @@ func Test_EmitScopedDiagnostic_Nil(t *testing.T) {
 	}
 }
 
-func Test_EmitScopedDiagnostic_PlainError(t *testing.T) {
+func Test_EmitScopedDiagnostic_IgnoresPlainError(t *testing.T) {
 	plain := fmt.Errorf("just a plain error")
 	rec := &recOutput{}
 	impact, ok := emitScopedDiagnostic(recCtx(t, rec), plain)
@@ -58,7 +58,7 @@ func Test_EmitScopedDiagnostic_PlainError(t *testing.T) {
 	}
 }
 
-func Test_EmitScopedDiagnostic_Raisable(t *testing.T) {
+func Test_EmitScopedDiagnostic_EmitsRaisableEvent(t *testing.T) {
 	rec := &recOutput{}
 	err := stubRaisable{
 		impact: event.ImpactAbort,

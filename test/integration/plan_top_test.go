@@ -26,10 +26,10 @@ func writePlanCfg(t *testing.T, cfg string) string {
 	return path
 }
 
-// Test_Plan_SingleDeployTrivial covers the base case: one deploy with
+// Test_Plan_SingleDeployYieldsOneLevelNoGraph covers the base case: one deploy with
 // no cross-deploy edges. PlanResult should have one level with one
 // node and HasGraph()==false.
-func Test_Plan_SingleDeployTrivial(t *testing.T) {
+func Test_Plan_SingleDeployYieldsOneLevelNoGraph(t *testing.T) {
 	cfg := `
 module main
 import "std"
@@ -82,11 +82,11 @@ std.deploy(name = "solo", targets = [host]) {
 	}
 }
 
-// Test_Plan_MultiDeployLinearChain covers A -> B -> C ordering via
+// Test_Plan_OrdersLinearChainIntoLevels covers A -> B -> C ordering via
 // label promises. Each level should hold one deploy, edges should
 // point upstream by name, and Needs should expose the label that
 // drove each edge.
-func Test_Plan_MultiDeployLinearChain(t *testing.T) {
+func Test_Plan_OrdersLinearChainIntoLevels(t *testing.T) {
 	cfg := `
 module main
 import "std"
@@ -161,9 +161,9 @@ std.deploy(name = "app", targets = [host]) {
 	}
 }
 
-// Test_Plan_MultiDeployFanOut covers A -> {B, C}: two deploys at
+// Test_Plan_OrdersFanOutSiblingsIntoOneLevel covers A -> {B, C}: two deploys at
 // level 1 are concurrent siblings under one root.
-func Test_Plan_MultiDeployFanOut(t *testing.T) {
+func Test_Plan_OrdersFanOutSiblingsIntoOneLevel(t *testing.T) {
 	cfg := `
 module main
 import "std"

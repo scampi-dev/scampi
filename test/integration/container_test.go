@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-func Test_Container_CreateAndRun(t *testing.T) {
+func Test_Container_CreatesAndRunsWithDefaultRestart(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -58,7 +58,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_Idempotent(t *testing.T) {
+func Test_Container_SkipsExecutionWhenConverged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -146,7 +146,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_WithLabels(t *testing.T) {
+func Test_Container_AppliesLabels(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -192,7 +192,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_LabelsIdempotent(t *testing.T) {
+func Test_Container_IgnoresExtraImageLabels(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -287,7 +287,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_PortWithIPAndProto(t *testing.T) {
+func Test_Container_BindsPortsWithIPAndProto(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -350,7 +350,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_WithArgs(t *testing.T) {
+func Test_Container_AppliesArgs(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -393,7 +393,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_ArgsIdempotent(t *testing.T) {
+func Test_Container_SkipsExecutionWhenArgsConverged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -488,7 +488,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_NoArgsDeclaredImageDefaultIgnored(t *testing.T) {
+func Test_Container_IgnoresImageDefaultArgs(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -531,7 +531,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_WithHealthcheck(t *testing.T) {
+func Test_Container_AppliesHealthcheck(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -597,7 +597,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_HealthcheckDefaults(t *testing.T) {
+func Test_Container_FillsHealthcheckDefaults(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -698,7 +698,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_NoHealthcheckDeclaredImageDefaultIgnored(t *testing.T) {
+func Test_Container_IgnoresImageDefaultHealthcheck(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -747,7 +747,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_Stopped(t *testing.T) {
+func Test_Container_StopsWhenStateStopped(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -787,7 +787,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_Absent(t *testing.T) {
+func Test_Container_RemovesWhenStateAbsent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -826,7 +826,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_AbsentAlreadyGone(t *testing.T) {
+func Test_Container_SkipsExecutionWhenAbsentAlreadyGone(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -864,7 +864,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_WithEnv(t *testing.T) {
+func Test_Container_AppliesEnv(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -910,7 +910,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_EnvIdempotent(t *testing.T) {
+func Test_Container_IgnoresExtraRuntimeEnv(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1005,7 +1005,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_WithMounts(t *testing.T) {
+func Test_Container_AppliesMounts(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1050,7 +1050,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_MountIdempotent(t *testing.T) {
+func Test_Container_SkipsExecutionWhenMountsConverged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1183,7 +1183,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_MountSourcePromisedDeferred(t *testing.T) {
+func Test_Container_RunsWhenMountSourcePromised(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

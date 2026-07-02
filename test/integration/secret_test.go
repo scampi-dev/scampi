@@ -77,8 +77,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Secret_NotFound verifies that a missing secret produces an abort.
-func Test_Secret_NotFound(t *testing.T) {
+// Test_Secret_ErrorsOnMissingKey verifies that a missing secret produces an abort.
+func Test_Secret_ErrorsOnMissingKey(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -124,8 +124,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Secrets_FileBackend verifies secrets.from_file configures the backend.
-func Test_Secrets_FileBackend(t *testing.T) {
+// Test_Secrets_FromFileResolvesValues verifies secrets.from_file configures the backend.
+func Test_Secrets_FromFileResolvesValues(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -181,8 +181,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Secrets_MissingFile verifies from_file errors when the file doesn't exist.
-func Test_Secrets_MissingFile(t *testing.T) {
+// Test_Secrets_ErrorsOnMissingFile verifies from_file errors when the file doesn't exist.
+func Test_Secrets_ErrorsOnMissingFile(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -209,8 +209,8 @@ std.deploy(name = "test", targets = [host]) {}
 	}
 }
 
-// Test_Secrets_MultipleResolvers verifies multiple resolvers can coexist.
-func Test_Secrets_MultipleResolvers(t *testing.T) {
+// Test_Secrets_ResolvesFromMultipleResolvers verifies multiple resolvers can coexist.
+func Test_Secrets_ResolvesFromMultipleResolvers(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -298,8 +298,8 @@ func ageEncryptedJSON(t *testing.T, id *age.X25519Identity, kv map[string]string
 	return data
 }
 
-// Test_Secret_AgeBackend verifies age-encrypted secrets flow through to templates.
-func Test_Secret_AgeBackend(t *testing.T) {
+// Test_Secret_AgeDecryptsIntoTemplateData verifies age-encrypted secrets flow through to templates.
+func Test_Secret_AgeDecryptsIntoTemplateData(t *testing.T) {
 	id := ageTestKeypair(t)
 
 	cfgStr := `
@@ -360,8 +360,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Secret_AgeNotFound verifies a missing key in age backend produces an abort.
-func Test_Secret_AgeNotFound(t *testing.T) {
+// Test_Secret_AgeErrorsOnMissingKey verifies a missing key in age backend produces an abort.
+func Test_Secret_AgeErrorsOnMissingKey(t *testing.T) {
 	id := ageTestKeypair(t)
 
 	cfgStr := `
@@ -410,9 +410,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Secret_AgePlaceholder verifies that missing identity falls back to
+// Test_Secret_AgeFallsBackToPlaceholderWithoutIdentity verifies that missing identity falls back to
 // a placeholder backend (knows keys, can't decrypt).
-func Test_Secret_AgePlaceholder(t *testing.T) {
+func Test_Secret_AgeFallsBackToPlaceholderWithoutIdentity(t *testing.T) {
 	id := ageTestKeypair(t)
 
 	cfgStr := `
@@ -476,8 +476,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Secret_AgeMissingFile verifies an error when the age secrets file doesn't exist.
-func Test_Secret_AgeMissingFile(t *testing.T) {
+// Test_Secret_AgeErrorsOnMissingFile verifies an error when the age secrets file doesn't exist.
+func Test_Secret_AgeErrorsOnMissingFile(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

@@ -14,7 +14,7 @@ const (
 	fancyGutter   = "\u2502\u250f\u2501"
 )
 
-func Test_ElideTail_Cases(t *testing.T) {
+func Test_ElideTail_RespectsWidthBudget(t *testing.T) {
 	cases := []struct {
 		in, want string
 		w        int
@@ -33,7 +33,7 @@ func Test_ElideTail_Cases(t *testing.T) {
 
 // The ellipsis is caller-supplied so --ascii output never ships the fancy
 // one; a wider marker ("...", width 3) must still respect the width budget.
-func Test_ElideTail_ASCIIEllipsis(t *testing.T) {
+func Test_ElideTail_HonorsASCIIEllipsis(t *testing.T) {
 	got := elideTail("abcdefgh", 6, "...")
 	if got != "abc..." {
 		t.Errorf("elideTail with ascii ellipsis = %q, want %q", got, "abc...")
@@ -57,7 +57,7 @@ func Test_ElideMiddle_PreservesTail(t *testing.T) {
 	}
 }
 
-func Test_ElideMiddle_ASCIIEllipsis(t *testing.T) {
+func Test_ElideMiddle_HonorsASCIIEllipsis(t *testing.T) {
 	got := elideMiddle("/tmp/scampi-sandbox/index.html", 14, "...")
 	if !strings.HasSuffix(got, ".html") {
 		t.Errorf("middle elide dropped the tail: %q", got)

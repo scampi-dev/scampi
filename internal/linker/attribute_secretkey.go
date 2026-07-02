@@ -66,7 +66,7 @@ func stringLiteralValue(e ast.Expr) string {
 	return text.Raw
 }
 
-// Diagnostic data carriers for templates. The TestAllTemplatesRender
+// Diagnostic data carriers for templates. The Test_Rule_TemplateRender
 // test requires Data to be a struct type so zero values still resolve
 // every template field.
 

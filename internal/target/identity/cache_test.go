@@ -8,7 +8,7 @@ import (
 	"scampi.dev/scampi/internal/target/identity"
 )
 
-func Test_Cache_UserRoundTrip(t *testing.T) {
+func Test_Cache_RoundTripsUser(t *testing.T) {
 	c := identity.New()
 
 	if _, _, ok := c.UID("alice"); ok {
@@ -28,7 +28,7 @@ func Test_Cache_UserRoundTrip(t *testing.T) {
 	}
 }
 
-func Test_Cache_GroupRoundTrip(t *testing.T) {
+func Test_Cache_RoundTripsGroup(t *testing.T) {
 	c := identity.New()
 	c.SetGroup("staff", 50)
 
@@ -43,7 +43,7 @@ func Test_Cache_GroupRoundTrip(t *testing.T) {
 	}
 }
 
-func Test_Cache_AbsentUserCached(t *testing.T) {
+func Test_Cache_CachesAbsentUser(t *testing.T) {
 	c := identity.New()
 	c.MarkUserAbsent("ghost")
 

@@ -19,7 +19,7 @@ func noopCtx(ctx context.Context) diagnostic.Ctx {
 	return diagnostic.NewCtx(ctx, nil)
 }
 
-func Test_RunPlansConcurrent_Empty(t *testing.T) {
+func Test_RunPlansConcurrent_RunsNothingOnEmptyInput(t *testing.T) {
 	calls := 0
 	err := runPlansConcurrent(noopCtx(t.Context()), nil,
 		func(_ diagnostic.Ctx, _ event.DeployRef, _ spec.Config) error {
@@ -34,7 +34,7 @@ func Test_RunPlansConcurrent_Empty(t *testing.T) {
 	}
 }
 
-func Test_RunPlansConcurrent_Single(t *testing.T) {
+func Test_RunPlansConcurrent_RunsSinglePlanOnce(t *testing.T) {
 	resolved := []spec.Config{{DeployName: "a"}}
 	var ran atomic.Int32
 	err := runPlansConcurrent(noopCtx(t.Context()), resolved,
@@ -120,7 +120,7 @@ func Test_RunPlansConcurrent_AggregatesErrors(t *testing.T) {
 	}
 }
 
-func Test_RunPlansConcurrent_SingleErrorUnwrapped(t *testing.T) {
+func Test_RunPlansConcurrent_UnwrapsSingleError(t *testing.T) {
 	target := errors.New("only one fails")
 	resolved := []spec.Config{
 		{DeployName: "a"},
@@ -140,7 +140,7 @@ func Test_RunPlansConcurrent_SingleErrorUnwrapped(t *testing.T) {
 	}
 }
 
-func Test_RunPlansConcurrent_SiblingsRunDespiteFailure(t *testing.T) {
+func Test_RunPlansConcurrent_RunsSiblingsDespiteFailure(t *testing.T) {
 	resolved := []spec.Config{
 		{DeployName: "a"},
 		{DeployName: "b"},
@@ -189,7 +189,7 @@ func mkLeveledConfigs() []spec.Config {
 // has finished - not just its own producer. "other" signals completion only
 // after a delay; if the level barrier leaked, "consumer" would enter while
 // "other" is still running.
-func Test_RunPlansConcurrent_LevelBarrier(t *testing.T) {
+func Test_RunPlansConcurrent_WaitsForEntireUpstreamLevel(t *testing.T) {
 	var producerDone, otherDone atomic.Bool
 
 	err := runPlansConcurrent(noopCtx(t.Context()), mkLeveledConfigs(),

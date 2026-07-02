@@ -36,7 +36,7 @@ func Test_IndexAll_ReturnsWellFormedCatalog(t *testing.T) {
 	}
 }
 
-func Test_IndexStep_EmitsWellFormedEvent(t *testing.T) {
+func Test_IndexStep_ReturnsSummaryAndFields(t *testing.T) {
 	tests := []struct {
 		kind           string
 		wantSummary    string
@@ -136,7 +136,7 @@ func Test_IndexStep_UnknownKindAborts(t *testing.T) {
 	}
 }
 
-func Test_IndexStep_FieldsHaveDocumentation(t *testing.T) {
+func Test_IndexStep_PopulatesFieldDescriptions(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
@@ -149,7 +149,7 @@ func Test_IndexStep_FieldsHaveDocumentation(t *testing.T) {
 	}
 }
 
-func Test_IndexStep_DefaultsPopulated(t *testing.T) {
+func Test_IndexStep_PopulatesDefaults(t *testing.T) {
 	tests := []struct {
 		kind    string
 		field   string
@@ -192,7 +192,7 @@ func Test_IndexStep_DefaultsPopulated(t *testing.T) {
 	}
 }
 
-func Test_IndexStep_RequiredFieldsMarkedCorrectly(t *testing.T) {
+func Test_IndexStep_ClassifiesRequiredFields(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
@@ -219,7 +219,7 @@ func Test_IndexStep_RequiredFieldsMarkedCorrectly(t *testing.T) {
 	}
 }
 
-func Test_IndexStep_ExclusiveFieldsPopulated(t *testing.T) {
+func Test_IndexStep_PopulatesExclusiveFields(t *testing.T) {
 	tests := []struct {
 		kind  string
 		group string

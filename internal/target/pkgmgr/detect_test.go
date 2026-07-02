@@ -8,7 +8,7 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-func Test_Detect_PlatformBackends(t *testing.T) {
+func Test_Detect_MapsPlatformToBackend(t *testing.T) {
 	tests := []struct {
 		name     string
 		platform target.Platform

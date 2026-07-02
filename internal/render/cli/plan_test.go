@@ -62,11 +62,11 @@ func planFixture() result.PlanDetail {
 	}
 }
 
-// Test_Plan_Golden locks the plan layout (eliding, desc-drop, alignment, the
+// Test_Plan_MatchesGolden locks the plan layout (eliding, desc-drop, alignment, the
 // narrow warning) across widths and verbosities, for both glyph sets. Color is
 // off so the goldens are plain and readable. Regenerate after intentional
 // changes with: SCAMPI_UPDATE=1 just test all (or go test ./...).
-func Test_Plan_Golden(t *testing.T) {
+func Test_Plan_MatchesGolden(t *testing.T) {
 	fixture := planFixture()
 
 	combos := []struct {

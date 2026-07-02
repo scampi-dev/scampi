@@ -80,7 +80,7 @@ type expectDecl struct {
 	Params   int    `json:"params,omitempty"`
 }
 
-func Test_Parse_Golden(t *testing.T) {
+func Test_Parse_MatchesGoldens(t *testing.T) {
 	walkFixtures(t, "testdata/parse", func(t *testing.T, src string, expBytes []byte) {
 		t.Helper()
 		var exp parseExpected
@@ -115,7 +115,7 @@ func Test_Parse_Golden(t *testing.T) {
 // Error tests - verify diagnostics
 // -----------------------------------------------------------------------------
 
-func Test_Errors_Golden(t *testing.T) {
+func Test_Errors_MatchesGoldens(t *testing.T) {
 	walkFixtures(t, "testdata/errors", func(t *testing.T, src string, expBytes []byte) {
 		t.Helper()
 		var exp parseExpected
@@ -165,7 +165,7 @@ type expectDeploy struct {
 	Steps int    `json:"steps,omitempty"`
 }
 
-func Test_Eval_Golden(t *testing.T) {
+func Test_Eval_MatchesGoldens(t *testing.T) {
 	walkFixtures(t, "testdata/eval", func(t *testing.T, src string, expBytes []byte) {
 		t.Helper()
 		var exp evalExpected

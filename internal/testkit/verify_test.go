@@ -31,7 +31,7 @@ func expectState(slots map[string]map[string]*eval.StructVal) *eval.StructVal {
 	return sv
 }
 
-func Test_VerifyMemTarget_FilesPass(t *testing.T) {
+func Test_VerifyMemTarget_PassesMatchingFiles(t *testing.T) {
 	mock := target.NewMemTarget()
 	mock.Files["/etc/foo"] = []byte("hello world")
 
@@ -46,7 +46,7 @@ func Test_VerifyMemTarget_FilesPass(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_FilesFail(t *testing.T) {
+func Test_VerifyMemTarget_ReportsFileMismatch(t *testing.T) {
 	mock := target.NewMemTarget()
 	mock.Files["/etc/foo"] = []byte("hello")
 
@@ -68,7 +68,7 @@ func Test_VerifyMemTarget_FilesFail(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_FileAbsence(t *testing.T) {
+func Test_VerifyMemTarget_HonorsFileAbsence(t *testing.T) {
 	mock := target.NewMemTarget()
 	// /banned is intentionally not seeded.
 
@@ -83,7 +83,7 @@ func Test_VerifyMemTarget_FileAbsence(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_Packages(t *testing.T) {
+func Test_VerifyMemTarget_MatchesPackageStatus(t *testing.T) {
 	mock := target.NewMemTarget()
 	mock.Pkgs["nginx"] = true
 
@@ -99,7 +99,7 @@ func Test_VerifyMemTarget_Packages(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_Services(t *testing.T) {
+func Test_VerifyMemTarget_MatchesServiceStatus(t *testing.T) {
 	mock := target.NewMemTarget()
 	mock.Services["nginx"] = true
 	mock.Services["redis"] = false
@@ -116,7 +116,7 @@ func Test_VerifyMemTarget_Services(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_Dirs(t *testing.T) {
+func Test_VerifyMemTarget_MatchesDirPresence(t *testing.T) {
 	mock := target.NewMemTarget()
 	mock.Dirs["/var/log/myapp"] = 0o755
 
@@ -132,7 +132,7 @@ func Test_VerifyMemTarget_Dirs(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_Symlinks(t *testing.T) {
+func Test_VerifyMemTarget_MatchesSymlinkPresence(t *testing.T) {
 	mock := target.NewMemTarget()
 	mock.Symlinks["/usr/local/bin/foo"] = "/opt/foo/bin/foo"
 
@@ -147,7 +147,7 @@ func Test_VerifyMemTarget_Symlinks(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_StableOrder(t *testing.T) {
+func Test_VerifyMemTarget_SortsMismatches(t *testing.T) {
 	mock := target.NewMemTarget()
 	// Three intentional failures, one per slot, with map keys
 	// chosen so the per-slot iteration order would be unstable
@@ -183,7 +183,7 @@ func Test_VerifyMemTarget_StableOrder(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_NilInputs(t *testing.T) {
+func Test_VerifyMemTarget_IgnoresNilInputs(t *testing.T) {
 	if got := VerifyMemTarget(nil, target.NewMemTarget()); got != nil {
 		t.Errorf("nil expect should be no-op, got %+v", got)
 	}
@@ -195,7 +195,7 @@ func Test_VerifyMemTarget_NilInputs(t *testing.T) {
 	}
 }
 
-func Test_VerifyMemTarget_OmittedSlot(t *testing.T) {
+func Test_VerifyMemTarget_SkipsOmittedSlots(t *testing.T) {
 	mock := target.NewMemTarget()
 	expect := expectState(nil) // no slots set
 	if got := VerifyMemTarget(expect, mock); got != nil {

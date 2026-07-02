@@ -20,7 +20,7 @@ func testConfig(deploys []spec.DeclaredDeploy, targets map[string]spec.DeclaredT
 // Resolve
 // -----------------------------------------------------------------------------
 
-func Test_Resolve_ExplicitDeployAndTarget(t *testing.T) {
+func Test_Resolve_HonorsExplicitNames(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "prod", Targets: []string{"server"}, Steps: []spec.DeclaredStep{{Desc: "s1"}}},
@@ -70,7 +70,7 @@ func Test_Resolve_EmptyNamesPicksFirst(t *testing.T) {
 	}
 }
 
-func Test_Resolve_UnknownDeployBlock(t *testing.T) {
+func Test_Resolve_RejectsUnknownDeployBlock(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
@@ -88,7 +88,7 @@ func Test_Resolve_UnknownDeployBlock(t *testing.T) {
 	}
 }
 
-func Test_Resolve_NoDeployBlocks(t *testing.T) {
+func Test_Resolve_RejectsConfigWithoutDeploys(t *testing.T) {
 	cfg := testConfig([]spec.DeclaredDeploy{}, nil)
 
 	_, err := Resolve(cfg, "", "")
@@ -101,7 +101,7 @@ func Test_Resolve_NoDeployBlocks(t *testing.T) {
 	}
 }
 
-func Test_Resolve_NoTargetsInDeploy(t *testing.T) {
+func Test_Resolve_RejectsDeployWithoutTargets(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{}},
@@ -119,7 +119,7 @@ func Test_Resolve_NoTargetsInDeploy(t *testing.T) {
 	}
 }
 
-func Test_Resolve_UnknownTarget(t *testing.T) {
+func Test_Resolve_RejectsUnknownTarget(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"missing"}},
@@ -137,7 +137,7 @@ func Test_Resolve_UnknownTarget(t *testing.T) {
 	}
 }
 
-func Test_Resolve_TargetNotInDeploy(t *testing.T) {
+func Test_Resolve_RejectsTargetOutsideDeploy(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
@@ -161,7 +161,7 @@ func Test_Resolve_TargetNotInDeploy(t *testing.T) {
 // ResolveMultiple
 // -----------------------------------------------------------------------------
 
-func Test_ResolveMultiple_AllDeploys(t *testing.T) {
+func Test_ResolveMultiple_ResolvesAllDeploysByDefault(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "prod", Targets: []string{"server"}},
@@ -193,7 +193,7 @@ func Test_ResolveMultiple_AllDeploys(t *testing.T) {
 	}
 }
 
-func Test_ResolveMultiple_FilterByDeploy(t *testing.T) {
+func Test_ResolveMultiple_FiltersByDeployName(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "prod", Targets: []string{"server"}},
@@ -217,7 +217,7 @@ func Test_ResolveMultiple_FilterByDeploy(t *testing.T) {
 	}
 }
 
-func Test_ResolveMultiple_FilterByTarget(t *testing.T) {
+func Test_ResolveMultiple_FiltersByTargetName(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "prod", Targets: []string{"server", "backup"}},
@@ -240,7 +240,7 @@ func Test_ResolveMultiple_FilterByTarget(t *testing.T) {
 	}
 }
 
-func Test_ResolveMultiple_UnknownDeployFilter(t *testing.T) {
+func Test_ResolveMultiple_RejectsUnknownDeployFilter(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
@@ -258,7 +258,7 @@ func Test_ResolveMultiple_UnknownDeployFilter(t *testing.T) {
 	}
 }
 
-func Test_ResolveMultiple_TargetFilterMatchesNone(t *testing.T) {
+func Test_ResolveMultiple_RejectsUnmatchedTargetFilter(t *testing.T) {
 	cfg := testConfig(
 		[]spec.DeclaredDeploy{
 			{Name: "dev", Targets: []string{"laptop"}},
@@ -276,7 +276,7 @@ func Test_ResolveMultiple_TargetFilterMatchesNone(t *testing.T) {
 	}
 }
 
-func Test_ResolveMultiple_NoDeployBlocks(t *testing.T) {
+func Test_ResolveMultiple_RejectsConfigWithoutDeploys(t *testing.T) {
 	cfg := testConfig([]spec.DeclaredDeploy{}, nil)
 
 	_, err := ResolveMultiple(cfg, spec.ResolveOptions{})

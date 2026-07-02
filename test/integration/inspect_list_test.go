@@ -23,10 +23,10 @@ func writeInspectCfg(t *testing.T, cfg string) string {
 	return path
 }
 
-// Test_InspectList_SingleDeploy verifies the return value of
+// Test_InspectList_ReturnsStepFieldsForSingleDeploy verifies the return value of
 // engine.InspectList for a single deploy with an inspectable step.
 // posix.symlink registers Inspect fields for target/link/owner.
-func Test_InspectList_SingleDeploy(t *testing.T) {
+func Test_InspectList_ReturnsStepFieldsForSingleDeploy(t *testing.T) {
 	cfg := `
 module main
 import "std"
@@ -90,10 +90,10 @@ std.deploy(name = "solo", targets = [host]) {
 	}
 }
 
-// Test_InspectList_MultiDeploySortedByName covers the contract that
+// Test_InspectList_SortsMultiDeployByName covers the contract that
 // InspectList returns details sorted by DeployName so callers render
 // deterministically.
-func Test_InspectList_MultiDeploySortedByName(t *testing.T) {
+func Test_InspectList_SortsMultiDeployByName(t *testing.T) {
 	cfg := `
 module main
 import "std"
@@ -146,10 +146,10 @@ std.deploy(name = "mike", targets = [host]) {
 	}
 }
 
-// Test_InspectList_PosixRun covers a step whose op implements
+// Test_InspectList_ResolvesRunCommandFields covers a step whose op implements
 // OpInspector with apply/check fields. Asserts the resolved
 // command strings make it into the entry's Fields.
-func Test_InspectList_PosixRun(t *testing.T) {
+func Test_InspectList_ResolvesRunCommandFields(t *testing.T) {
 	cfg := `
 module main
 import "std"

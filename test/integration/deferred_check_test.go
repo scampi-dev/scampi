@@ -66,10 +66,10 @@ func mkPromiserStep(inputs, promises []spec.Resource, ops ...*harness.FakeOp) *f
 	return act
 }
 
-// Test_Check_DeferredPathUpstreamPromisesDirectory verifies that check mode
+// Test_Check_DefersMissingDirWhenPathPromised verifies that check mode
 // does not abort when a downstream op reports a missing directory that an
 // upstream step has promised to create.
-func Test_Check_DeferredPathUpstreamPromisesDirectory(t *testing.T) {
+func Test_Check_DefersMissingDirWhenPathPromised(t *testing.T) {
 	// dir step: check says "unsatisfied" (directory doesn't exist yet)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
@@ -166,10 +166,10 @@ func Test_Check_DeferredPathNoPromiseStillAborts(t *testing.T) {
 	}
 }
 
-// Test_Check_DeferredPathUpstreamSatisfiedNoPromise verifies that a
+// Test_Check_AbortsWhenUpstreamAlreadySatisfied verifies that a
 // satisfied upstream step (CheckSatisfied, WouldChange=0) does NOT add
 // its paths to the promised set, so a downstream missing-dir error still aborts.
-func Test_Check_DeferredPathUpstreamSatisfiedNoPromise(t *testing.T) {
+func Test_Check_AbortsWhenUpstreamAlreadySatisfied(t *testing.T) {
 	// dir step: already satisfied (directory exists)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
@@ -255,9 +255,9 @@ func Test_Check_DeferredPathNonDeferrableErrorStillAborts(t *testing.T) {
 	}
 }
 
-// Test_Check_DeferredPathAncestorPromise verifies that a promised path like
+// Test_Check_DefersMissingAncestorOfPromisedPath verifies that a promised path like
 // /foo/bar also defers errors for /foo (MkdirAll creates ancestors).
-func Test_Check_DeferredPathAncestorPromise(t *testing.T) {
+func Test_Check_DefersMissingAncestorOfPromisedPath(t *testing.T) {
 	// dir step promises /foo/bar (MkdirAll would create /foo too)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
@@ -365,10 +365,10 @@ func Test_Check_DeferredPathOpOutcomeIsWouldChange(t *testing.T) {
 	}
 }
 
-// Test_Check_DeferredUserUpstreamPromisesUser verifies that check mode does
+// Test_Check_DefersUnknownUserWhenPromised verifies that check mode does
 // not abort when a downstream op reports an unknown user that an upstream
 // step has promised to create.
-func Test_Check_DeferredUserUpstreamPromisesUser(t *testing.T) {
+func Test_Check_DefersUnknownUserWhenPromised(t *testing.T) {
 	// user step: check says "unsatisfied" (user doesn't exist yet)
 	userOp := &harness.FakeOp{
 		Name:    "ensure-user",
@@ -418,8 +418,8 @@ func Test_Check_DeferredUserUpstreamPromisesUser(t *testing.T) {
 	}
 }
 
-// Test_Check_DeferredGroupUpstreamPromisesGroup verifies the same for groups.
-func Test_Check_DeferredGroupUpstreamPromisesGroup(t *testing.T) {
+// Test_Check_DefersUnknownGroupWhenPromised verifies the same for groups.
+func Test_Check_DefersUnknownGroupWhenPromised(t *testing.T) {
 	groupOp := &harness.FakeOp{
 		Name:    "ensure-group",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),

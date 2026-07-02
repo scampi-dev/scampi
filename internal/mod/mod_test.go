@@ -12,7 +12,7 @@ import (
 
 const testFile = "scampi.mod"
 
-func Test_Parse_HappyPathModuleOnly(t *testing.T) {
+func Test_Parse_AcceptsModuleOnly(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
@@ -29,7 +29,7 @@ func Test_Parse_HappyPathModuleOnly(t *testing.T) {
 	}
 }
 
-func Test_Parse_HappyPathWithRequire(t *testing.T) {
+func Test_Parse_AcceptsRequireBlock(t *testing.T) {
 	data := []byte(`module github.com/pskry/skrynet
 
 require (
@@ -61,7 +61,7 @@ require (
 	}
 }
 
-func Test_Parse_HappyPathEmptyRequireBlock(t *testing.T) {
+func Test_Parse_AcceptsEmptyRequireBlock(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n)\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
@@ -72,7 +72,7 @@ func Test_Parse_HappyPathEmptyRequireBlock(t *testing.T) {
 	}
 }
 
-func Test_Parse_HappyPathComments(t *testing.T) {
+func Test_Parse_IgnoresComments(t *testing.T) {
 	data := []byte(`// This is a module manifest
 module github.com/pskry/skrynet // inline comment
 
@@ -96,7 +96,7 @@ require (
 	}
 }
 
-func Test_Parse_HappyPathPreReleaseVersion(t *testing.T) {
+func Test_Parse_AcceptsPreReleaseVersion(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\n\n" +
 		"require (\n    github.com/scampi-modules/npm v1.0.0-alpha.1\n)\n")
 	m, err := mod.Parse(testFile, data)
@@ -108,7 +108,7 @@ func Test_Parse_HappyPathPreReleaseVersion(t *testing.T) {
 	}
 }
 
-func Test_Parse_HappyPathLineNumbers(t *testing.T) {
+func Test_Parse_TracksLineNumbers(t *testing.T) {
 	data := []byte(`module github.com/pskry/skrynet
 
 require (
@@ -127,7 +127,7 @@ require (
 	}
 }
 
-func Test_Parse_HappyPathFilename(t *testing.T) {
+func Test_Parse_SetsFilename(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\n")
 	m, err := mod.Parse("path/to/scampi.mod", data)
 	if err != nil {
@@ -138,7 +138,7 @@ func Test_Parse_HappyPathFilename(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorMissingModuleDirective(t *testing.T) {
+func Test_Parse_RejectsMissingModuleDirective(t *testing.T) {
 	data := []byte("require (\n    github.com/scampi-modules/npm v1.0.0\n)\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
@@ -150,7 +150,7 @@ func Test_Parse_ErrorMissingModuleDirective(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorMissingModuleDirectiveEmptyFile(t *testing.T) {
+func Test_Parse_RejectsEmptyFile(t *testing.T) {
 	_, err := mod.Parse(testFile, []byte{})
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -167,7 +167,7 @@ func Test_Parse_ErrorMissingModuleDirectiveEmptyFile(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorDuplicateModule(t *testing.T) {
+func Test_Parse_RejectsDuplicateModule(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\nmodule github.com/pskry/other\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
@@ -182,7 +182,7 @@ func Test_Parse_ErrorDuplicateModule(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorInvalidModulePath(t *testing.T) {
+func Test_Parse_RejectsInvalidModulePath(t *testing.T) {
 	data := []byte("module notavalidpath\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
@@ -197,7 +197,7 @@ func Test_Parse_ErrorInvalidModulePath(t *testing.T) {
 	}
 }
 
-func Test_Parse_BranchVersion(t *testing.T) {
+func Test_Parse_AcceptsBranchVersion(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm main\n)\n")
 	m, err := mod.Parse(testFile, data)
 	if err != nil {
@@ -208,7 +208,7 @@ func Test_Parse_BranchVersion(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorMalformedRequireEntry(t *testing.T) {
+func Test_Parse_RejectsMalformedRequireEntry(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm\n)\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
@@ -223,7 +223,7 @@ func Test_Parse_ErrorMalformedRequireEntry(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorSourceSpanFilename(t *testing.T) {
+func Test_Parse_SetsErrorSpanFilename(t *testing.T) {
 	const filename = "path/to/scampi.mod"
 	data := []byte("module notapath\n")
 	_, err := mod.Parse(filename, data)
@@ -259,7 +259,7 @@ func Test_Parse_ErrorMessageIncludesLine(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorUnclosedRequireBlock(t *testing.T) {
+func Test_Parse_RejectsUnclosedRequireBlock(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\n\nrequire (\n    github.com/scampi-modules/npm v1.0.0\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
@@ -271,7 +271,7 @@ func Test_Parse_ErrorUnclosedRequireBlock(t *testing.T) {
 	}
 }
 
-func Test_Parse_ErrorUnexpectedToken(t *testing.T) {
+func Test_Parse_RejectsUnexpectedToken(t *testing.T) {
 	data := []byte("module github.com/pskry/skrynet\nfoobar\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
@@ -286,7 +286,7 @@ func Test_Parse_ErrorUnexpectedToken(t *testing.T) {
 	}
 }
 
-func Test_Parse_DiagnosticInterface(t *testing.T) {
+func Test_Parse_EmitsTypedDiagnostic(t *testing.T) {
 	data := []byte("module notapath\n")
 	_, err := mod.Parse(testFile, data)
 	if err == nil {
@@ -327,7 +327,7 @@ func Test_DepSpan_MatchesDepLine(t *testing.T) {
 	}
 }
 
-func Test_IsModulePath_ValidAndInvalid(t *testing.T) {
+func Test_IsModulePath_ClassifiesPaths(t *testing.T) {
 	valid := []string{
 		"github.com/pskry/skrynet",
 		"github.com/foo/bar",
@@ -352,7 +352,7 @@ func Test_IsModulePath_ValidAndInvalid(t *testing.T) {
 	}
 }
 
-func Test_Parse_HappyPathIndirectFlag(t *testing.T) {
+func Test_Parse_DetectsIndirectFlag(t *testing.T) {
 	data := []byte(`module github.com/pskry/skrynet
 
 require (
@@ -375,7 +375,7 @@ require (
 	}
 }
 
-func Test_Parse_HappyPathNoIndirectFlag(t *testing.T) {
+func Test_Parse_LeavesIndirectFalse(t *testing.T) {
 	data := []byte(`module github.com/pskry/skrynet
 
 require (

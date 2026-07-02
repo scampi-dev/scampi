@@ -14,8 +14,8 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-// Test_Template_InspectSrcFile verifies template steps are inspectable with src files.
-func Test_Template_InspectSrcFile(t *testing.T) {
+// Test_Template_InspectReturnsRenderedSrcFile verifies template steps are inspectable with src files.
+func Test_Template_InspectReturnsRenderedSrcFile(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -86,8 +86,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_InspectInline verifies template steps are inspectable with inline content.
-func Test_Template_InspectInline(t *testing.T) {
+// Test_Template_InspectReturnsRenderedInline verifies template steps are inspectable with inline content.
+func Test_Template_InspectReturnsRenderedInline(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -156,8 +156,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_BasicRender verifies basic template rendering with values.
-func Test_Template_BasicRender(t *testing.T) {
+// Test_Template_RendersValuesSetsModeAndOwner verifies basic template rendering with values.
+func Test_Template_RendersValuesSetsModeAndOwner(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -246,8 +246,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_InlineContent verifies template rendering with inline content.
-func Test_Template_InlineContent(t *testing.T) {
+// Test_Template_RendersInlineContent verifies template rendering with inline content.
+func Test_Template_RendersInlineContent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -315,8 +315,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_EnvOverride verifies env variables override values.
-func Test_Template_EnvOverride(t *testing.T) {
+// Test_Template_EnvVarOverridesValue verifies env variables override values.
+func Test_Template_EnvVarOverridesValue(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -462,8 +462,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_Idempotent verifies no changes when destination already matches.
-func Test_Template_Idempotent(t *testing.T) {
+// Test_Template_EmitsNoChangesWhenConverged verifies no changes when destination already matches.
+func Test_Template_EmitsNoChangesWhenConverged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -527,8 +527,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_ContentChange verifies changes are applied when content differs.
-func Test_Template_ContentChange(t *testing.T) {
+// Test_Template_RewritesOnContentDrift verifies changes are applied when content differs.
+func Test_Template_RewritesOnContentDrift(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -602,8 +602,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_ErrorParseError verifies template parse errors are reported.
-func Test_Template_ErrorParseError(t *testing.T) {
+// Test_Template_ReportsParseError verifies template parse errors are reported.
+func Test_Template_ReportsParseError(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -669,8 +669,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_ErrorExecError verifies template execution errors are reported.
-func Test_Template_ErrorExecError(t *testing.T) {
+// Test_Template_ReportsExecError verifies template execution errors are reported.
+func Test_Template_ReportsExecError(t *testing.T) {
 	// Calls len on nil - triggers an exec error distinct from missingkey=error
 	cfgStr := `
 module main
@@ -737,8 +737,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_ErrorSourceMissing verifies missing source file is reported.
-func Test_Template_ErrorSourceMissing(t *testing.T) {
+// Test_Template_ReportsMissingSource verifies missing source file is reported.
+func Test_Template_ReportsMissingSource(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -805,8 +805,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_ErrorEnvKeyNotInValues verifies env key not in values is reported.
-func Test_Template_ErrorEnvKeyNotInValues(t *testing.T) {
+// Test_Template_RejectsEnvKeyNotInValues verifies env key not in values is reported.
+func Test_Template_RejectsEnvKeyNotInValues(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -881,8 +881,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_ErrorDestDirMissing verifies missing dest directory is reported.
-func Test_Template_ErrorDestDirMissing(t *testing.T) {
+// Test_Template_ReportsMissingDestDir verifies missing dest directory is reported.
+func Test_Template_ReportsMissingDestDir(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -948,8 +948,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_ModeChange verifies mode changes are applied.
-func Test_Template_ModeChange(t *testing.T) {
+// Test_Template_UpdatesModeOnDrift verifies mode changes are applied.
+func Test_Template_UpdatesModeOnDrift(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1013,8 +1013,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_OwnerChange verifies owner changes are applied.
-func Test_Template_OwnerChange(t *testing.T) {
+// Test_Template_UpdatesOwnerOnDrift verifies owner changes are applied.
+func Test_Template_UpdatesOwnerOnDrift(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1079,8 +1079,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_MultipleValues verifies multiple values work correctly.
-func Test_Template_MultipleValues(t *testing.T) {
+// Test_Template_RendersMultipleValues verifies multiple values work correctly.
+func Test_Template_RendersMultipleValues(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1146,8 +1146,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_NoData verifies templates work without any data.
-func Test_Template_NoData(t *testing.T) {
+// Test_Template_RendersWithoutData verifies templates work without any data.
+func Test_Template_RendersWithoutData(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1206,8 +1206,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_NestedValues verifies nested data structures work.
-func Test_Template_NestedValues(t *testing.T) {
+// Test_Template_RendersNestedValues verifies nested data structures work.
+func Test_Template_RendersNestedValues(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1274,8 +1274,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_MultipleEnvOverrides verifies multiple env overrides work.
-func Test_Template_MultipleEnvOverrides(t *testing.T) {
+// Test_Template_AppliesAllEnvOverrides verifies multiple env overrides work.
+func Test_Template_AppliesAllEnvOverrides(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1346,8 +1346,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_PartialEnvOverride verifies some env vars override while others use defaults.
-func Test_Template_PartialEnvOverride(t *testing.T) {
+// Test_Template_MixesEnvOverridesWithDefaults verifies some env vars override while others use defaults.
+func Test_Template_MixesEnvOverridesWithDefaults(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1419,8 +1419,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// Test_Template_WriteFailure verifies write failure is handled.
-func Test_Template_WriteFailure(t *testing.T) {
+// Test_Template_ErrorsOnWriteFailure verifies write failure is handled.
+func Test_Template_ErrorsOnWriteFailure(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

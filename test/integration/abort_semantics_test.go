@@ -22,7 +22,7 @@ import (
 // - spec.Op.Check may return an error implementing DiagnosticsProvider
 // - diagnostics policy allows non-aborting diagnostics
 // - execution must continue pessimistically
-func Test_Check_NonAbortingDiagnosticsDoNotAbort(t *testing.T) {
+func Test_Check_ContinuesPastNonAbortingDiagnostics(t *testing.T) {
 	var execRan atomic.Bool
 
 	op := &harness.FakeOp{

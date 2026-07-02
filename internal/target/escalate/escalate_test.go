@@ -67,7 +67,7 @@ func newStatScript(t *testing.T, output string) (string, func() string) {
 // GNU stat command construction
 // -----------------------------------------------------------------------------
 
-func Test_GNUStat_Command(t *testing.T) {
+func Test_GNUStat_FormatsStatCommand(t *testing.T) {
 	script, readLog := newStatScript(t, "81a4 1024 1710756000 config")
 	info, err := GNUStat(t.Context(), testRunner{}, script, "/etc/config", true)
 	if err != nil {
@@ -85,7 +85,7 @@ func Test_GNUStat_Command(t *testing.T) {
 	}
 }
 
-func Test_GNULstat_Command(t *testing.T) {
+func Test_GNULstat_OmitsDereferenceFlag(t *testing.T) {
 	script, readLog := newStatScript(t, "81a4 0 1710756000 link")
 	_, err := GNUStat(t.Context(), testRunner{}, script, "/etc/link", false)
 	if err != nil {
@@ -100,7 +100,7 @@ func Test_GNULstat_Command(t *testing.T) {
 	}
 }
 
-func Test_GNUGetOwner_Command(t *testing.T) {
+func Test_GNUGetOwner_FormatsStatCommand(t *testing.T) {
 	script, readLog := newStatScript(t, "root wheel")
 	owner, err := GNUGetOwner(t.Context(), testRunner{}, script, "/etc/config")
 	if err != nil {
@@ -118,7 +118,7 @@ func Test_GNUGetOwner_Command(t *testing.T) {
 // BSD stat command construction
 // -----------------------------------------------------------------------------
 
-func Test_BSDStat_Command(t *testing.T) {
+func Test_BSDStat_FormatsStatCommand(t *testing.T) {
 	script, readLog := newStatScript(t, "81a4 512 1710756000 hosts")
 	info, err := BSDStat(t.Context(), testRunner{}, script, "/etc/hosts", true)
 	if err != nil {
@@ -136,7 +136,7 @@ func Test_BSDStat_Command(t *testing.T) {
 	}
 }
 
-func Test_BSDGetOwner_Command(t *testing.T) {
+func Test_BSDGetOwner_FormatsStatCommand(t *testing.T) {
 	script, readLog := newStatScript(t, "root staff")
 	owner, err := BSDGetOwner(t.Context(), testRunner{}, script, "/etc/hosts")
 	if err != nil {
@@ -154,7 +154,7 @@ func Test_BSDGetOwner_Command(t *testing.T) {
 // Stat output parsing
 // -----------------------------------------------------------------------------
 
-func Test_ParseStatOutput_Cases(t *testing.T) {
+func Test_ParseStatOutput_ParsesModeSizeAndType(t *testing.T) {
 	tests := []struct {
 		name     string
 		output   string
