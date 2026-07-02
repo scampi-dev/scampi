@@ -13,12 +13,11 @@ func _() {
 	_ = x[Quiet-0]
 	_ = x[V-1]
 	_ = x[VV-2]
-	_ = x[VVV-3]
 }
 
-const _Verbosity_name = "QuietVVVVVV"
+const _Verbosity_name = "QuietVVV"
 
-var _Verbosity_index = [...]uint8{0, 5, 6, 8, 11}
+var _Verbosity_index = [...]uint8{0, 5, 6, 8}
 
 func (i Verbosity) String() string {
 	if i >= Verbosity(len(_Verbosity_index)-1) {

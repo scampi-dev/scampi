@@ -10,7 +10,6 @@ import (
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic/event"
-	"scampi.dev/scampi/internal/signal"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
@@ -92,9 +91,8 @@ func (op *copyFileOp) Check(
 		}}
 		if op.backup {
 			drift = append(drift, spec.DriftDetail{
-				Field:     "backup",
-				Desired:   op.dest + ".*.bak",
-				Verbosity: signal.VVV,
+				Field:   "backup",
+				Desired: op.dest + ".*.bak",
 			})
 		}
 		return spec.CheckUnsatisfied, drift, nil

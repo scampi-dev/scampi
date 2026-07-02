@@ -15,7 +15,6 @@ import (
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/errs"
 	rendertmpl "scampi.dev/scampi/internal/render/template"
-	"scampi.dev/scampi/internal/signal"
 	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
@@ -92,9 +91,8 @@ func (op *renderTemplateOp) Check(
 		}}
 		if op.backup {
 			drift = append(drift, spec.DriftDetail{
-				Field:     "backup",
-				Desired:   op.dest + ".*.bak",
-				Verbosity: signal.VVV,
+				Field:   "backup",
+				Desired: op.dest + ".*.bak",
 			})
 		}
 		return spec.CheckUnsatisfied, drift, nil

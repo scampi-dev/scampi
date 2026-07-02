@@ -235,9 +235,7 @@ func parseVerbosity(cmd *cli.Command) signal.Verbosity {
 	v := cmd.Count(flagVerbosity)
 
 	switch {
-	case v >= 3:
-		return signal.VVV
-	case v == 2:
+	case v >= 2:
 		return signal.VV
 	case v == 1:
 		return signal.V

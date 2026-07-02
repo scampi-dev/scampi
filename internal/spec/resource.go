@@ -2,8 +2,6 @@
 
 package spec
 
-import "scampi.dev/scampi/internal/signal"
-
 // ResourceKind identifies the type of a promised or deferred resource.
 type ResourceKind uint8
 
@@ -65,10 +63,10 @@ type ResourceDeclarer interface {
 }
 
 // DriftDetail describes one field that differs between desired and current
-// state, surfaced during Check.
+// state, surfaced during Check. Producers report data only; what to show at
+// which verbosity is the renderer's call.
 type DriftDetail struct {
-	Field     string
-	Current   string
-	Desired   string
-	Verbosity signal.Verbosity // minimum verbosity to display (zero = always shown with drift)
+	Field   string
+	Current string
+	Desired string
 }

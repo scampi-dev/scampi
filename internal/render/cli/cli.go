@@ -804,7 +804,7 @@ func (c *CLI) renderStepBlock(res event.Result, drift []event.Change) {
 		case event.StepUnchanged:
 			rows = c.satisfiedRows(res.Ops)
 		default:
-			rows = c.driftRows(drift, v)
+			rows = c.driftRows(drift)
 			if len(rows) == 0 {
 				// Apply path: no per-field diff, so show each op's exec/ok status.
 				rows = c.applyOpRows(res.Ops, drift)
@@ -833,17 +833,16 @@ func (c *CLI) descSuffix(desc string, col ansi.ANSI) string {
 
 // driftRows formats the visible drift lines for a step, with the op and field
 // columns aligned within the block, each line prefixed with the op that
-// reported it. Only called at -vv and up (op rows are strictly -vv); v gates
-// per-field detail via Drift.Verbosity. Field-less changes (signal-only "it
-// changed") carry no row.
-func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
+// reported it. Only called at -vv and up (op rows are strictly -vv).
+// Field-less changes (signal-only "it changed") carry no row.
+func (c *CLI) driftRows(drift []event.Change) []string {
 	type row struct{ opID, field, cur, des string }
 
 	var rs []row
 	opW, fieldW := 0, 0
 	for _, ch := range drift {
 		d := ch.Drift
-		if d.Field == "" || d.Verbosity > v {
+		if d.Field == "" {
 			continue
 		}
 		cur := d.Current
