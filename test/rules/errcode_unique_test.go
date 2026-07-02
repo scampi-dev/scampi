@@ -11,10 +11,10 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// TestDiagnosticCodeUniqueness uses the Go type checker to collect
+// Test_Rule_ErrCodeUnique uses the Go type checker to collect
 // every exported constant of type errs.Code across all packages in the
 // module and verifies that no two share the same string value.
-func TestDiagnosticCodeUniqueness(t *testing.T) {
+func Test_Rule_ErrCodeUnique(t *testing.T) {
 	cfg := &packages.Config{
 		Mode: packages.NeedTypes | packages.NeedName,
 		Dir:  repoRoot(t),

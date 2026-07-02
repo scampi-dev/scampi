@@ -4,7 +4,7 @@ package cli
 
 import "testing"
 
-func TestCaretPadding(t *testing.T) {
+func Test_CaretPadding_Cases(t *testing.T) {
 	tests := []struct {
 		name string
 		line string
@@ -71,7 +71,7 @@ func TestCaretPadding(t *testing.T) {
 	}
 }
 
-func TestUnderlineRange(t *testing.T) {
+func Test_UnderlineRange_Cases(t *testing.T) {
 	tests := []struct {
 		name  string
 		start int

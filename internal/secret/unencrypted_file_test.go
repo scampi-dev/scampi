@@ -4,7 +4,7 @@ package secret
 
 import "testing"
 
-func TestFileBackend_Lookup(t *testing.T) {
+func Test_FileBackend_Lookup(t *testing.T) {
 	data := []byte(`{"db_pass": "hunter2", "api_token": "tok-abc"}`)
 
 	b, err := NewFileBackend(data)
@@ -36,14 +36,14 @@ func TestFileBackend_Lookup(t *testing.T) {
 	}
 }
 
-func TestFileBackend_InvalidJSON(t *testing.T) {
+func Test_FileBackend_InvalidJSON(t *testing.T) {
 	_, err := NewFileBackend([]byte(`not json`))
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
 	}
 }
 
-func TestFileBackend_Empty(t *testing.T) {
+func Test_FileBackend_Empty(t *testing.T) {
 	b, err := NewFileBackend([]byte(`{}`))
 	if err != nil {
 		t.Fatalf("NewFileBackend: %v", err)

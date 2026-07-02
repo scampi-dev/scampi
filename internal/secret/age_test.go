@@ -23,7 +23,7 @@ func generateTestKeypair(t *testing.T) *age.X25519Identity {
 // Encrypt/Decrypt round-trip
 // -----------------------------------------------------------------------------
 
-func TestAge_RoundTrip(t *testing.T) {
+func Test_Age_RoundTrip(t *testing.T) {
 	id := generateTestKeypair(t)
 	plaintext := "hunter2"
 
@@ -49,7 +49,7 @@ func TestAge_RoundTrip(t *testing.T) {
 // IsAgeEncrypted
 // -----------------------------------------------------------------------------
 
-func TestIsAgeEncrypted(t *testing.T) {
+func Test_IsAgeEncrypted_Cases(t *testing.T) {
 	tests := []struct {
 		input string
 		want  bool
@@ -72,7 +72,7 @@ func TestIsAgeEncrypted(t *testing.T) {
 // NewAgeBackend
 // -----------------------------------------------------------------------------
 
-func TestAgeBackend_ValidEncryptedJSON(t *testing.T) {
+func Test_AgeBackend_ValidEncryptedJSON(t *testing.T) {
 	id := generateTestKeypair(t)
 
 	enc1, err := EncryptValue("hunter2", []age.Recipient{id.Recipient()})
@@ -115,7 +115,7 @@ func TestAgeBackend_ValidEncryptedJSON(t *testing.T) {
 	}
 }
 
-func TestAgeBackend_InvalidBase64(t *testing.T) {
+func Test_AgeBackend_InvalidBase64(t *testing.T) {
 	data, _ := json.Marshal(map[string]string{
 		"key": "AGE[not-valid-base64!!!]",
 	})
@@ -127,7 +127,7 @@ func TestAgeBackend_InvalidBase64(t *testing.T) {
 	}
 }
 
-func TestAgeBackend_WrongIdentity(t *testing.T) {
+func Test_AgeBackend_WrongIdentity(t *testing.T) {
 	encryptor := generateTestKeypair(t)
 	wrongKey := generateTestKeypair(t)
 
@@ -144,7 +144,7 @@ func TestAgeBackend_WrongIdentity(t *testing.T) {
 	}
 }
 
-func TestAgeBackend_InvalidJSON(t *testing.T) {
+func Test_AgeBackend_InvalidJSON(t *testing.T) {
 	id := generateTestKeypair(t)
 	_, err := NewAgeBackend([]byte(`not json`), []age.Identity{id})
 	if err == nil {
@@ -155,7 +155,7 @@ func TestAgeBackend_InvalidJSON(t *testing.T) {
 // ResolveIdentities
 // -----------------------------------------------------------------------------
 
-func TestResolveIdentities_EnvKey(t *testing.T) {
+func Test_ResolveIdentities_EnvKey(t *testing.T) {
 	id := generateTestKeypair(t)
 
 	lookup := func(key string) (string, bool) {
@@ -177,7 +177,7 @@ func TestResolveIdentities_EnvKey(t *testing.T) {
 	}
 }
 
-func TestResolveIdentities_EnvKeyFile(t *testing.T) {
+func Test_ResolveIdentities_EnvKeyFile(t *testing.T) {
 	id := generateTestKeypair(t)
 
 	lookup := func(key string) (string, bool) {
@@ -202,7 +202,7 @@ func TestResolveIdentities_EnvKeyFile(t *testing.T) {
 	}
 }
 
-func TestResolveIdentities_DefaultFile(t *testing.T) {
+func Test_ResolveIdentities_DefaultFile(t *testing.T) {
 	id := generateTestKeypair(t)
 	expectedPath := "/fake/home/.config/scampi/age.key"
 
@@ -228,7 +228,7 @@ func TestResolveIdentities_DefaultFile(t *testing.T) {
 	}
 }
 
-func TestResolveIdentities_NothingAvailable(t *testing.T) {
+func Test_ResolveIdentities_NothingAvailable(t *testing.T) {
 	lookup := func(string) (string, bool) {
 		return "", false
 	}

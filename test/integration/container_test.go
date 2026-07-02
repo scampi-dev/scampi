@@ -13,7 +13,7 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-func TestContainer_CreateAndRun(t *testing.T) {
+func Test_Container_CreateAndRun(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -58,7 +58,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_Idempotent(t *testing.T) {
+func Test_Container_Idempotent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -103,7 +103,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_ImageDrift_Recreates(t *testing.T) {
+func Test_Container_ImageDriftRecreates(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -146,7 +146,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_WithLabels(t *testing.T) {
+func Test_Container_WithLabels(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -192,7 +192,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_LabelsIdempotent(t *testing.T) {
+func Test_Container_LabelsIdempotent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -239,7 +239,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_LabelDrift_Recreates(t *testing.T) {
+func Test_Container_LabelDriftRecreates(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -287,7 +287,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_PortWithIPAndProto(t *testing.T) {
+func Test_Container_PortWithIPAndProto(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -350,7 +350,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_WithArgs(t *testing.T) {
+func Test_Container_WithArgs(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -393,7 +393,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_ArgsIdempotent(t *testing.T) {
+func Test_Container_ArgsIdempotent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -440,7 +440,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_ArgsDrift_Recreates(t *testing.T) {
+func Test_Container_ArgsDriftRecreates(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -488,7 +488,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_NoArgsDeclared_ImageDefaultIgnored(t *testing.T) {
+func Test_Container_NoArgsDeclaredImageDefaultIgnored(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -531,7 +531,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_WithHealthcheck(t *testing.T) {
+func Test_Container_WithHealthcheck(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -597,7 +597,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_HealthcheckDefaults(t *testing.T) {
+func Test_Container_HealthcheckDefaults(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -647,7 +647,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_HealthcheckDrift_Recreates(t *testing.T) {
+func Test_Container_HealthcheckDriftRecreates(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -698,7 +698,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_NoHealthcheckDeclared_ImageDefaultIgnored(t *testing.T) {
+func Test_Container_NoHealthcheckDeclaredImageDefaultIgnored(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -747,7 +747,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_Stopped(t *testing.T) {
+func Test_Container_Stopped(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -787,7 +787,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_Absent(t *testing.T) {
+func Test_Container_Absent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -826,7 +826,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_Absent_AlreadyGone(t *testing.T) {
+func Test_Container_AbsentAlreadyGone(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -864,7 +864,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_WithEnv(t *testing.T) {
+func Test_Container_WithEnv(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -910,7 +910,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_EnvIdempotent(t *testing.T) {
+func Test_Container_EnvIdempotent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -957,7 +957,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_EnvDrift_Recreates(t *testing.T) {
+func Test_Container_EnvDriftRecreates(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1005,7 +1005,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_WithMounts(t *testing.T) {
+func Test_Container_WithMounts(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1050,7 +1050,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_MountIdempotent(t *testing.T) {
+func Test_Container_MountIdempotent(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1097,7 +1097,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_MountDrift_Recreates(t *testing.T) {
+func Test_Container_MountDriftRecreates(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1147,7 +1147,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_MountSourceMissing_Aborts(t *testing.T) {
+func Test_Container_MountSourceMissingAborts(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1183,7 +1183,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_MountSourcePromised_Deferred(t *testing.T) {
+func Test_Container_MountSourcePromisedDeferred(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1227,7 +1227,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainer_PortDrift_Recreates(t *testing.T) {
+func Test_Container_PortDriftRecreates(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

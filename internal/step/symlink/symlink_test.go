@@ -28,7 +28,7 @@ func newOp(linkTarget, link string) *ensureSymlinkOp {
 // A directory at the link path is reported as drift on Check. Apply
 // reconciliation isn't in scope (would require recursive directory
 // removal); the test asserts the Check-time signal only.
-func TestEnsureSymlink_DriftReportsDirectory(t *testing.T) {
+func Test_EnsureSymlink_DriftReportsDirectory(t *testing.T) {
 	tgt := target.NewMemTarget()
 	tgt.Dirs["/etc"] = 0o755
 	// MemTarget reports a path as a directory when at least one entry
@@ -51,7 +51,7 @@ func TestEnsureSymlink_DriftReportsDirectory(t *testing.T) {
 	}
 }
 
-func TestResolveTarget(t *testing.T) {
+func Test_ResolveTarget_Cases(t *testing.T) {
 	tests := []struct {
 		name   string
 		target string

@@ -34,7 +34,7 @@ func (s *stubBase) ConverterFor(reflect.Type) (spec.TypeConverter, bool) {
 	return nil, false
 }
 
-func TestEngineRegistry_OverlaysTestTargets(t *testing.T) {
+func Test_EngineRegistry_OverlaysTestTargets(t *testing.T) {
 	base := &stubBase{}
 	tests := NewTestRegistry()
 	r := NewEngineRegistry(base, tests)
@@ -52,7 +52,7 @@ func TestEngineRegistry_OverlaysTestTargets(t *testing.T) {
 	}
 }
 
-func TestEngineRegistry_FallsThroughForOtherTargets(t *testing.T) {
+func Test_EngineRegistry_FallsThroughForOtherTargets(t *testing.T) {
 	base := &stubBase{}
 	r := NewEngineRegistry(base, NewTestRegistry())
 
@@ -64,7 +64,7 @@ func TestEngineRegistry_FallsThroughForOtherTargets(t *testing.T) {
 	}
 }
 
-func TestEngineRegistry_StepKindPassthrough(t *testing.T) {
+func Test_EngineRegistry_StepKindPassthrough(t *testing.T) {
 	base := &stubBase{}
 	r := NewEngineRegistry(base, NewTestRegistry())
 
@@ -74,7 +74,7 @@ func TestEngineRegistry_StepKindPassthrough(t *testing.T) {
 	}
 }
 
-func TestEngineRegistry_TestTypesShareRegistry(t *testing.T) {
+func Test_EngineRegistry_TestTypesShareRegistry(t *testing.T) {
 	tests := NewTestRegistry()
 	r := NewEngineRegistry(&stubBase{}, tests)
 

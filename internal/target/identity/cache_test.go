@@ -8,7 +8,7 @@ import (
 	"scampi.dev/scampi/internal/target/identity"
 )
 
-func TestUserRoundTrip(t *testing.T) {
+func Test_Cache_UserRoundTrip(t *testing.T) {
 	c := identity.New()
 
 	if _, _, ok := c.UID("alice"); ok {
@@ -28,7 +28,7 @@ func TestUserRoundTrip(t *testing.T) {
 	}
 }
 
-func TestGroupRoundTrip(t *testing.T) {
+func Test_Cache_GroupRoundTrip(t *testing.T) {
 	c := identity.New()
 	c.SetGroup("staff", 50)
 
@@ -43,7 +43,7 @@ func TestGroupRoundTrip(t *testing.T) {
 	}
 }
 
-func TestAbsentUserCached(t *testing.T) {
+func Test_Cache_AbsentUserCached(t *testing.T) {
 	c := identity.New()
 	c.MarkUserAbsent("ghost")
 
@@ -53,7 +53,7 @@ func TestAbsentUserCached(t *testing.T) {
 	}
 }
 
-func TestInvalidateUserClearsBothDirections(t *testing.T) {
+func Test_InvalidateUser_ClearsBothDirections(t *testing.T) {
 	c := identity.New()
 	c.SetUser("alice", 1000)
 
@@ -67,7 +67,7 @@ func TestInvalidateUserClearsBothDirections(t *testing.T) {
 	}
 }
 
-func TestInvalidateGroupClearsBothDirections(t *testing.T) {
+func Test_InvalidateGroup_ClearsBothDirections(t *testing.T) {
 	c := identity.New()
 	c.SetGroup("staff", 50)
 
@@ -81,7 +81,7 @@ func TestInvalidateGroupClearsBothDirections(t *testing.T) {
 	}
 }
 
-func TestInvalidateAbsentUserDropsNegativeEntry(t *testing.T) {
+func Test_InvalidateUser_DropsNegativeEntry(t *testing.T) {
 	c := identity.New()
 	c.MarkUserAbsent("ghost")
 	c.InvalidateUser("ghost")
@@ -91,13 +91,13 @@ func TestInvalidateAbsentUserDropsNegativeEntry(t *testing.T) {
 	}
 }
 
-func TestNilCacheInvalidateIsNoOp(_ *testing.T) {
+func Test_NilCache_InvalidateIsNoOp(_ *testing.T) {
 	var c *identity.Cache
 	c.InvalidateUser("alice")  // must not panic
 	c.InvalidateGroup("staff") // must not panic
 }
 
-func TestSetUserUpdatesBothDirections(t *testing.T) {
+func Test_SetUser_UpdatesBothDirections(t *testing.T) {
 	c := identity.New()
 	c.SetUser("alice", 1000)
 

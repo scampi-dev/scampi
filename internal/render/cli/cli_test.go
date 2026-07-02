@@ -14,7 +14,7 @@ import (
 // Multi-deploy output inserts a blank line whenever the lane changes, so
 // interleaved lanes chunk visually (matters most without color). Consecutive
 // same-lane steps stay gap-free.
-func TestStreamBlock_BlankLineBetweenLanes(t *testing.T) {
+func Test_StreamBlock_BlankLineBetweenLanes(t *testing.T) {
 	var buf bytes.Buffer
 	c := New(Options{ColorMode: signal.ColorNever, Verbosity: signal.V, Stdout: &buf, Stderr: &buf}, nil)
 
@@ -50,7 +50,7 @@ func TestStreamBlock_BlankLineBetweenLanes(t *testing.T) {
 }
 
 // Single-deploy runs leave Name empty and never insert lane gaps.
-func TestStreamBlock_NoBlankLineSingleDeploy(t *testing.T) {
+func Test_StreamBlock_NoBlankLineSingleDeploy(t *testing.T) {
 	var buf bytes.Buffer
 	c := New(Options{ColorMode: signal.ColorNever, Verbosity: signal.V, Stdout: &buf, Stderr: &buf}, nil)
 

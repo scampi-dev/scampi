@@ -20,7 +20,7 @@ import (
 	"scampi.dev/scampi/internal/target/posix"
 )
 
-func TestDetectEscalation(t *testing.T) {
+func Test_DetectEscalation_KnownToolOrEmpty(t *testing.T) {
 	var tgt POSIXTarget
 	tgt.Runner = tgt.RunCommand
 	tool, _ := posix.DetectEscalation(t.Context(), tgt.RunCommand, false)
@@ -31,7 +31,7 @@ func TestDetectEscalation(t *testing.T) {
 	}
 }
 
-func TestStat_FallsBackOnPermission(t *testing.T) {
+func Test_Stat_FallsBackOnPermission(t *testing.T) {
 	dir := t.TempDir()
 	inner := filepath.Join(dir, "restricted")
 	if err := os.Mkdir(inner, 0o000); err != nil {
@@ -55,7 +55,7 @@ func TestStat_FallsBackOnPermission(t *testing.T) {
 	}
 }
 
-func TestGetOwner_FallsBackOnPermission(t *testing.T) {
+func Test_GetOwner_FallsBackOnPermission(t *testing.T) {
 	dir := t.TempDir()
 	inner := filepath.Join(dir, "restricted")
 	if err := os.Mkdir(inner, 0o000); err != nil {
@@ -74,7 +74,7 @@ func TestGetOwner_FallsBackOnPermission(t *testing.T) {
 	}
 }
 
-func TestReadFile_FallsBackOnPermission(t *testing.T) {
+func Test_ReadFile_FallsBackOnPermission(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "secret")
 	if err := os.WriteFile(path, []byte("content"), 0o000); err != nil {
@@ -93,7 +93,7 @@ func TestReadFile_FallsBackOnPermission(t *testing.T) {
 	}
 }
 
-func TestWriteFile_FallsBackOnPermission(t *testing.T) {
+func Test_WriteFile_FallsBackOnPermission(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "secret")
 	if err := os.WriteFile(path, nil, 0o000); err != nil {
@@ -115,7 +115,7 @@ func TestWriteFile_FallsBackOnPermission(t *testing.T) {
 	}
 }
 
-func TestReadFile_NoEscalationErrorWhenNoTool(t *testing.T) {
+func Test_ReadFile_NoEscalationErrorWhenNoTool(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "secret")
 	if err := os.WriteFile(path, []byte("content"), 0o000); err != nil {
@@ -137,7 +137,7 @@ func TestReadFile_NoEscalationErrorWhenNoTool(t *testing.T) {
 	}
 }
 
-func TestWriteFile_NoEscalationErrorWhenNoTool(t *testing.T) {
+func Test_WriteFile_NoEscalationErrorWhenNoTool(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "secret")
 	if err := os.WriteFile(path, nil, 0o000); err != nil {

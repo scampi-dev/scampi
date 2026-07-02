@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-func TestIndexAll_ReturnsWellFormedCatalog(t *testing.T) {
+func Test_IndexAll_ReturnsWellFormedCatalog(t *testing.T) {
 	docs := engine.IndexAll(t.Context())
 
 	if len(docs) == 0 {
@@ -36,7 +36,7 @@ func TestIndexAll_ReturnsWellFormedCatalog(t *testing.T) {
 	}
 }
 
-func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
+func Test_IndexStep_EmitsWellFormedEvent(t *testing.T) {
 	tests := []struct {
 		kind           string
 		wantSummary    string
@@ -121,7 +121,7 @@ func TestIndexStep_EmitsWellFormedEvent(t *testing.T) {
 	}
 }
 
-func TestIndexStep_UnknownKind_Aborts(t *testing.T) {
+func Test_IndexStep_UnknownKindAborts(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
@@ -136,7 +136,7 @@ func TestIndexStep_UnknownKind_Aborts(t *testing.T) {
 	}
 }
 
-func TestIndexStep_FieldsHaveDocumentation(t *testing.T) {
+func Test_IndexStep_FieldsHaveDocumentation(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
@@ -149,7 +149,7 @@ func TestIndexStep_FieldsHaveDocumentation(t *testing.T) {
 	}
 }
 
-func TestIndexStep_DefaultsPopulated(t *testing.T) {
+func Test_IndexStep_DefaultsPopulated(t *testing.T) {
 	tests := []struct {
 		kind    string
 		field   string
@@ -192,7 +192,7 @@ func TestIndexStep_DefaultsPopulated(t *testing.T) {
 	}
 }
 
-func TestIndexStep_RequiredFieldsMarkedCorrectly(t *testing.T) {
+func Test_IndexStep_RequiredFieldsMarkedCorrectly(t *testing.T) {
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 
@@ -219,7 +219,7 @@ func TestIndexStep_RequiredFieldsMarkedCorrectly(t *testing.T) {
 	}
 }
 
-func TestIndexStep_ExclusiveFieldsPopulated(t *testing.T) {
+func Test_IndexStep_ExclusiveFieldsPopulated(t *testing.T) {
 	tests := []struct {
 		kind  string
 		group string

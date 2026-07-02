@@ -25,7 +25,7 @@ func captureCtx(t *testing.T, c *harness.Capture) diagnostic.Ctx {
 	return diagnostic.NewCtx(t.Context(), diagnostic.NewEmitter(diagnostic.Policy{}, c))
 }
 
-func TestLinkBasicDeploy(t *testing.T) {
+func Test_Link_BasicDeploy(t *testing.T) {
 	src := `
 module main
 import "std"
@@ -71,7 +71,7 @@ std.deploy(name = "web", targets = [vps]) {
 	}
 }
 
-func TestLinkUnresolvedStep(t *testing.T) {
+func Test_Link_UnresolvedStep(t *testing.T) {
 	result := &eval.Result{
 		Exprs: []eval.Value{
 			&eval.BlockResultVal{
@@ -102,7 +102,7 @@ func TestLinkUnresolvedStep(t *testing.T) {
 	}
 }
 
-func TestLinkUnresolvedTarget(t *testing.T) {
+func Test_Link_UnresolvedTarget(t *testing.T) {
 	result := &eval.Result{
 		Bindings: map[string]eval.Value{
 			"bad": &eval.StructVal{
@@ -126,7 +126,7 @@ func TestLinkUnresolvedTarget(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_ParseErrorDiagnostic(t *testing.T) {
+func Test_LoadConfig_ParseErrorDiagnostic(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte("module main\n@@@ garbage\n")
 	reg := engine.NewRegistry()
@@ -165,7 +165,7 @@ func firstDiagnosticTemplate(t *testing.T, capture *harness.Capture) event.Templ
 	return event.Template{}
 }
 
-func TestLoadConfig_SecretErrorDiagnostic(t *testing.T) {
+func Test_LoadConfig_SecretErrorDiagnostic(t *testing.T) {
 	src := source.NewMemSource()
 	src.Files["/config.scampi"] = []byte(`module main
 import "std"
@@ -195,7 +195,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestLinkPopulatesSpans(t *testing.T) {
+func Test_Link_PopulatesSpans(t *testing.T) {
 	src := `module main
 import "std"
 import "std/posix"
@@ -268,10 +268,10 @@ std.deploy(name = "web", targets = [vps]) {
 	}
 }
 
-// TestLinkZeroSpansWithoutSource verifies that without WithSource(),
+// Test_Link_ZeroSpansWithoutSource verifies that without WithSource(),
 // linked instances carry zero-valued spans - the back-compat path for
 // callers that don't plumb source bytes.
-func TestLinkZeroSpansWithoutSource(t *testing.T) {
+func Test_Link_ZeroSpansWithoutSource(t *testing.T) {
 	cfg := evalAndLink(t, `module main
 import "std"
 import "std/posix"

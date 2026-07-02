@@ -112,7 +112,7 @@ fmt:
 lint:
   go tool golangci-lint run
   go tool gomarklint
-  go test -run 'TestMarkdownTableAlignment|TestFuncSignatureStyle|TestBareErrorBan|TestGlyphDiscipline' ./test/rules/
+  go test -run 'Test_Rule_' ./test/rules/
   shellcheck **/*.sh
   just license-check
   just _gopls-hints

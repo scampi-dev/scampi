@@ -23,7 +23,7 @@ func matcher(name string, fields map[string]string) *eval.StructVal {
 	return sv
 }
 
-func TestMatch_StringContent(t *testing.T) {
+func Test_Match_StringContent(t *testing.T) {
 	cases := []struct {
 		name     string
 		matcher  *eval.StructVal
@@ -95,7 +95,7 @@ func TestMatch_StringContent(t *testing.T) {
 	}
 }
 
-func TestMatch_StringMatcher_WrongSlot(t *testing.T) {
+func Test_Match_StringMatcherWrongSlot(t *testing.T) {
 	m := Match(
 		matcher("has_substring", map[string]string{"substring": "x"}),
 		SlotPackageStatus,
@@ -105,7 +105,7 @@ func TestMatch_StringMatcher_WrongSlot(t *testing.T) {
 	assertMismatch(t, m, "string-content slot")
 }
 
-func TestMatch_Presence(t *testing.T) {
+func Test_Match_Presence(t *testing.T) {
 	present := matcher("is_present", nil)
 	absent := matcher("is_absent", nil)
 
@@ -135,7 +135,7 @@ func TestMatch_Presence(t *testing.T) {
 	}
 }
 
-func TestMatch_SvcStatus(t *testing.T) {
+func Test_Match_SvcStatus(t *testing.T) {
 	cases := []struct {
 		name     string
 		want     string
@@ -162,7 +162,7 @@ func TestMatch_SvcStatus(t *testing.T) {
 	}
 }
 
-func TestMatch_SvcStatus_WrongSlot(t *testing.T) {
+func Test_Match_SvcStatusWrongSlot(t *testing.T) {
 	m := Match(
 		matcher("has_svc_status", map[string]string{"status": "running"}),
 		SlotFileContent,
@@ -172,7 +172,7 @@ func TestMatch_SvcStatus_WrongSlot(t *testing.T) {
 	assertMismatch(t, m, "only applies to services")
 }
 
-func TestMatch_PkgStatus(t *testing.T) {
+func Test_Match_PkgStatus(t *testing.T) {
 	cases := []struct {
 		name     string
 		want     string
@@ -198,7 +198,7 @@ func TestMatch_PkgStatus(t *testing.T) {
 	}
 }
 
-func TestMatch_PkgStatus_WrongSlot(t *testing.T) {
+func Test_Match_PkgStatusWrongSlot(t *testing.T) {
 	m := Match(
 		matcher("has_pkg_status", map[string]string{"status": "present"}),
 		SlotServiceStatus,
@@ -208,12 +208,12 @@ func TestMatch_PkgStatus_WrongSlot(t *testing.T) {
 	assertMismatch(t, m, "only applies to packages")
 }
 
-func TestMatch_NilMatcher(t *testing.T) {
+func Test_Match_NilMatcher(t *testing.T) {
 	m := Match(nil, SlotFileContent, "/x", "")
 	assertMismatch(t, m, "matcher is nil")
 }
 
-func TestMatch_WrongRetType(t *testing.T) {
+func Test_Match_WrongRetType(t *testing.T) {
 	sv := &eval.StructVal{
 		TypeName: "has_substring",
 		RetType:  "NotAMatcher",
@@ -223,7 +223,7 @@ func TestMatch_WrongRetType(t *testing.T) {
 	assertMismatch(t, m, "not a matcher")
 }
 
-func TestMatch_UnknownKind(t *testing.T) {
+func Test_Match_UnknownKind(t *testing.T) {
 	m := Match(
 		matcher("has_quantum_state", nil),
 		SlotFileContent,

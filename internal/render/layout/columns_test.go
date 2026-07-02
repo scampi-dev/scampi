@@ -14,7 +14,7 @@ const (
 	fancyGutter   = "\u2502\u250f\u2501"
 )
 
-func TestElideTail(t *testing.T) {
+func Test_ElideTail_Cases(t *testing.T) {
 	cases := []struct {
 		in, want string
 		w        int
@@ -33,7 +33,7 @@ func TestElideTail(t *testing.T) {
 
 // The ellipsis is caller-supplied so --ascii output never ships the fancy
 // one; a wider marker ("...", width 3) must still respect the width budget.
-func TestElideTail_ASCIIEllipsis(t *testing.T) {
+func Test_ElideTail_ASCIIEllipsis(t *testing.T) {
 	got := elideTail("abcdefgh", 6, "...")
 	if got != "abc..." {
 		t.Errorf("elideTail with ascii ellipsis = %q, want %q", got, "abc...")
@@ -43,7 +43,7 @@ func TestElideTail_ASCIIEllipsis(t *testing.T) {
 	}
 }
 
-func TestElideMiddle_PreservesTail(t *testing.T) {
+func Test_ElideMiddle_PreservesTail(t *testing.T) {
 	// A path: the distinguishing filename at the end must survive.
 	got := elideMiddle("/tmp/scampi-sandbox/index.html", 14, fancyEllipsis)
 	if !strings.HasSuffix(got, ".html") {
@@ -57,7 +57,7 @@ func TestElideMiddle_PreservesTail(t *testing.T) {
 	}
 }
 
-func TestElideMiddle_ASCIIEllipsis(t *testing.T) {
+func Test_ElideMiddle_ASCIIEllipsis(t *testing.T) {
 	got := elideMiddle("/tmp/scampi-sandbox/index.html", 14, "...")
 	if !strings.HasSuffix(got, ".html") {
 		t.Errorf("middle elide dropped the tail: %q", got)
@@ -84,7 +84,7 @@ func row(gutter, label, detail string) []Col {
 	}
 }
 
-func TestFit_WideFitsEverything(t *testing.T) {
+func Test_Fit_WideFitsEverything(t *testing.T) {
 	line, w := Fit(row(fancyGutter, "[1] copy", "(detail text here)"), 60, 1, fancyEllipsis)
 	for _, want := range []string{fancyGutter, "[1] copy", "(detail text here)"} {
 		if !strings.Contains(line, want) {
@@ -96,7 +96,7 @@ func TestFit_WideFitsEverything(t *testing.T) {
 	}
 }
 
-func TestFit_DetailElidesFirst(t *testing.T) {
+func Test_Fit_DetailElidesFirst(t *testing.T) {
 	line, w := Fit(row(fancyGutter, "[1] copy", "(/tmp/scampi-sandbox/index.html)"), 26, 1, fancyEllipsis)
 	if w > 26 {
 		t.Fatalf("over budget: %q (%d)", line, w)
@@ -111,7 +111,7 @@ func TestFit_DetailElidesFirst(t *testing.T) {
 	}
 }
 
-func TestFit_DetailDropsBelowFloor(t *testing.T) {
+func Test_Fit_DetailDropsBelowFloor(t *testing.T) {
 	// Too tight for a useful detail: it must vanish, not render a stub.
 	line, _ := Fit(row(fancyGutter, "[1] copy", "(/tmp/scampi-sandbox/index.html)"), 13, 1, fancyEllipsis)
 	if strings.Contains(line, fancyEllipsis) {
@@ -122,7 +122,7 @@ func TestFit_DetailDropsBelowFloor(t *testing.T) {
 	}
 }
 
-func TestFit_GutterDropsAfterDetail(t *testing.T) {
+func Test_Fit_GutterDropsAfterDetail(t *testing.T) {
 	// Tighter still: detail is already gone, so the gutter goes before the label.
 	line, _ := Fit(row(fancyGutter, "[1] copy", "(detail)"), 8, 1, fancyEllipsis)
 	if strings.Contains(line, fancyGutter) {
@@ -133,7 +133,7 @@ func TestFit_GutterDropsAfterDetail(t *testing.T) {
 	}
 }
 
-func TestFit_BelowFloorStillRendersFixed(t *testing.T) {
+func Test_Fit_BelowFloorStillRendersFixed(t *testing.T) {
 	// Budget below what the Fixed columns need: best-effort overflow, never a
 	// mangled label. The caller owns the too-narrow warning.
 	line, w := Fit(row(fancyGutter, "[1] copy", "(detail)"), 5, 1, fancyEllipsis)

@@ -18,7 +18,7 @@ import (
 // Verify: copy step
 // -----------------------------------------------------------------------------
 
-func TestVerify_CopyPassesAndWrites(t *testing.T) {
+func Test_Verify_CopyPassesAndWrites(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -81,7 +81,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestVerify_CopyFailsAndLeavesDestUntouched(t *testing.T) {
+func Test_Verify_CopyFailsAndLeavesDestUntouched(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -135,7 +135,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestVerify_CopyMissingPlaceholder(t *testing.T) {
+func Test_Verify_CopyMissingPlaceholder(t *testing.T) {
 	// Missing-%s placeholder is caught at link time by the
 	// `@std.pattern(regex=".*%s.*")` attribute on copy.verify, not
 	// at plan/apply time. The config is rejected before any target
@@ -171,7 +171,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestVerify_CopyWithoutVerifyUnchanged(t *testing.T) {
+func Test_Verify_CopyWithoutVerifyUnchanged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -217,7 +217,7 @@ std.deploy(name = "test", targets = [host]) {
 // Verify: template step
 // -----------------------------------------------------------------------------
 
-func TestVerify_TemplatePassesAndWrites(t *testing.T) {
+func Test_Verify_TemplatePassesAndWrites(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -273,7 +273,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestVerify_TemplateFailsAndLeavesDestUntouched(t *testing.T) {
+func Test_Verify_TemplateFailsAndLeavesDestUntouched(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -328,8 +328,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestVerify_TemplateMissingPlaceholder(t *testing.T) {
-	// Same as TestVerify_CopyMissingPlaceholder: the missing-%s
+func Test_Verify_TemplateMissingPlaceholder(t *testing.T) {
+	// Same as Test_Verify_CopyMissingPlaceholder: the missing-%s
 	// rule lives on the stub via @std.pattern, so the link step
 	// rejects the config before plan/apply runs.
 	cfgStr := `
@@ -366,7 +366,7 @@ std.deploy(name = "test", targets = [host]) {
 // Verify: idempotency - verify is not re-run when content matches
 // -----------------------------------------------------------------------------
 
-func TestVerify_CopyIdempotentSkipsVerify(t *testing.T) {
+func Test_Verify_CopyIdempotentSkipsVerify(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -416,7 +416,7 @@ std.deploy(name = "test", targets = [host]) {
 // Verify: temp file cleanup on failure
 // -----------------------------------------------------------------------------
 
-func TestVerify_TempFileCleanedUpOnFailure(t *testing.T) {
+func Test_Verify_TempFileCleanedUpOnFailure(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

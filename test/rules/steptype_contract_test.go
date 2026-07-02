@@ -10,7 +10,7 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-func Test_StepKind_NewConfig_ReturnsPointer(t *testing.T) {
+func Test_Rule_StepTypeContract(t *testing.T) {
 	findStepKind := func(pkgs []*packages.Package) *types.Interface {
 		for _, pkg := range pkgs {
 			if obj := pkg.Types.Scope().Lookup("StepKind"); obj != nil {

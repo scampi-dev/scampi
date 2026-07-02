@@ -79,7 +79,7 @@ func applyContainerConfig(t *testing.T, cfgStr string, tgt target.Target) *harne
 	return rec
 }
 
-func TestContainerLifecycle_CreateAndRun(t *testing.T) {
+func Test_ContainerLifecycle_CreateAndRun(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -115,7 +115,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Idempotent(t *testing.T) {
+func Test_ContainerLifecycle_Idempotent(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -152,7 +152,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_WithEnv(t *testing.T) {
+func Test_ContainerLifecycle_WithEnv(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -192,7 +192,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_EnvDrift(t *testing.T) {
+func Test_ContainerLifecycle_EnvDrift(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -249,7 +249,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Ports(t *testing.T) {
+func Test_ContainerLifecycle_Ports(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -290,7 +290,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_PortIPAndProto(t *testing.T) {
+func Test_ContainerLifecycle_PortIPAndProto(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -348,7 +348,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Labels(t *testing.T) {
+func Test_ContainerLifecycle_Labels(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -388,7 +388,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Args(t *testing.T) {
+func Test_ContainerLifecycle_Args(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -431,7 +431,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Mounts(t *testing.T) {
+func Test_ContainerLifecycle_Mounts(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -477,7 +477,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Healthcheck(t *testing.T) {
+func Test_ContainerLifecycle_Healthcheck(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -528,7 +528,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Stopped(t *testing.T) {
+func Test_ContainerLifecycle_Stopped(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 
@@ -574,7 +574,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestContainerLifecycle_Absent(t *testing.T) {
+func Test_ContainerLifecycle_Absent(t *testing.T) {
 	name := containerName(t)
 	tgt := setupContainerTest(t, name)
 

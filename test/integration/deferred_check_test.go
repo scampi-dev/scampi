@@ -66,10 +66,10 @@ func mkPromiserStep(inputs, promises []spec.Resource, ops ...*harness.FakeOp) *f
 	return act
 }
 
-// TestCheck_DeferredPath_UpstreamPromisesDirectory verifies that check mode
+// Test_Check_DeferredPathUpstreamPromisesDirectory verifies that check mode
 // does not abort when a downstream op reports a missing directory that an
 // upstream step has promised to create.
-func TestCheck_DeferredPath_UpstreamPromisesDirectory(t *testing.T) {
+func Test_Check_DeferredPathUpstreamPromisesDirectory(t *testing.T) {
 	// dir step: check says "unsatisfied" (directory doesn't exist yet)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
@@ -129,9 +129,9 @@ func TestCheck_DeferredPath_UpstreamPromisesDirectory(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredPath_NoPromise_StillAborts verifies that a missing
+// Test_Check_DeferredPathNoPromiseStillAborts verifies that a missing
 // directory error still aborts when no upstream step promises the path.
-func TestCheck_DeferredPath_NoPromise_StillAborts(t *testing.T) {
+func Test_Check_DeferredPathNoPromiseStillAborts(t *testing.T) {
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
@@ -166,10 +166,10 @@ func TestCheck_DeferredPath_NoPromise_StillAborts(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredPath_UpstreamSatisfied_NoPromise verifies that a
+// Test_Check_DeferredPathUpstreamSatisfiedNoPromise verifies that a
 // satisfied upstream step (CheckSatisfied, WouldChange=0) does NOT add
 // its paths to the promised set, so a downstream missing-dir error still aborts.
-func TestCheck_DeferredPath_UpstreamSatisfied_NoPromise(t *testing.T) {
+func Test_Check_DeferredPathUpstreamSatisfiedNoPromise(t *testing.T) {
 	// dir step: already satisfied (directory exists)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
@@ -213,10 +213,10 @@ func TestCheck_DeferredPath_UpstreamSatisfied_NoPromise(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredPath_NonDeferrableError_StillAborts verifies that abort
+// Test_Check_DeferredPathNonDeferrableErrorStillAborts verifies that abort
 // errors that don't implement Deferrable are not deferred even when a
 // matching promised path exists.
-func TestCheck_DeferredPath_NonDeferrableError_StillAborts(t *testing.T) {
+func Test_Check_DeferredPathNonDeferrableErrorStillAborts(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -255,9 +255,9 @@ func TestCheck_DeferredPath_NonDeferrableError_StillAborts(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredPath_AncestorPromise verifies that a promised path like
+// Test_Check_DeferredPathAncestorPromise verifies that a promised path like
 // /foo/bar also defers errors for /foo (MkdirAll creates ancestors).
-func TestCheck_DeferredPath_AncestorPromise(t *testing.T) {
+func Test_Check_DeferredPathAncestorPromise(t *testing.T) {
 	// dir step promises /foo/bar (MkdirAll would create /foo too)
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
@@ -308,9 +308,9 @@ func TestCheck_DeferredPath_AncestorPromise(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredPath_OpOutcomeIsWouldChange verifies that deferred ops
+// Test_Check_DeferredPathOpOutcomeIsWouldChange verifies that deferred ops
 // get OpWouldChange outcome (not OpAborted).
-func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
+func Test_Check_DeferredPathOpOutcomeIsWouldChange(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name:    "ensure-dir",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -365,10 +365,10 @@ func TestCheck_DeferredPath_OpOutcomeIsWouldChange(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredUser_UpstreamPromisesUser verifies that check mode does
+// Test_Check_DeferredUserUpstreamPromisesUser verifies that check mode does
 // not abort when a downstream op reports an unknown user that an upstream
 // step has promised to create.
-func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
+func Test_Check_DeferredUserUpstreamPromisesUser(t *testing.T) {
 	// user step: check says "unsatisfied" (user doesn't exist yet)
 	userOp := &harness.FakeOp{
 		Name:    "ensure-user",
@@ -418,8 +418,8 @@ func TestCheck_DeferredUser_UpstreamPromisesUser(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredGroup_UpstreamPromisesGroup verifies the same for groups.
-func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
+// Test_Check_DeferredGroupUpstreamPromisesGroup verifies the same for groups.
+func Test_Check_DeferredGroupUpstreamPromisesGroup(t *testing.T) {
 	groupOp := &harness.FakeOp{
 		Name:    "ensure-group",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -467,9 +467,9 @@ func TestCheck_DeferredGroup_UpstreamPromisesGroup(t *testing.T) {
 	}
 }
 
-// TestCheck_DeferredUser_NoPromise_StillAborts verifies that an unknown user
+// Test_Check_DeferredUserNoPromiseStillAborts verifies that an unknown user
 // error still aborts when no upstream step promises the user.
-func TestCheck_DeferredUser_NoPromise_StillAborts(t *testing.T) {
+func Test_Check_DeferredUserNoPromiseStillAborts(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {

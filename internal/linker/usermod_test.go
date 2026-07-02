@@ -23,7 +23,7 @@ func writeFile(t *testing.T, path string, data []byte) {
 	}
 }
 
-func TestLoadLocalSubmodules_Basic(t *testing.T) {
+func Test_LoadLocalSubmodules_Basic(t *testing.T) {
 	dir := t.TempDir()
 
 	// scampi.mod
@@ -86,7 +86,7 @@ pub let name = "my-target"
 	}
 }
 
-func TestLoadLocalSubmodules_PrivateNotExported(t *testing.T) {
+func Test_LoadLocalSubmodules_PrivateNotExported(t *testing.T) {
 	dir := t.TempDir()
 
 	writeFile(t, filepath.Join(dir, "scampi.mod"), []byte(
@@ -117,7 +117,7 @@ let private = "no"
 	}
 }
 
-func TestLoadLocalSubmodules_SkipsDotDirs(t *testing.T) {
+func Test_LoadLocalSubmodules_SkipsDotDirs(t *testing.T) {
 	dir := t.TempDir()
 
 	writeFile(t, filepath.Join(dir, "scampi.mod"), []byte(
@@ -141,7 +141,7 @@ pub let x = 1
 	}
 }
 
-func TestLoadLocalSubmodules_SkipsMainModules(t *testing.T) {
+func Test_LoadLocalSubmodules_SkipsMainModules(t *testing.T) {
 	dir := t.TempDir()
 
 	writeFile(t, filepath.Join(dir, "scampi.mod"), []byte(
@@ -165,7 +165,7 @@ let x = 1
 	}
 }
 
-func TestLoadLocalSubmodules_Nested(t *testing.T) {
+func Test_LoadLocalSubmodules_Nested(t *testing.T) {
 	dir := t.TempDir()
 
 	writeFile(t, filepath.Join(dir, "scampi.mod"), []byte(
@@ -188,7 +188,7 @@ pub func greet() string { return "hi" }
 	}
 }
 
-func TestBrokenSiblingReportedInDiagnostic(t *testing.T) {
+func Test_BrokenSibling_ReportedInDiagnostic(t *testing.T) {
 	dir := t.TempDir()
 
 	// Good file references a function defined in the broken sibling.

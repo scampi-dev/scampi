@@ -56,7 +56,7 @@ func capturedEvents(ctx StaticCheckContext) []event.Event {
 	return ctx.Linker.(*linkContext).em.Output().(*harness.Capture).Events
 }
 
-func TestSecretKeyAttribute_LiteralFound(t *testing.T) {
+func Test_SecretKeyAttribute_LiteralFound(t *testing.T) {
 	backend := &stubBackend{
 		keys:     map[string]string{"db.password": "p4ss"},
 		lookupOK: true,
@@ -70,7 +70,7 @@ func TestSecretKeyAttribute_LiteralFound(t *testing.T) {
 	}
 }
 
-func TestSecretKeyAttribute_LiteralNotFound(t *testing.T) {
+func Test_SecretKeyAttribute_LiteralNotFound(t *testing.T) {
 	backend := &stubBackend{
 		keys:     map[string]string{"db.password": "p4ss"},
 		lookupOK: true,
@@ -85,7 +85,7 @@ func TestSecretKeyAttribute_LiteralNotFound(t *testing.T) {
 	assertEventID(t, evs[0], CodeSecretKeyNotFound)
 }
 
-func TestSecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
+func Test_SecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
 	// A non-literal expression should be skipped - the runtime check
 	// handles dynamic args in lang/eval.
 	backend := &stubBackend{lookupOK: true}
@@ -98,7 +98,7 @@ func TestSecretKeyAttribute_ComputedArgSkipped(t *testing.T) {
 	}
 }
 
-func TestSecretKeyAttribute_NoBackendSkipped(t *testing.T) {
+func Test_SecretKeyAttribute_NoBackendSkipped(t *testing.T) {
 	// With no backend configured, the static check should be a no-op
 	// and let the runtime check handle it.
 	ctx := newSecretCtx(t, nil, stringLitExpr("any.key"))
@@ -109,7 +109,7 @@ func TestSecretKeyAttribute_NoBackendSkipped(t *testing.T) {
 	}
 }
 
-func TestSecretKeyAttribute_LookupError(t *testing.T) {
+func Test_SecretKeyAttribute_LookupError(t *testing.T) {
 	backend := &stubBackend{lookupOK: false}
 	ctx := newSecretCtx(t, backend, stringLitExpr("db.password"))
 

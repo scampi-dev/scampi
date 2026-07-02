@@ -49,9 +49,9 @@ func loadAndResolve(
 	return engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
 }
 
-// TestIntegration_FullFlow tests the complete engine flow from config loading
+// Test_Integration_FullFlow tests the complete engine flow from config loading
 // through execution using in-memory source and target.
-func TestIntegration_FullFlow(t *testing.T) {
+func Test_Integration_FullFlow(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -119,8 +119,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_Idempotency verifies that a second run skips already-satisfied ops.
-func TestIntegration_Idempotency(t *testing.T) {
+// Test_Integration_Idempotency verifies that a second run skips already-satisfied ops.
+func Test_Integration_Idempotency(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -172,8 +172,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_MultipleSteps verifies sequential execution of multiple steps.
-func TestIntegration_MultipleSteps(t *testing.T) {
+// Test_Integration_MultipleSteps verifies sequential execution of multiple steps.
+func Test_Integration_MultipleSteps(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -251,9 +251,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_ErrorInjection_WriteFailure verifies engine behavior when
+// Test_Integration_ErrorInjectionWriteFailure verifies engine behavior when
 // target write fails.
-func TestIntegration_ErrorInjection_WriteFailure(t *testing.T) {
+func Test_Integration_ErrorInjectionWriteFailure(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -305,9 +305,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_ErrorInjection_SourceReadFailure verifies engine behavior
+// Test_Integration_ErrorInjectionSourceReadFailure verifies engine behavior
 // when source read fails during check.
-func TestIntegration_ErrorInjection_SourceReadFailure(t *testing.T) {
+func Test_Integration_ErrorInjectionSourceReadFailure(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -367,9 +367,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_PartialFailure verifies that first step failure aborts
+// Test_Integration_PartialFailure verifies that first step failure aborts
 // subsequent steps (fail-fast).
-func TestIntegration_PartialFailure(t *testing.T) {
+func Test_Integration_PartialFailure(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -431,9 +431,9 @@ std.deploy(name = "test", targets = [host]) {
 
 }
 
-// TestIntegration_ContentChange verifies that content changes are detected
+// Test_Integration_ContentChange verifies that content changes are detected
 // and applied correctly.
-func TestIntegration_ContentChange(t *testing.T) {
+func Test_Integration_ContentChange(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -496,9 +496,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_ModeChange verifies that permission changes are detected
+// Test_Integration_ModeChange verifies that permission changes are detected
 // and applied correctly.
-func TestIntegration_ModeChange(t *testing.T) {
+func Test_Integration_ModeChange(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -550,9 +550,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_OwnerChange verifies that ownership changes are detected
+// Test_Integration_OwnerChange verifies that ownership changes are detected
 // and applied correctly.
-func TestIntegration_OwnerChange(t *testing.T) {
+func Test_Integration_OwnerChange(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -604,8 +604,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_FaultyClearAndRetry verifies that clearing faults allows retry.
-func TestIntegration_FaultyClearAndRetry(t *testing.T) {
+// Test_Integration_FaultyClearAndRetry verifies that clearing faults allows retry.
+func Test_Integration_FaultyClearAndRetry(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -675,8 +675,8 @@ std.deploy(name = "test", targets = [host]) {
 // Hook tests
 // -----------------------------------------------------------------------------
 
-// TestHook_Triggered verifies that a hook fires when its notifying step changes.
-func TestHook_Triggered(t *testing.T) {
+// Test_Hook_Triggered verifies that a hook fires when its notifying step changes.
+func Test_Hook_Triggered(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -728,8 +728,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_OnChangeSingleString verifies that on_change accepts a bare string.
-func TestHook_OnChangeSingleString(t *testing.T) {
+// Test_Hook_OnChangeSingleString verifies that on_change accepts a bare string.
+func Test_Hook_OnChangeSingleString(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -781,8 +781,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_NotTriggered verifies that a hook does not fire when nothing changed.
-func TestHook_NotTriggered(t *testing.T) {
+// Test_Hook_NotTriggered verifies that a hook does not fire when nothing changed.
+func Test_Hook_NotTriggered(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -838,9 +838,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_MultipleNotifiers verifies a hook fires once even if notified
+// Test_Hook_MultipleNotifiers verifies a hook fires once even if notified
 // by multiple steps.
-func TestHook_MultipleNotifiers(t *testing.T) {
+func Test_Hook_MultipleNotifiers(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -902,8 +902,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_Chaining verifies that hooks can trigger other hooks.
-func TestHook_Chaining(t *testing.T) {
+// Test_Hook_Chaining verifies that hooks can trigger other hooks.
+func Test_Hook_Chaining(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -965,9 +965,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_CheckMode verifies that hooks report WouldChange when the
+// Test_Hook_CheckMode verifies that hooks report WouldChange when the
 // upstream step would change.
-func TestHook_CheckMode(t *testing.T) {
+func Test_Hook_CheckMode(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1032,10 +1032,10 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_UnknownRef verifies that referencing an undefined variable
+// Test_Hook_UnknownRef verifies that referencing an undefined variable
 // in on_change produces a compile error. In scampi, on_change
 // takes step values - using an undefined name is a type error.
-func TestHook_UnknownRef(t *testing.T) {
+func Test_Hook_UnknownRef(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1071,9 +1071,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_CycleDetection verifies that a hook chain forming a cycle
+// Test_Hook_CycleDetection verifies that a hook chain forming a cycle
 // produces a plan error.
-func TestHook_CycleDetection(t *testing.T) {
+func Test_Hook_CycleDetection(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1126,8 +1126,8 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_RunStepAsHook verifies that non-service steps can be hooks.
-func TestHook_RunStepAsHook(t *testing.T) {
+// Test_Hook_RunStepAsHook verifies that non-service steps can be hooks.
+func Test_Hook_RunStepAsHook(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1188,9 +1188,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_MultiStep verifies that a hook with multiple steps executes all
+// Test_Hook_MultiStep verifies that a hook with multiple steps executes all
 // steps sequentially.
-func TestHook_MultiStep(t *testing.T) {
+func Test_Hook_MultiStep(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1256,9 +1256,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestHook_MultiStepChaining verifies that on_change in a multi-step hook
+// Test_Hook_MultiStepChaining verifies that on_change in a multi-step hook
 // fires downstream hooks when any step changes.
-func TestHook_MultiStepChaining(t *testing.T) {
+func Test_Hook_MultiStepChaining(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -1331,9 +1331,9 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-// TestIntegration_ReloadFallbackToRestart verifies that state="reloaded"
+// Test_Integration_ReloadFallbackToRestart verifies that state="reloaded"
 // falls back to restart when the backend does not support reload.
-func TestIntegration_ReloadFallbackToRestart(t *testing.T) {
+func Test_Integration_ReloadFallbackToRestart(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

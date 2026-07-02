@@ -45,7 +45,7 @@ func run(args ...string) (output string, exitCode int) {
 	return string(out), 0
 }
 
-func TestUsageError_GlobalFlagMissingValue(t *testing.T) {
+func Test_UsageError_GlobalFlagMissingValue(t *testing.T) {
 	out, code := run("--color")
 
 	if code != 1 {
@@ -63,7 +63,7 @@ func TestUsageError_GlobalFlagMissingValue(t *testing.T) {
 	}
 }
 
-func TestUsageError_SubcommandFlagMissingValue(t *testing.T) {
+func Test_UsageError_SubcommandFlagMissingValue(t *testing.T) {
 	out, code := run("inspect", "--only")
 
 	if code != 1 {
@@ -85,7 +85,7 @@ func TestUsageError_SubcommandFlagMissingValue(t *testing.T) {
 	}
 }
 
-func TestUsageError_InvalidColorValue(t *testing.T) {
+func Test_UsageError_InvalidColorValue(t *testing.T) {
 	out, code := run("--color", "bogus")
 
 	if code != 1 {
@@ -102,7 +102,7 @@ func TestUsageError_InvalidColorValue(t *testing.T) {
 	}
 }
 
-func TestUsageError_ColorEatsSubcommand(t *testing.T) {
+func Test_UsageError_ColorEatsSubcommand(t *testing.T) {
 	// --color with space-separated value that happens to be a subcommand name.
 	// The validator should reject "apply" as a color value.
 	out, code := run("--color", "apply")
@@ -118,7 +118,7 @@ func TestUsageError_ColorEatsSubcommand(t *testing.T) {
 	}
 }
 
-func TestUsageError_ResolveFlags(t *testing.T) {
+func Test_UsageError_ResolveFlags(t *testing.T) {
 	// Verify all resolve flags show help on missing value.
 	for _, tt := range []struct {
 		cmd  string
@@ -146,7 +146,7 @@ func TestUsageError_ResolveFlags(t *testing.T) {
 	}
 }
 
-func TestUsageError_ValidUsageStillWorks(t *testing.T) {
+func Test_UsageError_ValidUsageStillWorks(t *testing.T) {
 	// legend has no required args or flags - should succeed.
 	out, code := run("legend")
 	if code != 0 {
@@ -154,7 +154,7 @@ func TestUsageError_ValidUsageStillWorks(t *testing.T) {
 	}
 }
 
-func TestUsageError_ValidColorFlag(t *testing.T) {
+func Test_UsageError_ValidColorFlag(t *testing.T) {
 	// --color=never with a working subcommand should succeed.
 	out, code := run("--color=never", "legend")
 	if code != 0 {
@@ -173,14 +173,14 @@ func runEnv(env []string, args ...string) string {
 	return string(out)
 }
 
-func TestNoColor_ExplicitAlwaysWins(t *testing.T) {
+func Test_NoColor_ExplicitAlwaysWins(t *testing.T) {
 	out := runEnv([]string{"NO_COLOR=1"}, "--color", "always", "legend")
 	if !strings.Contains(out, "\x1b[") {
 		t.Errorf("--color always must outrank NO_COLOR, got uncolored output:\n%s", out)
 	}
 }
 
-func TestNoColor_AutoStaysUncolored(t *testing.T) {
+func Test_NoColor_AutoStaysUncolored(t *testing.T) {
 	out := runEnv([]string{"NO_COLOR=1"}, "legend")
 	if strings.Contains(out, "\x1b[") {
 		t.Errorf("NO_COLOR under the auto default must not color, got:\n%s", out)

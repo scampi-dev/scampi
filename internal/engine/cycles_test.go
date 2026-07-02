@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-func TestDetectCycles_NoCycle(t *testing.T) {
+func Test_DetectCycles_NoCycle(t *testing.T) {
 	// A -> B -> C (linear)
 	adj := map[string][]string{
 		"A": {"B"},
@@ -26,7 +26,7 @@ func TestDetectCycles_NoCycle(t *testing.T) {
 	}
 }
 
-func TestDetectCycles_SimpleCycle(t *testing.T) {
+func Test_DetectCycles_SimpleCycle(t *testing.T) {
 	// A -> B -> A
 	adj := map[string][]string{
 		"A": {"B"},
@@ -44,7 +44,7 @@ func TestDetectCycles_SimpleCycle(t *testing.T) {
 	}
 }
 
-func TestDetectCycles_SelfLoop(t *testing.T) {
+func Test_DetectCycles_SelfLoop(t *testing.T) {
 	adj := map[string][]string{
 		"A": {"A"},
 	}
@@ -57,7 +57,7 @@ func TestDetectCycles_SelfLoop(t *testing.T) {
 	}
 }
 
-func TestDetectCycles_MultipleCycles(t *testing.T) {
+func Test_DetectCycles_MultipleCycles(t *testing.T) {
 	// Two independent cycles: A->B->A and C->D->C
 	adj := map[string][]string{
 		"A": {"B"},
@@ -71,7 +71,7 @@ func TestDetectCycles_MultipleCycles(t *testing.T) {
 	}
 }
 
-func TestDetectCycles_DiamondNoCycle(t *testing.T) {
+func Test_DetectCycles_DiamondNoCycle(t *testing.T) {
 	// A -> B, A -> C, B -> D, C -> D (diamond, no cycle)
 	adj := map[string][]string{
 		"A": {"B", "C"},
@@ -85,7 +85,7 @@ func TestDetectCycles_DiamondNoCycle(t *testing.T) {
 	}
 }
 
-func TestDetectCycles_UnreachableNodes(t *testing.T) {
+func Test_DetectCycles_UnreachableNodes(t *testing.T) {
 	// Cycle exists but only if we start from the right root
 	adj := map[string][]string{
 		"A": nil,
@@ -105,7 +105,7 @@ func TestDetectCycles_UnreachableNodes(t *testing.T) {
 	}
 }
 
-func TestDedupCycles_RemovesRotations(t *testing.T) {
+func Test_DedupCycles_RemovesRotations(t *testing.T) {
 	// Two representations of the same cycle: [A,B,C,A] and [B,C,A,B]
 	cycles := [][]string{
 		{"A", "B", "C", "A"},
@@ -117,7 +117,7 @@ func TestDedupCycles_RemovesRotations(t *testing.T) {
 	}
 }
 
-func TestDedupCycles_KeepsDistinct(t *testing.T) {
+func Test_DedupCycles_KeepsDistinct(t *testing.T) {
 	// Two genuinely different cycles
 	cycles := [][]string{
 		{"A", "B", "A"},
@@ -129,14 +129,14 @@ func TestDedupCycles_KeepsDistinct(t *testing.T) {
 	}
 }
 
-func TestDedupCycles_Empty(t *testing.T) {
+func Test_DedupCycles_Empty(t *testing.T) {
 	deduped := dedupCycles[string](nil, func(n string) string { return n })
 	if len(deduped) != 0 {
 		t.Errorf("expected 0 cycles, got %d", len(deduped))
 	}
 }
 
-func TestDetectCycles_IntNodes(t *testing.T) {
+func Test_DetectCycles_IntNodes(t *testing.T) {
 	// Verify generics work with non-string types
 	adj := map[int][]int{
 		1: {2},
@@ -153,7 +153,7 @@ func TestDetectCycles_IntNodes(t *testing.T) {
 	}
 }
 
-func TestRotationKey_Deterministic(t *testing.T) {
+func Test_RotationKey_Deterministic(t *testing.T) {
 	id := func(n string) string { return n }
 
 	k1 := rotationKey([]string{"A", "B", "C", "A"}, id)
@@ -165,7 +165,7 @@ func TestRotationKey_Deterministic(t *testing.T) {
 	}
 }
 
-func TestPtrKey(t *testing.T) {
+func Test_PtrKey_FormatsAddress(t *testing.T) {
 	type node struct{ name string }
 	n := &node{name: "test"}
 	key := ptrKey(n)

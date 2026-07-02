@@ -52,7 +52,7 @@ func initialState(t *testing.T) *eval.StructVal {
 	return sv
 }
 
-func TestMemTargetKind_SeedsAllSlots(t *testing.T) {
+func Test_MemTargetKind_SeedsAllSlots(t *testing.T) {
 	reg := NewTestRegistry()
 	tt := MemTargetKind{Registry: reg}
 
@@ -86,7 +86,7 @@ func TestMemTargetKind_SeedsAllSlots(t *testing.T) {
 	}
 }
 
-func TestMemTargetKind_RegistersInRegistry(t *testing.T) {
+func Test_MemTargetKind_RegistersInRegistry(t *testing.T) {
 	reg := NewTestRegistry()
 	tt := MemTargetKind{Registry: reg}
 
@@ -116,7 +116,7 @@ func TestMemTargetKind_RegistersInRegistry(t *testing.T) {
 	}
 }
 
-func TestMemTargetKind_NilInitialAndExpect(t *testing.T) {
+func Test_MemTargetKind_NilInitialAndExpect(t *testing.T) {
 	reg := NewTestRegistry()
 	tt := MemTargetKind{Registry: reg}
 	cfg := &MemTargetConfig{Name: "mock"}
@@ -135,7 +135,7 @@ func TestMemTargetKind_NilInitialAndExpect(t *testing.T) {
 	}
 }
 
-func TestMemTargetKind_NilRegistry(t *testing.T) {
+func Test_MemTargetKind_NilRegistry(t *testing.T) {
 	// Without a registry the constructor still works - the mock is
 	// returned but not tracked. Useful for one-off Go-side tests.
 	tt := MemTargetKind{Registry: nil}
@@ -150,7 +150,7 @@ func TestMemTargetKind_NilRegistry(t *testing.T) {
 	}
 }
 
-func TestMemTargetKind_VerifyRoundTrip(t *testing.T) {
+func Test_MemTargetKind_VerifyRoundTrip(t *testing.T) {
 	// End-to-end Phase 2 + Phase 3: build a target via the
 	// TargetKind, mutate it as if engine.Apply ran ops, then run
 	// VerifyMemTarget against the registry's stored expect.
@@ -187,7 +187,7 @@ func TestMemTargetKind_VerifyRoundTrip(t *testing.T) {
 // Seed functions with wrong-typed inputs - should not panic
 // -----------------------------------------------------------------------------
 
-func TestSeedMemTarget_WrongTypes(t *testing.T) {
+func Test_SeedMemTarget_WrongTypes(t *testing.T) {
 	mock := target.NewMemTarget()
 
 	// All fields are wrong types - should be silently skipped.
@@ -213,7 +213,7 @@ func TestSeedMemTarget_WrongTypes(t *testing.T) {
 	}
 }
 
-func TestSeedMemTarget_NilInitial(t *testing.T) {
+func Test_SeedMemTarget_NilInitial(t *testing.T) {
 	mock := target.NewMemTarget()
 	seedMemTarget(mock, nil)
 	if len(mock.Files) != 0 {
@@ -221,7 +221,7 @@ func TestSeedMemTarget_NilInitial(t *testing.T) {
 	}
 }
 
-func TestExtractInlineContent_Nil(t *testing.T) {
+func Test_ExtractInlineContent_Nil(t *testing.T) {
 	if got := extractInlineContent(nil); got != "" {
 		t.Errorf("nil: got %q", got)
 	}
@@ -231,7 +231,7 @@ func TestExtractInlineContent_Nil(t *testing.T) {
 	}
 }
 
-func TestTestSetupError(t *testing.T) {
+func Test_TestSetupError_Message(t *testing.T) {
 	e := &TestSetupError{Reason: "wrong config"}
 	if !contains(e.Error(), "wrong config") {
 		t.Errorf("Error() = %q", e.Error())

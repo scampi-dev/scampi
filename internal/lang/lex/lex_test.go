@@ -62,7 +62,7 @@ func assertTokens(t *testing.T, src string, wants []want) {
 // Idents and keywords
 // -----------------------------------------------------------------------------
 
-func TestIdentsAndKeywords(t *testing.T) {
+func Test_Lex_IdentsAndKeywords(t *testing.T) {
 	assertTokens(t, "foo bar baz", []want{
 		{token.Ident, "foo"},
 		{token.Ident, "bar"},
@@ -71,7 +71,7 @@ func TestIdentsAndKeywords(t *testing.T) {
 	})
 }
 
-func TestKeywords(t *testing.T) {
+func Test_Lex_Keywords(t *testing.T) {
 	assertTokens(t, "import let func decl type enum for in if else return true false none self", []want{
 		{token.Import, "import"},
 		{token.Let, "let"},
@@ -92,7 +92,7 @@ func TestKeywords(t *testing.T) {
 	})
 }
 
-func TestIdentWithUnderscoreAndDigits(t *testing.T) {
+func Test_Lex_IdentWithUnderscoreAndDigits(t *testing.T) {
 	assertTokens(t, "_foo bar_1 x2y", []want{
 		{token.Ident, "_foo"},
 		{token.Ident, "bar_1"},
@@ -104,7 +104,7 @@ func TestIdentWithUnderscoreAndDigits(t *testing.T) {
 // Integers
 // -----------------------------------------------------------------------------
 
-func TestIntegerLiterals(t *testing.T) {
+func Test_Lex_IntegerLiterals(t *testing.T) {
 	assertTokens(t, "0 42 100 0xFF 0b1010 0o755", []want{
 		{token.Int, "0"},
 		{token.Int, "42"},
@@ -116,7 +116,7 @@ func TestIntegerLiterals(t *testing.T) {
 	})
 }
 
-func TestInvalidNumber(t *testing.T) {
+func Test_Lex_InvalidNumber(t *testing.T) {
 	_, errs := tokenize(t, "123abc")
 	if len(errs) == 0 {
 		t.Fatal("expected error for 123abc")
@@ -126,7 +126,7 @@ func TestInvalidNumber(t *testing.T) {
 	}
 }
 
-func TestInvalidHex(t *testing.T) {
+func Test_Lex_InvalidHex(t *testing.T) {
 	_, errs := tokenize(t, "0x")
 	if len(errs) == 0 {
 		t.Fatal("expected error for 0x")
@@ -139,7 +139,7 @@ func TestInvalidHex(t *testing.T) {
 // Operators and delimiters
 // -----------------------------------------------------------------------------
 
-func TestOperators(t *testing.T) {
+func Test_Lex_Operators(t *testing.T) {
 	assertTokens(t, "+ - * / % == != < > <= >= && || ! = : .", []want{
 		{token.Plus, "+"},
 		{token.Minus, "-"},
@@ -161,7 +161,7 @@ func TestOperators(t *testing.T) {
 	})
 }
 
-func TestDelimiters(t *testing.T) {
+func Test_Lex_Delimiters(t *testing.T) {
 	assertTokens(t, "{ } [ ] ( ) ,", []want{
 		{token.LBrace, "{"},
 		{token.RBrace, "}"},
@@ -176,28 +176,28 @@ func TestDelimiters(t *testing.T) {
 // Strings
 // -----------------------------------------------------------------------------
 
-func TestSimpleString(t *testing.T) {
+func Test_Lex_SimpleString(t *testing.T) {
 	assertTokens(t, `"hello"`, []want{
 		{token.String, "hello"},
 		{token.Semi, ""},
 	})
 }
 
-func TestStringWithEscapes(t *testing.T) {
+func Test_Lex_StringWithEscapes(t *testing.T) {
 	assertTokens(t, `"a\nb\tc\\d\"e"`, []want{
 		{token.String, `a\nb\tc\\d\"e`},
 		{token.Semi, ""},
 	})
 }
 
-func TestEmptyString(t *testing.T) {
+func Test_Lex_EmptyString(t *testing.T) {
 	assertTokens(t, `""`, []want{
 		{token.String, ""},
 		{token.Semi, ""},
 	})
 }
 
-func TestUnterminatedString(t *testing.T) {
+func Test_Lex_UnterminatedString(t *testing.T) {
 	_, errs := tokenize(t, `"no end`)
 	if len(errs) == 0 {
 		t.Fatal("expected error for unterminated string")
@@ -207,7 +207,7 @@ func TestUnterminatedString(t *testing.T) {
 	}
 }
 
-func TestInvalidEscape(t *testing.T) {
+func Test_Lex_InvalidEscape(t *testing.T) {
 	_, errs := tokenize(t, `"bad\xescape"`)
 	if len(errs) == 0 {
 		t.Fatal("expected error for invalid escape")
@@ -220,21 +220,21 @@ func TestInvalidEscape(t *testing.T) {
 // Multi-line (backtick) strings
 // -----------------------------------------------------------------------------
 
-func TestMultiLineString_Empty(t *testing.T) {
+func Test_MultiLineString_Empty(t *testing.T) {
 	assertTokens(t, "``", []want{
 		{token.StringMulti, ""},
 		{token.Semi, ""},
 	})
 }
 
-func TestMultiLineString_Inline(t *testing.T) {
+func Test_MultiLineString_Inline(t *testing.T) {
 	assertTokens(t, "`hello`", []want{
 		{token.StringMulti, "hello"},
 		{token.Semi, ""},
 	})
 }
 
-func TestMultiLineString_LiteralNewlines(t *testing.T) {
+func Test_MultiLineString_LiteralNewlines(t *testing.T) {
 	src := "`line one\nline two\n`"
 	assertTokens(t, src, []want{
 		{token.StringMulti, "line one\nline two\n"},
@@ -242,7 +242,7 @@ func TestMultiLineString_LiteralNewlines(t *testing.T) {
 	})
 }
 
-func TestMultiLineString_DoubleQuoteNoEscape(t *testing.T) {
+func Test_MultiLineString_DoubleQuoteNoEscape(t *testing.T) {
 	// Interior `"` is just a literal - no quoting needed in backtick.
 	src := "`he said \"hi\"`"
 	assertTokens(t, src, []want{
@@ -251,7 +251,7 @@ func TestMultiLineString_DoubleQuoteNoEscape(t *testing.T) {
 	})
 }
 
-func TestMultiLineString_Interpolation(t *testing.T) {
+func Test_MultiLineString_Interpolation(t *testing.T) {
 	src := "`hello ${name}!`"
 	assertTokens(t, src, []want{
 		{token.StringMultiBeg, "hello "},
@@ -263,7 +263,7 @@ func TestMultiLineString_Interpolation(t *testing.T) {
 	})
 }
 
-func TestMultiLineString_NestedInterpInsideMulti(t *testing.T) {
+func Test_MultiLineString_NestedInterpInsideMulti(t *testing.T) {
 	// Verify that the multi flag is restored after RInterp closes the
 	// interp frame - the second segment still allows newlines.
 	src := "`a${x}\nb`"
@@ -277,7 +277,7 @@ func TestMultiLineString_NestedInterpInsideMulti(t *testing.T) {
 	})
 }
 
-func TestMultiLineString_EscapedBacktickAndDollar(t *testing.T) {
+func Test_MultiLineString_EscapedBacktickAndDollar(t *testing.T) {
 	src := "`literal \\` and \\${ stay literal`"
 	assertTokens(t, src, []want{
 		{token.StringMulti, `literal \` + "`" + ` and \${ stay literal`},
@@ -285,7 +285,7 @@ func TestMultiLineString_EscapedBacktickAndDollar(t *testing.T) {
 	})
 }
 
-func TestMultiLineString_Unterminated(t *testing.T) {
+func Test_MultiLineString_Unterminated(t *testing.T) {
 	_, errs := tokenize(t, "`no end")
 	if len(errs) == 0 {
 		t.Fatal("expected error for unterminated multi-line string")
@@ -298,7 +298,7 @@ func TestMultiLineString_Unterminated(t *testing.T) {
 // String interpolation
 // -----------------------------------------------------------------------------
 
-func TestInterpolation(t *testing.T) {
+func Test_Lex_Interpolation(t *testing.T) {
 	assertTokens(t, `"hello ${name} world"`, []want{
 		{token.StringBeg, "hello "},
 		{token.LInterp, "${"},
@@ -309,7 +309,7 @@ func TestInterpolation(t *testing.T) {
 	})
 }
 
-func TestMultipleInterpolations(t *testing.T) {
+func Test_Lex_MultipleInterpolations(t *testing.T) {
 	assertTokens(t, `"${a} and ${b}"`, []want{
 		{token.StringBeg, ""},
 		{token.LInterp, "${"},
@@ -324,7 +324,7 @@ func TestMultipleInterpolations(t *testing.T) {
 	})
 }
 
-func TestInterpolationWithExpression(t *testing.T) {
+func Test_Lex_InterpolationWithExpression(t *testing.T) {
 	assertTokens(t, `"${x + y}"`, []want{
 		{token.StringBeg, ""},
 		{token.LInterp, "${"},
@@ -337,7 +337,7 @@ func TestInterpolationWithExpression(t *testing.T) {
 	})
 }
 
-func TestInterpolationWithMapLiteral(t *testing.T) {
+func Test_Lex_InterpolationWithMapLiteral(t *testing.T) {
 	// Ensures inner { } inside ${...} are not confused with interp close.
 	assertTokens(t, `"${ {k: v} }"`, []want{
 		{token.StringBeg, ""},
@@ -356,7 +356,7 @@ func TestInterpolationWithMapLiteral(t *testing.T) {
 // Comments
 // -----------------------------------------------------------------------------
 
-func TestLineComment(t *testing.T) {
+func Test_Lex_LineComment(t *testing.T) {
 	assertTokens(t, "foo // this is a comment\nbar", []want{
 		{token.Ident, "foo"},
 		{token.Semi, "\n"},
@@ -365,14 +365,14 @@ func TestLineComment(t *testing.T) {
 	})
 }
 
-func TestLineCommentAtEOF(t *testing.T) {
+func Test_Lex_LineCommentAtEOF(t *testing.T) {
 	assertTokens(t, "foo // trailing comment no newline", []want{
 		{token.Ident, "foo"},
 		{token.Semi, ""},
 	})
 }
 
-func TestBlockCommentInline(t *testing.T) {
+func Test_Lex_BlockCommentInline(t *testing.T) {
 	assertTokens(t, "foo /* inline */ bar", []want{
 		{token.Ident, "foo"},
 		{token.Ident, "bar"},
@@ -380,7 +380,7 @@ func TestBlockCommentInline(t *testing.T) {
 	})
 }
 
-func TestBlockCommentMultiline(t *testing.T) {
+func Test_Lex_BlockCommentMultiline(t *testing.T) {
 	assertTokens(t, "foo /* line one\nline two */ bar", []want{
 		{token.Ident, "foo"},
 		{token.Semi, ""},
@@ -389,7 +389,7 @@ func TestBlockCommentMultiline(t *testing.T) {
 	})
 }
 
-func TestBlockCommentNested(t *testing.T) {
+func Test_Lex_BlockCommentNested(t *testing.T) {
 	assertTokens(t, "foo /* outer /* inner */ still outer */ bar", []want{
 		{token.Ident, "foo"},
 		{token.Ident, "bar"},
@@ -397,7 +397,7 @@ func TestBlockCommentNested(t *testing.T) {
 	})
 }
 
-func TestBlockCommentDeeplyNested(t *testing.T) {
+func Test_Lex_BlockCommentDeeplyNested(t *testing.T) {
 	assertTokens(t, "foo /* a /* b /* c */ b */ a */ bar", []want{
 		{token.Ident, "foo"},
 		{token.Ident, "bar"},
@@ -405,7 +405,7 @@ func TestBlockCommentDeeplyNested(t *testing.T) {
 	})
 }
 
-func TestBlockCommentUnterminated(t *testing.T) {
+func Test_Lex_BlockCommentUnterminated(t *testing.T) {
 	_, errs := tokenize(t, "foo /* never closed")
 	if len(errs) != 1 {
 		t.Fatalf("got %d errors, want 1: %v", len(errs), errs)
@@ -415,7 +415,7 @@ func TestBlockCommentUnterminated(t *testing.T) {
 	}
 }
 
-func TestBlockCommentUnterminatedNested(t *testing.T) {
+func Test_Lex_BlockCommentUnterminatedNested(t *testing.T) {
 	_, errs := tokenize(t, "foo /* outer /* inner */ ")
 	if len(errs) != 1 {
 		t.Fatalf("got %d errors, want 1: %v", len(errs), errs)
@@ -425,7 +425,7 @@ func TestBlockCommentUnterminatedNested(t *testing.T) {
 	}
 }
 
-func TestSlashIsDivisionNotComment(t *testing.T) {
+func Test_Lex_SlashIsDivisionNotComment(t *testing.T) {
 	assertTokens(t, "a / b", []want{
 		{token.Ident, "a"},
 		{token.Slash, "/"},
@@ -434,7 +434,7 @@ func TestSlashIsDivisionNotComment(t *testing.T) {
 	})
 }
 
-func TestAtToken(t *testing.T) {
+func Test_Lex_AtToken(t *testing.T) {
 	assertTokens(t, "@nonempty", []want{
 		{token.At, "@"},
 		{token.Ident, "nonempty"},
@@ -442,7 +442,7 @@ func TestAtToken(t *testing.T) {
 	})
 }
 
-func TestAtTokenWithCall(t *testing.T) {
+func Test_Lex_AtTokenWithCall(t *testing.T) {
 	assertTokens(t, "@since(version=\"0.5\")", []want{
 		{token.At, "@"},
 		{token.Ident, "since"},
@@ -458,7 +458,7 @@ func TestAtTokenWithCall(t *testing.T) {
 // Whitespace and ASI
 // -----------------------------------------------------------------------------
 
-func TestASIAfterIdent(t *testing.T) {
+func Test_ASI_AfterIdent(t *testing.T) {
 	assertTokens(t, "foo\nbar", []want{
 		{token.Ident, "foo"},
 		{token.Semi, "\n"},
@@ -467,7 +467,7 @@ func TestASIAfterIdent(t *testing.T) {
 	})
 }
 
-func TestASIAfterLiteral(t *testing.T) {
+func Test_ASI_AfterLiteral(t *testing.T) {
 	assertTokens(t, "42\n\"x\"", []want{
 		{token.Int, "42"},
 		{token.Semi, "\n"},
@@ -476,7 +476,7 @@ func TestASIAfterLiteral(t *testing.T) {
 	})
 }
 
-func TestNoASIAfterOperator(t *testing.T) {
+func Test_ASI_NotAfterOperator(t *testing.T) {
 	assertTokens(t, "1 +\n2", []want{
 		{token.Int, "1"},
 		{token.Plus, "+"},
@@ -485,7 +485,7 @@ func TestNoASIAfterOperator(t *testing.T) {
 	})
 }
 
-func TestNoASIAfterComma(t *testing.T) {
+func Test_ASI_NotAfterComma(t *testing.T) {
 	assertTokens(t, "a,\nb", []want{
 		{token.Ident, "a"},
 		{token.Comma, ","},
@@ -494,7 +494,7 @@ func TestNoASIAfterComma(t *testing.T) {
 	})
 }
 
-func TestNoASIAfterOpenBrace(t *testing.T) {
+func Test_ASI_NotAfterOpenBrace(t *testing.T) {
 	assertTokens(t, "foo {\nbar = 1\n}", []want{
 		{token.Ident, "foo"},
 		{token.LBrace, "{"},
@@ -507,7 +507,7 @@ func TestNoASIAfterOpenBrace(t *testing.T) {
 	})
 }
 
-func TestMultipleBlankLines(t *testing.T) {
+func Test_Lex_MultipleBlankLines(t *testing.T) {
 	// Multiple blank lines should collapse into one Semi.
 	assertTokens(t, "a\n\n\nb", []want{
 		{token.Ident, "a"},
@@ -520,7 +520,7 @@ func TestMultipleBlankLines(t *testing.T) {
 // Realistic snippet
 // -----------------------------------------------------------------------------
 
-func TestRealSnippet(t *testing.T) {
+func Test_Lex_RealSnippet(t *testing.T) {
 	src := `import "std"
 
 let x = 42

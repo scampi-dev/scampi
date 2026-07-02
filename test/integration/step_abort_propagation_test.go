@@ -18,7 +18,7 @@ import (
 // Regression test for #330: when a step's op aborts on a non-Abort-impact
 // diagnostic, the step must still surface a non-nil error so downstream
 // steps don't get scheduled against the broken upstream.
-func TestExecutePlan_OpAborted_NonAbortImpact_BlocksDownstream(t *testing.T) {
+func Test_ExecutePlan_OpAbortedNonAbortImpactBlocksDownstream(t *testing.T) {
 	actA := mkPromiserStep(nil, paths("/foo"),
 		&harness.FakeOp{
 			Name:    "A",

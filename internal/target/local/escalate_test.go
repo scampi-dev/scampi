@@ -85,7 +85,7 @@ func newStatTarget(t *testing.T, output string) (POSIXTarget, func() string) {
 // Command construction (capture script records args)
 // -----------------------------------------------------------------------------
 
-func TestEscalatedReadFile_Command(t *testing.T) {
+func Test_EscalatedReadFile_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	_, err := tgt.escalatedReadFile(t.Context(), "/etc/shadow")
 	if err != nil {
@@ -96,7 +96,7 @@ func TestEscalatedReadFile_Command(t *testing.T) {
 	}
 }
 
-func TestEscalatedWriteFile_Command(t *testing.T) {
+func Test_EscalatedWriteFile_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	err := tgt.escalatedWriteFile(t.Context(), "/etc/config", []byte("data"))
 	if err != nil {
@@ -111,7 +111,7 @@ func TestEscalatedWriteFile_Command(t *testing.T) {
 	}
 }
 
-func TestEscalatedRemove_Command(t *testing.T) {
+func Test_EscalatedRemove_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	err := tgt.escalatedRemove(t.Context(), "/etc/config")
 	if err != nil {
@@ -122,7 +122,7 @@ func TestEscalatedRemove_Command(t *testing.T) {
 	}
 }
 
-func TestEscalatedChmod_Command(t *testing.T) {
+func Test_EscalatedChmod_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	err := tgt.escalatedChmod(t.Context(), "/etc/config", 0o755)
 	if err != nil {
@@ -133,7 +133,7 @@ func TestEscalatedChmod_Command(t *testing.T) {
 	}
 }
 
-func TestEscalatedChown_Command(t *testing.T) {
+func Test_EscalatedChown_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	err := tgt.escalatedChown(t.Context(), "/etc/config", target.Owner{User: "root", Group: "wheel"})
 	if err != nil {
@@ -145,7 +145,7 @@ func TestEscalatedChown_Command(t *testing.T) {
 	}
 }
 
-func TestEscalatedSymlink_Command(t *testing.T) {
+func Test_EscalatedSymlink_Command(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	err := tgt.escalatedSymlink(t.Context(), "/usr/bin/vim", "/usr/local/bin/vi")
 	if err != nil {
@@ -160,7 +160,7 @@ func TestEscalatedSymlink_Command(t *testing.T) {
 // Error types on failure
 // -----------------------------------------------------------------------------
 
-func TestEscalatedRemove_ReturnsEscalationError(t *testing.T) {
+func Test_EscalatedRemove_ReturnsEscalationError(t *testing.T) {
 	tgt := newFailTarget(t)
 	err := tgt.escalatedRemove(t.Context(), "/etc/config")
 
@@ -182,7 +182,7 @@ func TestEscalatedRemove_ReturnsEscalationError(t *testing.T) {
 	}
 }
 
-func TestEscalatedReadFile_ReturnsEscalationError(t *testing.T) {
+func Test_EscalatedReadFile_ReturnsEscalationError(t *testing.T) {
 	tgt := newFailTarget(t)
 	_, err := tgt.escalatedReadFile(t.Context(), "/etc/shadow")
 
@@ -195,7 +195,7 @@ func TestEscalatedReadFile_ReturnsEscalationError(t *testing.T) {
 	}
 }
 
-func TestInstallPkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
+func Test_InstallPkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 	var tgt POSIXTarget
 	tgt.Runner = tgt.RunCommand
 	tgt.PkgBackend = &pkgmgr.Backend{
@@ -215,7 +215,7 @@ func TestInstallPkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 	}
 }
 
-func TestRemovePkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
+func Test_RemovePkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 	var tgt POSIXTarget
 	tgt.Runner = tgt.RunCommand
 	tgt.PkgBackend = &pkgmgr.Backend{
@@ -235,7 +235,7 @@ func TestRemovePkgs_NoEscalationErrorWhenNoTool(t *testing.T) {
 	}
 }
 
-func TestInstallPkgs_NoErrorWhenRoot(t *testing.T) {
+func Test_InstallPkgs_NoErrorWhenRoot(t *testing.T) {
 	tgt, _ := newCaptureTarget(t)
 	tgt.IsRoot = true
 	tgt.PkgBackend = &pkgmgr.Backend{
@@ -252,7 +252,7 @@ func TestInstallPkgs_NoErrorWhenRoot(t *testing.T) {
 // Package manager escalation
 // -----------------------------------------------------------------------------
 
-func TestInstallPkgs_Escalated(t *testing.T) {
+func Test_InstallPkgs_Escalated(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	tgt.PkgBackend = &pkgmgr.Backend{
 		Install:   "echo install %s",
@@ -270,7 +270,7 @@ func TestInstallPkgs_Escalated(t *testing.T) {
 	}
 }
 
-func TestRemovePkgs_Escalated(t *testing.T) {
+func Test_RemovePkgs_Escalated(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	tgt.PkgBackend = &pkgmgr.Backend{
 		Remove:    "echo remove %s",
@@ -288,7 +288,7 @@ func TestRemovePkgs_Escalated(t *testing.T) {
 	}
 }
 
-func TestInstallPkgs_NoEscalationWithoutNeedsRoot(t *testing.T) {
+func Test_InstallPkgs_NoEscalationWithoutNeedsRoot(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	tgt.PkgBackend = &pkgmgr.Backend{
 		Install:   "echo install %s",
@@ -308,7 +308,7 @@ func TestInstallPkgs_NoEscalationWithoutNeedsRoot(t *testing.T) {
 // UpdateCache escalation
 // -----------------------------------------------------------------------------
 
-func TestUpdateCache_NoEscalationErrorWhenNoTool(t *testing.T) {
+func Test_UpdateCache_NoEscalationErrorWhenNoTool(t *testing.T) {
 	var tgt POSIXTarget
 	tgt.Runner = tgt.RunCommand
 	tgt.PkgBackend = &pkgmgr.Backend{
@@ -329,7 +329,7 @@ func TestUpdateCache_NoEscalationErrorWhenNoTool(t *testing.T) {
 	}
 }
 
-func TestUpdateCache_Escalated(t *testing.T) {
+func Test_UpdateCache_Escalated(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	tgt.PkgBackend = &pkgmgr.Backend{
 		UpdateCache:    "echo update-cache",
@@ -348,7 +348,7 @@ func TestUpdateCache_Escalated(t *testing.T) {
 	}
 }
 
-func TestUpdateCache_NoEscalationWithoutCacheNeedsRoot(t *testing.T) {
+func Test_UpdateCache_NoEscalationWithoutCacheNeedsRoot(t *testing.T) {
 	tgt, readLog := newCaptureTarget(t)
 	tgt.PkgBackend = &pkgmgr.Backend{
 		UpdateCache:    "echo update-cache",
@@ -366,7 +366,7 @@ func TestUpdateCache_NoEscalationWithoutCacheNeedsRoot(t *testing.T) {
 	}
 }
 
-func TestUpdateCache_NoUpgradeSupport(t *testing.T) {
+func Test_UpdateCache_NoUpgradeSupport(t *testing.T) {
 	var tgt POSIXTarget
 	tgt.Runner = tgt.RunCommand
 	tgt.PkgBackend = &pkgmgr.Backend{
@@ -387,7 +387,7 @@ func TestUpdateCache_NoUpgradeSupport(t *testing.T) {
 	}
 }
 
-func TestUpdateCache_CacheUpdateError(t *testing.T) {
+func Test_UpdateCache_CacheUpdateError(t *testing.T) {
 	tgt := newFailTarget(t)
 	tgt.PkgBackend = &pkgmgr.Backend{
 		UpdateCache:    "false",

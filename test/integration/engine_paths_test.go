@@ -18,10 +18,10 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-// Check-side twin of TestExecutePlan_CancelledContext_ReturnsCancelledError:
+// Check-side twin of Test_ExecutePlan_CancelledContextReturnsCancelledError:
 // a context cancelled mid-check surfaces as CancelledError, not a raw
 // context.Canceled or a BUG panic.
-func TestCheckPlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
+func Test_CheckPlan_CancelledContextReturnsCancelledError(t *testing.T) {
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
@@ -83,7 +83,7 @@ func (o *timedOp) Timeout() time.Duration { return o.timeout }
 // spec.OpTimeout get their declared timeout, everything else the engine
 // default (30s). A hung op that honors its context can therefore not stall a
 // run forever.
-func TestCheckPlan_OpTimeoutBoundsOpContexts(t *testing.T) {
+func Test_CheckPlan_OpTimeoutBoundsOpContexts(t *testing.T) {
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()

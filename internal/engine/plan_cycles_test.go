@@ -51,7 +51,7 @@ func (o *mockOp) Execute(context.Context, source.Source, target.Target) (spec.Re
 // Plan cycle tests
 // -----------------------------------------------------------------------------
 
-func TestDetectPlanCycles_NoCycle(t *testing.T) {
+func Test_DetectPlanCycles_NoCycle(t *testing.T) {
 	act := &mockStep{desc: "test", kind: "test"}
 	opA := &mockOp{step: act}
 	opB := &mockOp{step: act, deps: []spec.Op{opA}}
@@ -69,7 +69,7 @@ func TestDetectPlanCycles_NoCycle(t *testing.T) {
 	}
 }
 
-func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
+func Test_DetectPlanCycles_SimpleCycle(t *testing.T) {
 	act := &mockStep{desc: "test", kind: "test"}
 	opA := &mockOp{step: act}
 	opB := &mockOp{step: act}
@@ -102,7 +102,7 @@ func TestDetectPlanCycles_SimpleCycle(t *testing.T) {
 	}
 }
 
-func TestDetectPlanCycles_NoSteps(t *testing.T) {
+func Test_DetectPlanCycles_NoSteps(t *testing.T) {
 	plan := spec.Plan{}
 	err := DetectPlanCycles(discardCtx(t), plan)
 	if err != nil {
@@ -113,7 +113,7 @@ func TestDetectPlanCycles_NoSteps(t *testing.T) {
 // Hook cycle tests
 // -----------------------------------------------------------------------------
 
-func TestDetectHookCycles_NoCycle(t *testing.T) {
+func Test_DetectHookCycles_NoCycle(t *testing.T) {
 	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"b"}}},
 		"b": {},
@@ -124,7 +124,7 @@ func TestDetectHookCycles_NoCycle(t *testing.T) {
 	}
 }
 
-func TestDetectHookCycles_SimpleCycle(t *testing.T) {
+func Test_DetectHookCycles_SimpleCycle(t *testing.T) {
 	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"b"}, Fields: map[string]spec.FieldSpan{}}},
 		"b": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},
@@ -148,7 +148,7 @@ func TestDetectHookCycles_SimpleCycle(t *testing.T) {
 	}
 }
 
-func TestDetectHookCycles_SelfCycle(t *testing.T) {
+func Test_DetectHookCycles_SelfCycle(t *testing.T) {
 	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"a"}, Fields: map[string]spec.FieldSpan{}}},
 	}
@@ -173,7 +173,7 @@ func TestDetectHookCycles_SelfCycle(t *testing.T) {
 	}
 }
 
-func TestDetectHookCycles_Empty(t *testing.T) {
+func Test_DetectHookCycles_Empty(t *testing.T) {
 	err := detectHookCycles(discardCtx(t), nil)
 	if err != nil {
 		t.Errorf("expected no error for nil hooks, got %v", err)
@@ -185,7 +185,7 @@ func TestDetectHookCycles_Empty(t *testing.T) {
 	}
 }
 
-func TestDetectHookCycles_ThreeNodeCycle(t *testing.T) {
+func Test_DetectHookCycles_ThreeNodeCycle(t *testing.T) {
 	hooks := map[string][]spec.DeclaredStep{
 		"a": {{OnChange: []string{"b"}, Fields: map[string]spec.FieldSpan{}}},
 		"b": {{OnChange: []string{"c"}, Fields: map[string]spec.FieldSpan{}}},
@@ -221,7 +221,7 @@ func detectStepCyclesForTest(nodes []*stepNode) [][]spec.Step {
 	return cycles
 }
 
-func TestDetectStepCycles_NoCycle(t *testing.T) {
+func Test_DetectStepCycles_NoCycle(t *testing.T) {
 	// Linear chain: A -> B -> C
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "A", promises: paths("/a")},
@@ -237,7 +237,7 @@ func TestDetectStepCycles_NoCycle(t *testing.T) {
 	}
 }
 
-func TestDetectStepCycles_SimpleCycle(t *testing.T) {
+func Test_DetectStepCycles_SimpleCycle(t *testing.T) {
 	// A writes /a, reads /b
 	// B writes /b, reads /a
 	// -> cycle: A -> B -> A
@@ -258,7 +258,7 @@ func TestDetectStepCycles_SimpleCycle(t *testing.T) {
 	}
 }
 
-func TestDetectStepCycles_IndependentSteps(t *testing.T) {
+func Test_DetectStepCycles_IndependentSteps(t *testing.T) {
 	// No path overlap -> no dependencies -> no cycles
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "A", promises: paths("/a")},
@@ -274,7 +274,7 @@ func TestDetectStepCycles_IndependentSteps(t *testing.T) {
 	}
 }
 
-func TestStepCyclicDependency_Error(t *testing.T) {
+func Test_StepCyclicDependency_Error(t *testing.T) {
 	a := &mockPromiserStep{desc: "step-A"}
 	b := &mockPromiserStep{desc: "step-B"}
 

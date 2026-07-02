@@ -38,7 +38,7 @@ func (r *memCmdResponder) fn() func(cmd string) (target.CommandResult, error) {
 	}
 }
 
-func TestRunSet_AddsMissing_BatchCSV(t *testing.T) {
+func Test_RunSet_AddsMissingBatchCSV(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -75,7 +75,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestRunSet_RemovesOrphans_BatchSpace(t *testing.T) {
+func Test_RunSet_RemovesOrphansBatchSpace(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -112,7 +112,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestRunSet_BothSides(t *testing.T) {
+func Test_RunSet_BothSides(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -151,7 +151,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestRunSet_NoopWhenConverged(t *testing.T) {
+func Test_RunSet_NoopWhenConverged(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -187,7 +187,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestRunSet_PerItemTemplate(t *testing.T) {
+func Test_RunSet_PerItemTemplate(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -224,7 +224,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestRunSet_InitBootstraps(t *testing.T) {
+func Test_RunSet_InitBootstraps(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -275,7 +275,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestRunSet_AddOnly_LeavesOrphans(t *testing.T) {
+func Test_RunSet_AddOnlyLeavesOrphans(t *testing.T) {
 	// User declared `add` but no `remove` - orphans must NOT trigger
 	// drift. Live set has an item not in desired; the step must still
 	// be considered satisfied (one-way reconciliation).
@@ -313,7 +313,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func TestRunSet_EnvPrefixApplied(t *testing.T) {
+func Test_RunSet_EnvPrefixApplied(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

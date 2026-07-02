@@ -4,7 +4,7 @@ package token
 
 import "testing"
 
-func TestResolve(t *testing.T) {
+func Test_Resolve_LineCol(t *testing.T) {
 	src := []byte("hello\nworld\n  foo\n")
 	//             ^0    ^6   ^12   ^18 (length)
 	//             h=0   w=6   f=14
@@ -46,7 +46,7 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func TestResolveMultiByte(t *testing.T) {
+func Test_Resolve_MultiByte(t *testing.T) {
 	// "α" (U+03B1) is 2 bytes in UTF-8; should count as 1 column.
 	src := []byte("αβγ\nδ")
 	// bytes: α=0,1  β=2,3  γ=4,5  \n=6  δ=7,8
@@ -70,7 +70,7 @@ func TestResolveMultiByte(t *testing.T) {
 	}
 }
 
-func TestResolveSpan(t *testing.T) {
+func Test_ResolveSpan_StartEnd(t *testing.T) {
 	src := []byte("foo\nbar baz\n")
 	//             0123 456789...
 	// span covers "bar baz" = bytes 4..11
@@ -83,7 +83,7 @@ func TestResolveSpan(t *testing.T) {
 	}
 }
 
-func TestKeywordLookup(t *testing.T) {
+func Test_Lookup_Keywords(t *testing.T) {
 	cases := []struct {
 		in   string
 		want Kind
@@ -113,7 +113,7 @@ func TestKeywordLookup(t *testing.T) {
 	}
 }
 
-func TestEndsStatement(t *testing.T) {
+func Test_EndsStatement_PerKind(t *testing.T) {
 	cases := []struct {
 		k    Kind
 		want bool

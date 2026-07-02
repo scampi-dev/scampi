@@ -22,7 +22,7 @@ func mkStep(kind, file string, line int) spec.DeclaredStep {
 	}
 }
 
-func TestDetectDuplicatePromises_NoDuplicates(t *testing.T) {
+func Test_DetectDuplicatePromises_NoDuplicates(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
 		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
@@ -37,7 +37,7 @@ func TestDetectDuplicatePromises_NoDuplicates(t *testing.T) {
 	}
 }
 
-func TestDetectDuplicatePromises_DuplicateLabel(t *testing.T) {
+func Test_DetectDuplicatePromises_DuplicateLabel(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
 		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
@@ -76,7 +76,7 @@ func TestDetectDuplicatePromises_DuplicateLabel(t *testing.T) {
 	}
 }
 
-func TestDetectDuplicatePromises_DuplicatePath(t *testing.T) {
+func Test_DetectDuplicatePromises_DuplicatePath(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
 		&mockPromiserStep{kind: "dir", promises: paths("/etc/foo")},
@@ -92,7 +92,7 @@ func TestDetectDuplicatePromises_DuplicatePath(t *testing.T) {
 	}
 }
 
-func TestDetectDuplicatePromises_DistinctNodesIndependent(t *testing.T) {
+func Test_DetectDuplicatePromises_DistinctNodesIndependent(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
 		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
@@ -107,7 +107,7 @@ func TestDetectDuplicatePromises_DistinctNodesIndependent(t *testing.T) {
 	}
 }
 
-func TestDetectDuplicatePromises_NonPromiserSkipped(t *testing.T) {
+func Test_DetectDuplicatePromises_NonPromiserSkipped(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
 		&mockStep{kind: "noop"},
@@ -122,7 +122,7 @@ func TestDetectDuplicatePromises_NonPromiserSkipped(t *testing.T) {
 	}
 }
 
-func TestDetectDuplicatePromises_AllResourceKinds(t *testing.T) {
+func Test_DetectDuplicatePromises_AllResourceKinds(t *testing.T) {
 	cases := []struct {
 		name     string
 		promises []spec.Resource

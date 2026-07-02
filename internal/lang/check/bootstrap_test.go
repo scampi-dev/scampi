@@ -7,7 +7,7 @@ import (
 	"testing/fstest"
 )
 
-func TestBootstrapModules_CrossSubmoduleImport(t *testing.T) {
+func Test_BootstrapModules_CrossSubmoduleImport(t *testing.T) {
 	fsys := fstest.MapFS{
 		"std.scampi": {Data: []byte(
 			"module std\n" +
@@ -38,7 +38,7 @@ func TestBootstrapModules_CrossSubmoduleImport(t *testing.T) {
 	}
 }
 
-func TestBootstrapModules_CycleDetection(t *testing.T) {
+func Test_BootstrapModules_CycleDetection(t *testing.T) {
 	fsys := fstest.MapFS{
 		"std.scampi": {Data: []byte("module std\n")},
 		"a/a.scampi": {Data: []byte(

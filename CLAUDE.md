@@ -123,7 +123,7 @@ Verbosity: `-v` (why), `-vv` (how), `-vvv` (everything)
 
 **Glyphs**: All glyphs/symbols in CLI output MUST go through the `glyphSet` in `render/cli/glyph.go` — never hardcode Unicode characters. The ASCII fallback set must work for every glyph.
 
-**Go source is ASCII-only** — literals AND comments. Message prose uses ASCII punctuation (`1-65535`, `->`, ` - `); tests that need real Unicode (glyph widths, fuzz seeds) write it as escape sequences (`\u2026`). `TestGlyphDiscipline` enforces this across `internal/`, `cmd/`, and `test/`; the only exemptions are `glyph.go` (the canonical glyph source) and `lang/token/pos_test.go` (UTF-8 offset arithmetic).
+**Go source is ASCII-only** — literals AND comments. Message prose uses ASCII punctuation (`1-65535`, `->`, ` - `); tests that need real Unicode (glyph widths, fuzz seeds) write it as escape sequences (`\u2026`). `Test_Rule_GlyphDiscipline` enforces this across `internal/`, `cmd/`, and `test/`; the only exemptions are `glyph.go` (the canonical glyph source) and `lang/token/pos_test.go` (UTF-8 offset arithmetic).
 
 ## Error Messages
 
@@ -143,7 +143,7 @@ This is a core UX principle, not a nice-to-have.
 sanctioned-file list; `errs.Errorf`/`errs.New`/`errs.WrapErrf` need a
 `// bare-error: ...` rationale comment on the line above (`errs.WrapErrf` is
 blanket-sanctioned inside `internal/target/`, whose contextual wrappers surface
-through typed op diagnostics). `TestBareErrorBan` in `test/rules/` enforces all
+through typed op diagnostics). `Test_Rule_BareErrorBan` in `test/rules/` enforces all
 of this. Every user-facing error must:
 
 - Have an `Error() string` method (so it satisfies Go's `error`)
@@ -235,6 +235,10 @@ characters line up vertically. This applies to all markdown files in
   integration test be awkward or slow for exercising these code paths?"
 - Keep test doubles minimal and local to the file that uses them. No shared
   test helpers that grow into their own little framework.
+- **Naming**: test functions are `Test_Subject_Expectation` (exactly two
+  UpperCamel segments; `TestMain` and `Fuzz*` exempt; enforcement rules use
+  the `Rule` subject, e.g. `Test_Rule_BareErrorBan`), and every `foo_test.go`
+  must sit next to its `foo.go` - both enforced in `test/rules/`.
 
 ### Test layout
 

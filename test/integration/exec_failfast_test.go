@@ -25,7 +25,7 @@ import (
 //
 //	Check = Satisfied
 //	Execute = MUST NOT be called
-func TestExecuteStep_AllOpsSkipped(t *testing.T) {
+func Test_ExecuteStep_AllOpsSkipped(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
@@ -90,7 +90,7 @@ func TestExecuteStep_AllOpsSkipped(t *testing.T) {
 //
 //	Check = Unsatisfied
 //	Execute = Success
-func TestExecuteStep_LinearSuccess(t *testing.T) {
+func Test_ExecuteStep_LinearSuccess(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -159,7 +159,7 @@ func TestExecuteStep_LinearSuccess(t *testing.T) {
 //	A.Execute -> Success
 //	B.Execute -> Abort
 //	C.Execute -> MUST NOT be called
-func TestExecuteStep_FailFast_MiddleOfChain(t *testing.T) {
+func Test_ExecuteStep_FailFastMiddleOfChain(t *testing.T) {
 	var act *harness.FakeStep
 
 	opA := &harness.FakeOp{
@@ -250,7 +250,7 @@ func TestExecuteStep_FailFast_MiddleOfChain(t *testing.T) {
 //	B.Execute -> Success
 //	C.Execute -> Abort
 //	D.Execute -> MUST NOT be called
-func TestExecuteStep_BranchFailure(t *testing.T) {
+func Test_ExecuteStep_BranchFailure(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -328,7 +328,7 @@ func TestExecuteStep_BranchFailure(t *testing.T) {
 //
 //	A.Check   -> Diagnostic (Warning, Continue)
 //	A.Execute -> Success
-func TestExecuteStep_CheckDiagnostic_Continues(t *testing.T) {
+func Test_ExecuteStep_CheckDiagnosticContinues(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.DiagCheckFn(signal.Warning, diagnostic.ImpactNone),
@@ -382,7 +382,7 @@ func TestExecuteStep_CheckDiagnostic_Continues(t *testing.T) {
 //	A.Check   -> Diagnostic (Abort)
 //	A.Execute -> MUST NOT be called
 //	B.Execute -> MUST NOT be called
-func TestExecuteStep_AbortDuringCheck(t *testing.T) {
+func Test_ExecuteStep_AbortDuringCheck(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.DiagCheckFn(signal.Error, diagnostic.ImpactAbort),
@@ -440,7 +440,7 @@ func TestExecuteStep_AbortDuringCheck(t *testing.T) {
 //	A.Execute -> Success
 //	B.Execute -> Abort
 //	C.Execute -> MUST NOT be called
-func TestExecuteStep_AbortDuringExecution(t *testing.T) {
+func Test_ExecuteStep_AbortDuringExecution(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -505,7 +505,7 @@ func TestExecuteStep_AbortDuringExecution(t *testing.T) {
 //	A.Check   -> Satisfied (Skipped)
 //	A.Execute -> MUST NOT be called
 //	B.Execute -> Success
-func TestExecuteStep_SkippedUpstream_ExecutesDownstream(t *testing.T) {
+func Test_ExecuteStep_SkippedUpstreamExecutesDownstream(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),

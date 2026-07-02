@@ -9,7 +9,7 @@ import (
 	"scampi.dev/scampi/internal/std"
 )
 
-func TestStdLibCompiles(t *testing.T) {
+func Test_StdLib_Compiles(t *testing.T) {
 	modules, err := check.BootstrapModules(std.FS)
 	if err != nil {
 		t.Fatalf("bootstrap: %v", err)

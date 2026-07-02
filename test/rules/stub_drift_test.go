@@ -17,7 +17,7 @@ import (
 	"scampi.dev/scampi/internal/std"
 )
 
-// TestStubsMatchGoConfigs is the drift lint that replaces the deleted
+// Test_Rule_StubDrift is the drift lint that replaces the deleted
 // stub generator (#163). Stubs in std/ are now hand-written and serve as
 // the source of truth for parameter names, types, and validation
 // attributes. This lint asserts the cheaper half of that contract:
@@ -42,7 +42,7 @@ import (
 //     bites us in practice.
 //   - Attribute correctness on stub params. That's the linker's job
 //     at link time.
-func TestStubsMatchGoConfigs(t *testing.T) {
+func Test_Rule_StubDrift(t *testing.T) {
 	stubDecls := loadStubDecls(t)
 
 	reg := engine.NewRegistry()

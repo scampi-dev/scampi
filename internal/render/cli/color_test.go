@@ -8,7 +8,7 @@ import (
 	"scampi.dev/scampi/internal/signal"
 )
 
-func TestShouldUseColor(t *testing.T) {
+func Test_ShouldUseColor_ModeAndTTY(t *testing.T) {
 	cases := []struct {
 		name  string
 		mode  signal.ColorMode

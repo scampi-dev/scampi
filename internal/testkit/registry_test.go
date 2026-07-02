@@ -11,7 +11,7 @@ import (
 // Registry dedup
 // -----------------------------------------------------------------------------
 
-func TestAddMemTarget_DedupesByName(t *testing.T) {
+func Test_AddMemTarget_DedupesByName(t *testing.T) {
 	reg := NewTestRegistry()
 	entry1 := reg.AddMemTarget(MemTargetEntry{
 		Name: "m",

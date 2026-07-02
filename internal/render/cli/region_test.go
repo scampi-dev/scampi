@@ -14,7 +14,7 @@ import (
 	"scampi.dev/scampi/internal/signal"
 )
 
-func TestRegionLines_CapAndOffTTY(t *testing.T) {
+func Test_RegionLines_CapAndOffTTY(t *testing.T) {
 	c := New(Options{Stdout: &bytes.Buffer{}, ForceASCII: true}, nil)
 
 	f := newInflight()
@@ -46,7 +46,7 @@ func TestRegionLines_CapAndOffTTY(t *testing.T) {
 
 // A finished step drops out of the region; when nothing is running the region is
 // empty.
-func TestRegionLines_EmptyWhenIdle(t *testing.T) {
+func Test_RegionLines_EmptyWhenIdle(t *testing.T) {
 	c := New(Options{Stdout: &bytes.Buffer{}, ForceASCII: true}, nil)
 	c.isTTY = true
 	c.width = 200
@@ -62,7 +62,7 @@ func TestRegionLines_EmptyWhenIdle(t *testing.T) {
 
 // A region taller than the terminal breaks CursorUp math (it clamps at the top
 // row), so lane lines get cut to fit; the progress footer always survives.
-func TestRegionLines_HeightCap(t *testing.T) {
+func Test_RegionLines_HeightCap(t *testing.T) {
 	c := New(Options{Stdout: &bytes.Buffer{}, ForceASCII: true}, nil)
 	c.isTTY = true
 	c.width = 200
@@ -87,14 +87,14 @@ func TestRegionLines_HeightCap(t *testing.T) {
 	}
 }
 
-// TestLiveRegionGolden pins one rendered live-region frame: spinner, padded
+// Test_LiveRegion_Golden pins one rendered live-region frame: spinner, padded
 // deploy tags (aligned [N] indexes across lanes of differing name width),
 // elapsed under a frozen clock, and the per-lane cap collapsing the overflow
 // into "(+N more)". Two frames so the spinner advance is visible. The region is
 // ephemeral (erased and redrawn every repaint), so this golden may churn more
 // than the durable stream_*.golden -- drop it if it stops earning its keep.
 // Regenerate with SCAMPI_UPDATE=1.
-func TestLiveRegionGolden(t *testing.T) {
+func Test_LiveRegion_Golden(t *testing.T) {
 	base := time.Unix(1000, 0)
 	frozen := base.Add(5 * time.Second)
 

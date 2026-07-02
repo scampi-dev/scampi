@@ -44,7 +44,7 @@ func makeInspectEngine(t *testing.T, steps []spec.Step) *engine.Engine {
 	return e
 }
 
-func TestInspect_SingleOp(t *testing.T) {
+func Test_Inspect_SingleOp(t *testing.T) {
 	op := &harness.InspectableFakeOp{
 		FakeOp: harness.FakeOp{
 			Name: "copy-file", CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied), ExecFn: harness.OkExecFn(false),
@@ -77,7 +77,7 @@ func TestInspect_SingleOp(t *testing.T) {
 	}
 }
 
-func TestInspect_NoInspectableOps(t *testing.T) {
+func Test_Inspect_NoInspectableOps(t *testing.T) {
 	op := &harness.FakeOp{
 		Name:    "chmod",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
@@ -95,7 +95,7 @@ func TestInspect_NoInspectableOps(t *testing.T) {
 	}
 }
 
-func TestInspect_MultipleOps(t *testing.T) {
+func Test_Inspect_MultipleOps(t *testing.T) {
 	op1 := &harness.InspectableFakeOp{
 		FakeOp: harness.FakeOp{
 			Name: "copy-a", CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied), ExecFn: harness.OkExecFn(false),
@@ -129,7 +129,7 @@ func TestInspect_MultipleOps(t *testing.T) {
 	}
 }
 
-func TestInspect_CurrentNotExist(t *testing.T) {
+func Test_Inspect_CurrentNotExist(t *testing.T) {
 	op := &harness.InspectableFakeOp{
 		FakeOp: harness.FakeOp{
 			Name: "copy-new", CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied), ExecFn: harness.OkExecFn(false),
@@ -158,7 +158,7 @@ func TestInspect_CurrentNotExist(t *testing.T) {
 	}
 }
 
-func TestInspect_StepFilter(t *testing.T) {
+func Test_Inspect_StepFilter(t *testing.T) {
 	op1 := &harness.InspectableFakeOp{
 		FakeOp: harness.FakeOp{
 			Name: "copy-a", CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied), ExecFn: harness.OkExecFn(false),

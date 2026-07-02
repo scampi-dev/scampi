@@ -15,7 +15,7 @@ import (
 	template "scampi.dev/scampi/internal/render/template"
 )
 
-// TestAllTemplatesRender is a contract test that auto-discovers every
+// Test_Rule_TemplateRender is a contract test that auto-discovers every
 // diagnostic.Raisable and spec.OpDescription implementation in the module,
 // extracts their template string literals from the AST, resolves the Data
 // type via go/types, and renders each template with both populated and nil
@@ -24,7 +24,7 @@ import (
 //
 // Adding a new Raisable or OpDescription type is automatically picked up
 // - no manual registration.
-func TestAllTemplatesRender(t *testing.T) {
+func Test_Rule_TemplateRender(t *testing.T) {
 	cfg := &packages.Config{
 		Mode: packages.NeedSyntax |
 			packages.NeedTypes |

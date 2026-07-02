@@ -4,7 +4,7 @@ package run
 
 import "testing"
 
-func TestEnvPrefix_Empty(t *testing.T) {
+func Test_EnvPrefix_Empty(t *testing.T) {
 	if got := envPrefix(nil); got != "" {
 		t.Errorf("nil env -> %q, want empty", got)
 	}
@@ -13,7 +13,7 @@ func TestEnvPrefix_Empty(t *testing.T) {
 	}
 }
 
-func TestEnvPrefix_Single(t *testing.T) {
+func Test_EnvPrefix_Single(t *testing.T) {
 	// ShellQuote always single-quotes for safety; even shell-safe
 	// values come out wrapped. That's intentional - the prefix is
 	// machine-generated, not for human readability.
@@ -24,7 +24,7 @@ func TestEnvPrefix_Single(t *testing.T) {
 	}
 }
 
-func TestEnvPrefix_DeterministicOrdering(t *testing.T) {
+func Test_EnvPrefix_DeterministicOrdering(t *testing.T) {
 	// Sorted keys -> stable output across runs. Important for
 	// debuggability, diffability, and the renderer (line equality
 	// matters for live updates).
@@ -39,7 +39,7 @@ func TestEnvPrefix_DeterministicOrdering(t *testing.T) {
 	}
 }
 
-func TestEnvPrefix_QuotesUnsafeValues(t *testing.T) {
+func Test_EnvPrefix_QuotesUnsafeValues(t *testing.T) {
 	got := envPrefix(map[string]string{
 		"WITH_SPACE":  "hello world",
 		"WITH_QUOTE":  "it's quoted",
@@ -58,7 +58,7 @@ func TestEnvPrefix_QuotesUnsafeValues(t *testing.T) {
 	}
 }
 
-func TestRunOp_WithEnv_Prepends(t *testing.T) {
+func Test_RunOp_WithEnvPrepends(t *testing.T) {
 	op := &runOp{env: map[string]string{"FOO": "bar"}}
 	got := op.withEnv("echo hi")
 	want := "FOO='bar' echo hi"
@@ -67,7 +67,7 @@ func TestRunOp_WithEnv_Prepends(t *testing.T) {
 	}
 }
 
-func TestRunOp_WithEnv_PassthroughWhenEmpty(t *testing.T) {
+func Test_RunOp_WithEnvPassthroughWhenEmpty(t *testing.T) {
 	op := &runOp{}
 	if got := op.withEnv("echo hi"); got != "echo hi" {
 		t.Errorf("empty env mutated cmd: %q", got)

@@ -25,9 +25,9 @@ std.deploy(name = "test", targets = [host]) {
 }
 `
 
-// TestResultEvent_Apply verifies the engine emits one Result per step as it
+// Test_ResultEvent_Apply verifies the engine emits one Result per step as it
 // settles, with the verdict reflecting whether the step changed anything.
-func TestResultEvent_Apply(t *testing.T) {
+func Test_ResultEvent_Apply(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}
@@ -59,9 +59,9 @@ func TestResultEvent_Apply(t *testing.T) {
 	}
 }
 
-// TestResultEvent_CheckWouldChange verifies that in check mode an unsatisfied
+// Test_ResultEvent_CheckWouldChange verifies that in check mode an unsatisfied
 // step reports StepChanged (would change), driven by the WouldChange count.
-func TestResultEvent_CheckWouldChange(t *testing.T) {
+func Test_ResultEvent_CheckWouldChange(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}

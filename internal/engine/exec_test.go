@@ -38,7 +38,7 @@ func (o *orderOp) RequiredCapabilities() capability.Capability { return capabili
 // event.Result.Ops inherit it, so it is a determinism contract, not an
 // implementation detail (#440). Map iteration order passing by luck is
 // probabilistic, so hammer it.
-func TestBuildPlanPreservesDeclarationOrder(t *testing.T) {
+func Test_BuildPlan_PreservesDeclarationOrder(t *testing.T) {
 	for range 50 {
 		ops := make([]spec.Op, 12)
 		for i := range ops {

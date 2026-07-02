@@ -13,7 +13,7 @@ import (
 // The sink erases the pinned region, writes durable output, then redraws the
 // region beneath it, so scrollback stays clean and the region stays at the
 // bottom.
-func TestSink_RegionEraseRedraw(t *testing.T) {
+func Test_Sink_RegionEraseRedraw(t *testing.T) {
 	buf := &bytes.Buffer{}
 	s := newSink(buf, buf, true)
 

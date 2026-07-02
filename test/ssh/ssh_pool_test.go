@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-// TestSSH_ConnectionPool_OneTCPDialPerTarget is the acceptance test for
+// Test_SSH_ConnectionPoolOneTCPDialPerTarget is the acceptance test for
 // #238: confirms that the per-target SSH connection is reused across
 // every RunCommand. DialCount must be exactly 1 for the target's
 // lifetime, regardless of how many ops run sequentially or in parallel.
@@ -20,7 +20,7 @@ import (
 // multiplexed session per host" rests on. If a regression introduces a
 // stray re-dial somewhere (e.g. someone adds a "fresh client" pattern
 // for retries), DialCount will go above 1 and this test fails.
-func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
+func Test_SSH_ConnectionPoolOneTCPDialPerTarget(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -77,13 +77,13 @@ func TestSSH_ConnectionPool_OneTCPDialPerTarget(t *testing.T) {
 	}
 }
 
-// TestSSH_RunCommand_MultiLine is the acceptance test for the
+// Test_SSH_RunCommandMultiLine is the acceptance test for the
 // multi-line command bug discovered while testing #297 backtick
 // strings. A user command with a literal trailing newline used to
 // produce a `<NL>; }` sequence in the persistent-shell wrapper that
 // bash rejects as a syntax error, causing the framed sentinel to
 // never be written and the read loop to panic on EOF.
-func TestSSH_RunCommand_MultiLine(t *testing.T) {
+func Test_SSH_RunCommandMultiLine(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -126,7 +126,7 @@ func TestSSH_RunCommand_MultiLine(t *testing.T) {
 	}
 }
 
-// TestSSH_RetryHandlesContention is the acceptance test for the
+// Test_SSH_RetryHandlesContention is the acceptance test for the
 // retry-with-backoff resilience: scheduling far more parallel ops
 // than what the server allows concurrently must still complete
 // cleanly. The slot pool caps client-side concurrency at MaxSessions
@@ -134,7 +134,7 @@ func TestSSH_RunCommand_MultiLine(t *testing.T) {
 // (e.g. SFTP holds a session, so OpenSSH MaxSessions=10 effectively
 // allows 9 of ours). retryNewSession must transparently absorb that
 // backpressure.
-func TestSSH_RetryHandlesContention(t *testing.T) {
+func Test_SSH_RetryHandlesContention(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 
@@ -178,10 +178,10 @@ func TestSSH_RetryHandlesContention(t *testing.T) {
 		parallelOps, stats.SessionsPeakInFlight, stats.SessionRetries)
 }
 
-// TestSSH_RunCommand_ContextCancellation verifies that an op blocked
+// Test_SSH_RunCommandContextCancellation verifies that an op blocked
 // waiting for a slot returns promptly when its context is cancelled,
 // rather than hanging forever.
-func TestSSH_RunCommand_ContextCancellation(t *testing.T) {
+func Test_SSH_RunCommandContextCancellation(t *testing.T) {
 	env, cleanup := harness.SetupSSHTestEnv(t)
 	defer cleanup()
 

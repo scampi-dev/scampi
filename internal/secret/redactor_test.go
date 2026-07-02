@@ -4,7 +4,7 @@ package secret
 
 import "testing"
 
-func TestRedactor_RedactsKnownValue(t *testing.T) {
+func Test_Redactor_RedactsKnownValue(t *testing.T) {
 	r := NewRedactor()
 	r.Add("test-fixture-secret-not-real")
 
@@ -15,7 +15,7 @@ func TestRedactor_RedactsKnownValue(t *testing.T) {
 	}
 }
 
-func TestRedactor_RedactsMultipleOccurrences(t *testing.T) {
+func Test_Redactor_RedactsMultipleOccurrences(t *testing.T) {
 	r := NewRedactor()
 	r.Add("hunter2")
 
@@ -29,7 +29,7 @@ func TestRedactor_RedactsMultipleOccurrences(t *testing.T) {
 	}
 }
 
-func TestRedactor_RedactsMultipleSecrets(t *testing.T) {
+func Test_Redactor_RedactsMultipleSecrets(t *testing.T) {
 	r := NewRedactor()
 	r.Add("admin-password-1234")
 	r.Add("api-key-abcdefgh")
@@ -40,7 +40,7 @@ func TestRedactor_RedactsMultipleSecrets(t *testing.T) {
 	}
 }
 
-func TestRedactor_IgnoresShortSecrets(t *testing.T) {
+func Test_Redactor_IgnoresShortSecrets(t *testing.T) {
 	r := NewRedactor()
 	// 3-char secrets are too short - substring redaction would
 	// false-positive on legitimate text containing the same chars.
@@ -54,7 +54,7 @@ func TestRedactor_IgnoresShortSecrets(t *testing.T) {
 	}
 }
 
-func TestRedactor_IgnoresEmptyValues(t *testing.T) {
+func Test_Redactor_IgnoresEmptyValues(t *testing.T) {
 	r := NewRedactor()
 	r.Add("")
 	if got := r.Redact("anything"); got != "anything" {
@@ -62,7 +62,7 @@ func TestRedactor_IgnoresEmptyValues(t *testing.T) {
 	}
 }
 
-func TestRedactor_HandlesNilReceiver(t *testing.T) {
+func Test_Redactor_HandlesNilReceiver(t *testing.T) {
 	// A nil redactor is a no-op - useful for code paths that may not
 	// have wiring in place yet (LSP, tests).
 	var r *Redactor
@@ -72,7 +72,7 @@ func TestRedactor_HandlesNilReceiver(t *testing.T) {
 	r.Add("ignored") // must not panic
 }
 
-func TestRedactor_DedupsRepeatedAdds(t *testing.T) {
+func Test_Redactor_DedupsRepeatedAdds(t *testing.T) {
 	r := NewRedactor()
 	r.Add("password1234")
 	r.Add("password1234")

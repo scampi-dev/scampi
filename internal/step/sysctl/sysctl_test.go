@@ -4,7 +4,7 @@ package sysctl
 
 import "testing"
 
-func TestDropInPath(t *testing.T) {
+func Test_DropInPath_Cases(t *testing.T) {
 	tests := []struct {
 		key  string
 		want string

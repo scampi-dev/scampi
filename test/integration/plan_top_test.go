@@ -26,10 +26,10 @@ func writePlanCfg(t *testing.T, cfg string) string {
 	return path
 }
 
-// TestPlan_SingleDeploy_Trivial covers the base case: one deploy with
+// Test_Plan_SingleDeployTrivial covers the base case: one deploy with
 // no cross-deploy edges. PlanResult should have one level with one
 // node and HasGraph()==false.
-func TestPlan_SingleDeploy_Trivial(t *testing.T) {
+func Test_Plan_SingleDeployTrivial(t *testing.T) {
 	cfg := `
 module main
 import "std"
@@ -82,11 +82,11 @@ std.deploy(name = "solo", targets = [host]) {
 	}
 }
 
-// TestPlan_MultiDeploy_LinearChain covers A -> B -> C ordering via
+// Test_Plan_MultiDeployLinearChain covers A -> B -> C ordering via
 // label promises. Each level should hold one deploy, edges should
 // point upstream by name, and Needs should expose the label that
 // drove each edge.
-func TestPlan_MultiDeploy_LinearChain(t *testing.T) {
+func Test_Plan_MultiDeployLinearChain(t *testing.T) {
 	cfg := `
 module main
 import "std"
@@ -161,9 +161,9 @@ std.deploy(name = "app", targets = [host]) {
 	}
 }
 
-// TestPlan_MultiDeploy_FanOut covers A -> {B, C}: two deploys at
+// Test_Plan_MultiDeployFanOut covers A -> {B, C}: two deploys at
 // level 1 are concurrent siblings under one root.
-func TestPlan_MultiDeploy_FanOut(t *testing.T) {
+func Test_Plan_MultiDeployFanOut(t *testing.T) {
 	cfg := `
 module main
 import "std"
@@ -231,10 +231,10 @@ std.deploy(name = "right", targets = [host]) {
 	}
 }
 
-// TestPlan_DeployCycle_Errors covers A -> B -> A: two deploys
+// Test_Plan_DeployCycleErrors covers A -> B -> A: two deploys
 // promising/consuming each other's labels. Plan must return
 // DeployCycleError without panicking.
-func TestPlan_DeployCycle_Errors(t *testing.T) {
+func Test_Plan_DeployCycleErrors(t *testing.T) {
 	cfg := `
 module main
 import "std"

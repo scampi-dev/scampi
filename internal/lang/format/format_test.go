@@ -13,7 +13,7 @@ import (
 //   <name>.scampi.unformatted  - input to scampi fmt (ext keeps `scampi fmt ./...` from rewriting it)
 //   <name>.expected.scampi     - golden output
 
-func TestGoldenFiles(t *testing.T) {
+func Test_Format_GoldenFiles(t *testing.T) {
 	entries, err := os.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestGoldenFiles(t *testing.T) {
 	}
 }
 
-func TestIdempotent(t *testing.T) {
+func Test_Format_Idempotent(t *testing.T) {
 	entries, err := os.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)

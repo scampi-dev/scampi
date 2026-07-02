@@ -10,7 +10,7 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-func TestCreate_DetectsPkgBackend(t *testing.T) {
+func Test_Create_DetectsPkgBackend(t *testing.T) {
 	tgt, err := Local{}.Create(t.Context(), nil, spec.DeclaredTarget{})
 	if err != nil {
 		t.Fatalf("Create: %v", err)

@@ -69,7 +69,7 @@ func labels(s ...string) []spec.Resource {
 	return r
 }
 
-func TestBuildStepGraph_NoDependencies(t *testing.T) {
+func Test_BuildStepGraph_NoDependencies(t *testing.T) {
 	// Two Promiser steps with no path overlap -> no dependencies
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "A", promises: paths("/a")},
@@ -87,7 +87,7 @@ func TestBuildStepGraph_NoDependencies(t *testing.T) {
 	}
 }
 
-func TestBuildStepGraph_PathDependency(t *testing.T) {
+func Test_BuildStepGraph_PathDependency(t *testing.T) {
 	// A writes /foo, B reads /foo -> B depends on A
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "A", promises: paths("/foo")},
@@ -105,7 +105,7 @@ func TestBuildStepGraph_PathDependency(t *testing.T) {
 	}
 }
 
-func TestBuildStepGraph_NonPatherSequential(t *testing.T) {
+func Test_BuildStepGraph_NonPatherSequential(t *testing.T) {
 	// Consecutive barriers chain: A->B->C (transitive ordering, O(n) edges)
 	steps := []spec.Step{
 		&mockStep{desc: "A"},
@@ -120,7 +120,7 @@ func TestBuildStepGraph_NonPatherSequential(t *testing.T) {
 	requiresExactly(t, nodes[2], "C", nodes[1])
 }
 
-func TestBuildStepGraph_NonPatherBarrier(t *testing.T) {
+func Test_BuildStepGraph_NonPatherBarrier(t *testing.T) {
 	// Fence semantics: barriers chain and fan in/out to neighboring path
 	// nodes. P1->N1->P2->N2 with fan-in edges from Pathers between barriers.
 	steps := []spec.Step{
@@ -164,7 +164,7 @@ func noDeps(t *testing.T, n *stepNode, name string) {
 	}
 }
 
-func TestBuildStepGraph_ChainedDependencies(t *testing.T) {
+func Test_BuildStepGraph_ChainedDependencies(t *testing.T) {
 	// A -> B -> C chain via paths
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "A", promises: paths("/a")},
@@ -179,7 +179,7 @@ func TestBuildStepGraph_ChainedDependencies(t *testing.T) {
 	requiresExactly(t, nodes[2], "C", nodes[1])
 }
 
-func TestBuildStepGraph_ParentDirDependency(t *testing.T) {
+func Test_BuildStepGraph_ParentDirDependency(t *testing.T) {
 	// dir creates /home/user/.ssh, copy writes /home/user/.ssh/authorized_keys
 	// -> copy should depend on dir (parent directory)
 	steps := []spec.Step{
@@ -195,7 +195,7 @@ func TestBuildStepGraph_ParentDirDependency(t *testing.T) {
 	requiresExactly(t, nodes[1], "copy", nodes[0])
 }
 
-func TestBuildStepGraph_UserDependency(t *testing.T) {
+func Test_BuildStepGraph_UserDependency(t *testing.T) {
 	// user step promises user "app", dir step consumes user "app" -> dependency
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "user", promises: users("app")},
@@ -206,7 +206,7 @@ func TestBuildStepGraph_UserDependency(t *testing.T) {
 	requiresExactly(t, nodes[1], "dir", nodes[0])
 }
 
-func TestBuildStepGraph_GroupDependency(t *testing.T) {
+func Test_BuildStepGraph_GroupDependency(t *testing.T) {
 	// group step promises group "staff", dir step consumes group "staff" -> dependency
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "group", promises: groups("staff")},
@@ -217,7 +217,7 @@ func TestBuildStepGraph_GroupDependency(t *testing.T) {
 	requiresExactly(t, nodes[1], "dir", nodes[0])
 }
 
-func TestBuildStepGraph_CrossKindIndependent(t *testing.T) {
+func Test_BuildStepGraph_CrossKindIndependent(t *testing.T) {
 	// A promises path "/foo", B consumes user "foo" -> no dependency (different kinds)
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "A", promises: paths("/foo")},
@@ -228,7 +228,7 @@ func TestBuildStepGraph_CrossKindIndependent(t *testing.T) {
 	noDeps(t, nodes[1], "B")
 }
 
-func TestBuildStepGraph_UserPromiserNotBarrier(t *testing.T) {
+func Test_BuildStepGraph_UserPromiserNotBarrier(t *testing.T) {
 	// A user step with resources is NOT a barrier - parallel path steps
 	// should not be serialized through it.
 	// P1, user, P2 with no resource overlap: P1 and P2 run in parallel,
@@ -246,7 +246,7 @@ func TestBuildStepGraph_UserPromiserNotBarrier(t *testing.T) {
 	noDeps(t, nodes[2], "P2")
 }
 
-func TestBuildStepGraph_MixedResourceChain(t *testing.T) {
+func Test_BuildStepGraph_MixedResourceChain(t *testing.T) {
 	// group -> user (consumes group) -> dir (consumes user and path)
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "group", promises: groups("staff")},
@@ -260,7 +260,7 @@ func TestBuildStepGraph_MixedResourceChain(t *testing.T) {
 	requiresExactly(t, nodes[2], "dir", nodes[1])
 }
 
-func TestBuildStepGraph_LabelResource_DistinctIDsParallel(t *testing.T) {
+func Test_BuildStepGraph_LabelResourceDistinctIDsParallel(t *testing.T) {
 	// Three steps with distinct label slots - no resource overlap
 	// and not barriers, so they run in parallel.
 	steps := []spec.Step{
@@ -276,7 +276,7 @@ func TestBuildStepGraph_LabelResource_DistinctIDsParallel(t *testing.T) {
 	}
 }
 
-func TestBuildStepGraph_LabelResource_NotABarrier(t *testing.T) {
+func Test_BuildStepGraph_LabelResourceNotABarrier(t *testing.T) {
 	// A label-resource step between two path steps must not act
 	// as a barrier (regression test for #235).
 	steps := []spec.Step{
@@ -292,7 +292,7 @@ func TestBuildStepGraph_LabelResource_NotABarrier(t *testing.T) {
 	}
 }
 
-func TestBuildStepGraph_ParentDirDoesNotApplyToNonPaths(t *testing.T) {
+func Test_BuildStepGraph_ParentDirDoesNotApplyToNonPaths(t *testing.T) {
 	// Parent-directory prefix matching only applies to path resources.
 	// user "app" should NOT create a dependency on user "app/sub".
 	steps := []spec.Step{
@@ -304,7 +304,7 @@ func TestBuildStepGraph_ParentDirDoesNotApplyToNonPaths(t *testing.T) {
 	noDeps(t, nodes[1], "B")
 }
 
-func TestInitStepPending(t *testing.T) {
+func Test_InitStepPending_CountsDeps(t *testing.T) {
 	steps := []spec.Step{
 		&mockPromiserStep{desc: "A", promises: paths("/foo")},
 		&mockPromiserStep{desc: "B", inputs: paths("/foo")},
@@ -350,7 +350,7 @@ func asStep(t *testing.T, st spec.StepKind, cfg any) spec.Step {
 	return act
 }
 
-func TestRunStepIsBarrier(t *testing.T) {
+func Test_RunStep_IsBarrier(t *testing.T) {
 	act := asStep(t, run.Run{}, &run.RunConfig{
 		Apply: "echo hi",
 		Check: "true",
@@ -362,7 +362,7 @@ func TestRunStepIsBarrier(t *testing.T) {
 	}
 }
 
-func TestPkgStepIsBarrier(t *testing.T) {
+func Test_PkgStep_IsBarrier(t *testing.T) {
 	act := asStep(t, pkg.Pkg{}, &pkg.PkgConfig{
 		Packages: []string{"vim"},
 		Source:   spec.PkgSourceRef{Kind: spec.PkgSourceNative},
@@ -375,7 +375,7 @@ func TestPkgStepIsBarrier(t *testing.T) {
 	}
 }
 
-func TestServiceStepIsBarrier(t *testing.T) {
+func Test_ServiceStep_IsBarrier(t *testing.T) {
 	act := asStep(t, service.Service{}, &service.ServiceConfig{
 		Name:    "samba-ad-dc",
 		State:   "running",
@@ -387,7 +387,7 @@ func TestServiceStepIsBarrier(t *testing.T) {
 	}
 }
 
-func TestSerialDeployBlockOrders_PkgServiceRun(t *testing.T) {
+func Test_SerialDeployBlockOrders_PkgServiceRun(t *testing.T) {
 	// dc1-v2-shaped sequence: pkg -> service -> run -> run -> run -> service.
 	// Every step is opaque (barrier), so the fence builder must chain
 	// them strictly: each step depends on the immediately preceding
@@ -422,7 +422,7 @@ func TestSerialDeployBlockOrders_PkgServiceRun(t *testing.T) {
 	}
 }
 
-func TestBarrierFencesAcrossPatherSteps(t *testing.T) {
+func Test_Barrier_FencesAcrossPatherSteps(t *testing.T) {
 	// posix.copy declares a path resource (it's a Pather, NOT a barrier).
 	// A run between two copies must still fence - the run can read or
 	// write anything, including files copy is touching.

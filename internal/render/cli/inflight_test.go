@@ -13,7 +13,7 @@ func sref(ord int, name string, idx int) event.StepRef {
 	return event.StepRef{Deploy: event.DeployRef{Name: name, Ordinal: ord}, Index: idx}
 }
 
-func TestInflight_BeginFinishPerLane(t *testing.T) {
+func Test_Inflight_BeginFinishPerLane(t *testing.T) {
 	f := newInflight()
 	base := time.Unix(0, 0)
 
@@ -52,7 +52,7 @@ func TestInflight_BeginFinishPerLane(t *testing.T) {
 	}
 }
 
-func TestInflight_AllFinished(t *testing.T) {
+func Test_Inflight_AllFinished(t *testing.T) {
 	f := newInflight()
 	base := time.Unix(0, 0)
 	f.begin(sref(0, "web", 0), base)
@@ -62,7 +62,7 @@ func TestInflight_AllFinished(t *testing.T) {
 	}
 }
 
-func TestInflight_Progress(t *testing.T) {
+func Test_Inflight_Progress(t *testing.T) {
 	f := newInflight()
 	base := time.Unix(0, 0)
 	step := func(ord, idx int) event.StepRef {
@@ -85,7 +85,7 @@ func TestInflight_Progress(t *testing.T) {
 
 // Hook steps settle outside the plan total: RunTotalSteps counts plan steps
 // only, so a finished hook must not push done past total ("5/4 steps").
-func TestInflight_HooksCountSeparately(t *testing.T) {
+func Test_Inflight_HooksCountSeparately(t *testing.T) {
 	f := newInflight()
 	base := time.Unix(0, 0)
 	step := func(idx int) event.StepRef {

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestResolveLinuxPlatform(t *testing.T) {
+func Test_ResolveLinuxPlatform_Cases(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        string
@@ -122,7 +122,7 @@ ID_LIKE="debian ubuntu"
 	}
 }
 
-func TestParseKernel(t *testing.T) {
+func Test_ParseKernel_Cases(t *testing.T) {
 	tests := []struct {
 		input string
 		want  Platform
@@ -141,7 +141,7 @@ func TestParseKernel(t *testing.T) {
 	}
 }
 
-func TestPlatformIsGNU(t *testing.T) {
+func Test_Platform_IsGNU(t *testing.T) {
 	gnu := []Platform{
 		PlatformDebian, PlatformUbuntu, PlatformAlpine,
 		PlatformFedora, PlatformRHEL, PlatformArch, PlatformSUSE,
@@ -160,7 +160,7 @@ func TestPlatformIsGNU(t *testing.T) {
 	}
 }
 
-func TestPlatformIsBSD(t *testing.T) {
+func Test_Platform_IsBSD(t *testing.T) {
 	bsd := []Platform{PlatformDarwin, PlatformFreeBSD}
 	for _, p := range bsd {
 		if !p.IsBSD() {

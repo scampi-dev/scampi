@@ -74,7 +74,7 @@ func assertLog(t *testing.T, got, want []string) {
 }
 
 // In declaration order, each Result releases its block immediately.
-func TestInOrder(t *testing.T) {
+func Test_Sequencer_InOrder(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(change(0, "a"))
@@ -87,7 +87,7 @@ func TestInOrder(t *testing.T) {
 
 // Out-of-order completion is re-serialized: nothing for an index releases
 // until the cursor reaches it.
-func TestScrambledCompletionReleasesInOrder(t *testing.T) {
+func Test_Sequencer_ScrambledCompletionReleasesInOrder(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(2))
@@ -99,7 +99,7 @@ func TestScrambledCompletionReleasesInOrder(t *testing.T) {
 
 // A step's drift lines stay grouped with its verdict, in declaration order,
 // regardless of interleaved arrival.
-func TestChangesStayGroupedAndOrdered(t *testing.T) {
+func Test_Sequencer_ChangesStayGroupedAndOrdered(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(change(1, "x"))
@@ -116,7 +116,7 @@ func TestChangesStayGroupedAndOrdered(t *testing.T) {
 
 // A missing step (cancelled, no Result) doesn't wedge the buffer: completed
 // later blocks drain at summary, in order.
-func TestDrainOnSummary(t *testing.T) {
+func Test_Sequencer_DrainOnSummary(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
@@ -128,7 +128,7 @@ func TestDrainOnSummary(t *testing.T) {
 
 // On abort, steps that finished in parallel past a stuck cursor are reported
 // honestly at drain, in declaration order, not dropped.
-func TestAbortDrainsCompletedPastCursor(t *testing.T) {
+func Test_Sequencer_AbortDrainsCompletedPastCursor(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
@@ -144,7 +144,7 @@ func TestAbortDrainsCompletedPastCursor(t *testing.T) {
 
 // Diagnostics and Begin are out-of-band: released immediately, never held
 // behind buffered step blocks.
-func TestDiagnosticsAndBeginPassThrough(t *testing.T) {
+func Test_Sequencer_DiagnosticsAndBeginPassThrough(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(event.Info{})
@@ -158,7 +158,7 @@ func TestDiagnosticsAndBeginPassThrough(t *testing.T) {
 // Each deploy lane orders independently and interleaves freely: a fast lane
 // streams its results without waiting on a slow sibling, while each lane stays
 // internally in declaration order. This is the visible cross-deploy parallelism.
-func TestPerDeployLanesOrderIndependently(t *testing.T) {
+func Test_Sequencer_PerDeployLanesOrderIndependently(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(resIn("dns", 1, 0)) // dns lane cursor 0 -> releases now
@@ -173,7 +173,7 @@ func TestPerDeployLanesOrderIndependently(t *testing.T) {
 
 // Hooks continue a lane's index space (N, N+1, ...) rather than reusing it, so
 // the per-lane cursor keeps ordering across the main and hook phases.
-func TestHookIndicesContinueLane(t *testing.T) {
+func Test_Sequencer_HookIndicesContinueLane(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
@@ -185,7 +185,7 @@ func TestHookIndicesContinueLane(t *testing.T) {
 // A block with buffered drift but no Result never settled; drain discards it
 // rather than replaying drift the CLI can only render off a Result. The engine
 // emits a Result on every path, so such a block means the run died mid-step.
-func TestDrainDiscardsUnfinishedBlocks(t *testing.T) {
+func Test_Sequencer_DrainDiscardsUnfinishedBlocks(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
@@ -199,7 +199,7 @@ func TestDrainDiscardsUnfinishedBlocks(t *testing.T) {
 // On abort the command returns before RenderSummary, so a deferred Flush is the
 // only thing that drains completed-but-buffered steps. Without it they'd be
 // stranded and lost.
-func TestFlushDrainsWithoutSummary(t *testing.T) {
+func Test_Sequencer_FlushDrainsWithoutSummary(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(res(0))
@@ -213,7 +213,7 @@ func TestFlushDrainsWithoutSummary(t *testing.T) {
 // delivery, so the Sequencer (and the output below it) see one call at a time
 // and hold no locks. Run under -race: concurrent producers go through the
 // emitter, never the Sequencer directly.
-func TestConcurrentEmitIsRaceFree(t *testing.T) {
+func Test_Sequencer_ConcurrentEmitIsRaceFree(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, s)

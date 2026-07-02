@@ -10,7 +10,7 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-func TestParsePerm_InvalidPermissions(t *testing.T) {
+func Test_ParsePerm_InvalidPermissions(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -68,7 +68,7 @@ func TestParsePerm_InvalidPermissions(t *testing.T) {
 	}
 }
 
-func TestParsePerm_ValidPermissions(t *testing.T) {
+func Test_ParsePerm_ValidPermissions(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string

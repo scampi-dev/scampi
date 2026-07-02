@@ -14,7 +14,7 @@ import (
 // Regression tests for #314. DetectEscalation must probe sudo/doas with
 // `-n` to confirm non-interactive escalation works; otherwise the first
 // escalated op hangs silently on a host that requires a password.
-func TestDetectEscalation_Cases(t *testing.T) {
+func Test_DetectEscalation_Cases(t *testing.T) {
 	type call struct {
 		cmd string
 		out target.CommandResult

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestVerifiedWrite_PlaceholderCount(t *testing.T) {
+func Test_VerifiedWrite_PlaceholderCount(t *testing.T) {
 	tests := []struct {
 		name      string
 		verifyCmd string

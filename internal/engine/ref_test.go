@@ -11,7 +11,7 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-func TestRefResolver_ResolvesAndNormalizes(t *testing.T) {
+func Test_RefResolver_ResolvesAndNormalizes(t *testing.T) {
 	outputs := newStepOutputs()
 	outputs.Store(1, map[string]any{
 		"host": "10.0.0.5",
@@ -38,7 +38,7 @@ func TestRefResolver_ResolvesAndNormalizes(t *testing.T) {
 	}
 }
 
-func TestRefResolver_Errors(t *testing.T) {
+func Test_RefResolver_Errors(t *testing.T) {
 	outputs := newStepOutputs()
 	outputs.Store(1, map[string]any{"host": "10.0.0.5"})
 	resolve := buildRefResolver(outputs, false)
@@ -81,7 +81,7 @@ func TestRefResolver_Errors(t *testing.T) {
 // In check mode a missing output is not an error: the producing step simply
 // has not run yet ("would change"), so the resolver hands back the pending
 // sentinel and drift detection reports would-change instead of aborting.
-func TestRefResolver_CheckModePending(t *testing.T) {
+func Test_RefResolver_CheckModePending(t *testing.T) {
 	resolve := buildRefResolver(newStepOutputs(), true)
 
 	got, err := resolve(spec.Ref{TargetID: 99, Expr: "."})

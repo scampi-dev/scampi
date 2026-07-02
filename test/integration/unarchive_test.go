@@ -88,7 +88,7 @@ func toolCommandFunc(_ *target.MemTarget) func(string) (target.CommandResult, er
 // Unarchive: basic extraction
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_ExtractsAndWritesMarker(t *testing.T) {
+func Test_Unarchive_ExtractsAndWritesMarker(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{
 		"index.html": "<html>hello</html>",
 	})
@@ -146,7 +146,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: idempotency
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_IdempotentWhenMarkerMatches(t *testing.T) {
+func Test_Unarchive_IdempotentWhenMarkerMatches(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{
 		"index.html": "<html>hello</html>",
 	})
@@ -206,7 +206,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: unsupported format
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_UnsupportedFormat(t *testing.T) {
+func Test_Unarchive_UnsupportedFormat(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -251,7 +251,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: missing source archive
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_MissingSourceArchive(t *testing.T) {
+func Test_Unarchive_MissingSourceArchive(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -296,7 +296,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: partial ownership
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_PartialOwnership(t *testing.T) {
+func Test_Unarchive_PartialOwnership(t *testing.T) {
 	cfgStr := `
 module main
 import "std"
@@ -342,7 +342,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: relative dest path
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_RelativeDest(t *testing.T) {
+func Test_Unarchive_RelativeDest(t *testing.T) {
 	// Relative dest is rejected at link time by `@std.path(absolute=true)`
 	// on unarchive.dest in the stub, before any plan/apply runs.
 	cfgStr := `
@@ -376,7 +376,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: with owner/group/perm
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_WithOwnerGroupPerm(t *testing.T) {
+func Test_Unarchive_WithOwnerGroupPerm(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{
 		"index.html": "<html>hello</html>",
 	})
@@ -434,7 +434,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: extraction failure
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_ExtractionFailure(t *testing.T) {
+func Test_Unarchive_ExtractionFailure(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{"f": "x"})
 
 	cfgStr := `
@@ -494,7 +494,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: on_change hook
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_OnChangeTriggersHook(t *testing.T) {
+func Test_Unarchive_OnChangeTriggersHook(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{
 		"index.html": "<html>hello</html>",
 	})
@@ -548,7 +548,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: Go-native fallback when tool missing
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_GoNativeFallback(t *testing.T) {
+func Test_Unarchive_GoNativeFallback(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{
 		"hello.txt": "world",
 	})
@@ -617,7 +617,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: temp file cleanup on tool extraction failure
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_TempFileCleanedUpOnFailure(t *testing.T) {
+func Test_Unarchive_TempFileCleanedUpOnFailure(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{"f": "x"})
 
 	cfgStr := `
@@ -675,7 +675,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: default depth (0)
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_DefaultDepthIsTopLevelOnly(t *testing.T) {
+func Test_Unarchive_DefaultDepthIsTopLevelOnly(t *testing.T) {
 	archive := makeTarGz(t, map[string]string{
 		"data.txt": "hello",
 	})
@@ -848,7 +848,7 @@ func makeZip(tb testing.TB, files map[string]string) []byte {
 // Unarchive: Go-native tar.xz extraction
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_TarXz(t *testing.T) {
+func Test_Unarchive_TarXz(t *testing.T) {
 	archive := makeTarXz(t, map[string]string{
 		"hello.txt": "xz world",
 	})
@@ -902,7 +902,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: Go-native tar.zst extraction
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_TarZst(t *testing.T) {
+func Test_Unarchive_TarZst(t *testing.T) {
 	archive := makeTarZst(t, map[string]string{
 		"hello.txt": "zstd world",
 	})
@@ -956,7 +956,7 @@ std.deploy(name = "test", targets = [host]) {
 // Unarchive: remote source format detection
 // -----------------------------------------------------------------------------
 
-func TestUnarchive_RemoteSourceFormatDetected(t *testing.T) {
+func Test_Unarchive_RemoteSourceFormatDetected(t *testing.T) {
 	// Plan must detect the archive format from the remote URL, not the
 	// empty cache path. Before the fix, source_remote had Path="" at plan
 	// time, causing detectFormat to return "unsupported archive format".

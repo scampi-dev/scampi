@@ -60,7 +60,7 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 	}
 }
 
-func TestPlan_PkgLatest_RequiresPkgUpdate(t *testing.T) {
+func Test_Plan_PkgLatestRequiresPkgUpdate(t *testing.T) {
 	assertCapabilityMismatch(t, `
 module main
 import "std"
@@ -79,7 +79,7 @@ std.deploy(name = "test", targets = [host]) {
 `, harness.NewPkgOnlyTarget())
 }
 
-func TestPlan_Symlink_RequiresFilesystem(t *testing.T) {
+func Test_Plan_SymlinkRequiresFilesystem(t *testing.T) {
 	assertCapabilityMismatch(t, `
 module main
 import "std"
@@ -94,7 +94,7 @@ std.deploy(name = "test", targets = [host]) {
 `, harness.NewSymlinkOnlyTarget())
 }
 
-func TestPlan_Run_RequiresCommand(t *testing.T) {
+func Test_Plan_RunRequiresCommand(t *testing.T) {
 	assertCapabilityMismatch(t, `
 module main
 import "std"
@@ -109,7 +109,7 @@ std.deploy(name = "test", targets = [host]) {
 `, harness.NewNoCommandTarget())
 }
 
-func TestPlan_Copy_RequiresOwnership(t *testing.T) {
+func Test_Plan_CopyRequiresOwnership(t *testing.T) {
 	assertCapabilityMismatch(t, `
 module main
 import "std"

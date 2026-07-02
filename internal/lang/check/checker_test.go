@@ -69,14 +69,14 @@ func searchStr(s, sub string) bool {
 // Imports
 // -----------------------------------------------------------------------------
 
-func TestCheckImportStd(t *testing.T) {
+func Test_Check_ImportStd(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
 `)
 }
 
-func TestCheckImportUnknown(t *testing.T) {
+func Test_Check_ImportUnknown(t *testing.T) {
 	expectError(t, `
 module main
 import "nonexistent"
@@ -86,7 +86,7 @@ import "nonexistent"
 // Type declarations
 // -----------------------------------------------------------------------------
 
-func TestCheckTypeWithPrimitiveFields(t *testing.T) {
+func Test_Check_TypeWithPrimitiveFields(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type User {
@@ -97,7 +97,7 @@ type User {
 `)
 }
 
-func TestCheckTypeWithOptionalField(t *testing.T) {
+func Test_Check_TypeWithOptionalField(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type Config {
@@ -107,7 +107,7 @@ type Config {
 `)
 }
 
-func TestCheckTypeWithGenericField(t *testing.T) {
+func Test_Check_TypeWithGenericField(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type Team {
@@ -117,7 +117,7 @@ type Team {
 `)
 }
 
-func TestCheckTypeWithUnknownFieldType(t *testing.T) {
+func Test_Check_TypeWithUnknownFieldType(t *testing.T) {
 	expectError(t, `
 module main
 type Bad {
@@ -129,7 +129,7 @@ type Bad {
 // Enum declarations
 // -----------------------------------------------------------------------------
 
-func TestCheckOpaqueType(t *testing.T) {
+func Test_Check_OpaqueType(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type Step
@@ -137,7 +137,7 @@ decl copy(src: string) Step
 `)
 }
 
-func TestCheckOpaqueTypeCannotConstruct(t *testing.T) {
+func Test_Check_OpaqueTypeCannotConstruct(t *testing.T) {
 	expectError(t, `
 module main
 type Opaque
@@ -145,7 +145,7 @@ let s = Opaque {}
 `, "cannot construct opaque type")
 }
 
-func TestCheckOpaqueTypeUsedInSignature(t *testing.T) {
+func Test_Check_OpaqueTypeUsedInSignature(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type Step
@@ -155,7 +155,7 @@ func takes_step(s: Step) int {
 `)
 }
 
-func TestCheckBlockExpr(t *testing.T) {
+func Test_Check_BlockExpr(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
@@ -167,7 +167,7 @@ d { posix.dir { path = "/tmp/test" } }
 `)
 }
 
-func TestCheckBlockExprInline(t *testing.T) {
+func Test_Check_BlockExprInline(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
@@ -183,14 +183,14 @@ std.deploy(name = "web", targets = [local.target { name = "dev" }]) {
 // Enum declarations
 // -----------------------------------------------------------------------------
 
-func TestCheckEnum(t *testing.T) {
+func Test_Check_Enum(t *testing.T) {
 	expectNoErrors(t, `
 module main
 enum Color { red, green, blue }
 `)
 }
 
-func TestCheckEnumUsedAsFieldType(t *testing.T) {
+func Test_Check_EnumUsedAsFieldType(t *testing.T) {
 	expectNoErrors(t, `
 module main
 enum State { on, off }
@@ -203,7 +203,7 @@ type Switch {
 // Func declarations
 // -----------------------------------------------------------------------------
 
-func TestCheckFuncDecl(t *testing.T) {
+func Test_Check_FuncDecl(t *testing.T) {
 	expectNoErrors(t, `
 module main
 func greet(name: string) string {
@@ -212,7 +212,7 @@ func greet(name: string) string {
 `)
 }
 
-func TestCheckFuncWithOptionalParam(t *testing.T) {
+func Test_Check_FuncWithOptionalParam(t *testing.T) {
 	expectNoErrors(t, `
 module main
 func f(x: string, y: int?) int {
@@ -224,7 +224,7 @@ func f(x: string, y: int?) int {
 // Decl declarations
 // -----------------------------------------------------------------------------
 
-func TestCheckDeclDecl(t *testing.T) {
+func Test_Check_DeclDecl(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
@@ -237,7 +237,7 @@ decl create_user(name: string) std.Step {
 `)
 }
 
-func TestCheckDeclStub(t *testing.T) {
+func Test_Check_DeclStub(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
@@ -248,7 +248,7 @@ decl my_step(x: string, y: int) std.Step
 // Let bindings
 // -----------------------------------------------------------------------------
 
-func TestCheckLetBinding(t *testing.T) {
+func Test_Check_LetBinding(t *testing.T) {
 	expectNoErrors(t, `
 module main
 let x = 42
@@ -258,7 +258,7 @@ let x = 42
 // Type resolution
 // -----------------------------------------------------------------------------
 
-func TestResolveBuiltinTypes(t *testing.T) {
+func Test_ResolveType_Builtins(t *testing.T) {
 	c := New(nil)
 	cases := []struct {
 		name string
@@ -279,7 +279,7 @@ func TestResolveBuiltinTypes(t *testing.T) {
 	}
 }
 
-func TestIsAssignableTo(t *testing.T) {
+func Test_IsAssignableTo_Matrix(t *testing.T) {
 	cases := []struct {
 		name string
 		src  Type
@@ -314,7 +314,7 @@ func TestIsAssignableTo(t *testing.T) {
 // Scope
 // -----------------------------------------------------------------------------
 
-func TestScopeLookup(t *testing.T) {
+func Test_Scope_LookupWalksParents(t *testing.T) {
 	parent := NewScope(nil, ScopeFile)
 	parent.Define(&Symbol{Name: "x", Type: IntType, Kind: SymLet})
 	child := NewScope(parent, ScopeBlock)
@@ -331,7 +331,7 @@ func TestScopeLookup(t *testing.T) {
 	}
 }
 
-func TestScopeShadowing(t *testing.T) {
+func Test_Scope_Shadowing(t *testing.T) {
 	parent := NewScope(nil, ScopeFile)
 	parent.Define(&Symbol{Name: "x", Type: IntType, Kind: SymLet})
 	child := NewScope(parent, ScopeBlock)
@@ -343,7 +343,7 @@ func TestScopeShadowing(t *testing.T) {
 	}
 }
 
-func TestScopeDuplicateInSameScope(t *testing.T) {
+func Test_Scope_DuplicateInSameScope(t *testing.T) {
 	s := NewScope(nil, ScopeFile)
 	s.Define(&Symbol{Name: "x", Type: IntType, Kind: SymLet})
 	ok := s.Define(&Symbol{Name: "x", Type: StringType, Kind: SymLet})
@@ -355,7 +355,7 @@ func TestScopeDuplicateInSameScope(t *testing.T) {
 // Attribute types and binding
 // -----------------------------------------------------------------------------
 
-func TestCheckAttrTypeMarker(t *testing.T) {
+func Test_Check_AttrTypeMarker(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @nonempty {}
@@ -364,7 +364,7 @@ func f(@nonempty name: string) string
 `)
 }
 
-func TestCheckAttrTypeUnknown(t *testing.T) {
+func Test_Check_AttrTypeUnknown(t *testing.T) {
 	expectError(t, `
 module main
 
@@ -372,7 +372,7 @@ func f(@undefined name: string) string
 `, "unknown attribute: @undefined")
 }
 
-func TestCheckAttrTypeMarkerRejectsArgs(t *testing.T) {
+func Test_Check_AttrTypeMarkerRejectsArgs(t *testing.T) {
 	expectError(t, `
 module main
 type @nonempty {}
@@ -381,7 +381,7 @@ func f(@nonempty("oops") name: string) string
 `, "marker attribute @nonempty takes no arguments")
 }
 
-func TestCheckAttrTypeSinglePositional(t *testing.T) {
+func Test_Check_AttrTypeSinglePositional(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @since { version: string }
@@ -390,7 +390,7 @@ func f(@since("0.5") name: string) string
 `)
 }
 
-func TestCheckAttrTypeSinglePositionalNamedForm(t *testing.T) {
+func Test_Check_AttrTypeSinglePositionalNamedForm(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @since { version: string }
@@ -399,7 +399,7 @@ func f(@since(version="0.5") name: string) string
 `)
 }
 
-func TestCheckAttrTypeWrongArgType(t *testing.T) {
+func Test_Check_AttrTypeWrongArgType(t *testing.T) {
 	expectError(t, `
 module main
 type @since { version: string }
@@ -408,7 +408,7 @@ func f(@since(42) name: string) string
 `, "cannot bind int to attribute @since")
 }
 
-func TestCheckAttrTypeUnknownNamedArg(t *testing.T) {
+func Test_Check_AttrTypeUnknownNamedArg(t *testing.T) {
 	expectError(t, `
 module main
 type @since { version: string }
@@ -417,7 +417,7 @@ func f(@since(zzz="0.5") name: string) string
 `, "attribute @since has no field zzz")
 }
 
-func TestCheckAttrTypeMissingRequired(t *testing.T) {
+func Test_Check_AttrTypeMissingRequired(t *testing.T) {
 	expectError(t, `
 module main
 type @since { version: string }
@@ -426,7 +426,7 @@ func f(@since name: string) string
 `, "attribute @since missing required field version")
 }
 
-func TestCheckAttrTypeWithDefault(t *testing.T) {
+func Test_Check_AttrTypeWithDefault(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @deprecated { message: string = "" }
@@ -435,7 +435,7 @@ func f(@deprecated name: string) string
 `)
 }
 
-func TestCheckAttrTypeVariadicMultiple(t *testing.T) {
+func Test_Check_AttrTypeVariadicMultiple(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @oneof { values: list[string] }
@@ -444,7 +444,7 @@ func f(@oneof("present", "absent", "latest") state: string) string
 `)
 }
 
-func TestCheckAttrTypeVariadicSingle(t *testing.T) {
+func Test_Check_AttrTypeVariadicSingle(t *testing.T) {
 	// Single positional with a list field should also be variadic-bound.
 	expectNoErrors(t, `
 module main
@@ -454,7 +454,7 @@ func f(@oneof("only") state: string) string
 `)
 }
 
-func TestCheckAttrTypeVariadicAsList(t *testing.T) {
+func Test_Check_AttrTypeVariadicAsList(t *testing.T) {
 	// A list literal as the single positional binds directly.
 	expectNoErrors(t, `
 module main
@@ -464,7 +464,7 @@ func f(@oneof(["a", "b"]) state: string) string
 `)
 }
 
-func TestCheckAttrTypeVariadicWrongElementType(t *testing.T) {
+func Test_Check_AttrTypeVariadicWrongElementType(t *testing.T) {
 	expectError(t, `
 module main
 type @oneof { values: list[string] }
@@ -473,7 +473,7 @@ func f(@oneof("ok", 42, "also") state: string) string
 `, "cannot bind int")
 }
 
-func TestCheckAttrTypeMultiFieldAllNamed(t *testing.T) {
+func Test_Check_AttrTypeMultiFieldAllNamed(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @path {
@@ -485,7 +485,7 @@ func f(@path(absolute=true, must_exist=true) p: string) string
 `)
 }
 
-func TestCheckAttrTypeMultiFieldFirstPositional(t *testing.T) {
+func Test_Check_AttrTypeMultiFieldFirstPositional(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @path {
@@ -497,7 +497,7 @@ func f(@path(true, must_exist=true) p: string) string
 `)
 }
 
-func TestCheckAttrTypeMultiFieldTooManyPositionals(t *testing.T) {
+func Test_Check_AttrTypeMultiFieldTooManyPositionals(t *testing.T) {
 	expectError(t, `
 module main
 type @path {
@@ -509,7 +509,7 @@ func f(@path(true, true) p: string) string
 `, "accepts at most one positional argument")
 }
 
-func TestCheckAttrTypePositionalAndNamedSameField(t *testing.T) {
+func Test_Check_AttrTypePositionalAndNamedSameField(t *testing.T) {
 	expectError(t, `
 module main
 type @path {
@@ -521,7 +521,7 @@ func f(@path(true, absolute=true) p: string) string
 `, "already bound by positional")
 }
 
-func TestCheckAttrTypeStackedAttrs(t *testing.T) {
+func Test_Check_AttrTypeStackedAttrs(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @nonempty {}
@@ -535,7 +535,7 @@ func f(
 `)
 }
 
-func TestCheckAttrTypeOnStructField(t *testing.T) {
+func Test_Check_AttrTypeOnStructField(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type @nonempty {}
@@ -547,7 +547,7 @@ type User {
 `)
 }
 
-func TestCheckAttrTypeOnDeclParam(t *testing.T) {
+func Test_Check_AttrTypeOnDeclParam(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type Step
@@ -560,7 +560,7 @@ decl posix.copy(
 `)
 }
 
-func TestCheckAttrTypeFieldDefCarriesAttributes(t *testing.T) {
+func Test_Check_AttrTypeFieldDefCarriesAttributes(t *testing.T) {
 	// After checking, the FuncType for a function whose params carry
 	// attributes should expose those attributes on the corresponding
 	// FieldDef.Attributes slice, qualified by the declaring module.
@@ -601,7 +601,7 @@ func secret(@secretkey name: string) string
 	}
 }
 
-func TestCheckAttrTypeNamespacedUnknown(t *testing.T) {
+func Test_Check_AttrTypeNamespacedUnknown(t *testing.T) {
 	// std has no attribute types registered yet (Stage 4 territory),
 	// so this exercises the dotted-name resolution path: it should
 	// emit a clean "unknown attribute" diagnostic, not crash.
@@ -616,9 +616,9 @@ func f(@std.secret name: string) string
 // UFCS - `x.f(args)` desugars to `f(x, args)`
 // -----------------------------------------------------------------------------
 
-// TestUFCSBasic - a free function whose first param matches the
+// Test_UFCS_Basic - a free function whose first param matches the
 // receiver's type can be called as a method on the receiver.
-func TestUFCSBasic(t *testing.T) {
+func Test_UFCS_Basic(t *testing.T) {
 	expectNoErrors(t, `
 module main
 
@@ -633,9 +633,9 @@ func test() int {
 `)
 }
 
-// TestUFCSWithExtraArgs - UFCS calls forward additional arguments
+// Test_UFCS_WithExtraArgs - UFCS calls forward additional arguments
 // past the receiver to the function's remaining parameters.
-func TestUFCSWithExtraArgs(t *testing.T) {
+func Test_UFCS_WithExtraArgs(t *testing.T) {
 	expectNoErrors(t, `
 module main
 
@@ -650,9 +650,9 @@ func test() int {
 `)
 }
 
-// TestUFCSChained - chained UFCS calls work because each call's
+// Test_UFCS_Chained - chained UFCS calls work because each call's
 // return value becomes the receiver of the next call.
-func TestUFCSChained(t *testing.T) {
+func Test_UFCS_Chained(t *testing.T) {
 	expectNoErrors(t, `
 module main
 
@@ -671,11 +671,11 @@ func test() int {
 `)
 }
 
-// TestUFCSReceiverTypeMismatch - if the function's first param type
+// Test_UFCS_ReceiverTypeMismatch - if the function's first param type
 // doesn't accept the receiver's type, UFCS resolution fails. The
 // fallback path then errors via the standard "no field" message
 // because the selector is not a valid field access either.
-func TestUFCSReceiverTypeMismatch(t *testing.T) {
+func Test_UFCS_ReceiverTypeMismatch(t *testing.T) {
 	expectError(t, `
 module main
 
@@ -690,9 +690,9 @@ func test() int {
 `, "cannot access .double on string")
 }
 
-// TestUFCSFunctionNotInScope - if the named function doesn't exist
+// Test_UFCS_FunctionNotInScope - if the named function doesn't exist
 // in scope at all, the existing "no field" path fires.
-func TestUFCSFunctionNotInScope(t *testing.T) {
+func Test_UFCS_FunctionNotInScope(t *testing.T) {
 	expectError(t, `
 module main
 
@@ -703,10 +703,10 @@ func test() int {
 `, "cannot access .nonexistent on int")
 }
 
-// TestUFCSDoesNotShadowModuleAccess - `posix.copy(...)` is a module
+// Test_UFCS_DoesNotShadowModuleAccess - `posix.copy(...)` is a module
 // member call, not UFCS. The Tier 1 (import-namespace) path runs
 // before any UFCS attempt.
-func TestUFCSDoesNotShadowModuleAccess(t *testing.T) {
+func Test_UFCS_DoesNotShadowModuleAccess(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
@@ -721,11 +721,11 @@ std.deploy(name = "t", targets = [host]) {
 `)
 }
 
-// TestUFCSImportedModuleFunction - UFCS resolves through an
+// Test_UFCS_ImportedModuleFunction - UFCS resolves through an
 // imported module's free functions. `(5).range()` dispatches to
 // `std.range(5)` because `std` is imported and `std.range`'s first
 // parameter accepts an int.
-func TestUFCSImportedModuleFunction(t *testing.T) {
+func Test_UFCS_ImportedModuleFunction(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
@@ -734,10 +734,10 @@ let zero_to_4 = (5).range()
 `)
 }
 
-// TestUFCSImportedModuleNotImported - without `import "std"`, the
+// Test_UFCS_ImportedModuleNotImported - without `import "std"`, the
 // `range` function isn't reachable and `(5).range()` errors via the
 // standard "no field" path. Confirms imports are gated.
-func TestUFCSImportedModuleNotImported(t *testing.T) {
+func Test_UFCS_ImportedModuleNotImported(t *testing.T) {
 	expectError(t, `
 module main
 
@@ -745,10 +745,10 @@ let x = (5).range()
 `, "cannot access .range on int")
 }
 
-// TestUFCSLocalShadowsImported - a local function with the same
+// Test_UFCS_LocalShadowsImported - a local function with the same
 // name as an imported function takes precedence over the import.
 // This mirrors normal lexical-scope shadowing rules.
-func TestUFCSLocalShadowsImported(t *testing.T) {
+func Test_UFCS_LocalShadowsImported(t *testing.T) {
 	expectNoErrors(t, `
 module main
 import "std"
@@ -763,14 +763,14 @@ let x: int = (5).range()
 `)
 }
 
-// TestUFCSAmbiguousAcrossModules - when two imported modules both
+// Test_UFCS_AmbiguousAcrossModules - when two imported modules both
 // expose a function with the same name and a matching first param,
 // the checker emits an ambiguity error listing all candidates.
 //
 // Constructed in-memory because no two stdlib modules currently
 // have a name collision; this exercises the resolution rule
 // directly via synthetic module scopes.
-func TestUFCSAmbiguousAcrossModules(t *testing.T) {
+func Test_UFCS_AmbiguousAcrossModules(t *testing.T) {
 	// Build two synthetic modules each with a `length(s: string) int`.
 	intRet := IntType
 	mkLengthScope := func() *Scope {
@@ -825,12 +825,12 @@ let n = "hello".length()
 	}
 }
 
-// TestUFCSStructFieldBeatsUFCS - when a struct has a function-typed
+// Test_UFCS_StructFieldBeatsUFCS - when a struct has a function-typed
 // field, the field-access path wins over the UFCS fallback. (Scampi
 // doesn't have user-defined function-typed fields today, so this
 // just verifies that adding a free function doesn't accidentally
 // shadow existing field access semantics.)
-func TestUFCSDoesNotConflictWithExistingFields(t *testing.T) {
+func Test_UFCS_DoesNotConflictWithExistingFields(t *testing.T) {
 	// Posix.PkgState is an enum; .present is a variant access, not
 	// a UFCS call. Adding a free function called `present` in scope
 	// should not break the existing access.
@@ -849,7 +849,7 @@ func test() posix.PkgState {
 `)
 }
 
-func TestScopeMutability(t *testing.T) {
+func Test_Scope_Mutability(t *testing.T) {
 	file := NewScope(nil, ScopeFile)
 	fn := NewScope(file, ScopeFunc)
 	block := NewScope(fn, ScopeBlock)
@@ -869,7 +869,7 @@ func TestScopeMutability(t *testing.T) {
 	}
 }
 
-func TestDeclBodyAllowsMutation(t *testing.T) {
+func Test_DeclBody_AllowsMutation(t *testing.T) {
 	expectNoErrors(t, `
 module main
 
@@ -883,7 +883,7 @@ decl build(name: string) string {
 `)
 }
 
-func TestFileScopeBlocksMutation(t *testing.T) {
+func Test_FileScope_BlocksMutation(t *testing.T) {
 	expectError(t, `
 module main
 
@@ -895,7 +895,7 @@ m["extra"] = "nope"
 // Duplicate field declarations
 // -----------------------------------------------------------------------------
 
-func TestDuplicateFieldInTypeDecl(t *testing.T) {
+func Test_Check_DuplicateFieldInTypeDecl(t *testing.T) {
 	expectError(t, `module main
 type X {
   name: string
@@ -904,7 +904,7 @@ type X {
 `, "duplicate field: name")
 }
 
-func TestDuplicateFieldInAttrTypeDecl(t *testing.T) {
+func Test_Check_DuplicateFieldInAttrTypeDecl(t *testing.T) {
 	expectError(t, `module main
 type @tag {
   value: string
@@ -913,7 +913,7 @@ type @tag {
 `, "duplicate field: value")
 }
 
-func TestNoDuplicateFieldInTypeDecl(t *testing.T) {
+func Test_Check_NoDuplicateFieldInTypeDecl(t *testing.T) {
 	expectNoErrors(t, `module main
 type X {
   name: string
@@ -925,7 +925,7 @@ type X {
 // Control-flow analysis - all paths must return
 // -----------------------------------------------------------------------------
 
-func TestNotAllPathsReturn_IfWithoutElse(t *testing.T) {
+func Test_NotAllPathsReturn_IfWithoutElse(t *testing.T) {
 	expectError(t, `
 module main
 type X { name: string }
@@ -937,7 +937,7 @@ func b(flag: bool) X {
 `, "not all paths return a value")
 }
 
-func TestAllPathsReturn_IfElse(t *testing.T) {
+func Test_AllPathsReturn_IfElse(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type X { name: string }
@@ -951,7 +951,7 @@ func b(flag: bool) X {
 `)
 }
 
-func TestAllPathsReturn_Simple(t *testing.T) {
+func Test_AllPathsReturn_Simple(t *testing.T) {
 	expectNoErrors(t, `
 module main
 type X { name: string }
@@ -961,7 +961,7 @@ func b() X {
 `)
 }
 
-func TestNotAllPathsReturn_EmptyBody(t *testing.T) {
+func Test_NotAllPathsReturn_EmptyBody(t *testing.T) {
 	expectError(t, `
 module main
 func f() int {
@@ -969,7 +969,7 @@ func f() int {
 `, "not all paths return a value")
 }
 
-func TestNotAllPathsReturn_NestedIfMissingElse(t *testing.T) {
+func Test_NotAllPathsReturn_NestedIfMissingElse(t *testing.T) {
 	expectError(t, `
 module main
 func f(a: bool, b: bool) int {
@@ -984,7 +984,7 @@ func f(a: bool, b: bool) int {
 `, "not all paths return a value")
 }
 
-func TestAllPathsReturn_NestedIfElse(t *testing.T) {
+func Test_AllPathsReturn_NestedIfElse(t *testing.T) {
 	expectNoErrors(t, `
 module main
 func f(a: bool, b: bool) int {
@@ -1001,7 +1001,7 @@ func f(a: bool, b: bool) int {
 `)
 }
 
-func TestNotAllPathsReturn_ForDoesNotCount(t *testing.T) {
+func Test_NotAllPathsReturn_ForDoesNotCount(t *testing.T) {
 	expectError(t, `
 module main
 func f(xs: list[int]) int {
@@ -1012,7 +1012,7 @@ func f(xs: list[int]) int {
 `, "not all paths return a value")
 }
 
-func TestAllPathsReturn_ReturnAfterFor(t *testing.T) {
+func Test_AllPathsReturn_ReturnAfterFor(t *testing.T) {
 	expectNoErrors(t, `
 module main
 func f(xs: list[int]) int {
@@ -1026,14 +1026,14 @@ func f(xs: list[int]) int {
 // Pub visibility
 // -----------------------------------------------------------------------------
 
-func TestPubLetParsesClean(t *testing.T) {
+func Test_PubLet_ParsesClean(t *testing.T) {
 	expectNoErrors(t, `
 module main
 pub let x = 42
 `)
 }
 
-func TestPubFuncParsesClean(t *testing.T) {
+func Test_PubFunc_ParsesClean(t *testing.T) {
 	expectNoErrors(t, `
 module main
 pub func f() int {
@@ -1042,7 +1042,7 @@ pub func f() int {
 `)
 }
 
-func TestPubTypeParsesClean(t *testing.T) {
+func Test_PubType_ParsesClean(t *testing.T) {
 	expectNoErrors(t, `
 module main
 pub type Config {
@@ -1051,14 +1051,14 @@ pub type Config {
 `)
 }
 
-func TestPubEnumParsesClean(t *testing.T) {
+func Test_PubEnum_ParsesClean(t *testing.T) {
 	expectNoErrors(t, `
 module main
 pub enum State { on, off }
 `)
 }
 
-func TestPubOnNonDecl(t *testing.T) {
+func Test_Pub_OnNonDeclErrors(t *testing.T) {
 	l := lex.New("test.scampi", []byte("module main\npub 42\n"))
 	p := parse.New(l)
 	_ = p.Parse()
@@ -1078,7 +1078,7 @@ func TestPubOnNonDecl(t *testing.T) {
 	}
 }
 
-func TestPubSetsPublicOnAST(t *testing.T) {
+func Test_Pub_SetsPublicOnAST(t *testing.T) {
 	l := lex.New("test.scampi", []byte(`
 module main
 pub let x = 1
@@ -1136,7 +1136,7 @@ enum F { c, d }
 	}
 }
 
-func TestPublicView_FiltersPrivateSymbols(t *testing.T) {
+func Test_PublicView_FiltersPrivateSymbols(t *testing.T) {
 	s := NewScope(nil, ScopeFile)
 	s.Define(&Symbol{Name: "exported", Kind: SymFunc, IsPublic: true})
 	s.Define(&Symbol{Name: "private", Kind: SymFunc, IsPublic: false})
@@ -1158,7 +1158,7 @@ func TestPublicView_FiltersPrivateSymbols(t *testing.T) {
 	}
 }
 
-func TestPubVisibility_PrivateFuncNotAccessible(t *testing.T) {
+func Test_PubVisibility_PrivateFuncNotAccessible(t *testing.T) {
 	// Build a module "helpers" with one pub func and one private func.
 	modSrc := `
 module helpers
@@ -1215,7 +1215,7 @@ let b = helpers.hidden()
 	}
 }
 
-func TestPubVisibility_PubFuncReturningPrivateType(t *testing.T) {
+func Test_PubVisibility_PubFuncReturningPrivateType(t *testing.T) {
 	modSrc := `
 module helpers
 type Internal { name: string }

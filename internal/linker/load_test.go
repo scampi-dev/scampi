@@ -27,7 +27,7 @@ func readFileFromMap(files map[string][]byte) func(string) ([]byte, error) {
 	}
 }
 
-func TestStdReadFile_TrimsTrailingNewline(t *testing.T) {
+func Test_StdReadFile_TrimsTrailingNewline(t *testing.T) {
 	fn := stdReadFileBuiltin(
 		"/cfg",
 		readFileFromMap(map[string][]byte{
@@ -48,7 +48,7 @@ func TestStdReadFile_TrimsTrailingNewline(t *testing.T) {
 	}
 }
 
-func TestStdReadFile_ResolvesAbsolutePath(t *testing.T) {
+func Test_StdReadFile_ResolvesAbsolutePath(t *testing.T) {
 	fn := stdReadFileBuiltin(
 		"/cfg",
 		readFileFromMap(map[string][]byte{"/etc/hosts": []byte("127.0.0.1 localhost")}),
@@ -63,7 +63,7 @@ func TestStdReadFile_ResolvesAbsolutePath(t *testing.T) {
 	}
 }
 
-func TestStdReadFile_ResolvesRelativePathAgainstConfigDir(t *testing.T) {
+func Test_StdReadFile_ResolvesRelativePathAgainstConfigDir(t *testing.T) {
 	fn := stdReadFileBuiltin(
 		"/Users/me/skrynet",
 		readFileFromMap(map[string][]byte{
@@ -80,7 +80,7 @@ func TestStdReadFile_ResolvesRelativePathAgainstConfigDir(t *testing.T) {
 	}
 }
 
-func TestStdReadFile_ErrorsOnMissingPath(t *testing.T) {
+func Test_StdReadFile_ErrorsOnMissingPath(t *testing.T) {
 	fn := stdReadFileBuiltin("/cfg", readFileFromMap(nil), false)
 	_, errMsg := fn([]eval.Value{&eval.StringVal{V: "missing.txt"}}, nil)
 	if errMsg == "" {
@@ -88,7 +88,7 @@ func TestStdReadFile_ErrorsOnMissingPath(t *testing.T) {
 	}
 }
 
-func TestStdReadFile_ErrorsOnEmptyPath(t *testing.T) {
+func Test_StdReadFile_ErrorsOnEmptyPath(t *testing.T) {
 	fn := stdReadFileBuiltin("/cfg", readFileFromMap(nil), false)
 	_, errMsg := fn(nil, nil)
 	if errMsg == "" {
@@ -96,7 +96,7 @@ func TestStdReadFile_ErrorsOnEmptyPath(t *testing.T) {
 	}
 }
 
-func TestStdReadFile_LenientReturnsPlaceholderOnMissing(t *testing.T) {
+func Test_StdReadFile_LenientReturnsPlaceholderOnMissing(t *testing.T) {
 	fn := stdReadFileBuiltin("/cfg", readFileFromMap(nil), true)
 	v, errMsg := fn([]eval.Value{&eval.StringVal{V: "missing.txt"}}, nil)
 	if errMsg != "" {
@@ -108,7 +108,7 @@ func TestStdReadFile_LenientReturnsPlaceholderOnMissing(t *testing.T) {
 	}
 }
 
-func TestStdReadFile_LenientReturnsPlaceholderOnEmptyPath(t *testing.T) {
+func Test_StdReadFile_LenientReturnsPlaceholderOnEmptyPath(t *testing.T) {
 	fn := stdReadFileBuiltin("/cfg", readFileFromMap(nil), true)
 	v, errMsg := fn(nil, nil)
 	if errMsg != "" {
@@ -119,7 +119,7 @@ func TestStdReadFile_LenientReturnsPlaceholderOnEmptyPath(t *testing.T) {
 	}
 }
 
-func TestStdReadFile_PreservesInteriorNewlines(t *testing.T) {
+func Test_StdReadFile_PreservesInteriorNewlines(t *testing.T) {
 	body := "line one\nline two\nline three\n"
 	fn := stdReadFileBuiltin(
 		"/cfg",
@@ -135,7 +135,7 @@ func TestStdReadFile_PreservesInteriorNewlines(t *testing.T) {
 
 // Live filesystem smoke test - confirms the builtin works end-to-end
 // when wired with real os.ReadFile, not just the in-memory mock.
-func TestStdReadFile_RealFilesystem(t *testing.T) {
+func Test_StdReadFile_RealFilesystem(t *testing.T) {
 	dir := t.TempDir()
 	keyPath := filepath.Join(dir, "host.pub")
 	if err := os.WriteFile(keyPath, []byte("real-key-from-disk\n"), 0o644); err != nil {
@@ -161,7 +161,7 @@ func mockEnv(env map[string]string) func(string) (string, bool) {
 	}
 }
 
-func TestSecretEnvBuiltin_ResolvesAndRegisters(t *testing.T) {
+func Test_SecretEnvBuiltin_ResolvesAndRegisters(t *testing.T) {
 	r := secret.NewRedactor()
 	fn := secretEnvBuiltin(
 		mockEnv(map[string]string{"DB_PASSWORD": "test-fixture-password-1234"}),
@@ -189,7 +189,7 @@ func TestSecretEnvBuiltin_ResolvesAndRegisters(t *testing.T) {
 	}
 }
 
-func TestSecretEnvBuiltin_DefaultDoesNotRegister(t *testing.T) {
+func Test_SecretEnvBuiltin_DefaultDoesNotRegister(t *testing.T) {
 	r := secret.NewRedactor()
 	fn := secretEnvBuiltin(mockEnv(nil), r)
 
@@ -217,7 +217,7 @@ func TestSecretEnvBuiltin_DefaultDoesNotRegister(t *testing.T) {
 	}
 }
 
-func TestSecretEnvBuiltin_ErrorsOnMissingNoDefault(t *testing.T) {
+func Test_SecretEnvBuiltin_ErrorsOnMissingNoDefault(t *testing.T) {
 	r := secret.NewRedactor()
 	fn := secretEnvBuiltin(mockEnv(nil), r)
 
@@ -227,7 +227,7 @@ func TestSecretEnvBuiltin_ErrorsOnMissingNoDefault(t *testing.T) {
 	}
 }
 
-func TestSecretEnvBuiltin_AcceptsKwargDefault(t *testing.T) {
+func Test_SecretEnvBuiltin_AcceptsKwargDefault(t *testing.T) {
 	r := secret.NewRedactor()
 	fn := secretEnvBuiltin(mockEnv(nil), r)
 
@@ -243,7 +243,7 @@ func TestSecretEnvBuiltin_AcceptsKwargDefault(t *testing.T) {
 	}
 }
 
-func TestSecretEnvBuiltin_NilRedactorIsNoOp(t *testing.T) {
+func Test_SecretEnvBuiltin_NilRedactorIsNoOp(t *testing.T) {
 	// LSP and similar paths may not have a redactor wired. The
 	// builtin must still resolve the value cleanly - secrets just
 	// won't be masked downstream (LSP doesn't render to terminal).

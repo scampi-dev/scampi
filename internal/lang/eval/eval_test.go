@@ -58,7 +58,7 @@ func findByRetType(r *Result, retType string) []*StructVal {
 // Let bindings
 // -----------------------------------------------------------------------------
 
-func TestEvalLetString(t *testing.T) {
+func Test_Eval_LetString(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let x = "hello"
@@ -66,7 +66,7 @@ let x = "hello"
 	_ = r
 }
 
-func TestEvalLetInt(t *testing.T) {
+func Test_Eval_LetInt(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let x = 42
@@ -74,7 +74,7 @@ let x = 42
 	_ = r
 }
 
-func TestEvalLetArithmetic(t *testing.T) {
+func Test_Eval_LetArithmetic(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let a = 10
@@ -88,7 +88,7 @@ let prod = a * b
 // Multi-line strings
 // -----------------------------------------------------------------------------
 
-func TestEvalMultiLineString_StripLeadingNewlineAndDedent(t *testing.T) {
+func Test_EvalMultiLineString_StripLeadingNewlineAndDedent(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let body = `+"`"+`
@@ -103,7 +103,7 @@ let body = `+"`"+`
 	}
 }
 
-func TestEvalMultiLineString_NoDedentWhenClosingNotOnOwnLine(t *testing.T) {
+func Test_EvalMultiLineString_NoDedentWhenClosingNotOnOwnLine(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let body = `+"`"+`one
@@ -116,7 +116,7 @@ two`+"`"+`
 	}
 }
 
-func TestEvalMultiLineString_Interpolation(t *testing.T) {
+func Test_EvalMultiLineString_Interpolation(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let realm = "EXAMPLE.COM"
@@ -132,7 +132,7 @@ let resolv = `+"`"+`
 	}
 }
 
-func TestEvalMultiLineString_LiteralDoubleQuotes(t *testing.T) {
+func Test_EvalMultiLineString_LiteralDoubleQuotes(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let json = `+"`"+`{"data": [1, 2, 3]}`+"`"+`
@@ -144,7 +144,7 @@ let json = `+"`"+`{"data": [1, 2, 3]}`+"`"+`
 	}
 }
 
-func TestEvalMultiLineString_EscapedBacktickAndDollar(t *testing.T) {
+func Test_EvalMultiLineString_EscapedBacktickAndDollar(t *testing.T) {
 	// \` becomes literal ` in the content; \${ becomes literal ${.
 	r := evalSrc(t, "module main\nlet s = `tick \\` and dollar \\${ no interp`\n")
 	got := mustString(t, r, "s")
@@ -154,7 +154,7 @@ func TestEvalMultiLineString_EscapedBacktickAndDollar(t *testing.T) {
 	}
 }
 
-func TestEvalMultiLineString_PreservesBlankLines(t *testing.T) {
+func Test_EvalMultiLineString_PreservesBlankLines(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let body = `+"`"+`
@@ -170,7 +170,7 @@ let body = `+"`"+`
 	}
 }
 
-func TestEvalMultiLineString_BashLineContinuationLiteral(t *testing.T) {
+func Test_EvalMultiLineString_BashLineContinuationLiteral(t *testing.T) {
 	// Backslash followed by anything other than \\, \`, \$ is preserved
 	// verbatim - bash line-continuation `\\\n` stays as `\\\n` in the
 	// resolved string, not a single newline.
@@ -187,7 +187,7 @@ let cmd = `+"`"+`echo a \
 	}
 }
 
-func TestEvalMultiLineString_BackslashNStaysLiteral(t *testing.T) {
+func Test_EvalMultiLineString_BackslashNStaysLiteral(t *testing.T) {
 	// In a backtick string, `\n` is two characters, not a newline.
 	// The user gets actual newlines by writing actual newlines.
 	r := evalSrc(t, "module main\nlet s = `regex \\d+ and \\n stay literal`\n")
@@ -198,7 +198,7 @@ func TestEvalMultiLineString_BackslashNStaysLiteral(t *testing.T) {
 	}
 }
 
-func TestEvalMultiLineString_InterpDoesNotDedent(t *testing.T) {
+func Test_EvalMultiLineString_InterpDoesNotDedent(t *testing.T) {
 	// An interpolated value containing newlines must NOT have the
 	// closing-marker indent stripped from its content lines - only
 	// surrounding text segments dedent.
@@ -234,7 +234,7 @@ func mustString(t *testing.T, r *Result, name string) string {
 // String interpolation
 // -----------------------------------------------------------------------------
 
-func TestEvalStringInterp(t *testing.T) {
+func Test_Eval_StringInterp(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let name = "world"
@@ -246,7 +246,7 @@ let greeting = "hello ${name}!"
 // List and map literals
 // -----------------------------------------------------------------------------
 
-func TestEvalList(t *testing.T) {
+func Test_Eval_List(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let xs = [1, 2, 3]
@@ -254,7 +254,7 @@ let xs = [1, 2, 3]
 	_ = r
 }
 
-func TestEvalMap(t *testing.T) {
+func Test_Eval_Map(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let m = {"a": 1, "b": 2}
@@ -265,7 +265,7 @@ let m = {"a": 1, "b": 2}
 // Struct literal
 // -----------------------------------------------------------------------------
 
-func TestEvalStructLit(t *testing.T) {
+func Test_Eval_StructLit(t *testing.T) {
 	r := evalSrc(t, `
 module main
 type User {
@@ -290,7 +290,7 @@ let u = User { name = "alice" }
 	}
 }
 
-func TestEvalTypeFieldDefaultOverride(t *testing.T) {
+func Test_Eval_TypeFieldDefaultOverride(t *testing.T) {
 	r := evalSrc(t, `
 module main
 type Item {
@@ -310,7 +310,7 @@ let b = Item { name = "y", count = 5 }
 	}
 }
 
-func TestEvalTypeFieldDefaultDotAccess(t *testing.T) {
+func Test_Eval_TypeFieldDefaultDotAccess(t *testing.T) {
 	r := evalSrc(t, `
 module main
 type Box {
@@ -329,7 +329,7 @@ let s = b.size
 	}
 }
 
-func TestEvalTypeFieldDefaultInLoop(t *testing.T) {
+func Test_Eval_TypeFieldDefaultInLoop(t *testing.T) {
 	r := evalSrc(t, `
 module main
 type Entry {
@@ -359,7 +359,7 @@ let m1 = items[1].mem
 // Function calls
 // -----------------------------------------------------------------------------
 
-func TestEvalFuncCall(t *testing.T) {
+func Test_Eval_FuncCall(t *testing.T) {
 	r := evalSrc(t, `
 module main
 func add(a: int, b: int) int {
@@ -373,7 +373,7 @@ let result = add(1, 2)
 // Secret resolvers
 // -----------------------------------------------------------------------------
 
-func TestEvalSecretResolver(t *testing.T) {
+func Test_Eval_SecretResolver(t *testing.T) {
 	src := `
 module main
 import "std/secrets"
@@ -423,7 +423,7 @@ let resolver = secrets.from_file(path = "secrets.json")
 // Target
 // -----------------------------------------------------------------------------
 
-func TestEvalTarget(t *testing.T) {
+func Test_Eval_Target(t *testing.T) {
 	src := `
 module main
 import "std"
@@ -454,7 +454,7 @@ let vps = ssh.target { name = "vps", host = "10.0.0.1", user = "root" }
 // kwargs. The verifier (in target/test/) reads those two fields to
 // dispatch by matcher kind. This test pins that contract - if it
 // breaks, the verifier breaks too.
-func TestEvalMatchers(t *testing.T) {
+func Test_Eval_Matchers(t *testing.T) {
 	src := `
 module main
 import "std/posix"
@@ -537,7 +537,7 @@ let m_pkg     = matchers.has_pkg_status(posix.PkgState.present)
 // For loop
 // -----------------------------------------------------------------------------
 
-func TestEvalForLoop(t *testing.T) {
+func Test_Eval_ForLoop(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let xs = [1, 2, 3]
@@ -549,7 +549,7 @@ let doubled = [x * 2 for x in xs]
 // If expression
 // -----------------------------------------------------------------------------
 
-func TestEvalIfExpr(t *testing.T) {
+func Test_Eval_IfExpr(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let x = 10
@@ -561,7 +561,7 @@ let label = if x > 5 { "big" } else { "small" }
 // Boolean operators
 // -----------------------------------------------------------------------------
 
-func TestEvalBoolOps(t *testing.T) {
+func Test_Eval_BoolOps(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let a = true && false
@@ -574,7 +574,7 @@ let c = !true
 // In operator
 // -----------------------------------------------------------------------------
 
-func TestEvalInOperator(t *testing.T) {
+func Test_Eval_InOperator(t *testing.T) {
 	r := evalSrc(t, `
 module main
 let xs = ["a", "b", "c"]
@@ -587,7 +587,7 @@ let found = "b" in xs
 // when no field on x matches and a free function f exists.
 // -----------------------------------------------------------------------------
 
-func TestEvalUFCSBasic(t *testing.T) {
+func Test_Eval_UFCSBasic(t *testing.T) {
 	r := evalSrc(t, `
 module main
 
@@ -610,7 +610,7 @@ let result = (5).double()
 	}
 }
 
-func TestEvalUFCSChained(t *testing.T) {
+func Test_Eval_UFCSChained(t *testing.T) {
 	r := evalSrc(t, `
 module main
 
@@ -638,7 +638,7 @@ let result = (3).inc().double().inc()
 	}
 }
 
-func TestEvalUFCSWithExtraArgs(t *testing.T) {
+func Test_Eval_UFCSWithExtraArgs(t *testing.T) {
 	r := evalSrc(t, `
 module main
 
@@ -661,7 +661,7 @@ let result = (10).add(32)
 	}
 }
 
-// TestEvalUFCSDoesNotShadowModuleAccess - `posix.copy(...)` is a
+// Test_Eval_UFCSDoesNotShadowModuleAccess - `posix.copy(...)` is a
 // module member call. The Tier 1 path runs before any UFCS attempt.
 // Intra-module pub visibility
 // -----------------------------------------------------------------------------
@@ -671,7 +671,7 @@ let result = (10).add(32)
 // different file). Regression test for #209: registerUserModules was
 // filtering non-pub symbols from the module map, which also feeds the
 // intra-module sibling injection in callFunc.
-func TestEvalPubFuncCallsNonPubHelper(t *testing.T) {
+func Test_Eval_PubFuncCallsNonPubHelper(t *testing.T) {
 	// Simulate a two-file module: _index.scampi has a pub func that
 	// calls a non-pub helper from api.scampi. We merge them into one
 	// AST (same as loadMultiFileModule does) for simplicity.
@@ -751,7 +751,7 @@ let result = helpers.add(17, 25)
 // Sibling modules (same package, different file) inject functions
 // directly into the top-level env via WithSiblingModules. Functions
 // are callable by bare name without a module prefix.
-func TestEvalSiblingModuleBareName(t *testing.T) {
+func Test_Eval_SiblingModuleBareName(t *testing.T) {
 	sibSrc := `
 module helpers
 func internal_mul(a: int, b: int) int {
@@ -812,7 +812,7 @@ let result = internal_mul(6, 7)
 }
 
 // External callers must NOT be able to access non-pub functions.
-func TestEvalNonPubNotVisibleExternally(t *testing.T) {
+func Test_Eval_NonPubNotVisibleExternally(t *testing.T) {
 	modSrc := `
 module helpers
 func hidden() int { return 99 }
@@ -878,7 +878,7 @@ let result = helpers.visible()
 // UFCS - runtime dispatch
 // -----------------------------------------------------------------------------
 
-func TestEvalUFCSDoesNotShadowModuleAccess(t *testing.T) {
+func Test_Eval_UFCSDoesNotShadowModuleAccess(t *testing.T) {
 	r := evalSrc(t, `
 module main
 import "std"
@@ -899,7 +899,7 @@ std.deploy(name = "t", targets = [host]) {
 // Std module func bodies
 // -----------------------------------------------------------------------------
 
-func TestEvalStdJoin(t *testing.T) {
+func Test_Eval_StdJoin(t *testing.T) {
 	r := evalSrc(t, `
 module main
 import "std"
@@ -918,7 +918,7 @@ let single = std.join(["x"], "-")
 // Struct indexing
 // -----------------------------------------------------------------------------
 
-func TestEvalStructIndexAccess(t *testing.T) {
+func Test_Eval_StructIndexAccess(t *testing.T) {
 	r := evalSrc(t, `
 module main
 
@@ -944,7 +944,7 @@ let missing = s["nope"]
 // and fell through to nil, silently turning list-valued state
 // fields into Go nil. Symptom in the wild: rest.resource drift
 // comparator saw "[..] vs null" and fired PUT every run.
-func TestEvalIdentForcesThunk(t *testing.T) {
+func Test_Eval_IdentForcesThunk(t *testing.T) {
 	modSrc := `
 module helpers
 pub let xs = ["a", "b", "c"]
@@ -1014,7 +1014,7 @@ let result = helpers.get_xs()
 	}
 }
 
-func TestEvalUnique(t *testing.T) {
+func Test_Eval_Unique(t *testing.T) {
 	cases := []struct {
 		name string
 		src  string
@@ -1096,7 +1096,7 @@ func intStr(n int64) string {
 // Probe: does Color resolve INSIDE a func body (not as default)?
 // If this passes but the default-eval test fails, the bug is in
 // the default-eval scope specifically, not module exposure.
-func TestEvalUserModuleEnumInBody(t *testing.T) {
+func Test_Eval_UserModuleEnumInBody(t *testing.T) {
 	modSrc := `
 module paint
 pub enum Color { red, green, blue }
@@ -1154,7 +1154,7 @@ let result = paint.get_red()
 // (enums, helpers, pub lets) must evaluate in the *defining* module's
 // scope, not the caller's. Otherwise users have to re-import every
 // internal name a default touches, defeating encapsulation.
-func TestEvalDefaultEvalsInDefiningModuleScope(t *testing.T) {
+func Test_Eval_DefaultEvalsInDefiningModuleScope(t *testing.T) {
 	modSrc := `
 module paint
 pub enum Color { red, green, blue }
@@ -1216,7 +1216,7 @@ let result = paint.make_palette()
 	}
 }
 
-func TestEvalStructIndexInComprehension(t *testing.T) {
+func Test_Eval_StructIndexInComprehension(t *testing.T) {
 	r := evalSrc(t, `
 module main
 

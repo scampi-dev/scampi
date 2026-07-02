@@ -22,7 +22,7 @@ import (
 // - spec.Op.Check may return an error implementing DiagnosticsProvider
 // - diagnostics policy allows non-aborting diagnostics
 // - execution must continue pessimistically
-func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
+func Test_Check_NonAbortingDiagnosticsDoNotAbort(t *testing.T) {
 	var execRan atomic.Bool
 
 	op := &harness.FakeOp{
@@ -93,7 +93,7 @@ func TestCheck_NonAbortingDiagnostics_DoNotAbort(t *testing.T) {
 	}
 }
 
-func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
+func Test_Check_NonAbortDiagnosticAllowsSiblingOps(t *testing.T) {
 	var ranA, ranB atomic.Bool
 
 	opA := &harness.FakeOp{
@@ -154,7 +154,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingOps(t *testing.T) {
 	}
 }
 
-func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
+func Test_Check_AbortDiagnosticStopsSiblingOps(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name: "A",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
@@ -205,7 +205,7 @@ func TestCheck_AbortDiagnostic_StopsSiblingOps(t *testing.T) {
 	}
 }
 
-func TestCheck_AbortDiagnostic_StopsStepExecution(t *testing.T) {
+func Test_Check_AbortDiagnosticStopsStepExecution(t *testing.T) {
 	op := &harness.FakeOp{
 		Name: "abort-op",
 		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
@@ -254,7 +254,7 @@ func TestCheck_AbortDiagnostic_StopsStepExecution(t *testing.T) {
 	}
 }
 
-func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
+func Test_Check_NonAbortDiagnosticAllowsSiblingExecution(t *testing.T) {
 	var ranA, ranB bool
 
 	opA := &harness.FakeOp{
@@ -316,7 +316,7 @@ func TestCheck_NonAbortDiagnostic_AllowsSiblingExecution(t *testing.T) {
 	}
 }
 
-func TestExecute_FailedOp_BlocksDependentOps(t *testing.T) {
+func Test_Execute_FailedOpBlocksDependentOps(t *testing.T) {
 	ctx := t.Context()
 
 	// parent op: executes and fails

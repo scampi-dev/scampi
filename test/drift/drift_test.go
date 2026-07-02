@@ -23,7 +23,7 @@ func driftCheckFn(drift []spec.DriftDetail) harness.CheckFn {
 }
 
 // CheckPlan on an unsatisfied op emits drift detail in the OpChecked event.
-func TestCheckPlan_DriftEmitted(t *testing.T) {
+func Test_CheckPlan_DriftEmitted(t *testing.T) {
 	want := []spec.DriftDetail{
 		{Field: "content", Current: "100 bytes", Desired: "200 bytes"},
 	}
@@ -82,7 +82,7 @@ func TestCheckPlan_DriftEmitted(t *testing.T) {
 }
 
 // CheckPlan on a satisfied op emits no drift detail.
-func TestCheckPlan_SatisfiedNoDrift(t *testing.T) {
+func Test_CheckPlan_SatisfiedNoDrift(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
@@ -123,7 +123,7 @@ func TestCheckPlan_SatisfiedNoDrift(t *testing.T) {
 }
 
 // ExecutePlan does NOT emit drift (even on unsatisfied ops).
-func TestExecutePlan_NoDrift(t *testing.T) {
+func Test_ExecutePlan_NoDrift(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name:    "A",
 		CheckFn: driftCheckFn([]spec.DriftDetail{{Field: "content", Current: "x", Desired: "y"}}),

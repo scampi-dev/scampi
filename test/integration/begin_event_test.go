@@ -26,10 +26,10 @@ std.deploy(name = "test", targets = [host]) {
 }
 `
 
-// TestBeginEvent_FiresPerStepBeforeResult verifies the engine emits one Begin
+// Test_BeginEvent_FiresPerStepBeforeResult verifies the engine emits one Begin
 // per step, and that each step's Begin precedes its Result in the stream. Begin
 // is the live region's "step entered execution" signal; Result is its finish.
-func TestBeginEvent_FiresPerStepBeforeResult(t *testing.T) {
+func Test_BeginEvent_FiresPerStepBeforeResult(t *testing.T) {
 	src := source.NewMemSource()
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}

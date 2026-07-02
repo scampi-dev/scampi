@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -23,7 +24,7 @@ type capabilityRule struct {
 	allowedImports string // comma-delimited list
 }
 
-func TestImportCapabilities(t *testing.T) {
+func Test_Rule_ImportCapabilities(t *testing.T) {
 	root := repoRoot(t)
 
 	// ---- hard global bans (no exceptions) ----
@@ -340,7 +341,7 @@ func TestImportCapabilities(t *testing.T) {
 // Function signature formatting
 // -----------------------------------------------------------------------------
 
-func TestFuncSignatureStyle(t *testing.T) {
+func Test_Rule_FuncSignatureStyle(t *testing.T) {
 	root := repoRoot(t)
 
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -505,7 +506,7 @@ func checkFieldList(
 // Markdown table alignment
 // -----------------------------------------------------------------------------
 
-func TestMarkdownTableAlignment(t *testing.T) {
+func Test_Rule_MarkdownTableAlignment(t *testing.T) {
 	root := repoRoot(t)
 
 	isTableRow := func(line string) bool {
@@ -647,7 +648,7 @@ func TestMarkdownTableAlignment(t *testing.T) {
 // sanctioned for fmt.Errorf/errors.New because their errors are wrapped by
 // op/step code before reaching the engine.
 
-func TestBareErrorBan(t *testing.T) {
+func Test_Rule_BareErrorBan(t *testing.T) {
 	root := repoRoot(t)
 
 	// Always banned - use typed errors or errs.BUG instead.
@@ -809,7 +810,7 @@ func hasRationaleAboveBlock(file *ast.File, fset *token.FileSet, callLine int) b
 	return false
 }
 
-// TestGlyphDiscipline bans non-ASCII bytes in Go source - literals AND
+// Test_Rule_GlyphDiscipline bans non-ASCII bytes in Go source - literals AND
 // comments - across internal/, cmd/, and test/. CLI glyphs go through the
 // glyphSet in render/cli/glyph.go (fancy + ASCII variants); message prose is
 // plain ASCII ("1-65535", "->", " - "); functional unicode in tests uses
@@ -817,7 +818,7 @@ func hasRationaleAboveBlock(file *ast.File, fset *token.FileSet, callLine int) b
 //
 // Exempt: glyph.go (the canonical glyph source) and token/pos_test.go
 // (UTF-8 byte-offset arithmetic is unreadable as escapes).
-func TestGlyphDiscipline(t *testing.T) {
+func Test_Rule_GlyphDiscipline(t *testing.T) {
 	roots := []string{"../../internal", "../../cmd", "../../test"}
 	exempt := map[string]bool{
 		"internal/render/cli/glyph.go":    true,
@@ -942,4 +943,62 @@ func dirHasProdGo(t *testing.T, dir string) bool {
 		}
 	}
 	return false
+}
+
+// Test naming
+// -----------------------------------------------------------------------------
+
+// Test_Rule_TestNaming: test and benchmark functions are named
+// Test_Subject_Expectation / Benchmark_Subject_Expectation - exactly two
+// UpperCamel segments, so every test declares what it tests and what it
+// expects. Enforcement rules use the Rule subject (Test_Rule_GlyphDiscipline),
+// which fits the same shape. Exempt: TestMain (harness protocol) and Fuzz*
+// (no expectation to state).
+func Test_Rule_TestNaming(t *testing.T) {
+	roots := []string{"../../internal", "../../cmd", "../../test"}
+	nameRe := regexp.MustCompile(`^(Test|Benchmark)(_[A-Z][A-Za-z0-9]*){2}$`)
+
+	fset := token.NewFileSet()
+	for _, root := range roots {
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(p, "_test.go") {
+				return nil
+			}
+			f, perr := parser.ParseFile(fset, p, nil, 0)
+			if perr != nil {
+				return perr
+			}
+			for _, decl := range f.Decls {
+				fn, ok := decl.(*ast.FuncDecl)
+				if !ok || fn.Recv != nil {
+					continue
+				}
+				name := fn.Name.Name
+				isTest := strings.HasPrefix(name, "Test")
+				isBench := strings.HasPrefix(name, "Benchmark")
+				if !isTest && !isBench {
+					continue
+				}
+				if name == "TestMain" {
+					continue
+				}
+				if nameRe.MatchString(name) {
+					continue
+				}
+				pos := fset.Position(fn.Pos())
+				t.Errorf(
+					"%s:%d: %s does not match Test_Subject_Expectation "+
+						"(exactly two UpperCamel segments)",
+					p, pos.Line, name,
+				)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }

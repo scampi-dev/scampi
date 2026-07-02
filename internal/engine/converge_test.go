@@ -52,7 +52,7 @@ std.deploy(name = "gamma", targets = [host]) {
 // declaration order within a level), not deploy completion order: "beta"
 // finishes long before the sleeping "alpha", and "gamma" only runs in level 1,
 // yet the report reads alpha, beta, gamma on every run (#440, #445).
-func TestCheckAggregatesMultiDeployInOrdinalOrder(t *testing.T) {
+func Test_Check_AggregatesMultiDeployInOrdinalOrder(t *testing.T) {
 	cfgPath := filepath.Join(t.TempDir(), "config.scampi")
 	if err := os.WriteFile(cfgPath, []byte(multiDeployConfig), 0o644); err != nil {
 		t.Fatal(err)

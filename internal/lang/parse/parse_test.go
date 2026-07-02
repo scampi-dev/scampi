@@ -43,7 +43,7 @@ func parseExprOnly(t *testing.T, src string) ast.Expr {
 // imports
 // -----------------------------------------------------------------------------
 
-func TestParseImport(t *testing.T) {
+func Test_Parse_Import(t *testing.T) {
 	f := parseFile(t, `
 module main
 import "std"
@@ -56,7 +56,7 @@ import "std"
 	}
 }
 
-func TestParseMultipleImports(t *testing.T) {
+func Test_Parse_MultipleImports(t *testing.T) {
 	f := parseFile(t, `
 module main
 import "std"
@@ -77,7 +77,7 @@ import "github.com/scampi-dev/modules/unifi"
 // type decl
 // -----------------------------------------------------------------------------
 
-func TestParseType(t *testing.T) {
+func Test_Parse_Type(t *testing.T) {
 	f := parseFile(t, `
 module main
 type User {
@@ -107,7 +107,7 @@ type User {
 	}
 }
 
-func TestParseBlockExprInline(t *testing.T) {
+func Test_Parse_BlockExprInline(t *testing.T) {
 	f := parseFile(t, `
 module main
 func f() int { return 1 }
@@ -126,7 +126,7 @@ f() { let x = 1 }
 	}
 }
 
-func TestParseOpaqueType(t *testing.T) {
+func Test_Parse_OpaqueType(t *testing.T) {
 	f := parseFile(t, `
 module main
 type Step
@@ -147,7 +147,7 @@ type Target
 // enum decl
 // -----------------------------------------------------------------------------
 
-func TestParseEnum(t *testing.T) {
+func Test_Parse_Enum(t *testing.T) {
 	f := parseFile(t, `
 module main
 enum PkgState { present, absent, latest }
@@ -170,7 +170,7 @@ enum PkgState { present, absent, latest }
 // func decl
 // -----------------------------------------------------------------------------
 
-func TestParseFunc(t *testing.T) {
+func Test_Parse_Func(t *testing.T) {
 	f := parseFile(t, `
 module main
 func build_url(host: string, path: string = "/") string {
@@ -204,7 +204,7 @@ func build_url(host: string, path: string = "/") string {
 // decl decl
 // -----------------------------------------------------------------------------
 
-func TestParseDeclWithBody(t *testing.T) {
+func Test_Parse_DeclWithBody(t *testing.T) {
 	f := parseFile(t, `
 module main
 decl create_user(name: string, shell: string = "/bin/bash") Step {
@@ -223,7 +223,7 @@ decl create_user(name: string, shell: string = "/bin/bash") Step {
 	}
 }
 
-func TestParseDeclStub(t *testing.T) {
+func Test_Parse_DeclStub(t *testing.T) {
 	f := parseFile(t, `
 module main
 decl pkg(packages: list[string], state: PkgState = PkgState.present) Step
@@ -237,7 +237,7 @@ decl pkg(packages: list[string], state: PkgState = PkgState.present) Step
 	}
 }
 
-func TestParseDeclDottedName(t *testing.T) {
+func Test_Parse_DeclDottedName(t *testing.T) {
 	f := parseFile(t, `
 module main
 decl container.instance(name: string) Step
@@ -254,7 +254,7 @@ decl container.instance(name: string) Step
 // let
 // -----------------------------------------------------------------------------
 
-func TestParseLet(t *testing.T) {
+func Test_Parse_Let(t *testing.T) {
 	f := parseFile(t, `
 module main
 let version = "1.2.3"
@@ -268,7 +268,7 @@ let version = "1.2.3"
 	}
 }
 
-func TestParseLetWithType(t *testing.T) {
+func Test_Parse_LetWithType(t *testing.T) {
 	f := parseFile(t, `
 module main
 let n: int = 42
@@ -282,7 +282,7 @@ let n: int = 42
 // expressions
 // -----------------------------------------------------------------------------
 
-func TestParseArithmetic(t *testing.T) {
+func Test_Parse_Arithmetic(t *testing.T) {
 	e := parseExprOnly(t, "1 + 2 * 3")
 	bin, ok := e.(*ast.BinaryExpr)
 	if !ok {
@@ -294,7 +294,7 @@ func TestParseArithmetic(t *testing.T) {
 	}
 }
 
-func TestParseComparison(t *testing.T) {
+func Test_Parse_Comparison(t *testing.T) {
 	e := parseExprOnly(t, "a < b && c == d")
 	bin := e.(*ast.BinaryExpr)
 	// `&&` is lower precedence than `<` and `==`, so top is &&
@@ -304,7 +304,7 @@ func TestParseComparison(t *testing.T) {
 	}
 }
 
-func TestParseMemberAccess(t *testing.T) {
+func Test_Parse_MemberAccess(t *testing.T) {
 	e := parseExprOnly(t, "std.pkg.present")
 	sel, ok := e.(*ast.SelectorExpr)
 	if !ok {
@@ -315,7 +315,7 @@ func TestParseMemberAccess(t *testing.T) {
 	}
 }
 
-func TestParseCall(t *testing.T) {
+func Test_Parse_Call(t *testing.T) {
 	e := parseExprOnly(t, `std.env("HOME", "/root")`)
 	call, ok := e.(*ast.CallExpr)
 	if !ok {
@@ -326,7 +326,7 @@ func TestParseCall(t *testing.T) {
 	}
 }
 
-func TestParseIndex(t *testing.T) {
+func Test_Parse_Index(t *testing.T) {
 	e := parseExprOnly(t, `xs[0]`)
 	idx, ok := e.(*ast.IndexExpr)
 	if !ok {
@@ -335,7 +335,7 @@ func TestParseIndex(t *testing.T) {
 	_ = idx
 }
 
-func TestParseList(t *testing.T) {
+func Test_Parse_List(t *testing.T) {
 	e := parseExprOnly(t, `[1, 2, 3]`)
 	l, ok := e.(*ast.ListLit)
 	if !ok {
@@ -346,7 +346,7 @@ func TestParseList(t *testing.T) {
 	}
 }
 
-func TestParseEmptyList(t *testing.T) {
+func Test_Parse_EmptyList(t *testing.T) {
 	e := parseExprOnly(t, `[]`)
 	l := e.(*ast.ListLit)
 	if len(l.Items) != 0 {
@@ -354,7 +354,7 @@ func TestParseEmptyList(t *testing.T) {
 	}
 }
 
-func TestParseMap(t *testing.T) {
+func Test_Parse_Map(t *testing.T) {
 	e := parseExprOnly(t, `{"a": 1, "b": 2}`)
 	m, ok := e.(*ast.MapLit)
 	if !ok {
@@ -365,7 +365,7 @@ func TestParseMap(t *testing.T) {
 	}
 }
 
-func TestParseStructLit(t *testing.T) {
+func Test_Parse_StructLit(t *testing.T) {
 	e := parseExprOnly(t, `User { name = "alice", age = 30 }`)
 	s, ok := e.(*ast.StructLit)
 	if !ok {
@@ -379,7 +379,7 @@ func TestParseStructLit(t *testing.T) {
 	}
 }
 
-func TestParseInferredStructLit(t *testing.T) {
+func Test_Parse_InferredStructLit(t *testing.T) {
 	e := parseExprOnly(t, `{ name = "alice" }`)
 	s, ok := e.(*ast.StructLit)
 	if !ok {
@@ -390,7 +390,7 @@ func TestParseInferredStructLit(t *testing.T) {
 	}
 }
 
-func TestParseIfExpr(t *testing.T) {
+func Test_Parse_IfExpr(t *testing.T) {
 	e := parseExprOnly(t, `if x { 1 } else { 2 }`)
 	ife, ok := e.(*ast.IfExpr)
 	if !ok {
@@ -399,7 +399,7 @@ func TestParseIfExpr(t *testing.T) {
 	_ = ife
 }
 
-func TestParseListComp(t *testing.T) {
+func Test_Parse_ListComp(t *testing.T) {
 	e := parseExprOnly(t, `[x * 2 for x in xs if x > 0]`)
 	c, ok := e.(*ast.ListComp)
 	if !ok {
@@ -413,7 +413,7 @@ func TestParseListComp(t *testing.T) {
 // statements
 // -----------------------------------------------------------------------------
 
-func TestParseForStmt(t *testing.T) {
+func Test_Parse_ForStmt(t *testing.T) {
 	f := parseFile(t, `
 module main
 func f() list[int] {
@@ -429,7 +429,7 @@ func f() list[int] {
 	}
 }
 
-func TestParseIfStmt(t *testing.T) {
+func Test_Parse_IfStmt(t *testing.T) {
 	f := parseFile(t, `
 module main
 func f() int {
@@ -453,7 +453,7 @@ func f() int {
 // optional types
 // -----------------------------------------------------------------------------
 
-func TestParseOptionalType(t *testing.T) {
+func Test_Parse_OptionalType(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X { name: string? }
@@ -464,7 +464,7 @@ type X { name: string? }
 	}
 }
 
-func TestParseGenericType(t *testing.T) {
+func Test_Parse_GenericType(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X { xs: list[string] }
@@ -475,7 +475,7 @@ type X { xs: list[string] }
 	}
 }
 
-func TestParseMapType(t *testing.T) {
+func Test_Parse_MapType(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X { m: map[string, int] }
@@ -493,7 +493,7 @@ type X { m: map[string, int] }
 // attributes
 // -----------------------------------------------------------------------------
 
-func TestParseAttributeMarker(t *testing.T) {
+func Test_Parse_AttributeMarker(t *testing.T) {
 	f := parseFile(t, `
 module main
 type User {
@@ -516,7 +516,7 @@ type User {
 	}
 }
 
-func TestParseAttributeSinglePositional(t *testing.T) {
+func Test_Parse_AttributeSinglePositional(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X {
@@ -540,7 +540,7 @@ type X {
 	}
 }
 
-func TestParseAttributeNamedArgs(t *testing.T) {
+func Test_Parse_AttributeNamedArgs(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X {
@@ -564,7 +564,7 @@ type X {
 	}
 }
 
-func TestParseAttributeMixedPositionalAndNamed(t *testing.T) {
+func Test_Parse_AttributeMixedPositionalAndNamed(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X {
@@ -581,7 +581,7 @@ type X {
 	}
 }
 
-func TestParseAttributeVariadic(t *testing.T) {
+func Test_Parse_AttributeVariadic(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X {
@@ -595,7 +595,7 @@ type X {
 	}
 }
 
-func TestParseAttributeMultipleStacked(t *testing.T) {
+func Test_Parse_AttributeMultipleStacked(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X {
@@ -618,7 +618,7 @@ type X {
 	}
 }
 
-func TestParseAttributeOnFuncParam(t *testing.T) {
+func Test_Parse_AttributeOnFuncParam(t *testing.T) {
 	f := parseFile(t, `
 module main
 func secret(@secretkey name: string) string
@@ -637,7 +637,7 @@ func secret(@secretkey name: string) string
 	}
 }
 
-func TestParseAttributeInlinePrefix(t *testing.T) {
+func Test_Parse_AttributeInlinePrefix(t *testing.T) {
 	// Single attribute can be inline before the field name on the
 	// same line. Useful for short markers like @nonempty.
 	f := parseFile(t, `
@@ -655,7 +655,7 @@ type X {
 	}
 }
 
-func TestParseAttributeOnDeclParam(t *testing.T) {
+func Test_Parse_AttributeOnDeclParam(t *testing.T) {
 	f := parseFile(t, `
 module main
 decl posix.copy(
@@ -684,7 +684,7 @@ decl posix.copy(
 	}
 }
 
-func TestParseAttributeDottedName(t *testing.T) {
+func Test_Parse_AttributeDottedName(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X {
@@ -702,7 +702,7 @@ type X {
 	}
 }
 
-func TestParseAttrTypeMarker(t *testing.T) {
+func Test_Parse_AttrTypeMarker(t *testing.T) {
 	f := parseFile(t, `
 module main
 type @nonempty {}
@@ -722,7 +722,7 @@ type @nonempty {}
 	}
 }
 
-func TestParseAttrTypeWithFields(t *testing.T) {
+func Test_Parse_AttrTypeWithFields(t *testing.T) {
 	f := parseFile(t, `
 module main
 type @path {
@@ -746,7 +746,7 @@ type @path {
 	}
 }
 
-func TestParseAttrTypeMixedWithRegularType(t *testing.T) {
+func Test_Parse_AttrTypeMixedWithRegularType(t *testing.T) {
 	f := parseFile(t, `
 module main
 type Step
@@ -767,7 +767,7 @@ type User { name: string }
 	}
 }
 
-func TestParseAttributeEmptyParens(t *testing.T) {
+func Test_Parse_AttributeEmptyParens(t *testing.T) {
 	f := parseFile(t, `
 module main
 type X {
@@ -785,7 +785,7 @@ type X {
 // real-world snippet
 // -----------------------------------------------------------------------------
 
-func TestParseRealSnippet(t *testing.T) {
+func Test_Parse_RealSnippet(t *testing.T) {
 	src := `
 module main
 import "std"

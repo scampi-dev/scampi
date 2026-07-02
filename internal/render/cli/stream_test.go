@@ -70,12 +70,12 @@ func streamEvents() []event.Event {
 	}
 }
 
-// TestStreamGolden locks the check/apply block format (glyph-led header, railed
+// Test_Stream_Golden locks the check/apply block format (glyph-led header, railed
 // drift, aligned columns, (absent), hide-ok, -vv op attribution) across
 // verbosities and both glyph sets, plus one ANSI-colored variant so the
 // semantic palette (yellow changed / green ok / red failed / blue tags) is a
 // pinned contract, not just prose. Regenerate with SCAMPI_UPDATE=1.
-func TestStreamGolden(t *testing.T) {
+func Test_Stream_Golden(t *testing.T) {
 	combos := []struct {
 		name string
 		v    signal.Verbosity
@@ -134,7 +134,7 @@ func newTTYCLI(at time.Time) (*CLI, *bytes.Buffer) {
 // End-to-end: driving a scripted event stream through the stream sink
 // synchronously (no goroutine) renders durable tagged blocks with the live
 // region drawn, erased, and redrawn around them, and wiped at finish.
-func TestStream_EndToEndLiveRegion(t *testing.T) {
+func Test_Stream_EndToEndLiveRegion(t *testing.T) {
 	at := time.Unix(1000, 0)
 	c, buf := newTTYCLI(at)
 	s := newStreamSink(c)

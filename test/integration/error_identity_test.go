@@ -39,7 +39,7 @@ func assertEnginePanic(t *testing.T, r any, origMsg string) {
 	}
 }
 
-func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
+func Test_Check_RawErrorInOpCheckPropagatesAndPanics(t *testing.T) {
 	defer func() { assertEnginePanic(t, recover(), "random check error") }()
 
 	src := source.LocalPosixSource{}
@@ -81,7 +81,7 @@ func TestCheck_RawErrorInOpCheck_PropagatesAndPanics(t *testing.T) {
 	_ = err
 }
 
-func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
+func Test_Check_RawErrorInOpExecPropagatesAndPanics(t *testing.T) {
 	defer func() { assertEnginePanic(t, recover(), "random exec error") }()
 
 	src := source.LocalPosixSource{}
@@ -128,7 +128,7 @@ func TestCheck_RawErrorInOpExec_PropagatesAndPanics(t *testing.T) {
 // Cancellation
 // -----------------------------------------------------------------------------
 
-func TestExecutePlan_CancelledContext_ReturnsCancelledError(t *testing.T) {
+func Test_ExecutePlan_CancelledContextReturnsCancelledError(t *testing.T) {
 	src := source.LocalPosixSource{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()

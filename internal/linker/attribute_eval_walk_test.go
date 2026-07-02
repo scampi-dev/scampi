@@ -14,11 +14,11 @@ import (
 	"scampi.dev/scampi/test/harness"
 )
 
-// TestEvalWalk_LetBoundIntViolatesMax proves the walker validates
+// Test_EvalWalk_LetBoundIntViolatesMax proves the walker validates
 // let-bound ints via the resolved value rather than rejecting the
 // non-literal Ident. The AST-walker can't see past the Ident; the
 // eval-walker resolves p=70000 and dispatches @max(65535).
-func TestEvalWalk_LetBoundIntViolatesMax(t *testing.T) {
+func Test_EvalWalk_LetBoundIntViolatesMax(t *testing.T) {
 	src := `module main
 import "std"
 import "std/posix"
@@ -48,10 +48,10 @@ std.deploy(name = "main", targets = [host]) {
 	assertDiagnosticForParam(t, capture.Events, "port")
 }
 
-// TestEvalWalk_LetBoundValidPasses proves the walker emits nothing
+// Test_EvalWalk_LetBoundValidPasses proves the walker emits nothing
 // when the resolved value satisfies all attributes - exactly the
 // regression that issue-184 is fixing for real configs.
-func TestEvalWalk_LetBoundValidPasses(t *testing.T) {
+func Test_EvalWalk_LetBoundValidPasses(t *testing.T) {
 	src := `module main
 import "std"
 import "std/posix"
@@ -80,10 +80,10 @@ std.deploy(name = "main", targets = [host]) {
 	}
 }
 
-// TestEvalWalk_LiteralViolatesMax proves the walker behaves the same
+// Test_EvalWalk_LiteralViolatesMax proves the walker behaves the same
 // as the AST-walker for literal arguments: it validates and emits the
 // same violation.
-func TestEvalWalk_LiteralViolatesMax(t *testing.T) {
+func Test_EvalWalk_LiteralViolatesMax(t *testing.T) {
 	src := `module main
 import "std"
 import "std/posix"
@@ -112,11 +112,11 @@ std.deploy(name = "main", targets = [host]) {
 	assertDiagnosticForParam(t, capture.Events, "port")
 }
 
-// TestEvalWalk_SkipsCrossStepRef proves the walker silently skips
+// Test_EvalWalk_SkipsCrossStepRef proves the walker silently skips
 // RefVal arguments rather than dispatching attribute behaviours
 // against a runtime-only handle. Ref values resolve only at engine
 // time; static checks defer to the runtime.
-func TestEvalWalk_SkipsCrossStepRef(t *testing.T) {
+func Test_EvalWalk_SkipsCrossStepRef(t *testing.T) {
 	// Build a minimal DeclType with one annotated param, then dispatch
 	// directly with a RefVal Field - bypassing scope lookup so we
 	// test only the per-StructVal dispatch logic.

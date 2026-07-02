@@ -94,7 +94,7 @@ type E2EExpect struct {
 	Diagnostics []string `json:"diagnostics,omitempty"`
 }
 
-func TestE2E(t *testing.T) {
+func Test_E2E_Scenarios(t *testing.T) {
 	root := harness.AbsPath("../testdata/e2e")
 
 	entries, err := harness.ReadDirSafe(root)

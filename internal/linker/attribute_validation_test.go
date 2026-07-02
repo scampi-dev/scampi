@@ -74,7 +74,7 @@ func computedExpr() ast.Expr {
 // NonEmpty
 // -----------------------------------------------------------------------------
 
-func TestNonEmpty_StringLiteralEmpty(t *testing.T) {
+func Test_NonEmpty_StringLiteralEmpty(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@nonempty", "name", stringLitExpr(""), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -82,7 +82,7 @@ func TestNonEmpty_StringLiteralEmpty(t *testing.T) {
 	}
 }
 
-func TestNonEmpty_StringLiteralNonEmpty(t *testing.T) {
+func Test_NonEmpty_StringLiteralNonEmpty(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@nonempty", "name", stringLitExpr("nginx"), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -90,7 +90,7 @@ func TestNonEmpty_StringLiteralNonEmpty(t *testing.T) {
 	}
 }
 
-func TestNonEmpty_ListLiteralEmpty(t *testing.T) {
+func Test_NonEmpty_ListLiteralEmpty(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@nonempty", "packages", listLitExpr(), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -98,7 +98,7 @@ func TestNonEmpty_ListLiteralEmpty(t *testing.T) {
 	}
 }
 
-func TestNonEmpty_ListLiteralNonEmpty(t *testing.T) {
+func Test_NonEmpty_ListLiteralNonEmpty(t *testing.T) {
 	pkgs := listLitExpr(stringLitExpr("nginx"), stringLitExpr("certbot"))
 	ctx := newAttrCtx(t, "std.@nonempty", "packages", pkgs, nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
@@ -107,7 +107,7 @@ func TestNonEmpty_ListLiteralNonEmpty(t *testing.T) {
 	}
 }
 
-func TestNonEmpty_ComputedSkipped(t *testing.T) {
+func Test_NonEmpty_ComputedSkipped(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@nonempty", "name", computedExpr(), nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -120,7 +120,7 @@ func TestNonEmpty_ComputedSkipped(t *testing.T) {
 // works without a ParamArg AST node.
 // -----------------------------------------------------------------------------
 
-func TestNonEmpty_ResolvedStringEmpty(t *testing.T) {
+func Test_NonEmpty_ResolvedStringEmpty(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@nonempty", "name", "", nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -128,7 +128,7 @@ func TestNonEmpty_ResolvedStringEmpty(t *testing.T) {
 	}
 }
 
-func TestNonEmpty_ResolvedStringNonEmpty(t *testing.T) {
+func Test_NonEmpty_ResolvedStringNonEmpty(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@nonempty", "name", "nginx", nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -136,7 +136,7 @@ func TestNonEmpty_ResolvedStringNonEmpty(t *testing.T) {
 	}
 }
 
-func TestNonEmpty_ResolvedSliceEmpty(t *testing.T) {
+func Test_NonEmpty_ResolvedSliceEmpty(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@nonempty", "packages", []string{}, nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -144,7 +144,7 @@ func TestNonEmpty_ResolvedSliceEmpty(t *testing.T) {
 	}
 }
 
-func TestNonEmpty_ResolvedSliceNonEmpty(t *testing.T) {
+func Test_NonEmpty_ResolvedSliceNonEmpty(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@nonempty", "packages", []string{"nginx"}, nil)
 	NonEmptyAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -152,7 +152,7 @@ func TestNonEmpty_ResolvedSliceNonEmpty(t *testing.T) {
 	}
 }
 
-func TestMin_ResolvedBelowRange(t *testing.T) {
+func Test_Min_ResolvedBelowRange(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@min", "port", int64(0), map[string]any{"value": int64(1)})
 	MinAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -160,7 +160,7 @@ func TestMin_ResolvedBelowRange(t *testing.T) {
 	}
 }
 
-func TestMin_ResolvedInRangeIntKind(t *testing.T) {
+func Test_Min_ResolvedInRangeIntKind(t *testing.T) {
 	// Resolved values from reflection may arrive as int (not int64).
 	// Helper must accept both.
 	ctx := newResolvedCtx(t, "std.@min", "port", 100, map[string]any{"value": int64(1)})
@@ -170,7 +170,7 @@ func TestMin_ResolvedInRangeIntKind(t *testing.T) {
 	}
 }
 
-func TestSize_ResolvedInvalid(t *testing.T) {
+func Test_Size_ResolvedInvalid(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@size", "memory", "12g", nil)
 	SizeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -178,7 +178,7 @@ func TestSize_ResolvedInvalid(t *testing.T) {
 	}
 }
 
-func TestSize_ResolvedValid(t *testing.T) {
+func Test_Size_ResolvedValid(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@size", "memory", "512M", nil)
 	SizeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -186,7 +186,7 @@ func TestSize_ResolvedValid(t *testing.T) {
 	}
 }
 
-func TestPath_ResolvedRelativeWithAbsolute(t *testing.T) {
+func Test_Path_ResolvedRelativeWithAbsolute(t *testing.T) {
 	ctx := newResolvedCtx(t, "std.@path", "dest", "etc/foo", map[string]any{"absolute": true})
 	PathAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -197,7 +197,7 @@ func TestPath_ResolvedRelativeWithAbsolute(t *testing.T) {
 // FileMode
 // -----------------------------------------------------------------------------
 
-func TestFileMode_ValidOctal(t *testing.T) {
+func Test_FileMode_ValidOctal(t *testing.T) {
 	for _, perm := range []string{"0644", "0755", "0600", "rw-r--r--", "u=rw,g=r,o=r"} {
 		ctx := newAttrCtx(t, "std.@filemode", "perm", stringLitExpr(perm), nil)
 		FileModeAttribute{}.StaticCheck(ctx)
@@ -207,7 +207,7 @@ func TestFileMode_ValidOctal(t *testing.T) {
 	}
 }
 
-func TestFileMode_Invalid(t *testing.T) {
+func Test_FileMode_Invalid(t *testing.T) {
 	for _, perm := range []string{"yolo", "9999", "rwxrwxrwxrwx", ""} {
 		ctx := newAttrCtx(t, "std.@filemode", "perm", stringLitExpr(perm), nil)
 		FileModeAttribute{}.StaticCheck(ctx)
@@ -217,7 +217,7 @@ func TestFileMode_Invalid(t *testing.T) {
 	}
 }
 
-func TestFileMode_ComputedSkipped(t *testing.T) {
+func Test_FileMode_ComputedSkipped(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@filemode", "perm", computedExpr(), nil)
 	FileModeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -228,7 +228,7 @@ func TestFileMode_ComputedSkipped(t *testing.T) {
 // Size
 // -----------------------------------------------------------------------------
 
-func TestSize_Valid(t *testing.T) {
+func Test_Size_Valid(t *testing.T) {
 	for _, s := range []string{"1024", "512K", "4M", "8G", "12T", "1.5G", "0.25T", "256B"} {
 		ctx := newAttrCtx(t, "std.@size", "memory", stringLitExpr(s), nil)
 		SizeAttribute{}.StaticCheck(ctx)
@@ -238,7 +238,7 @@ func TestSize_Valid(t *testing.T) {
 	}
 }
 
-func TestSize_Invalid(t *testing.T) {
+func Test_Size_Invalid(t *testing.T) {
 	for _, s := range []string{"", "12g", "8 G", "M", "abc", "12X", "1..5G", "-1G", "+1G"} {
 		ctx := newAttrCtx(t, "std.@size", "memory", stringLitExpr(s), nil)
 		SizeAttribute{}.StaticCheck(ctx)
@@ -248,7 +248,7 @@ func TestSize_Invalid(t *testing.T) {
 	}
 }
 
-func TestSize_ComputedSkipped(t *testing.T) {
+func Test_Size_ComputedSkipped(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@size", "memory", computedExpr(), nil)
 	SizeAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -259,7 +259,7 @@ func TestSize_ComputedSkipped(t *testing.T) {
 // Pattern
 // -----------------------------------------------------------------------------
 
-func TestPattern_Match(t *testing.T) {
+func Test_Pattern_Match(t *testing.T) {
 	args := map[string]any{"regex": "^[0-9]+(-[0-9]+)?(/(tcp|udp))?$"}
 	for _, port := range []string{"22", "80/tcp", "8000-9000/udp"} {
 		ctx := newAttrCtx(t, "std.@pattern", "port", stringLitExpr(port), args)
@@ -270,7 +270,7 @@ func TestPattern_Match(t *testing.T) {
 	}
 }
 
-func TestPattern_NoMatch(t *testing.T) {
+func Test_Pattern_NoMatch(t *testing.T) {
 	args := map[string]any{"regex": "^[0-9]+(-[0-9]+)?(/(tcp|udp))?$"}
 	for _, port := range []string{"abc", "22/sctp", "/tcp"} {
 		ctx := newAttrCtx(t, "std.@pattern", "port", stringLitExpr(port), args)
@@ -281,7 +281,7 @@ func TestPattern_NoMatch(t *testing.T) {
 	}
 }
 
-func TestPattern_VerifyExactlyOnePercentS(t *testing.T) {
+func Test_Pattern_VerifyExactlyOnePercentS(t *testing.T) {
 	// The regex shipped on copy.verify and template.verify:
 	// requires exactly one %s, allows other %X tokens. The runtime
 	// uses strings.Replace(verifyCmd, "%s", tmpFile, 1) - only the
@@ -312,7 +312,7 @@ func TestPattern_VerifyExactlyOnePercentS(t *testing.T) {
 	}
 }
 
-func TestPattern_BadRegexFails(t *testing.T) {
+func Test_Pattern_BadRegexFails(t *testing.T) {
 	args := map[string]any{"regex": "[invalid"}
 	ctx := newAttrCtx(t, "std.@pattern", "x", stringLitExpr("anything"), args)
 	PatternAttribute{}.StaticCheck(ctx)
@@ -321,7 +321,7 @@ func TestPattern_BadRegexFails(t *testing.T) {
 	}
 }
 
-func TestPattern_ComputedSkipped(t *testing.T) {
+func Test_Pattern_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"regex": "^.+$"}
 	ctx := newAttrCtx(t, "std.@pattern", "x", computedExpr(), args)
 	PatternAttribute{}.StaticCheck(ctx)
@@ -333,7 +333,7 @@ func TestPattern_ComputedSkipped(t *testing.T) {
 // OneOf
 // -----------------------------------------------------------------------------
 
-func TestOneOf_Allowed(t *testing.T) {
+func Test_OneOf_Allowed(t *testing.T) {
 	args := map[string]any{"values": []any{"present", "absent", "latest"}}
 	for _, v := range []string{"present", "absent", "latest"} {
 		ctx := newAttrCtx(t, "std.@oneof", "state", stringLitExpr(v), args)
@@ -344,7 +344,7 @@ func TestOneOf_Allowed(t *testing.T) {
 	}
 }
 
-func TestOneOf_NotAllowed(t *testing.T) {
+func Test_OneOf_NotAllowed(t *testing.T) {
 	args := map[string]any{"values": []any{"present", "absent", "latest"}}
 	for _, v := range []string{"yolo", "Present", "", "PRESENT"} {
 		ctx := newAttrCtx(t, "std.@oneof", "state", stringLitExpr(v), args)
@@ -355,7 +355,7 @@ func TestOneOf_NotAllowed(t *testing.T) {
 	}
 }
 
-func TestOneOf_ComputedSkipped(t *testing.T) {
+func Test_OneOf_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"values": []any{"a", "b"}}
 	ctx := newAttrCtx(t, "std.@oneof", "x", computedExpr(), args)
 	OneOfAttribute{}.StaticCheck(ctx)
@@ -367,7 +367,7 @@ func TestOneOf_ComputedSkipped(t *testing.T) {
 // Path
 // -----------------------------------------------------------------------------
 
-func TestPath_AbsoluteRequired_Absolute(t *testing.T) {
+func Test_Path_AbsoluteRequiredAbsolute(t *testing.T) {
 	args := map[string]any{"absolute": true}
 	for _, p := range []string{"/etc/nginx", "/", "/var/log/app.log"} {
 		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(p), args)
@@ -378,7 +378,7 @@ func TestPath_AbsoluteRequired_Absolute(t *testing.T) {
 	}
 }
 
-func TestPath_AbsoluteRequired_Relative(t *testing.T) {
+func Test_Path_AbsoluteRequiredRelative(t *testing.T) {
 	args := map[string]any{"absolute": true}
 	for _, p := range []string{"etc/nginx", "./relative", "../up"} {
 		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(p), args)
@@ -389,7 +389,7 @@ func TestPath_AbsoluteRequired_Relative(t *testing.T) {
 	}
 }
 
-func TestPath_RelativeAllowedByDefault(t *testing.T) {
+func Test_Path_RelativeAllowedByDefault(t *testing.T) {
 	// Without absolute=true, relative paths are accepted.
 	for _, p := range []string{"etc/nginx", "./relative", "/absolute"} {
 		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(p), nil)
@@ -400,7 +400,7 @@ func TestPath_RelativeAllowedByDefault(t *testing.T) {
 	}
 }
 
-func TestPath_EmptyRejected(t *testing.T) {
+func Test_Path_EmptyRejected(t *testing.T) {
 	// Empty path is always rejected, regardless of the absolute arg.
 	for _, args := range []map[string]any{nil, {"absolute": true}, {"absolute": false}} {
 		ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr(""), args)
@@ -411,7 +411,7 @@ func TestPath_EmptyRejected(t *testing.T) {
 	}
 }
 
-func TestPath_NULRejected(t *testing.T) {
+func Test_Path_NULRejected(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@path", "dest", stringLitExpr("/etc/\x00bad"), nil)
 	PathAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -419,7 +419,7 @@ func TestPath_NULRejected(t *testing.T) {
 	}
 }
 
-func TestPath_ComputedSkipped(t *testing.T) {
+func Test_Path_ComputedSkipped(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@path", "dest", computedExpr(), map[string]any{"absolute": true})
 	PathAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 0 {
@@ -430,7 +430,7 @@ func TestPath_ComputedSkipped(t *testing.T) {
 // Deprecated and Since
 // -----------------------------------------------------------------------------
 
-func TestDeprecated_AlwaysWarns(t *testing.T) {
+func Test_Deprecated_AlwaysWarns(t *testing.T) {
 	args := map[string]any{"message": "use foo() instead"}
 	ctx := newAttrCtx(t, "std.@deprecated", "old_field", stringLitExpr("anything"), args)
 	DeprecatedAttribute{}.StaticCheck(ctx)
@@ -439,7 +439,7 @@ func TestDeprecated_AlwaysWarns(t *testing.T) {
 	}
 }
 
-func TestDeprecated_NoMessageStillWarns(t *testing.T) {
+func Test_Deprecated_NoMessageStillWarns(t *testing.T) {
 	ctx := newAttrCtx(t, "std.@deprecated", "old_field", stringLitExpr("anything"), nil)
 	DeprecatedAttribute{}.StaticCheck(ctx)
 	if diags(ctx) != 1 {
@@ -447,7 +447,7 @@ func TestDeprecated_NoMessageStillWarns(t *testing.T) {
 	}
 }
 
-func TestSince_Noop(t *testing.T) {
+func Test_Since_Noop(t *testing.T) {
 	args := map[string]any{"version": "0.5"}
 	ctx := newAttrCtx(t, "std.@since", "x", stringLitExpr("anything"), args)
 	SinceAttribute{}.StaticCheck(ctx)
@@ -463,7 +463,7 @@ func intLitExpr(value int64) *ast.IntLit {
 	return &ast.IntLit{Value: value, SrcSpan: token.Span{Start: 0, End: 5}}
 }
 
-func TestMin_InRange(t *testing.T) {
+func Test_Min_InRange(t *testing.T) {
 	args := map[string]any{"value": int64(1)}
 	for _, v := range []int64{1, 100, 65535} {
 		ctx := newAttrCtx(t, "std.@min", "port", intLitExpr(v), args)
@@ -474,7 +474,7 @@ func TestMin_InRange(t *testing.T) {
 	}
 }
 
-func TestMin_BelowRange(t *testing.T) {
+func Test_Min_BelowRange(t *testing.T) {
 	args := map[string]any{"value": int64(1)}
 	for _, v := range []int64{0, -1, -100} {
 		ctx := newAttrCtx(t, "std.@min", "port", intLitExpr(v), args)
@@ -485,7 +485,7 @@ func TestMin_BelowRange(t *testing.T) {
 	}
 }
 
-func TestMin_ComputedSkipped(t *testing.T) {
+func Test_Min_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"value": int64(1)}
 	ctx := newAttrCtx(t, "std.@min", "port", computedExpr(), args)
 	MinAttribute{}.StaticCheck(ctx)
@@ -494,7 +494,7 @@ func TestMin_ComputedSkipped(t *testing.T) {
 	}
 }
 
-func TestMax_InRange(t *testing.T) {
+func Test_Max_InRange(t *testing.T) {
 	args := map[string]any{"value": int64(65535)}
 	for _, v := range []int64{1, 100, 65535} {
 		ctx := newAttrCtx(t, "std.@max", "port", intLitExpr(v), args)
@@ -505,7 +505,7 @@ func TestMax_InRange(t *testing.T) {
 	}
 }
 
-func TestMax_AboveRange(t *testing.T) {
+func Test_Max_AboveRange(t *testing.T) {
 	args := map[string]any{"value": int64(65535)}
 	for _, v := range []int64{65536, 70000, 100000} {
 		ctx := newAttrCtx(t, "std.@max", "port", intLitExpr(v), args)
@@ -516,7 +516,7 @@ func TestMax_AboveRange(t *testing.T) {
 	}
 }
 
-func TestMax_ComputedSkipped(t *testing.T) {
+func Test_Max_ComputedSkipped(t *testing.T) {
 	args := map[string]any{"value": int64(65535)}
 	ctx := newAttrCtx(t, "std.@max", "port", computedExpr(), args)
 	MaxAttribute{}.StaticCheck(ctx)
