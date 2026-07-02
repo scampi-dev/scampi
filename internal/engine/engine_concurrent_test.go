@@ -169,6 +169,120 @@ func TestRunPlansConcurrent_SiblingsRunDespiteFailure(t *testing.T) {
 	}
 }
 
+// mkLeveledConfigs builds a three-deploy set with a real resource edge:
+// "producer" promises label x, "consumer"'s target consumes it, and "other"
+// is independent. Levels: 0 = {producer, other}, 1 = {consumer}.
+func mkLeveledConfigs() []spec.Config {
+	producer := mkResolved("producer",
+		fakeTargetKind{kind: "t"},
+		fakeStaticStepKind{kind: "make.x", promises: []spec.Resource{spec.LabelResource("x")}},
+	)
+	other := mkResolved("other", fakeTargetKind{kind: "t"}, fakeStaticStepKind{kind: "noop"})
+	consumer := mkResolved("consumer",
+		fakeTargetKind{kind: "t", inputs: []spec.Resource{spec.LabelResource("x")}},
+		fakeStaticStepKind{kind: "use.x"},
+	)
+	return []spec.Config{producer, other, consumer}
+}
+
+// A downstream level must not start until EVERY node in the upstream level
+// has finished - not just its own producer. "other" signals completion only
+// after a delay; if the level barrier leaked, "consumer" would enter while
+// "other" is still running.
+func TestRunPlansConcurrent_LevelBarrier(t *testing.T) {
+	var producerDone, otherDone atomic.Bool
+
+	err := runPlansConcurrent(noopCtx(t.Context()), mkLeveledConfigs(),
+		func(_ diagnostic.Ctx, _ event.DeployRef, res spec.Config) error {
+			switch res.DeployName {
+			case "producer":
+				producerDone.Store(true)
+			case "other":
+				time.Sleep(50 * time.Millisecond)
+				otherDone.Store(true)
+			case "consumer":
+				if !producerDone.Load() {
+					t.Error("consumer started before its producer finished")
+				}
+				if !otherDone.Load() {
+					t.Error("consumer started before the whole upstream level finished")
+				}
+			}
+			return nil
+		})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// Lane identity is assigned level-major, declaration order within a level,
+// and the run-level constants (MaxNameWidth, RunTotalSteps) are the same on
+// every ref.
+func TestRunPlansConcurrent_AssignsLaneIdentity(t *testing.T) {
+	var mu sync.Mutex
+	refs := map[string]event.DeployRef{}
+
+	err := runPlansConcurrent(noopCtx(t.Context()), mkLeveledConfigs(),
+		func(_ diagnostic.Ctx, dr event.DeployRef, res spec.Config) error {
+			mu.Lock()
+			refs[res.DeployName] = dr
+			mu.Unlock()
+			return nil
+		})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	wantOrd := map[string]int{"producer": 0, "other": 1, "consumer": 2}
+	for name, want := range wantOrd {
+		if got := refs[name].Ordinal; got != want {
+			t.Errorf("%s ordinal = %d, want %d", name, got, want)
+		}
+	}
+	const wantSteps = 3 // one step per deploy
+	wantNameW := len("consumer")
+	for name, dr := range refs {
+		if dr.RunTotalSteps != wantSteps {
+			t.Errorf("%s RunTotalSteps = %d, want %d", name, dr.RunTotalSteps, wantSteps)
+		}
+		if dr.MaxNameWidth != wantNameW {
+			t.Errorf("%s MaxNameWidth = %d, want %d", name, dr.MaxNameWidth, wantNameW)
+		}
+		if dr.Name != name {
+			t.Errorf("ref name = %q, want %q", dr.Name, name)
+		}
+	}
+}
+
+// An upstream failure skips downstream levels entirely (their producers
+// couldn't satisfy them) while same-level siblings still run to completion.
+func TestRunPlansConcurrent_UpstreamFailureSkipsDownstream(t *testing.T) {
+	boom := errors.New("producer failed")
+	var mu sync.Mutex
+	ran := map[string]bool{}
+
+	err := runPlansConcurrent(noopCtx(t.Context()), mkLeveledConfigs(),
+		func(_ diagnostic.Ctx, _ event.DeployRef, res spec.Config) error {
+			mu.Lock()
+			ran[res.DeployName] = true
+			mu.Unlock()
+			if res.DeployName == "producer" {
+				return boom
+			}
+			return nil
+		})
+
+	if !errors.Is(err, boom) {
+		t.Errorf("expected producer error, got %v", err)
+	}
+	if !ran["other"] {
+		t.Error("same-level sibling should run despite the failure")
+	}
+	if ran["consumer"] {
+		t.Error("downstream level ran despite upstream failure")
+	}
+}
+
 func TestRunPlansConcurrent_CtxCancellationPropagates(t *testing.T) {
 	resolved := []spec.Config{
 		{DeployName: "a"},

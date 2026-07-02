@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/mattn/go-runewidth"
-	"golang.org/x/sync/errgroup"
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic"
@@ -226,6 +225,11 @@ func runPlansConcurrent(
 	return nil
 }
 
+// runLevel runs one level's deploys concurrently and collects their errors.
+// Deliberately a plain WaitGroup, not an errgroup: a failing deploy must NOT
+// cancel siblings in its level (they target independent systems), so there is
+// no error-triggered cancellation here - only the parent ctx (e.g. SIGINT)
+// reaches the workers.
 func runLevel(
 	ctx diagnostic.Ctx,
 	level []*deployNode,
@@ -234,8 +238,8 @@ func runLevel(
 	totalSteps int,
 	work func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error,
 ) []error {
-	g, gctx := errgroup.WithContext(ctx)
 	var (
+		wg     sync.WaitGroup
 		mu     sync.Mutex
 		causes []error
 	)
@@ -246,15 +250,14 @@ func runLevel(
 			MaxNameWidth:  nameW,
 			RunTotalSteps: totalSteps,
 		}
-		g.Go(func() error {
-			if err := work(ctx.With(gctx), dr, n.res); err != nil {
+		wg.Go(func() {
+			if err := work(ctx, dr, n.res); err != nil {
 				mu.Lock()
 				causes = append(causes, err)
 				mu.Unlock()
 			}
-			return nil
 		})
 	}
-	_ = g.Wait()
+	wg.Wait()
 	return causes
 }
