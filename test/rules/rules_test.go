@@ -110,7 +110,11 @@ func TestImportCapabilities(t *testing.T) {
 		},
 		{
 			pattern:        "internal/target/local/posix.go",
-			allowedImports: "os,os/exec,os/user,crypto/rand",
+			allowedImports: "os,os/exec,os/user",
+		},
+		{
+			pattern:        "internal/target/local/escalate.go",
+			allowedImports: "os,crypto/rand",
 		},
 		{
 			pattern:        "internal/target/local/repo.go",
@@ -865,4 +869,77 @@ func TestGlyphDiscipline(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// Test file anchoring
+// -----------------------------------------------------------------------------
+
+// Test_Rule_NoOrphanTestFiles: in packages with prod code, every foo_test.go
+// must sit next to a foo.go. An orphaned test file either tests code that
+// lives elsewhere (rename or merge it) or marks a missing prod-file boundary
+// (split the prod file). Packages without any prod file (pure-test packages
+// like lang/test, and the whole test/ tree) have nothing to anchor to and are
+// exempt.
+func Test_Rule_NoOrphanTestFiles(t *testing.T) {
+	roots := []string{"../../internal", "../../cmd"}
+
+	// Build-tagged environment variants: tags apply per-file, so these cannot
+	// merge into their anchor's test file. Keep this list painfully short.
+	exempt := map[string]bool{
+		"internal/target/local/escalate_nonroot_test.go": true, // !runasroot twin of escalate_test.go
+	}
+
+	repo := repoRoot(t)
+	for _, root := range roots {
+		err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(p, "_test.go") {
+				return nil
+			}
+			abs, aerr := filepath.Abs(p)
+			if aerr != nil {
+				return aerr
+			}
+			rel, rerr := filepath.Rel(repo, abs)
+			if rerr != nil {
+				return rerr
+			}
+			if exempt[filepath.ToSlash(rel)] {
+				return nil
+			}
+			if !dirHasProdGo(t, filepath.Dir(p)) {
+				return nil
+			}
+			prod := strings.TrimSuffix(p, "_test.go") + ".go"
+			if _, serr := os.Stat(prod); serr == nil {
+				return nil
+			}
+			t.Errorf(
+				"%s: orphaned test file (no %s) - merge it into the test file of the "+
+					"prod file it exercises, or split that prod file at a real boundary",
+				rel, filepath.Base(prod),
+			)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// dirHasProdGo reports whether dir contains at least one non-test .go file.
+func dirHasProdGo(t *testing.T, dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, "_test.go") {
+			return true
+		}
+	}
+	return false
 }

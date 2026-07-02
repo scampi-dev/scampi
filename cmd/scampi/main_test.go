@@ -3,11 +3,13 @@
 package main_test
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 var binary string
@@ -158,4 +160,115 @@ func TestUsageError_ValidColorFlag(t *testing.T) {
 	if code != 0 {
 		t.Errorf("exit code = %d, want 0; output:\n%s", code, out)
 	}
+}
+
+// Color resolution
+// -----------------------------------------------------------------------------
+
+// runEnv executes the binary with extra environment variables appended.
+func runEnv(env []string, args ...string) string {
+	cmd := exec.Command(binary, args...)
+	cmd.Env = append(os.Environ(), env...)
+	out, _ := cmd.CombinedOutput()
+	return string(out)
+}
+
+func TestNoColor_ExplicitAlwaysWins(t *testing.T) {
+	out := runEnv([]string{"NO_COLOR=1"}, "--color", "always", "legend")
+	if !strings.Contains(out, "\x1b[") {
+		t.Errorf("--color always must outrank NO_COLOR, got uncolored output:\n%s", out)
+	}
+}
+
+func TestNoColor_AutoStaysUncolored(t *testing.T) {
+	out := runEnv([]string{"NO_COLOR=1"}, "legend")
+	if strings.Contains(out, "\x1b[") {
+		t.Errorf("NO_COLOR under the auto default must not color, got:\n%s", out)
+	}
+}
+
+// CLI fuzzing
+// -----------------------------------------------------------------------------
+
+func FuzzCLI(f *testing.F) {
+	// ---- Seeds: real, high-value starting points ----
+	seeds := []string{
+		// bare flags missing values
+		"--color",
+		"--ascii",
+		"-v",
+		"-vvvv",
+
+		// invalid flag values
+		"--color bogus",
+		"--color=",
+		"--color=bogus",
+
+		// flag eats subcommand
+		"--color apply",
+		"--color check",
+		"--color inspect",
+
+		// subcommand flags missing values
+		"inspect --step",
+		"apply --only",
+		"apply --targets",
+		"apply --only=foo --targets=bar",
+		"check --only",
+
+		// unknown flags
+		"--nope",
+		"apply --nope",
+		"inspect --nope",
+
+		// subcommand with no args (where args required)
+		"apply",
+		"check",
+		"inspect",
+		"plan",
+
+		// subcommand with too many args
+		"index one two",
+
+		// working commands (should exit 0)
+		"legend",
+		"--color=never legend",
+		"--ascii legend",
+		"-v legend",
+		"index",
+
+		// nonsense
+		"",
+		"   ",
+		"\U0001F389",
+		"apply --only=foo --targets=bar nonexistent.scampi",
+	}
+
+	for _, s := range seeds {
+		f.Add(s)
+	}
+
+	f.Fuzz(func(t *testing.T, input string) {
+		args := strings.Fields(input)
+
+		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, binary, args...)
+		out, err := cmd.CombinedOutput()
+
+		if err != nil {
+			if ctx.Err() != nil {
+				t.Fatalf("TIMEOUT on args %q", input)
+			}
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				// Exit 1 (user error) is expected for bad input.
+				// Exit 2 (internal bug / panic) must never happen.
+				if exitErr.ExitCode() == 2 {
+					t.Fatalf("PANIC (exit 2) on args %q:\n%s", input, out)
+				}
+				return
+			}
+		}
+	})
 }

@@ -107,6 +107,11 @@ integration:
   go test -v ./test/integration/...
 
 [group('focused')]
+[doc("Run codebase invariant rules")]
+rules:
+  go test -v ./test/rules/...
+
+[group('focused')]
 [doc("Run tests with race-detector")]
 race:
   go test -race ./...
