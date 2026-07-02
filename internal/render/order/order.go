@@ -18,7 +18,7 @@ import (
 
 // Sequencer buffers each step's Change/Result events and releases the whole
 // step block to the wrapped Output in ascending step-index order, the moment a
-// per-deploy cursor reaches a completed step. Diagnostics and progress are
+// per-deploy cursor reaches a completed step. Diagnostics and Begin are
 // out-of-band and pass through immediately.
 //
 // Each deploy lane (keyed by event.StepRef.Deploy.Ordinal) has its own cursor.
@@ -76,7 +76,7 @@ func (s *Sequencer) RenderEvent(e event.Event) {
 		})
 		s.advance(l)
 	default:
-		// Errors, warnings, info, progress: out-of-band, not part of the
+		// Errors, warnings, info, begin: out-of-band, not part of the
 		// ordered step record. Release immediately.
 		s.out.RenderEvent(e)
 	}
@@ -111,14 +111,16 @@ func (s *Sequencer) flush(b *block) {
 	for _, c := range b.changes {
 		s.out.RenderEvent(c)
 	}
-	if b.done {
-		s.out.RenderEvent(b.result)
-	}
+	s.out.RenderEvent(b.result)
 }
 
-// drain flushes all pending blocks across all lanes, ordered by (lane ordinal,
-// step index) for determinism. On abort this is where steps that finished in
-// parallel past a failed/stuck cursor get reported honestly rather than dropped.
+// drain flushes all completed pending blocks across all lanes, ordered by
+// (lane ordinal, step index) for determinism. On abort this is where steps that
+// finished in parallel past a failed/stuck cursor get reported honestly rather
+// than dropped. Blocks without a Result are discarded: the engine emits a
+// Result on every path (failure and abort included), so a missing one means the
+// step never settled, and the CLI can only render a step block off its Result
+// anyway.
 func (s *Sequencer) drain() {
 	ords := make([]int, 0, len(s.lanes))
 	for ord := range s.lanes {
@@ -133,7 +135,9 @@ func (s *Sequencer) drain() {
 		}
 		sort.Ints(idxs)
 		for _, i := range idxs {
-			s.flush(l.pending[i])
+			if b := l.pending[i]; b.done {
+				s.flush(b)
+			}
 			delete(l.pending, i)
 		}
 	}

@@ -6,7 +6,6 @@ import "scampi.dev/scampi/internal/render/ansi"
 
 // Semantic colors for CLI output.
 var (
-	colEngineStarted       = ansi.Green().Dim()
 	colEngineFinishedFatal = ansi.BrightRed().Bold()
 
 	colPlanHeader = ansi.Magenta().Bold()

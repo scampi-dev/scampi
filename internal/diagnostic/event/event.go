@@ -79,7 +79,7 @@ type Cause struct {
 
 // Event is the sealed union of everything Emit accepts: the
 // diagnostics (Error, Warning, Info) and the streaming events
-// (Change, Progress, Begin, Result). External types cannot join the
+// (Change, Begin, Result). External types cannot join the
 // union - the sealing method isEvent is unexported.
 type Event interface{ isEvent() }
 
@@ -117,13 +117,12 @@ type Info struct {
 	Cause    Cause
 }
 
-func (Error) isEvent()    {}
-func (Warning) isEvent()  {}
-func (Info) isEvent()     {}
-func (Change) isEvent()   {}
-func (Progress) isEvent() {}
-func (Begin) isEvent()    {}
-func (Result) isEvent()   {}
+func (Error) isEvent()   {}
+func (Warning) isEvent() {}
+func (Info) isEvent()    {}
+func (Change) isEvent()  {}
+func (Begin) isEvent()   {}
+func (Result) isEvent()  {}
 
 // Change
 // -----------------------------------------------------------------------------
@@ -173,21 +172,6 @@ type Change struct {
 	Cause     Cause
 }
 
-// Progress
-// -----------------------------------------------------------------------------
-
-// Progress reports position through a run: Completed of Total work units, with
-// Current naming the step in flight. Total == 0 means indeterminate (no count
-// to show). No severity, no cause: too ephemeral to bother. Real Completed/
-// Total counting lands with the scheduler progress hook; the type is defined
-// now so the stream sink can render it (#430).
-type Progress struct {
-	Time      time.Time
-	Total     int
-	Completed int
-	Current   StepRef
-}
-
 // Result
 // -----------------------------------------------------------------------------
 
@@ -234,7 +218,7 @@ type Result struct {
 	Summary StepSummary
 	// Ops are the step's op display IDs, so -vv can show op-level detail for a
 	// satisfied step (which emits no Change events) symmetrically with a changed
-	// one. Empty below -vv.
+	// one. Always populated; the renderer gates by verbosity.
 	Ops   []string
 	Cause Cause
 }

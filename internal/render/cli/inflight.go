@@ -28,7 +28,8 @@ type inflight struct {
 type laneState struct {
 	name     string
 	running  []runningStep // begun, not finished, in begin order
-	finished int
+	finished int           // plan steps settled; counts toward N-of-M
+	hooks    int           // hook steps settled; outside the plan total
 }
 
 type runningStep struct {
@@ -48,8 +49,10 @@ func (f *inflight) begin(s event.StepRef, now time.Time) {
 }
 
 // finish records a step settling: it leaves the running set and bumps the
-// lane's finished count.
-func (f *inflight) finish(s event.StepRef) {
+// lane's finished count. Hook steps count separately: RunTotalSteps is plan
+// steps only, so counting a hook toward it would overrun the N-of-M footer
+// ("5/4 steps").
+func (f *inflight) finish(s event.StepRef, hook bool) {
 	l := f.lane(s.Deploy)
 	for i, r := range l.running {
 		if r.ref.Index == s.Index {
@@ -57,16 +60,22 @@ func (f *inflight) finish(s event.StepRef) {
 			break
 		}
 	}
+	if hook {
+		l.hooks++
+		return
+	}
 	l.finished++
 }
 
 // progress reports steps finished so far across all lanes, against the run-wide
-// total. total is 0 until the first begin (nothing to show yet).
-func (f *inflight) progress() (done, total int) {
+// total, plus hook steps settled outside that total. total is 0 until the first
+// begin (nothing to show yet).
+func (f *inflight) progress() (done, total, hooks int) {
 	for _, l := range f.lanes {
 		done += l.finished
+		hooks += l.hooks
 	}
-	return done, f.total
+	return done, f.total, hooks
 }
 
 // anyRunning reports whether any lane has an in-flight step.

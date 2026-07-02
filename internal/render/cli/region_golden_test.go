@@ -50,9 +50,12 @@ func TestLiveRegionGolden(t *testing.T) {
 		f.begin(ref(1, "gateway", 3, "service", "restart"), base.Add(5*time.Second))
 		// Two already finished -> footer shows "2/9 steps".
 		f.begin(ref(0, "web", 4, "symlink", "current"), base)
-		f.finish(ref(0, "web", 4, "symlink", "current"))
+		f.finish(ref(0, "web", 4, "symlink", "current"), false)
 		f.begin(ref(0, "web", 5, "run", "warm cache"), base)
-		f.finish(ref(0, "web", 5, "run", "warm cache"))
+		f.finish(ref(0, "web", 5, "run", "warm cache"), false)
+		// A settled hook counts outside the plan total -> "+1 hook" suffix.
+		f.begin(ref(0, "web", 6, "service", "reload nginx"), base)
+		f.finish(ref(0, "web", 6, "service", "reload nginx"), true)
 		return f
 	}
 

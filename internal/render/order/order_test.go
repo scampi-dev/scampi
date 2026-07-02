@@ -25,8 +25,8 @@ func (r *recorder) RenderEvent(e event.Event) {
 		r.log = append(r.log, fmt.Sprintf("change[%s%d]%s", lane(ev.Step), ev.Step.Index, ev.DisplayID))
 	case event.Result:
 		r.log = append(r.log, fmt.Sprintf("result[%s%d]", lane(ev.Step), ev.Step.Index))
-	case event.Progress:
-		r.log = append(r.log, "progress")
+	case event.Begin:
+		r.log = append(r.log, "begin")
 	case event.Info:
 		r.log = append(r.log, "info")
 	default:
@@ -142,17 +142,17 @@ func TestAbortDrainsCompletedPastCursor(t *testing.T) {
 	})
 }
 
-// Diagnostics and progress are out-of-band: released immediately, never held
+// Diagnostics and Begin are out-of-band: released immediately, never held
 // behind buffered step blocks.
-func TestDiagnosticsAndProgressPassThrough(t *testing.T) {
+func TestDiagnosticsAndBeginPassThrough(t *testing.T) {
 	r := &recorder{}
 	s := order.New(r)
 	s.RenderEvent(event.Info{})
 	s.RenderEvent(change(0, "a"))
-	s.RenderEvent(event.Progress{})
+	s.RenderEvent(event.Begin{})
 	s.RenderEvent(res(0))
 
-	assertLog(t, r.log, []string{"info", "progress", "change[0]a", "result[0]"})
+	assertLog(t, r.log, []string{"info", "begin", "change[0]a", "result[0]"})
 }
 
 // Each deploy lane orders independently and interleaves freely: a fast lane
@@ -180,6 +180,20 @@ func TestHookIndicesContinueLane(t *testing.T) {
 	s.RenderEvent(res(1))
 	s.RenderEvent(res(2)) // hook step, continues the index space
 	assertLog(t, r.log, []string{"result[0]", "result[1]", "result[2]"})
+}
+
+// A block with buffered drift but no Result never settled; drain discards it
+// rather than replaying drift the CLI can only render off a Result. The engine
+// emits a Result on every path, so such a block means the run died mid-step.
+func TestDrainDiscardsUnfinishedBlocks(t *testing.T) {
+	r := &recorder{}
+	s := order.New(r)
+	s.RenderEvent(res(0))
+	s.RenderEvent(change(1, "a")) // step 1 died mid-flight: no Result
+	s.RenderEvent(res(2))
+	s.Flush()
+
+	assertLog(t, r.log, []string{"result[0]", "result[2]"})
 }
 
 // On abort the command returns before RenderSummary, so a deferred Flush is the

@@ -48,9 +48,36 @@ func TestRegionLines_EmptyWhenIdle(t *testing.T) {
 
 	f := newInflight()
 	f.begin(sref(0, "web", 0), time.Unix(0, 0))
-	f.finish(sref(0, "web", 0))
+	f.finish(sref(0, "web", 0), false)
 
 	if got := c.regionLines(f, 0); len(got) != 0 {
 		t.Errorf("idle region: got %v, want empty", got)
+	}
+}
+
+// A region taller than the terminal breaks CursorUp math (it clamps at the top
+// row), so lane lines get cut to fit; the progress footer always survives.
+func TestRegionLines_HeightCap(t *testing.T) {
+	c := New(Options{Stdout: &bytes.Buffer{}, ForceASCII: true}, nil)
+	c.isTTY = true
+	c.width = 200
+	c.height = 5
+
+	f := newInflight()
+	now := time.Unix(0, 0)
+	// 4 lanes x 1 running step + footer = 5 lines, over the 4-line budget.
+	for ord, name := range []string{"web", "dns", "npm", "db"} {
+		ref := sref(ord, name, 0)
+		ref.Deploy.RunTotalSteps = 8
+		f.begin(ref, now)
+	}
+
+	lines := c.regionLines(f, 0)
+	if len(lines) > 4 {
+		t.Fatalf("region exceeds height budget: %d lines for a 5-row terminal\n%s",
+			len(lines), strings.Join(lines, "\n"))
+	}
+	if last := lines[len(lines)-1]; !strings.Contains(last, "0/8 steps") {
+		t.Errorf("footer should survive the cap, last line: %q", last)
 	}
 }

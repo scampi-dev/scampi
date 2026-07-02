@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/mattn/go-runewidth"
 	"golang.org/x/sync/errgroup"
 
 	"scampi.dev/scampi/internal/capability"
@@ -196,7 +197,9 @@ func runPlansConcurrent(
 			ordOf[n] = ord
 			ord++
 			totalSteps += len(n.res.Steps)
-			if w := len(n.res.DeployName); w > nameW {
+			// Display columns, not bytes: the renderer pads tags against this
+			// with the same measure (see cli.deployTag).
+			if w := runewidth.StringWidth(n.res.DeployName); w > nameW {
 				nameW = w
 			}
 		}

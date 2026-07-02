@@ -96,15 +96,22 @@ func (s *streamSink) run() {
 
 func (s *streamSink) handle(e event.Event) {
 	// Real-time in-flight tracking from the raw event (begin/finish order).
+	// Only these two change the region, so only they trigger a repaint; the
+	// ticker covers spinner motion. Repainting on every event would erase and
+	// redraw the whole region per Change on top of the redraw sink.emit already
+	// does for durable lines. Repaint BEFORE the durable render: emit redraws
+	// the region from its last-set content, so painting after would briefly
+	// show a finished step as still in flight.
 	switch ev := e.(type) {
 	case event.Begin:
 		s.inflight.begin(ev.Step, s.cli.now())
+		s.repaint()
 	case event.Result:
-		s.inflight.finish(ev.Step)
+		s.inflight.finish(ev.Step, ev.Cause.Kind == event.CauseHook)
+		s.repaint()
 	}
 	// Durable scrollback: per-deploy ordering, released blocks go to the sink.
 	s.seq.RenderEvent(e)
-	s.repaint()
 }
 
 // finish drains buffered durable blocks in order and wipes the live region.

@@ -5,7 +5,7 @@
   ⠋ [gateway] [2] user › svc acct  (2s)
   ⠋ [gateway] [3] pkg › nginx  (1s)
   (+1 more)
-  2/9 steps
+  2/9 steps +1 hook
 === frame 1 ===
   ⠙ [web]     [1] dir › sandbox root  (5s)
   ⠙ [web]     [2] copy › static page  (4s)
@@ -13,4 +13,4 @@
   ⠙ [gateway] [2] user › svc acct  (2s)
   ⠙ [gateway] [3] pkg › nginx  (1s)
   (+1 more)
-  2/9 steps
+  2/9 steps +1 hook

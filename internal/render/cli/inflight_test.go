@@ -42,7 +42,7 @@ func TestInflight_BeginFinishPerLane(t *testing.T) {
 	}
 
 	// Finish web[0]: leaves running, bumps finished.
-	f.finish(sref(0, "web", 0))
+	f.finish(sref(0, "web", 0), false)
 	v = f.view()
 	if len(v[0].Running) != 1 || v[0].Running[0].ref.Index != 1 {
 		t.Errorf("after finish: web running = %+v, want only index 1", v[0].Running)
@@ -56,7 +56,7 @@ func TestInflight_AllFinished(t *testing.T) {
 	f := newInflight()
 	base := time.Unix(0, 0)
 	f.begin(sref(0, "web", 0), base)
-	f.finish(sref(0, "web", 0))
+	f.finish(sref(0, "web", 0), false)
 	if f.anyRunning() {
 		t.Error("expected nothing running after finish")
 	}
@@ -72,13 +72,35 @@ func TestInflight_Progress(t *testing.T) {
 	f.begin(step(0, 1), base)
 	f.begin(step(1, 0), base)
 
-	if done, total := f.progress(); done != 0 || total != 5 {
+	if done, total, _ := f.progress(); done != 0 || total != 5 {
 		t.Fatalf("before any finish: got %d/%d, want 0/5", done, total)
 	}
 	// Finish across two lanes: done sums lane-wide.
-	f.finish(step(0, 0))
-	f.finish(step(1, 0))
-	if done, total := f.progress(); done != 2 || total != 5 {
+	f.finish(step(0, 0), false)
+	f.finish(step(1, 0), false)
+	if done, total, _ := f.progress(); done != 2 || total != 5 {
 		t.Errorf("after 2 finishes: got %d/%d, want 2/5", done, total)
+	}
+}
+
+// Hook steps settle outside the plan total: RunTotalSteps counts plan steps
+// only, so a finished hook must not push done past total ("5/4 steps").
+func TestInflight_HooksCountSeparately(t *testing.T) {
+	f := newInflight()
+	base := time.Unix(0, 0)
+	step := func(idx int) event.StepRef {
+		return event.StepRef{Deploy: event.DeployRef{RunTotalSteps: 2}, Index: idx}
+	}
+	f.begin(step(0), base)
+	f.finish(step(0), false)
+	f.begin(step(1), base)
+	f.finish(step(1), false)
+	// Hook chain continues the index space past the plan total.
+	f.begin(step(2), base)
+	f.finish(step(2), true)
+
+	done, total, hooks := f.progress()
+	if done != 2 || total != 2 || hooks != 1 {
+		t.Errorf("progress: got %d/%d +%d hooks, want 2/2 +1", done, total, hooks)
 	}
 }

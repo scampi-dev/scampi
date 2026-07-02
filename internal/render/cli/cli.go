@@ -49,8 +49,9 @@ type CLI struct {
 	glyphs glyphSet
 	store  *diagnostic.SourceStore
 
-	isTTY bool
-	width int
+	isTTY  bool
+	width  int
+	height int // terminal rows; 0 = unknown (no live-region height cap)
 
 	// now is the clock for live-region elapsed times; injectable so region
 	// output is deterministic under test. Defaults to time.Now.
@@ -61,8 +62,12 @@ type CLI struct {
 
 	// stepDrift accumulates a step's Change events until its Result
 	// arrives, so the whole block renders atomically (header, then railed
-	// drift). No lock: the Emitter serializes delivery (see diagnostic.Output).
-	stepDrift map[int][]event.Change
+	// drift). Keyed by (lane, step index): the Sequencer releases blocks
+	// atomically per lane today, but two lanes both have a step 0, so keying
+	// by index alone would cross-contaminate any caller that isn't
+	// block-atomic. No lock: the Emitter serializes delivery (see
+	// diagnostic.Output).
+	stepDrift map[stepKey][]event.Change
 
 	// lastDeployName is the lane tag of the most recently rendered step block,
 	// so a lane change can insert a blank separator line. Empty for single-deploy
@@ -88,7 +93,7 @@ func New(opts Options, store *diagnostic.SourceStore) *CLI {
 		errw = os.Stderr
 	}
 
-	width, isTTY := terminalInfo(out)
+	width, height, isTTY := terminalInfo(out)
 	useColor := shouldUseColor(opts.ColorMode, isTTY)
 	fmt := newFormatter(glyphs, useColor, store, opts.Redactor)
 
@@ -99,17 +104,28 @@ func New(opts Options, store *diagnostic.SourceStore) *CLI {
 		glyphs:       glyphs,
 		isTTY:        isTTY,
 		width:        width,
+		height:       height,
 		now:          time.Now,
 		planRenderer: newPlanRenderer(glyphs, width, opts.Verbosity, fmt),
 		formatter:    fmt,
-		stepDrift:    map[int][]event.Change{},
+		stepDrift:    map[stepKey][]event.Change{},
 	}
 }
 
-// terminalInfo derives display width and TTY-ness from the output writer. A
+// stepKey identifies a step across deploy lanes; step indexes alone repeat
+// per lane.
+type stepKey struct {
+	lane int
+	step int
+}
+
+// terminalInfo derives display size and TTY-ness from the output writer. A
 // COLUMNS override always wins; otherwise only a real terminal (*os.File) has a
-// size and is a TTY, so an injected buffer renders unbounded and uncolored.
-func terminalInfo(w io.Writer) (width int, isTTY bool) {
+// size and is a TTY, so an injected buffer renders unbounded and uncolored. On
+// a TTY whose size cannot be read, width falls back to 80: the live region's
+// cursor math needs lines that never wrap, so "unbounded" is not an option
+// there.
+func terminalInfo(w io.Writer) (width, height int, isTTY bool) {
 	if cols := os.Getenv("COLUMNS"); cols != "" {
 		if n, err := strconv.Atoi(cols); err == nil && n > 0 {
 			width = n
@@ -117,14 +133,30 @@ func terminalInfo(w io.Writer) (width int, isTTY bool) {
 	}
 	f, ok := w.(*os.File)
 	if !ok {
-		return width, false
+		return width, 0, false
 	}
-	if width == 0 {
-		if cw, _, err := term.GetSize(f.Fd()); err == nil && cw > 0 {
+	if cw, ch, err := term.GetSize(f.Fd()); err == nil {
+		if width == 0 && cw > 0 {
 			width = cw
 		}
+		height = ch
 	}
-	return width, term.IsTerminal(f.Fd())
+	isTTY = term.IsTerminal(f.Fd())
+	if isTTY && width == 0 {
+		width = 80
+	}
+	return width, height, isTTY
+}
+
+// refreshGeometry re-samples the terminal size so a long run tracks resizes:
+// region lines are width-fit per repaint, so a shrunk terminal doesn't wrap
+// them and corrupt the cursor math. Only a real terminal can change size;
+// injected writers (tests) keep their forced geometry.
+func (c *CLI) refreshGeometry() {
+	if _, ok := c.sink.out.(*os.File); !ok {
+		return
+	}
+	c.width, c.height, _ = terminalInfo(c.sink.out)
 }
 
 func (c *CLI) commitRenderEvents(events []renderEvent) {
@@ -667,8 +699,6 @@ func (c *CLI) RenderEvent(e event.Event) {
 		c.renderDiagnostic(signal.Info, scopeFromCause(v.Cause), v.Template)
 	case event.Change:
 		c.renderChange(v)
-	case event.Progress:
-		c.renderProgress(v)
 	case event.Result:
 		c.renderResult(v)
 	}
@@ -684,35 +714,17 @@ func scopeFromCause(c event.Cause) string {
 // renderChange buffers a drift entry; the block renders when the step's Result
 // arrives (see renderStepBlock).
 func (c *CLI) renderChange(e event.Change) {
-	c.stepDrift[e.Step.Index] = append(c.stepDrift[e.Step.Index], e)
-}
-
-func (c *CLI) renderProgress(e event.Progress) {
-	label := ""
-	if e.Total > 0 {
-		label = fmt.Sprintf("(%d/%d)", e.Completed, e.Total)
-	}
-	if e.Current.Kind != "" {
-		if label != "" {
-			label += " "
-		}
-		label += stepIDFromRef(e.Current)
-	}
-	if label == "" {
-		return
-	}
-	c.commitRenderEvents([]renderEvent{{
-		stream: streamOut,
-		line:   c.formatter.fmtfMsg(colEngineStarted, "[~] %s", label),
-	}})
+	k := stepKey{lane: e.Step.Deploy.Ordinal, step: e.Step.Index}
+	c.stepDrift[k] = append(c.stepDrift[k], e)
 }
 
 // renderResult renders a finished step as one atomic block: a glyph-led header
 // (verdict carried by the glyph) followed by its railed drift. The drift was
 // buffered from preceding Change events. `ok` steps are hidden below -v.
 func (c *CLI) renderResult(e event.Result) {
-	drift := c.stepDrift[e.Step.Index]
-	delete(c.stepDrift, e.Step.Index)
+	k := stepKey{lane: e.Step.Deploy.Ordinal, step: e.Step.Index}
+	drift := c.stepDrift[k]
+	delete(c.stepDrift, k)
 	// Ops within a step run concurrently, so drift arrives in completion order.
 	// Sort by (op id, field) so a step's rows are stable run-to-run, preserving
 	// the serial-equivalent-output invariant.
@@ -733,8 +745,9 @@ func (c *CLI) deployTag(d event.DeployRef) string {
 		return ""
 	}
 	tag := c.formatter.fmtfMsg(colDeployTag, " [%s]", d.Name)
-	// Pad shorter names so the [N] step index lines up across lanes.
-	if pad := d.MaxNameWidth - len(d.Name); pad > 0 {
+	// Pad shorter names so the [N] step index lines up across lanes. Visible
+	// width, not byte length: a non-ASCII name would otherwise over-pad.
+	if pad := d.MaxNameWidth - layout.VisibleLen(d.Name); pad > 0 {
 		tag += strings.Repeat(" ", pad)
 	}
 	return tag
@@ -747,6 +760,7 @@ func (c *CLI) regionLines(f *inflight, frame int) []string {
 	if !c.isTTY {
 		return nil
 	}
+	c.refreshGeometry()
 	const maxPerLane = 3
 	spin := ""
 	if n := len(c.glyphs.spinner); n > 0 {
@@ -775,9 +789,29 @@ func (c *CLI) regionLines(f *inflight, frame int) []string {
 			lines = append(lines, c.finalizeRegion("  "+c.formatter.fmtfMsg(colOpDesc, "(+%d more)", extra)))
 		}
 	}
-	// N-of-M progress footer: finished steps so far against the run-wide total.
-	if done, total := f.progress(); total > 0 {
-		lines = append(lines, c.finalizeRegion("  "+c.formatter.fmtfMsg(colOpDesc, "%d/%d steps", done, total)))
+	// N-of-M progress footer: finished steps so far against the run-wide plan
+	// total. Hook steps sit outside the plan total, so they get a separate
+	// "+N hooks" suffix instead of overrunning it.
+	var footer string
+	if done, total, hooks := f.progress(); total > 0 {
+		label := fmt.Sprintf("%d/%d steps", done, total)
+		if hooks > 0 {
+			label += fmt.Sprintf(" +%d hook%s", hooks, layout.Plural(hooks))
+		}
+		footer = c.finalizeRegion("  " + c.formatter.fmtMsg(colOpDesc, label))
+	}
+	// Cap the region below the terminal height: a region taller than the screen
+	// breaks CursorUp (it clamps at the top row), so scrolled-off lines can't be
+	// erased and every repaint would spam scrollback. Lane lines get cut, the
+	// footer always survives.
+	if maxLines := c.height - 1; c.height > 0 && len(lines) >= maxLines {
+		if footer != "" {
+			maxLines--
+		}
+		lines = lines[:max(maxLines, 1)]
+	}
+	if footer != "" {
+		lines = append(lines, footer)
 	}
 	return lines
 }
@@ -872,9 +906,10 @@ func (c *CLI) descSuffix(desc string, col ansi.ANSI) string {
 }
 
 // driftRows formats the visible drift lines for a step, with the op and field
-// columns aligned within the block. At -vv each line is prefixed with the op
-// that reported it; below that the op identity is elided. Field-less changes
-// (signal-only "it changed") carry no row.
+// columns aligned within the block, each line prefixed with the op that
+// reported it. Only called at -vv and up (op rows are strictly -vv); v gates
+// per-field detail via Drift.Verbosity. Field-less changes (signal-only "it
+// changed") carry no row.
 func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
 	type row struct{ opID, field, cur, des string }
 
@@ -889,10 +924,7 @@ func (c *CLI) driftRows(drift []event.Change, v signal.Verbosity) []string {
 		if cur == "" {
 			cur = "(absent)"
 		}
-		r := row{field: d.Field, cur: cur, des: d.Desired}
-		if v >= signal.VV {
-			r.opID = ch.DisplayID
-		}
+		r := row{opID: ch.DisplayID, field: d.Field, cur: cur, des: d.Desired}
 		opW = max(opW, len(r.opID))
 		fieldW = max(fieldW, len(r.field))
 		rs = append(rs, r)
@@ -969,16 +1001,6 @@ func (c *CLI) applyOpRows(ids []string, drift []event.Change) []string {
 // check/apply stream, future --json — routes through here so a "[3]" means the
 // same step everywhere. Never print a raw index + 1 anywhere else.
 func displayIndex(engineIndex int) int { return engineIndex + 1 }
-
-// stepIDFromRef returns a step display tag built from the StepRef
-// fields. Mirrors the formatting used by lifecycle renderers.
-func stepIDFromRef(s event.StepRef) string {
-	tag := fmt.Sprintf("%d", displayIndex(s.Index))
-	if s.Kind != "" {
-		tag += "|" + s.Kind
-	}
-	return tag
-}
 
 func (c *CLI) renderDiagnostic(sev signal.Severity, scope string, tmpl event.Template) {
 	var glyph, suffix string
