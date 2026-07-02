@@ -1,0 +1,4 @@
+module main
+
+let port = 8080
+let first = port[0]

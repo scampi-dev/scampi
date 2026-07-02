@@ -1,0 +1,4 @@
+module main
+
+let ports = [80, 443]
+let p = ports["first"]

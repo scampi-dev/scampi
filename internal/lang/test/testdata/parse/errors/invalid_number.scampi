@@ -1,0 +1,3 @@
+module main
+
+let mask = 0b102

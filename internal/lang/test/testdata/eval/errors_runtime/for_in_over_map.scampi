@@ -1,0 +1,6 @@
+module main
+
+let labels = {"env": "prod"}
+
+for l in labels {
+}

@@ -1,0 +1,8 @@
+module main
+
+func port() int {
+  return 8080
+}
+
+port() {
+}

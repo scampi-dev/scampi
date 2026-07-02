@@ -1,0 +1,5 @@
+module main
+
+enum Color { red, green }
+
+let c = Color.purple

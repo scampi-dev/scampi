@@ -1,0 +1,16 @@
+module main
+
+type Flags {
+  verbose: bool?
+}
+
+let flags = Flags {}
+
+func mode(f: Flags) int {
+  if f.verbose {
+    return 2
+  }
+  return 1
+}
+
+let m = mode(flags)

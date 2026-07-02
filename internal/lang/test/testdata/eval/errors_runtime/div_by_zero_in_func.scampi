@@ -1,0 +1,7 @@
+module main
+
+func split(total: int, parts: int) int {
+  return total / parts
+}
+
+let share = split(10, 0)

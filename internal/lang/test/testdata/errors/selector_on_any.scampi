@@ -1,0 +1,7 @@
+module main
+
+func name_of(v: any) any {
+  return v.name
+}
+
+let n = name_of(42)

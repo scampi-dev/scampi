@@ -1,0 +1,3 @@
+{
+  "errors": ["required environment variable \"SCAMPI_GOLDEN_UNSET_REGION\" is not set"]
+}

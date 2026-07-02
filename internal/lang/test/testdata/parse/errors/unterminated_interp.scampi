@@ -1,0 +1,4 @@
+module main
+
+let host = "web"
+let url = "https://${host"

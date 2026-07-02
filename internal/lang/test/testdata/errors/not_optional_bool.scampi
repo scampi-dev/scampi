@@ -1,0 +1,8 @@
+module main
+
+type Flags {
+  verbose: bool?
+}
+
+let flags = Flags {}
+let quiet = !flags.verbose

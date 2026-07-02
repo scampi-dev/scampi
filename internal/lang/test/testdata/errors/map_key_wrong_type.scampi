@@ -1,0 +1,4 @@
+module main
+
+let regions = {"eu": "fra1"}
+let r = regions[0]

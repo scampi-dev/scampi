@@ -1,0 +1,7 @@
+module main
+
+type Server {
+  name: string
+}
+
+let s = Server { name: "web" }

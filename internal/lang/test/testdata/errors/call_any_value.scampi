@@ -1,0 +1,7 @@
+module main
+
+func apply(f: any) any {
+  return f()
+}
+
+let result = apply(42)

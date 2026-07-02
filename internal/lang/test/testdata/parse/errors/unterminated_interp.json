@@ -1,0 +1,6 @@
+{
+  "errors": [
+    "unterminated string literal (no closing \")",
+    "expected RInterp in string interpolation"
+  ]
+}

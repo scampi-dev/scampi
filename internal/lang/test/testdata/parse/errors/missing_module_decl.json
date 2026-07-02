@@ -1,0 +1,3 @@
+{
+  "errors": ["every file must start with a module declaration (e.g. module main)"]
+}

@@ -1,0 +1,3 @@
+{
+  "errors": ["pub must be followed by let, func, decl, type, or enum"]
+}

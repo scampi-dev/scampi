@@ -1,0 +1,9 @@
+module main
+
+type Server {
+  name:   string
+  parent: Server?
+}
+
+let s = Server { name = "web" }
+let parent_name = s.parent.name

@@ -1,0 +1,5 @@
+module main
+
+import "std"
+
+let region = std.env("SCAMPI_GOLDEN_UNSET_REGION")
