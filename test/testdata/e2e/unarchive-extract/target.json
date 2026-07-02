@@ -1,0 +1,8 @@
+{
+  "files": {},
+  "commands": {
+    "command -v tar": {
+      "exitCode": 1
+    }
+  }
+}

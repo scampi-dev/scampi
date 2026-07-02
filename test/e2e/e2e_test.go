@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io/fs"
 	"path/filepath"
@@ -29,6 +30,7 @@ type E2EScenario struct {
 // E2EFiles represents a virtual filesystem as a map of path -> content.
 type E2EFiles struct {
 	Files           map[string]string           `json:"files"`
+	FilesBase64     map[string]string           `json:"filesBase64,omitempty"`     // path -> base64 (binary payloads)
 	Dirs            map[string]bool             `json:"dirs,omitempty"`            // path -> exists
 	Perms           map[string]string           `json:"perms,omitempty"`           // path -> "0644"
 	Owners          map[string]E2EOwner         `json:"owners,omitempty"`          // path -> owner info
@@ -46,6 +48,21 @@ type E2EFiles struct {
 	Repos           map[string]bool             `json:"repos,omitempty"`           // repo name -> configured
 	RepoKeys        map[string]bool             `json:"repoKeys,omitempty"`        // repo name -> key installed
 	VersionCodename string                      `json:"versionCodename,omitempty"` // e.g. "bookworm"
+	Containers      map[string]E2EContainer     `json:"containers,omitempty"`      // name -> container info
+}
+
+// E2EContainer represents a container's state on the mem target. Ports and
+// mounts are covered by the container integration tests; the e2e surface
+// sticks to the fields with simple JSON shapes.
+type E2EContainer struct {
+	Image   string            `json:"image,omitempty"`
+	Running bool              `json:"running,omitempty"`
+	Restart string            `json:"restart,omitempty"`
+	Env     map[string]string `json:"env,omitempty"`
+	Args    []string          `json:"args,omitempty"`
+	Labels  map[string]string `json:"labels,omitempty"`
+	// Absent asserts the container does NOT exist (expect side only).
+	Absent bool `json:"absent,omitempty"`
 }
 
 // E2EOwner represents file ownership.
@@ -155,6 +172,13 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 	src.Files[memCfgPath] = cfgData
 	for path, content := range srcFiles.Files {
 		src.Files[path] = []byte(content)
+	}
+	for path, encoded := range srcFiles.FilesBase64 {
+		data, err := base64.StdEncoding.DecodeString(encoded)
+		if err != nil {
+			t.Fatalf("invalid base64 for source file %s: %v", path, err)
+		}
+		src.Files[path] = data
 	}
 
 	// Run engine

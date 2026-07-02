@@ -1,0 +1,15 @@
+module main
+
+import "std"
+import "std/local"
+import "std/container"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "test", targets = [host]) {
+  container.instance {
+    desc  = "retired web server"
+    name  = "web"
+    state = container.State.absent
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "target": {
+    "files": {},
+    "containers": {
+      "web": {
+        "image": "nginx:1.25",
+        "running": true,
+        "restart": "unless-stopped"
+      }
+    }
+  },
+  "changed": 1
+}

@@ -1,0 +1,8 @@
+{
+  "target": {
+    "files": {
+      "/opt/app/app/hello.txt": "hello from archive\n"
+    }
+  },
+  "changed": 0
+}

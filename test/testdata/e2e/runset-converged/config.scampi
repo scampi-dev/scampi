@@ -1,0 +1,16 @@
+module main
+
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "test", targets = [host]) {
+  posix.run_set {
+    desc    = "manage plugins"
+    list    = "plug ls"
+    add     = "plug install {{ item }}"
+    desired = ["alpha", "beta"]
+  }
+}

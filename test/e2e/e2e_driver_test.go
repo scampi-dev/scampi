@@ -92,6 +92,18 @@ func setupMemTarget(t *testing.T, initial E2EFiles) (*target.MemTarget, spec.Dec
 		}
 	}
 
+	for name, c := range initial.Containers {
+		tgt.Containers[name] = target.ContainerInfo{
+			Name:    name,
+			Image:   c.Image,
+			Running: c.Running,
+			Restart: c.Restart,
+			Env:     c.Env,
+			Args:    c.Args,
+			Labels:  c.Labels,
+		}
+	}
+
 	return tgt, harness.MockDeclaredTarget(tgt)
 }
 
@@ -226,6 +238,42 @@ func verifyMemTarget(t *testing.T, tgt *target.MemTarget, expect E2EFiles) {
 		}
 		if wantInfo.System != gotInfo.System {
 			t.Errorf("group %q system: got %v, want %v", name, gotInfo.System, wantInfo.System)
+		}
+	}
+
+	for name, want := range expect.Containers {
+		got, ok := tgt.Containers[name]
+		if want.Absent {
+			if ok {
+				t.Errorf("expected container %q to be absent, found %+v", name, got)
+			}
+			continue
+		}
+		if !ok {
+			t.Errorf("expected container %q to exist", name)
+			continue
+		}
+		if want.Image != "" && got.Image != want.Image {
+			t.Errorf("container %q image: got %q, want %q", name, got.Image, want.Image)
+		}
+		if got.Running != want.Running {
+			t.Errorf("container %q running: got %v, want %v", name, got.Running, want.Running)
+		}
+		if want.Restart != "" && got.Restart != want.Restart {
+			t.Errorf("container %q restart: got %q, want %q", name, got.Restart, want.Restart)
+		}
+		for k, v := range want.Env {
+			if got.Env[k] != v {
+				t.Errorf("container %q env %q: got %q, want %q", name, k, got.Env[k], v)
+			}
+		}
+		if len(want.Args) > 0 && !stringSlicesEqual(got.Args, want.Args) {
+			t.Errorf("container %q args: got %v, want %v", name, got.Args, want.Args)
+		}
+		for k, v := range want.Labels {
+			if got.Labels[k] != v {
+				t.Errorf("container %q label %q: got %q, want %q", name, k, got.Labels[k], v)
+			}
 		}
 	}
 }

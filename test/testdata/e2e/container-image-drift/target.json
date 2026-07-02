@@ -1,0 +1,10 @@
+{
+  "files": {},
+  "containers": {
+    "web": {
+      "image": "nginx:1.24",
+      "running": true,
+      "restart": "unless-stopped"
+    }
+  }
+}

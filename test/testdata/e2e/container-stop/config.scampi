@@ -1,0 +1,16 @@
+module main
+
+import "std"
+import "std/local"
+import "std/container"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "test", targets = [host]) {
+  container.instance {
+    desc  = "web server"
+    name  = "web"
+    image = "nginx:1.25"
+    state = container.State.stopped
+  }
+}

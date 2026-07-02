@@ -1,0 +1,6 @@
+{
+  "files": {
+    "/var/lib/scampi/unarchive/b6aec2d3ff5cc88a142ea03ecf96cd7b373938ed526b15520ca0265a7c59832a.sha256": "9c0217c2ac3d659e7cf8ad89ce1fc9e6b876135b917e1c6b5d06cbd6a78ae14c\n",
+    "/opt/app/app/hello.txt": "hello from archive\n"
+  }
+}

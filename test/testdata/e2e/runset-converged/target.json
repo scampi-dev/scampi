@@ -1,0 +1,9 @@
+{
+  "files": {},
+  "commands": {
+    "plug ls": {
+      "exitCode": 0,
+      "stdout": "alpha\nbeta\n"
+    }
+  }
+}

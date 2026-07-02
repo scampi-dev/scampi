@@ -1,0 +1,15 @@
+module main
+
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "test", targets = [host]) {
+  posix.unarchive {
+    desc = "unpack app bundle"
+    src  = posix.source_local { path = "/srv/app.tar.gz" }
+    dest = "/opt/app"
+  }
+}

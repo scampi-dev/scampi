@@ -1,0 +1,17 @@
+module main
+
+import "std"
+import "std/posix"
+import "std/local"
+
+let host = local.target { name = "local" }
+
+std.deploy(name = "test", targets = [host]) {
+  posix.mount {
+    desc    = "retired data volume"
+    src     = "/dev/sdb1"
+    dest    = "/mnt/data"
+    fs_type = posix.MountType.ext4
+    state   = posix.MountState.absent
+  }
+}

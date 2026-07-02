@@ -1,0 +1,13 @@
+{
+  "files": {
+    "/etc/fstab": "# static\n"
+  },
+  "commands": {
+    "findmnt --target /mnt/data --noheadings": {
+      "exitCode": 1
+    },
+    "mount /mnt/data": {
+      "exitCode": 0
+    }
+  }
+}

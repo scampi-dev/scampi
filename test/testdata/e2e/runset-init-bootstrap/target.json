@@ -1,0 +1,19 @@
+{
+  "files": {},
+  "commands": {
+    "plug ls": {
+      "exitCode": 1,
+      "stderr": "not initialized",
+      "after": {
+        "exitCode": 0,
+        "stdout": ""
+      }
+    },
+    "plug setup": {
+      "exitCode": 0
+    },
+    "plug install alpha": {
+      "exitCode": 0
+    }
+  }
+}

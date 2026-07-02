@@ -1,0 +1,12 @@
+{
+  "files": {},
+  "commands": {
+    "plug ls": {
+      "exitCode": 0,
+      "stdout": "alpha\nbeta\ngamma\n"
+    },
+    "plug rm gamma": {
+      "exitCode": 0
+    }
+  }
+}

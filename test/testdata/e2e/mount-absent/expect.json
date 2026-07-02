@@ -1,0 +1,8 @@
+{
+  "target": {
+    "files": {
+      "/etc/fstab": "# static\n"
+    }
+  },
+  "changed": 1
+}

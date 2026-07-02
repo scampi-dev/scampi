@@ -1,0 +1,8 @@
+{
+  "target": {
+    "files": {
+      "/etc/fstab": "# static\n/dev/sdb1 /mnt/data ext4 defaults 0 0\n"
+    }
+  },
+  "changed": 1
+}
