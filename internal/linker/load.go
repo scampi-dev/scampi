@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/errs"
 	"scampi.dev/scampi/internal/lang/ast"
 	"scampi.dev/scampi/internal/lang/check"
 	"scampi.dev/scampi/internal/lang/eval"
@@ -73,7 +72,8 @@ func Analyze(
 	}
 	data, err := src.ReadFile(ctx, cfgPath)
 	if err != nil {
-		return nil, errs.WrapErrf(err, "read %s", cfgPath)
+		ctx.Raise(&ConfigReadError{Path: cfgPath, Cause: err})
+		return nil, diagnostic.ErrAlreadyRaised
 	}
 
 	// Lex + parse.

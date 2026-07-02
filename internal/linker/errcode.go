@@ -12,4 +12,5 @@ const (
 	CodeSecretKeyNotFound     errs.Code = "linker.SecretKeyNotFound"
 	CodeSecretKeyLookupFailed errs.Code = "linker.SecretKeyLookupFailed"
 	CodeBrokenSibling         errs.Code = "linker.BrokenSibling"
+	CodeConfigRead            errs.Code = "linker.ConfigRead"
 )

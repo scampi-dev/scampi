@@ -136,9 +136,13 @@ error should:
 
 This is a core UX principle, not a nice-to-have.
 
-**All errors from package code MUST be typed diagnostic errors.** Never use
-`errs.Errorf` or bare strings in `mod/`, `step/`, `engine/`, `lang/`, or
-any other package. Every error must:
+**All errors on user-facing paths MUST be typed diagnostic errors.**
+`fmt.Errorf` and `errors.New` are banned outside `internal/errs/` and a short
+sanctioned-file list; `errs.Errorf`/`errs.New`/`errs.WrapErrf` need a
+`// bare-error: ...` rationale comment on the line above (`errs.WrapErrf` is
+blanket-sanctioned inside `internal/target/`, whose contextual wrappers surface
+through typed op diagnostics). `TestBareErrorBan` in `test/rules/` enforces all
+of this. Every user-facing error must:
 
 - Have an `Error() string` method (so it satisfies Go's `error`)
 - Have a `Diagnostic() event.Event` method returning the typed event:
@@ -150,7 +154,7 @@ any other package. Every error must:
 - The error gets raised via `em.Raise(err)` at the production site
 
 This is how errors reach the render pipeline (`--color`, `--ascii`,
-`--json` future). Bare errors bypass all of that. No exceptions.
+`--json` future). Bare errors bypass all of that.
 
 ## Code Style
 

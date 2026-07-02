@@ -710,10 +710,21 @@ func TestBareErrorBan(t *testing.T) {
 			name := ident.Name + "." + sel.Sel.Name
 			pos := fset.Position(call.Pos())
 
-			// errs.Errorf and errs.New are allowed with a rationale
-			// comment on the preceding line, or above an enclosing
-			// var/const block.
-			if name == "errs.Errorf" || name == "errs.New" {
+			// errs.WrapErrf is sanctioned throughout internal/target/: the
+			// managed-environment surface wraps OS/transport errors with
+			// context, and ops surface them through typed diagnostics that
+			// carry the ID and span. Anywhere else (linker, engine, steps)
+			// it needs the same rationale comment as errs.Errorf — an
+			// unwrapped WrapErrf on a user-facing path reaches the user
+			// without ID, hint, or span (see #441).
+			if name == "errs.WrapErrf" && strings.HasPrefix(rel, "internal/target/") {
+				return true
+			}
+
+			// errs.Errorf, errs.New, and errs.WrapErrf are allowed with a
+			// rationale comment on the preceding line, or above an
+			// enclosing var/const block.
+			if name == "errs.Errorf" || name == "errs.New" || name == "errs.WrapErrf" {
 				if hasRationaleComment(file, fset, pos.Line-1) ||
 					hasRationaleAboveBlock(file, fset, pos.Line) {
 					return true
