@@ -125,6 +125,18 @@ func (f *formatter) renderSnippet(src *spec.SourceSpan) (string, bool) {
 		return "", false
 	}
 	v := f.loadSourceLine(src)
+	if !v.ok {
+		// No source text to show. Without a real position the pointer would
+		// be "--> file:0:0" over "<source unavailable>" (pure noise: the
+		// filename is already in the message), so drop the block entirely; a
+		// real line:col still earns a header-only pointer.
+		if v.line == 0 {
+			return "", false
+		}
+		var b strings.Builder
+		f.renderSourceHeader(&b, v)
+		return b.String(), true
+	}
 	var b strings.Builder
 	f.renderSourceHeader(&b, v)
 	b.WriteString("\n")
@@ -152,13 +164,10 @@ func (f *formatter) renderSourceHeader(w io.Writer, v sourceLine) {
 	_, _ = fmt.Fprintf(w, "  --> %s:%d:%d", v.filename, v.line, v.startCol)
 }
 
+// renderSourceBody renders the numbered source line with its caret underline.
+// Only called with a loaded line; renderSnippet handles the unavailable cases.
 func (f *formatter) renderSourceBody(w io.Writer, v sourceLine) {
 	gutter := f.fmtfMsg(colSourceGutter, "|")
-
-	if !v.ok {
-		_, _ = fmt.Fprintf(w, "   %s <source unavailable>", gutter)
-		return
-	}
 
 	lineNo := strconv.Itoa(v.line)
 	pad := strings.Repeat(" ", len(lineNo))
