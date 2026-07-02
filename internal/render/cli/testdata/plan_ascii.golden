@@ -78,10 +78,10 @@
 | #
 | +-- [2] copy > deploy index page                                   <- [1]  ) "
 | | `-step.copy-file (copy (inline) -> /var/www/site/index.html)             )
-| |   `-step.ensure-mode (ensure mode -rw-r--…/www/site/index.html)          )
+| |   `-step.ensure-mode (ensure mode -rw-r-...www/site/index.html)          )
 | #                                                                          )
 | +-- [3] template > render vhost config                             <- [1]  )
-| | `-step.render-template (render (inline) ->…inx/sites/site.conf)          )
+| | `-step.render-template (render (inline) -...nx/sites/site.conf)          )
 | #                                                                          )
 | +-- [4] service > restart web server                               <- [2, 3]
 | | `-step.service (restart nginx)
@@ -95,11 +95,11 @@
 | | `-step.dir (ensure directory /var/www/site)
 | #
 | +-- [2] copy > deploy index page               <- [1]  ) "
-| | `-step.copy-file (copy (inlin…e/index.html)          )
-| |   `-step.ensure-mode (ensure mo…index.html)          )
+| | `-step.copy-file (copy (inli.../index.html)          )
+| |   `-step.ensure-mode (ensure m...ndex.html)          )
 | #                                                      )
 | +-- [3] template > render vhost config         <- [1]  )
-| | `-step.render-template (render (…site.conf)          )
+| | `-step.render-template (render ...ite.conf)          )
 | #                                                      )
 | +-- [4] service > restart web server           <- [2, 3]
 | | `-step.service (restart nginx)
@@ -110,17 +110,17 @@
 
 +-- execution plan: web > production
 | +-- [1] dir
-| | `-step.dir (ensure …www/site)
+| | `-step.dir (ensure...ww/site)
 | #
 | +-- [2] copy                     <- [1]  ) "
-| | `-step.copy-file (copy….html)          )
-| |   `-step.ensure-mode (en…tml)          )
+| | `-step.copy-file (cop...html)          )
+| |   `-step.ensure-mode (e...ml)          )
 | #                                        )
 | +-- [3] template                 <- [1]  )
-| | `-step.render-template (r…nf)          )
+| | `-step.render-template (...f)          )
 | #                                        )
 | +-- [4] service                  <- [2, 3]
-| | `-step.service (resta… nginx)
+| | `-step.service (rest...nginx)
 | #
 +-#
 
@@ -128,17 +128,17 @@
 
 +-- execution plan: web > production
 | +-- [1] dir
-| | `-step.dir (ens…/site)
+| | `-step.dir (en...site)
 | #
 | +-- [2] copy              <- [1]  ) "
-| | `-step.copy-file (…ml)          )
+| | `-step.copy-file ...l)          )
 | |   `-step.ensure-mode            )
 | #                                 )
 | +-- [3] template          <- [1]  )
 | | `-step.render-template          )
 | #                                 )
 | +-- [4] service           <- [2, 3]
-| | `-step.service (r…inx)
+| | `-step.service (...nx)
 | #
  ! terminal too narrow for the plan structure: need 39 columns, have 32
 +-#

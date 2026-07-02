@@ -288,7 +288,7 @@ func (p *planRenderer) renderSteps(out []renderEvent, steps []stepEntry, ly *pla
 		lastLineIdx := len(ae.lines) - 1
 		parallel := ae.layerSize > 1
 		for lineIdx, ln := range ae.lines {
-			body, bodyW, _ := layout.Fit(p.lineCols(ln, showDesc), contentCol, 0)
+			body, bodyW := layout.Fit(p.lineCols(ln, showDesc), contentCol, 0, p.glyphs.ellipsis)
 
 			line, cur := body, bodyW
 			if ln.isHeader && ly.depsStrs[i] != "" {

@@ -45,31 +45,20 @@ type Col struct {
 
 // Fit composes cols into one styled line of at most budget visible columns,
 // with sep spaces between adjacent columns, eliding non-Fixed columns (highest
-// Order first) as needed. It returns the line, its visible width, and the
-// minimum width the Fixed columns need. When budget < min the line is still
-// returned best-effort (Fixed columns intact, overflowing) so the caller can
-// react - widen the budget, or warn.
-func Fit(cols []Col, budget, sep int) (line string, width, minWidth int) {
-	minWidth = blockWidth(fixedOnly(cols), sep)
-
-	cols = shrinkToFit(clone(cols), budget, sep)
-	line, width = joinCols(cols, sep)
-	return line, width, minWidth
+// Order first) as needed. ellipsis marks elision points; callers pass their
+// glyph set's variant so --ascii output never ships a hardcoded one. When
+// budget is smaller than the Fixed columns need, the line is still returned
+// best-effort (Fixed columns intact, overflowing); the caller owns any
+// too-narrow warning (the plan renderer computes its plan-wide minimum
+// itself).
+func Fit(cols []Col, budget, sep int, ellipsis string) (line string, width int) {
+	cols = shrinkToFit(clone(cols), budget, sep, ellipsis)
+	return joinCols(cols, sep)
 }
 
 func clone(cols []Col) []Col {
 	out := make([]Col, len(cols))
 	copy(out, cols)
-	return out
-}
-
-func fixedOnly(cols []Col) []Col {
-	var out []Col
-	for _, c := range cols {
-		if c.Elide == Fixed {
-			out = append(out, c)
-		}
-	}
 	return out
 }
 
@@ -93,7 +82,7 @@ func colWidth(c Col) int { return VisibleLen(c.Text) }
 
 // shrinkToFit elides/drops the non-Fixed columns, highest Order first, until the
 // block fits budget or nothing more can yield.
-func shrinkToFit(cols []Col, budget, sep int) []Col {
+func shrinkToFit(cols []Col, budget, sep int, ellipsis string) []Col {
 	if blockWidth(cols, sep) <= budget {
 		return cols
 	}
@@ -103,7 +92,7 @@ func shrinkToFit(cols []Col, budget, sep int) []Col {
 			break
 		}
 		over := blockWidth(cols, sep) - budget
-		cols[idx] = shrinkCol(cols[idx], colWidth(cols[idx])-over)
+		cols[idx] = shrinkCol(cols[idx], colWidth(cols[idx])-over, ellipsis)
 	}
 	return cols
 }
@@ -127,7 +116,7 @@ func shrinkOrder(cols []Col) []int {
 
 // shrinkCol reduces a column toward targetW, eliding per its mode. A column that
 // cannot stay >= MinElidedCols (or its MinW for Drop) is emptied.
-func shrinkCol(c Col, targetW int) Col {
+func shrinkCol(c Col, targetW int, ellipsis string) Col {
 	if targetW < 0 {
 		targetW = 0
 	}
@@ -145,13 +134,13 @@ func shrinkCol(c Col, targetW int) Col {
 		if targetW < MinElidedCols {
 			c.Text = ""
 		} else {
-			c.Text = elideTail(c.Text, targetW)
+			c.Text = elideTail(c.Text, targetW, ellipsis)
 		}
 	case Middle:
 		if targetW < MinElidedCols {
 			c.Text = ""
 		} else {
-			c.Text = elideMiddle(c.Text, targetW)
+			c.Text = elideMiddle(c.Text, targetW, ellipsis)
 		}
 	}
 	return c
@@ -181,23 +170,23 @@ func joinCols(cols []Col, sep int) (string, int) {
 }
 
 // elideTail keeps the head, cutting the end with a trailing ellipsis.
-func elideTail(s string, maxW int) string {
+func elideTail(s string, maxW int, ellipsis string) string {
 	if runewidth.StringWidth(s) <= maxW {
 		return s
 	}
-	return takeWidth(s, maxW-1) + "…"
+	return takeWidth(s, maxW-runewidth.StringWidth(ellipsis)) + ellipsis
 }
 
 // elideMiddle keeps both ends, eliding the centre: head…tail. Bias the surviving
 // width toward the tail so distinguishing suffixes (filenames) outlive prefixes.
-func elideMiddle(s string, maxW int) string {
+func elideMiddle(s string, maxW int, ellipsis string) string {
 	if runewidth.StringWidth(s) <= maxW {
 		return s
 	}
-	budget := maxW - 1 // the ellipsis
+	budget := maxW - runewidth.StringWidth(ellipsis)
 	head := budget / 2
 	tail := budget - head
-	return takeWidth(s, head) + "…" + takeWidthEnd(s, tail)
+	return takeWidth(s, head) + ellipsis + takeWidthEnd(s, tail)
 }
 
 // takeWidth returns the longest prefix of s with visible width <= w.

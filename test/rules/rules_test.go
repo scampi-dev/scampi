@@ -805,16 +805,18 @@ func hasRationaleAboveBlock(file *ast.File, fset *token.FileSet, callLine int) b
 	return false
 }
 
-// TestGlyphDiscipline rejects non-ASCII Unicode in string literals
-// inside render/cli/. CLI glyphs must go through the glyphSet in
-// glyph.go (which has both fancy and ASCII variants), never be
-// hardcoded — otherwise --ascii output ships fancy glyphs.
+// TestGlyphDiscipline rejects non-ASCII Unicode in string and rune literals
+// anywhere under internal/render/. CLI glyphs must go through the glyphSet in
+// render/cli/glyph.go (which has both fancy and ASCII variants), never be
+// hardcoded — otherwise --ascii output ships fancy glyphs. The layout
+// primitives take the elision marker as a parameter for the same reason
+// (#442).
 //
 // Comments are allowed to contain Unicode (they don't reach output).
 // Test files are allowed (they may assert on rendered fancy output).
 // glyph.go itself is the canonical glyph source — exempt by design.
 func TestGlyphDiscipline(t *testing.T) {
-	root := "../../internal/render/cli"
+	root := "../../internal/render"
 
 	fset := token.NewFileSet()
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -836,7 +838,7 @@ func TestGlyphDiscipline(t *testing.T) {
 
 		ast.Inspect(f, func(n ast.Node) bool {
 			lit, ok := n.(*ast.BasicLit)
-			if !ok || lit.Kind != token.STRING {
+			if !ok || (lit.Kind != token.STRING && lit.Kind != token.CHAR) {
 				return true
 			}
 			for _, r := range lit.Value {
@@ -844,9 +846,9 @@ func TestGlyphDiscipline(t *testing.T) {
 					pos := fset.Position(lit.Pos())
 					rel, _ := filepath.Rel(root, pos.Filename)
 					t.Errorf(
-						"render/cli/%s:%d: non-ASCII rune %q in string literal — "+
-							"use glyphSet from glyph.go (fancy + ASCII fallback) instead of hardcoding",
-						rel, pos.Line, r,
+						"render/%s:%d: non-ASCII rune %q in %s literal — "+
+							"use glyphSet from render/cli/glyph.go (fancy + ASCII fallback) instead of hardcoding",
+						rel, pos.Line, r, strings.ToLower(lit.Kind.String()),
 					)
 					break
 				}
