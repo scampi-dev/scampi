@@ -145,3 +145,140 @@ func Test_CheckPlan_OpTimeoutBoundsOpContexts(t *testing.T) {
 		t.Errorf("default op deadline remaining = %v, want within the 30s default", got)
 	}
 }
+
+// Ref wire path (ResolveRefs before a step runs, captureStepOutput after)
+// -----------------------------------------------------------------------------
+
+// outputOp is a FakeOp whose settled output feeds the engine's ref registry.
+type outputOp struct {
+	*harness.FakeOp
+	out any
+}
+
+func (o *outputOp) Output() any { return o.out }
+
+// refProducerStep is a FakeStep with a StepID, so the engine captures its
+// op outputs.
+type refProducerStep struct {
+	*harness.FakeStep
+	id spec.StepID
+}
+
+func (s *refProducerStep) StepID() spec.StepID { return s.id }
+
+// refConsumerStep records the value the engine resolved for its ref.
+type refConsumerStep struct {
+	*harness.FakeStep
+	ref      spec.Ref
+	resolved atomic.Value
+}
+
+func (s *refConsumerStep) ResolveRefs(r spec.RefResolver) error {
+	v, err := r(s.ref)
+	if err != nil {
+		return err
+	}
+	s.resolved.Store(v)
+	return nil
+}
+
+func refPlanFixture(id spec.StepID, out any, expr string) (*refProducerStep, *refConsumerStep, spec.Plan) {
+	prodOp := &outputOp{
+		FakeOp: &harness.FakeOp{
+			Name:    "produce",
+			CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
+			ExecFn:  harness.OkExecFn(true),
+		},
+		out: out,
+	}
+	producer := &refProducerStep{FakeStep: &harness.FakeStep{}, id: id}
+	producer.AddOp(prodOp)
+	prodOp.SetStep(producer)
+
+	consOp := &harness.FakeOp{
+		Name:    "consume",
+		CheckFn: harness.OkCheckFn(spec.CheckSatisfied),
+		ExecFn:  harness.OkExecFn(false),
+	}
+	consumer := &refConsumerStep{
+		FakeStep: &harness.FakeStep{},
+		ref:      spec.Ref{TargetID: id, Expr: expr},
+	}
+	consumer.AddOp(consOp)
+	consOp.SetStep(consumer)
+
+	// Neither step declares resources, so both are barriers and run
+	// sequentially in declaration order: producer settles first.
+	plan := spec.Plan{
+		Deploy: spec.Deploy{
+			ID:         "fakeUnit",
+			TargetName: "fakeUnit description",
+			Steps:      []spec.Step{producer, consumer},
+		},
+	}
+	return producer, consumer, plan
+}
+
+func newRefEngine(t *testing.T) *engine.Engine {
+	t.Helper()
+	em := harness.NoopEmitter()
+	cfg := spec.Config{Target: harness.MockDeclaredTarget(local.POSIXTarget{})}
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), em), source.LocalPosixSource{}, cfg)
+	if err != nil {
+		t.Fatalf("engine.New() must not return error, got %v", err)
+	}
+	t.Cleanup(e.Close)
+	return e
+}
+
+// CheckPlan resolves a downstream ref from the output an upstream step
+// settled during the same check pass.
+func Test_CheckPlan_ResolvesRefFromUpstreamOutput(t *testing.T) {
+	out := map[string]any{"instance": map[string]any{"id": "srv-42"}}
+	_, consumer, plan := refPlanFixture(7, out, ".instance.id")
+
+	e := newRefEngine(t)
+	em := harness.NoopEmitter()
+	if _, _, err := e.CheckPlan(diagnostic.NewCtx(t.Context(), em), plan); err != nil {
+		t.Fatalf("CheckPlan: %v", err)
+	}
+
+	if got := consumer.resolved.Load(); got != "srv-42" {
+		t.Errorf("resolved ref = %v (%T), want %q", got, got, "srv-42")
+	}
+}
+
+// ExecutePlan wires the same path on the execute side.
+func Test_ExecutePlan_ResolvesRefFromUpstreamOutput(t *testing.T) {
+	out := map[string]any{"instance": map[string]any{"id": "srv-42"}}
+	_, consumer, plan := refPlanFixture(7, out, ".instance.id")
+
+	e := newRefEngine(t)
+	em := harness.NoopEmitter()
+	if _, err := e.ExecutePlan(diagnostic.NewCtx(t.Context(), em), plan); err != nil {
+		t.Fatalf("ExecutePlan: %v", err)
+	}
+
+	if got := consumer.resolved.Load(); got != "srv-42" {
+		t.Errorf("resolved ref = %v (%T), want %q", got, got, "srv-42")
+	}
+}
+
+// In execute mode a ref to a step that never produced output is an abort,
+// not a silent nil.
+func Test_ExecutePlan_AbortsOnRefWithoutOutput(t *testing.T) {
+	_, consumer, plan := refPlanFixture(7, nil, ".instance.id")
+	consumer.ref.TargetID = 99 // nobody produces this ID
+
+	e := newRefEngine(t)
+	em := harness.NoopEmitter()
+	_, err := e.ExecutePlan(diagnostic.NewCtx(t.Context(), em), plan)
+
+	var abort engine.AbortError
+	if !errors.As(err, &abort) {
+		t.Fatalf("expected AbortError, got %T: %v", err, err)
+	}
+	if consumer.resolved.Load() != nil {
+		t.Errorf("consumer resolved a value from a missing output: %v", consumer.resolved.Load())
+	}
+}
