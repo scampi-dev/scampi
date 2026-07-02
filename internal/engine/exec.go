@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"maps"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -739,21 +738,30 @@ func buildStepReport(act spec.Step, nodes []*opNode) result.StepReport {
 }
 
 func buildPlan(ops []spec.Op) ([]*opNode, error) {
-	nodes := map[spec.Op]*opNode{}
+	// Plan order in, plan order out: the node list keeps the order the StepKind
+	// declared its ops in, so reports and events are deterministic run to run.
+	// The map is only a dependency-lookup index.
+	byOp := make(map[spec.Op]*opNode, len(ops))
+	nodes := make([]*opNode, 0, len(ops))
 
 	for _, op := range ops {
-		nodes[op] = &opNode{
+		if _, dup := byOp[op]; dup {
+			panic(errs.BUG("op %p listed twice in step plan (StepKind implementation error)", op))
+		}
+		n := &opNode{
 			op: op,
 			// explicit invariants
 			outcome: opOutcomeUnknown,
 			result:  nil,
 			err:     nil,
 		}
+		byOp[op] = n
+		nodes = append(nodes, n)
 	}
 
 	for _, n := range nodes {
 		for _, dep := range n.op.DependsOn() {
-			dn, ok := nodes[dep]
+			dn, ok := byOp[dep]
 			if !ok {
 				panic(errs.BUG(
 					"op %p depends on unknown op %p (StepKind implementation error)",
@@ -773,8 +781,8 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 	}
 
 	var queue []*opNode
-	for n, deg := range tmp {
-		if deg == 0 {
+	for _, n := range nodes {
+		if tmp[n] == 0 {
 			queue = append(queue, n)
 		}
 	}
@@ -801,5 +809,5 @@ func buildPlan(ops []spec.Op) ([]*opNode, error) {
 		n.pending = n.indegree
 	}
 
-	return slices.Collect(maps.Values(nodes)), nil
+	return nodes, nil
 }

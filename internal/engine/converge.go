@@ -3,6 +3,8 @@
 package engine
 
 import (
+	"maps"
+	"slices"
 	"sync"
 
 	"scampi.dev/scampi/internal/diagnostic"
@@ -43,8 +45,8 @@ func runConverge(
 	checkOnly bool,
 ) (result.Execution, error) {
 	var (
-		mu  sync.Mutex
-		agg result.Execution
+		mu   sync.Mutex
+		reps = map[int]result.Execution{}
 	)
 	err := forEachResolved(ctx, cfgPath, store, opts, func(ctx diagnostic.Ctx, e *Engine) error {
 		rep, cErr := e.converge(ctx, checkOnly)
@@ -52,10 +54,17 @@ func runConverge(
 			return cErr
 		}
 		mu.Lock()
-		agg.Steps = append(agg.Steps, rep.Steps...)
+		reps[e.deploy.Ordinal] = rep
 		mu.Unlock()
 		return nil
 	})
+	// Aggregate in lane-ordinal order (level-major, declaration order within a
+	// level), not deploy completion order, so the report is deterministic run
+	// to run.
+	var agg result.Execution
+	for _, ord := range slices.Sorted(maps.Keys(reps)) {
+		agg.Steps = append(agg.Steps, reps[ord].Steps...)
+	}
 	return agg, err
 }
 
