@@ -12,7 +12,10 @@ import (
 
 func TestMain(m *testing.M) {
 	if os.Getenv("SCAMPI_TEST_CONTAINERS") != "" {
-		if err := harness.StartSharedContainer("scampi-test-ssh"); err != nil {
+		if err := harness.DockerProbe(); err != nil {
+			// Tests skip individually via SetupSSHTestEnv; don't fail the run.
+			_, _ = fmt.Fprintf(os.Stderr, "skipping container tests: %v\n", err)
+		} else if err := harness.StartSharedContainer("scampi-test-ssh"); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "Failed to start test container: %v\n", err)
 			os.Exit(1)
 		}

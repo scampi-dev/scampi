@@ -28,6 +28,10 @@ func setupContainerTest(t *testing.T, name string) target.Target {
 		t.Skip("container tests disabled (set SCAMPI_TEST_CONTAINERS=1)")
 	}
 
+	if err := harness.DockerProbe(); err != nil {
+		t.Skipf("container tests skipped: %v", err)
+	}
+
 	ctx := t.Context()
 	tgt, err := local.Local{}.Create(ctx, source.NewMemSource(), spec.DeclaredTarget{})
 	if err != nil {

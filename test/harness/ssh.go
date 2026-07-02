@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,21 @@ import (
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target/ssh"
 )
+
+// DockerProbe reports whether the docker CLI exists and the daemon
+// responds, memoized across the package. Container-gated tests use it to
+// SKIP (not fail) when SCAMPI_TEST_CONTAINERS is set but docker can't run.
+var DockerProbe = sync.OnceValue(func() error {
+	if _, err := exec.LookPath("docker"); err != nil {
+		return fmt.Errorf("docker not in PATH: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := exec.CommandContext(ctx, "docker", "info").Run(); err != nil {
+		return fmt.Errorf("docker daemon not responding: %w", err)
+	}
+	return nil
+})
 
 const (
 	SSHTestHost = "localhost"
@@ -205,6 +221,10 @@ func SetupSSHTestEnv(t *testing.T) (*SSHTestEnv, func()) {
 
 	if os.Getenv("SCAMPI_TEST_CONTAINERS") == "" {
 		t.Skip("SSH tests disabled (set SCAMPI_TEST_CONTAINERS=1 to enable)")
+	}
+
+	if err := DockerProbe(); err != nil {
+		t.Skipf("SSH tests skipped: %v", err)
 	}
 
 	if SharedSSHEnv == nil {
