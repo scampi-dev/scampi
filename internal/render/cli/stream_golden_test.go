@@ -70,7 +70,9 @@ func streamEvents() []event.Event {
 
 // TestStreamGolden locks the check/apply block format (glyph-led header, railed
 // drift, aligned columns, (absent), hide-ok, -vv op attribution) across
-// verbosities and both glyph sets. Regenerate with SCAMPI_UPDATE=1.
+// verbosities and both glyph sets, plus one ANSI-colored variant so the
+// semantic palette (yellow changed / green ok / red failed / blue tags) is a
+// pinned contract, not just prose. Regenerate with SCAMPI_UPDATE=1.
 func TestStreamGolden(t *testing.T) {
 	combos := []struct {
 		name string
@@ -83,9 +85,11 @@ func TestStreamGolden(t *testing.T) {
 	sets := []struct {
 		name  string
 		ascii bool
+		color signal.ColorMode
 	}{
-		{"fancy", false},
-		{"ascii", true},
+		{"fancy", false, signal.ColorNever},
+		{"ascii", true, signal.ColorNever},
+		{"color", false, signal.ColorAlways},
 	}
 
 	for _, gs := range sets {
@@ -94,7 +98,7 @@ func TestStreamGolden(t *testing.T) {
 			for _, combo := range combos {
 				var buf bytes.Buffer
 				cli := New(Options{
-					ColorMode:  signal.ColorNever,
+					ColorMode:  gs.color,
 					Verbosity:  combo.v,
 					ForceASCII: gs.ascii,
 					Stdout:     &buf,

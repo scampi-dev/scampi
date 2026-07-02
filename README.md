@@ -74,6 +74,8 @@ cat /tmp/scampi-hello.txt
 
 Stack `-v` flags on any of those for more detail — `-v` (why), `-vv` (how), `-vvv` (everything). Quiet → `-vvv` is a *brutal* jump; add as many `v`s as you can stomach.
 
+Output styling: `--color auto|always|never` (auto by default; [`NO_COLOR`](https://no-color.org) is honored) and `--ascii` for terminals without fancy glyphs.
+
 ## From source
 
 Prefer building from a checkout? `scripts/bootstrap.sh` installs the pinned toolchain ([mise](https://mise.jdx.dev) → Go, [`just`](https://github.com/casey/just), …) so you don't have to:

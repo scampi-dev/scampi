@@ -216,6 +216,10 @@ func parseColorMode(cmd *cli.Command) (signal.ColorMode, error) {
 
 	switch strings.ToLower(s) {
 	case "auto":
+		// NO_COLOR (https://no-color.org): present and non-empty disables.
+		if os.Getenv("NO_COLOR") != "" {
+			return signal.ColorNever, nil
+		}
 		return signal.ColorAuto, nil
 	case "always":
 		return signal.ColorAlways, nil
