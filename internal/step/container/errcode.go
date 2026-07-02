@@ -12,4 +12,5 @@ const (
 	CodeHealthWaitTimeout  errs.Code = "step.container.HealthWaitTimeout"
 	CodeUnhealthy          errs.Code = "step.container.Unhealthy"
 	CodeCommandFailed      errs.Code = "step.container.CommandFailed"
+	CodeInvalidHealthcheck errs.Code = "step.container.InvalidHealthcheck"
 )

@@ -52,14 +52,6 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 		return nil, errs.BUG("expected %T got %T", &Config{}, cfg)
 	}
 
-	if cfg.Port == 0 {
-		cfg.Port = 22
-	}
-
-	if cfg.Timeout == "" {
-		cfg.Timeout = "5s"
-	}
-
 	timeout, err := time.ParseDuration(cfg.Timeout)
 	if err != nil {
 		return nil, InvalidTimeoutError{

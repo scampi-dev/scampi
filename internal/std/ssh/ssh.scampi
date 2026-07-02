@@ -9,6 +9,8 @@ pub decl target(
   name:         string
   host:         string
   user:         string
+  @std.min(value=1)
+  @std.max(value=65535)
   port:         int = 22
   // path to private key
   key:          string?

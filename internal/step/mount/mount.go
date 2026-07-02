@@ -175,18 +175,13 @@ func (Mount) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	//   - src: @std.nonempty
 	//   - dest: @std.path(absolute=true) (catches both empty and relative)
 	//   - fs_type, state: typed enums in the stub (lang/check enforces)
-	// Only the typed-enum conversions and the absent-mode src
-	// auto-fill remain.
+	//   - opts, state defaults: declared in the stub, materialized by eval
+	// Only the typed-enum conversions remain.
 	fstyp := parseFsType(cfg.Type)
-
-	opts := cfg.Opts
-	if opts == "" {
-		opts = "defaults"
-	}
 
 	var state State
 	switch cfg.State {
-	case "", stateMounted:
+	case stateMounted:
 		state = StateMounted
 	case stateUnmounted:
 		state = StateUnmounted
@@ -196,16 +191,12 @@ func (Mount) Plan(step spec.DeclaredStep) (spec.Step, error) {
 		panic(errs.BUG("invalid mount state %q - should have been caught by lang typechecker", cfg.State))
 	}
 
-	if state == StateAbsent && cfg.Src == "" {
-		cfg.Src = "*"
-	}
-
 	return &mountStep{
 		desc:  cfg.Desc,
 		src:   cfg.Src,
 		dest:  cfg.Dest,
 		fstyp: fstyp,
-		opts:  opts,
+		opts:  cfg.Opts,
 		state: state,
 		step:  step,
 	}, nil

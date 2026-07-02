@@ -259,6 +259,27 @@ posix.service { name = "nginx" }
 	}
 }
 
+// Stub module TYPE declarations carry field defaults too (e.g.
+// container.Healthcheck interval/timeout/retries); they register under the
+// qualified type name and fill omitted struct-literal fields.
+func Test_Eval_FillsStubTypeFieldDefaults(t *testing.T) {
+	r := evalSrc(t, `
+module main
+import "std/container"
+let hc = container.Healthcheck { cmd = "true" }
+`)
+	sv, ok := r.Bindings["hc"].(*StructVal)
+	if !ok {
+		t.Fatalf("hc = %T, want *StructVal", r.Bindings["hc"])
+	}
+	if got := sv.Fields["interval"].(*StringVal).V; got != "30s" {
+		t.Errorf("interval = %q, want %q", got, "30s")
+	}
+	if got := sv.Fields["retries"].(*IntVal).V; got != 3 {
+		t.Errorf("retries = %d, want 3", got)
+	}
+}
+
 func Test_Eval_PrefersExplicitValueOverStubDefault(t *testing.T) {
 	r := evalSrc(t, `
 module main

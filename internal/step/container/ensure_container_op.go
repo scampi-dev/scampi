@@ -468,16 +468,16 @@ func (op *ensureContainerOp) waitHealthy(ctx context.Context, cm target.Containe
 		return nil
 	}
 
+	// Poll cadence: the configured interval clamped to a ceiling. The
+	// zero-guard is panic protection for non-language construction
+	// (NewTicker(0) panics); the stub default fills interval otherwise.
 	poll := min(op.healthcheck.Interval, healthPollCeil)
 	if poll == 0 {
 		poll = healthPollCeil
 	}
 
-	// Timeout: start_period + interval * retries, or 60s minimum.
+	// Wait deadline: start_period + interval * retries, floored at 60s.
 	retries := op.healthcheck.Retries
-	if retries == 0 {
-		retries = 3
-	}
 	deadline := max(op.healthcheck.StartPeriod+poll*time.Duration(retries+1), 60*time.Second)
 
 	ctx, cancel := context.WithTimeout(ctx, deadline)

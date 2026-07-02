@@ -18,26 +18,28 @@ func Converters() spec.ConverterMap {
 	}
 }
 
-// ConvertHealthcheck converts a StructVal produced by container.healthcheck
-// into a *target.Healthcheck.
+// ConvertHealthcheck converts a StructVal produced by container.Healthcheck
+// into a *target.Healthcheck. Defaults (interval/timeout/retries) are
+// declared on the stub type and arrive materialized; an unparseable
+// duration is an error, never silently dropped.
 func ConvertHealthcheck(_ string, fields map[string]eval.Value, _ spec.ConvertContext) (any, error) {
-	hc := &target.Healthcheck{
-		Interval: 30 * time.Second,
-		Timeout:  30 * time.Second,
-		Retries:  3,
-	}
+	hc := &target.Healthcheck{}
 	if c, ok := fields["cmd"].(*eval.StringVal); ok {
 		hc.Cmd = c.V
 	}
 	if i, ok := fields["interval"].(*eval.StringVal); ok {
-		if d, err := time.ParseDuration(i.V); err == nil {
-			hc.Interval = d
+		d, err := time.ParseDuration(i.V)
+		if err != nil {
+			return nil, InvalidHealthcheckError{Field: "interval", Value: i.V, Err: err}
 		}
+		hc.Interval = d
 	}
 	if t, ok := fields["timeout"].(*eval.StringVal); ok {
-		if d, err := time.ParseDuration(t.V); err == nil {
-			hc.Timeout = d
+		d, err := time.ParseDuration(t.V)
+		if err != nil {
+			return nil, InvalidHealthcheckError{Field: "timeout", Value: t.V, Err: err}
 		}
+		hc.Timeout = d
 	}
 	if r, ok := fields["retries"].(*eval.IntVal); ok {
 		hc.Retries = int(r.V)

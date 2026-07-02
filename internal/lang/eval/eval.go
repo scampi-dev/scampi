@@ -219,6 +219,12 @@ func (ev *Evaluator) registerStubInfo() {
 	}
 	info := extractStubInfo(ev.stubFS)
 	ev.declReturns = info.declReturns
+	// Stub type field defaults, keyed by qualified name so
+	// container.Healthcheck { cmd = ... } fills interval/timeout/retries.
+	for qual, fields := range info.typeFields {
+		ev.registerTypeDefaults(qual, fields)
+	}
+
 	// Collect all module names from enums and funcs.
 	allMods := map[string]bool{}
 	for m := range info.enums {
@@ -470,6 +476,7 @@ type stubInfo struct {
 	enums       map[string]map[string][]string // module -> enum -> variants
 	declReturns map[string]string              // "module.decl" -> return type name
 	funcs       map[string][]stubFunc          // module -> func stubs
+	typeFields  map[string][]*ast.Field        // "module.Type" -> fields (for defaults)
 }
 
 // extractStubInfo parses all .scampi files in the FS and returns enum
@@ -479,6 +486,7 @@ func extractStubInfo(fsys fs.FS) stubInfo {
 		enums:       map[string]map[string][]string{},
 		declReturns: map[string]string{},
 		funcs:       map[string][]stubFunc{},
+		typeFields:  map[string][]*ast.Field{},
 	}
 	_ = fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".scampi") {
@@ -565,6 +573,10 @@ func extractStubInfo(fsys fs.FS) stubInfo {
 					sf.Body = d.Body
 				}
 				info.funcs[modName] = append(info.funcs[modName], sf)
+			case *ast.TypeDecl:
+				if d.Fields != nil {
+					info.typeFields[modName+"."+d.Name.Name] = d.Fields
+				}
 			}
 		}
 		return nil

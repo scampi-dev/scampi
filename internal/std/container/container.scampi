@@ -9,9 +9,9 @@ import "std"
 
 pub type Healthcheck {
   cmd:      string
-  interval: string?
-  timeout:  string?
-  retries:  int?
+  interval: string = "30s"
+  timeout:  string = "30s"
+  retries:  int = 3
 }
 
 // Enums

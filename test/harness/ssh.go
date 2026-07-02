@@ -324,6 +324,7 @@ func ConnectSSH(t *testing.T, env *SSHTestEnv) *ssh.SSHTarget {
 		User:     env.User,
 		Key:      env.KeyPath,
 		Insecure: true,
+		Timeout:  "5s",
 	}
 
 	tgt, err := sshType.Create(context.Background(), src, spec.DeclaredTarget{

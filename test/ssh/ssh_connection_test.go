@@ -51,6 +51,7 @@ func Test_SSH_RejectsWrongKey(t *testing.T) {
 		User:     env.User,
 		Key:      wrongKey,
 		Insecure: true,
+		Timeout:  "5s",
 	}
 
 	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
@@ -80,9 +81,12 @@ func Test_SSH_ErrorsOnUnknownHost(t *testing.T) {
 
 	sshType := ssh.SSH{}
 	cfg := &ssh.Config{
-		Host:     "nonexistent.invalid",
-		Port:     22,
-		User:     "nobody",
+		Host: "nonexistent.invalid",
+		Port: 22,
+		User: "nobody",
+		// Non-language construction: the stub defaults don't apply here,
+		// so timeout must be explicit.
+		Timeout:  "5s",
 		Key:      keyPath,
 		Insecure: true,
 	}
@@ -155,6 +159,7 @@ func Test_SSH_RejectsPublicKeyAsPrivate(t *testing.T) {
 		User:     env.User,
 		Key:      pubKey,
 		Insecure: true,
+		Timeout:  "5s",
 	}
 
 	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{

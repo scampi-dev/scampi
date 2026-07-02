@@ -9,6 +9,28 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
+type InvalidHealthcheckError struct {
+	Field string
+	Value string
+	Err   error
+}
+
+func (e InvalidHealthcheckError) Error() string {
+	return fmt.Sprintf("invalid healthcheck %s %q: %v", e.Field, e.Value, e.Err)
+}
+
+func (e InvalidHealthcheckError) Diagnostic() event.Event {
+	return event.Error{
+		Impact: event.ImpactAbort,
+		Template: event.Template{
+			ID:   CodeInvalidHealthcheck,
+			Text: `invalid healthcheck {{.Field}} "{{.Value}}"`,
+			Hint: `use a Go duration string, e.g. {{.Field}} = "30s"`,
+			Data: e,
+		},
+	}
+}
+
 type EmptyImageError struct {
 	Source spec.SourceSpan
 }
