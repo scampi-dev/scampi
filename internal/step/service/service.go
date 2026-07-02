@@ -24,9 +24,6 @@ const (
 	stateReloaded  = "reloaded"
 )
 
-// StateValues is the exhaustive list of accepted state strings.
-var StateValues = []string{stateRunning, stateStopped, stateRestarted, stateReloaded}
-
 func (s State) String() string {
 	switch s {
 	case StateRunning:
@@ -60,14 +57,12 @@ func parseState(s string) State {
 type (
 	Service       struct{}
 	ServiceConfig struct {
-		_ struct{} `summary:"Manage service state: running, stopped, restarted, or reloaded"`
-
-		Desc     string   `step:"Human-readable description" optional:"true"`
-		Name     string   `step:"Service name" example:"nginx"`
-		State    string   `step:"Desired service state" default:"running" example:"stopped"`
-		Enabled  bool     `step:"Whether the service should start at boot" default:"true"`
-		Promises []string `step:"Resources this step produces (cross-deploy ordering)" optional:"true"`
-		Inputs   []string `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
+		Desc     string
+		Name     string
+		State    string
+		Enabled  bool
+		Promises []string
+		Inputs   []string
 	}
 	serviceStep struct {
 		desc    string
@@ -77,12 +72,6 @@ type (
 		step    spec.DeclaredStep
 	}
 )
-
-func (*ServiceConfig) FieldEnumValues() map[string][]string {
-	return map[string][]string{
-		"state": StateValues,
-	}
-}
 
 func (Service) Kind() string   { return "service" }
 func (Service) NewConfig() any { return &ServiceConfig{} }

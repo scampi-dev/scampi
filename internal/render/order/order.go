@@ -13,7 +13,6 @@ import (
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
-	"scampi.dev/scampi/internal/spec"
 )
 
 // Sequencer buffers each step's Change/Result events and releases the whole
@@ -158,8 +157,6 @@ func (s *Sequencer) RenderSummary(rep result.Execution, checkOnly bool) {
 	s.out.RenderSummary(rep, checkOnly)
 }
 
-func (s *Sequencer) RenderPlan(p result.Plan)           { s.out.RenderPlan(p) }
-func (s *Sequencer) RenderInspect(d result.Inspect)     { s.out.RenderInspect(d) }
-func (s *Sequencer) RenderIndexAll(docs []spec.StepDoc) { s.out.RenderIndexAll(docs) }
-func (s *Sequencer) RenderIndexStep(doc spec.StepDoc)   { s.out.RenderIndexStep(doc) }
-func (s *Sequencer) RenderLegend()                      { s.out.RenderLegend() }
+func (s *Sequencer) RenderPlan(p result.Plan)       { s.out.RenderPlan(p) }
+func (s *Sequencer) RenderInspect(d result.Inspect) { s.out.RenderInspect(d) }
+func (s *Sequencer) RenderLegend()                  { s.out.RenderLegend() }

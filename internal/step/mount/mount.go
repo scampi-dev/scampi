@@ -35,9 +35,6 @@ const (
 	fsCeph      = "ceph"
 )
 
-// FsTypeValues is the exhaustive list of accepted filesystem type strings.
-var FsTypeValues = []string{fsNFS, fsNFS4, fsCIFS, fsExt4, fsXFS, fsBtrfs, fsTmpfs, fsGlusterfs, fsCeph}
-
 func (f FsType) String() string {
 	switch f {
 	case FsNFS:
@@ -125,9 +122,6 @@ const (
 	stateAbsent    = "absent"
 )
 
-// StateValues is the exhaustive list of accepted mount state strings.
-var StateValues = []string{stateMounted, stateUnmounted, stateAbsent}
-
 func (s State) String() string {
 	switch s {
 	case StateMounted:
@@ -144,16 +138,14 @@ func (s State) String() string {
 type (
 	Mount       struct{}
 	MountConfig struct {
-		_ struct{} `summary:"Manage filesystem mounts and fstab entries"`
-
-		Desc     string   `step:"Human-readable description" optional:"true"`
-		Src      string   `step:"Mount source (device or remote path)" example:"10.10.2.2:/volume2/data"`
-		Dest     string   `step:"Mount point path" example:"/mnt/data"`
-		Type     string   `step:"Filesystem type" example:"nfs"`
-		Opts     string   `step:"Mount options" optional:"true" default:"defaults" example:"defaults,noatime"`
-		State    string   `step:"Desired state" optional:"true" default:"mounted" example:"mounted|unmounted|absent"`
-		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc     string
+		Src      string
+		Dest     string
+		Type     string
+		Opts     string
+		State    string
+		Promises []string
+		Inputs   []string
 	}
 	mountStep struct {
 		desc  string
@@ -165,13 +157,6 @@ type (
 		step  spec.DeclaredStep
 	}
 )
-
-func (*MountConfig) FieldEnumValues() map[string][]string {
-	return map[string][]string{
-		"type":  FsTypeValues,
-		"state": StateValues,
-	}
-}
 
 func (Mount) Kind() string   { return "mount" }
 func (Mount) NewConfig() any { return &MountConfig{} }

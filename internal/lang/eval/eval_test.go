@@ -231,6 +231,53 @@ func mustString(t *testing.T, r *Result, name string) string {
 	return sv.V
 }
 
+// Stub decl parameter defaults
+// -----------------------------------------------------------------------------
+
+// Bodiless stub decls (the std steps) have no body to bind defaults in;
+// eval materializes omitted params from the decl's declared defaults so
+// the linker sees complete configs. This replaced the deleted Go-side
+// `default:` struct tags (#450).
+func Test_Eval_FillsOmittedDeclParamsFromStubDefaults(t *testing.T) {
+	r := evalSrc(t, `
+module main
+import "std/posix"
+posix.service { name = "nginx" }
+`)
+	steps := findByRetType(r, "Step")
+	if len(steps) != 1 {
+		t.Fatalf("got %d steps, want 1", len(steps))
+	}
+	// state defaults to ServiceState.running, an enum member that only
+	// resolves in the decl's module scope.
+	got, ok := steps[0].Fields["state"].(*StringVal)
+	if !ok {
+		t.Fatalf("state = %T, want *StringVal (default not materialized)", steps[0].Fields["state"])
+	}
+	if got.V != "running" {
+		t.Errorf("state = %q, want %q", got.V, "running")
+	}
+}
+
+func Test_Eval_PrefersExplicitValueOverStubDefault(t *testing.T) {
+	r := evalSrc(t, `
+module main
+import "std/posix"
+posix.service { name = "nginx", state = posix.ServiceState.stopped }
+`)
+	steps := findByRetType(r, "Step")
+	if len(steps) != 1 {
+		t.Fatalf("got %d steps, want 1", len(steps))
+	}
+	got, ok := steps[0].Fields["state"].(*StringVal)
+	if !ok {
+		t.Fatalf("state = %T, want *StringVal", steps[0].Fields["state"])
+	}
+	if got.V != "stopped" {
+		t.Errorf("state = %q, want %q (explicit value overridden by default)", got.V, "stopped")
+	}
+}
+
 // String interpolation
 // -----------------------------------------------------------------------------
 

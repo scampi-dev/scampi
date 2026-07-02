@@ -25,18 +25,12 @@ const (
 	stateAbsent  = "absent"
 )
 
-// StateValues is the exhaustive list of accepted state strings.
-var StateValues = []string{stateRunning, stateStopped, stateAbsent}
-
 const (
 	restartAlways        = "always"
 	restartOnFailure     = "on-failure"
 	restartUnlessStopped = "unless-stopped"
 	restartNo            = "no"
 )
-
-// RestartValues is the exhaustive list of accepted restart policy strings.
-var RestartValues = []string{restartAlways, restartOnFailure, restartUnlessStopped, restartNo}
 
 func (s State) String() string {
 	switch s {
@@ -48,6 +42,24 @@ func (s State) String() string {
 		return stateAbsent
 	default:
 		return "unknown"
+	}
+}
+
+// parseRestart maps enum variant spellings (underscores - scampi
+// identifiers can't contain hyphens) to the hyphenated docker restart
+// policy values.
+func parseRestart(s string) string {
+	switch s {
+	case "always":
+		return restartAlways
+	case "on_failure":
+		return restartOnFailure
+	case "unless_stopped":
+		return restartUnlessStopped
+	case "no":
+		return restartNo
+	default:
+		return s
 	}
 }
 
@@ -67,22 +79,20 @@ func parseState(s string) State {
 type (
 	Instance       struct{}
 	InstanceConfig struct {
-		_ struct{} `summary:"Manage container lifecycle: running, stopped, or absent"`
+		Desc    string
+		Name    string
+		Image   string
+		State   string
+		Restart string
+		Ports   []target.Port
+		Env     map[string]string
+		Mounts  []target.Mount
+		Args    []string
+		Labels  map[string]string
 
-		Desc    string            `step:"Human-readable description" optional:"true"`
-		Name    string            `step:"Container name" example:"prometheus"`
-		Image   string            `step:"Container image" example:"prom/prometheus:v3.2.0"`
-		State   string            `step:"Desired container state" default:"running" example:"stopped|absent"`
-		Restart string            `step:"Restart policy" default:"unless-stopped" example:"always|on-failure|no"`
-		Ports   []target.Port     `step:"Port mappings" optional:"true" example:"[\"9090:9090\"]"`
-		Env     map[string]string `step:"Environment variables" optional:"true" example:"{\"DB_HOST\": \"db.local\"}"`
-		Mounts  []target.Mount    `step:"Bind mounts" optional:"true" example:"[\"/data:/data\"]"`
-		Args    []string          `step:"Entrypoint arguments" optional:"true" example:"[\"--verbose\"]"`
-		Labels  map[string]string `step:"Container labels" optional:"true" example:"{\"app\": \"myapp\"}"`
-
-		Healthcheck *target.Healthcheck `step:"Healthcheck" optional:"true"`
-		Promises    []string            `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs      []string            `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Healthcheck *target.Healthcheck
+		Promises    []string
+		Inputs      []string
 	}
 	instanceStep struct {
 		desc        string
@@ -99,13 +109,6 @@ type (
 		step        spec.DeclaredStep
 	}
 )
-
-func (*InstanceConfig) FieldEnumValues() map[string][]string {
-	return map[string][]string{
-		"state":   StateValues,
-		"restart": RestartValues,
-	}
-}
 
 func (Instance) Kind() string   { return "container.instance" }
 func (Instance) NewConfig() any { return &InstanceConfig{} }
@@ -129,7 +132,7 @@ func (Instance) Plan(step spec.DeclaredStep) (spec.Step, error) {
 		name:        cfg.Name,
 		image:       cfg.Image,
 		state:       parseState(cfg.State),
-		restart:     cfg.Restart,
+		restart:     parseRestart(cfg.Restart),
 		ports:       cfg.Ports,
 		env:         cfg.Env,
 		mounts:      cfg.Mounts,

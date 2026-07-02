@@ -21,9 +21,6 @@ const (
 	stateAbsent  = "absent"
 )
 
-// StateValues is the exhaustive list of accepted state strings.
-var StateValues = []string{statePresent, stateAbsent}
-
 func (s State) String() string {
 	switch s {
 	case StatePresent:
@@ -49,18 +46,16 @@ func parseState(s string) State {
 type (
 	User       struct{}
 	UserConfig struct {
-		_ struct{} `summary:"Ensure a user account exists or is absent on the target"`
-
-		Desc     string   `step:"Human-readable description" optional:"true"`
-		Name     string   `step:"Username to manage" example:"hal9000"`
-		State    string   `step:"Desired state" default:"present" example:"absent"`
-		Shell    string   `step:"Login shell" optional:"true" example:"/bin/bash"`
-		Home     string   `step:"Home directory" optional:"true" example:"/home/hal9000"`
-		System   bool     `step:"Create as system user" optional:"true"`
-		Password string   `step:"Password hash" optional:"true"`
-		Groups   []string `step:"Supplementary groups" optional:"true" example:"[\"sudo\", \"docker\"]"`
-		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc     string
+		Name     string
+		State    string
+		Shell    string
+		Home     string
+		System   bool
+		Password string
+		Groups   []string
+		Promises []string
+		Inputs   []string
 	}
 	userStep struct {
 		desc   string
@@ -74,12 +69,6 @@ type (
 		step   spec.DeclaredStep
 	}
 )
-
-func (*UserConfig) FieldEnumValues() map[string][]string {
-	return map[string][]string{
-		"state": StateValues,
-	}
-}
 
 func (User) Kind() string   { return "user" }
 func (User) NewConfig() any { return &UserConfig{} }

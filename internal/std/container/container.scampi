@@ -23,6 +23,7 @@ pub enum Restart { always, on_failure, unless_stopped, no }
 // Steps
 // -----------------------------------------------------------------------------
 
+// Manage container lifecycle: running, stopped, or absent
 pub decl instance(
   name:        string
   image:       string = ""
@@ -30,7 +31,9 @@ pub decl instance(
   restart:     Restart = Restart.unless_stopped
   ports:       list[string]?
   env:         map[string, string]?
+  // bind mounts
   mounts:      list[string]?
+  // entrypoint arguments
   args:        list[string]?
   labels:      map[string, string]?
   healthcheck: Healthcheck?

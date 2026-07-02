@@ -237,7 +237,7 @@ func (ev *Evaluator) registerStubInfo() {
 			modMap.Set(enumName, variantMap)
 		}
 		// First pass: create FuncVals without scope.
-		var bodied []*FuncVal
+		var fvs []*FuncVal
 		for _, sf := range info.funcs[modName] {
 			fv := &FuncVal{
 				Name:     sf.Name,
@@ -248,15 +248,17 @@ func (ev *Evaluator) registerStubInfo() {
 			}
 			if sf.Body != nil {
 				fv.body = sf.Body
-				bodied = append(bodied, fv)
 			}
+			fvs = append(fvs, fv)
 			modMap.Set(sf.Name, fv)
 		}
 		ev.env.set(modName, modMap)
-		// Second pass: set scope for bodied funcs to a child env
-		// that includes the module's own functions as bare names
-		// (same-module visibility).
-		if len(bodied) > 0 {
+		// Second pass: set scope to a child env that includes the
+		// module's own symbols as bare names (same-module
+		// visibility). Bodied funcs need it for their bodies;
+		// bodiless stubs need it to evaluate parameter defaults
+		// like PkgState.present.
+		if len(fvs) > 0 {
 			modScope := newEnv(ev.env)
 			// Inject all module symbols (funcs, enums, types) as bare
 			// names so same-module references work - including enum
@@ -266,7 +268,7 @@ func (ev *Evaluator) registerStubInfo() {
 					modScope.set(sk.V, modMap.Values[i])
 				}
 			}
-			for _, fv := range bodied {
+			for _, fv := range fvs {
 				fv.scope = modScope
 			}
 		}
@@ -730,6 +732,30 @@ func (ev *Evaluator) applyTypeDefaults(typeName, qualName string, fields map[str
 			continue
 		}
 		fields[f.Name.Name] = ev.evalExpr(f.Default)
+	}
+}
+
+// applyDeclDefaults fills in declared parameter defaults for fields
+// missing from a bodiless decl invocation (stub decls have no body to
+// bind defaults in, so they are materialized here before linking).
+// Default expressions are evaluated in the decl's module scope so
+// module-internal names like enum members resolve.
+func (ev *Evaluator) applyDeclDefaults(fv *FuncVal, fields map[string]Value) {
+	prev := ev.env
+	defer func() { ev.env = prev }()
+	if s, ok := fv.scope.(*envScope); ok && s != nil {
+		ev.env = s
+	}
+	for i, name := range fv.Params {
+		if _, exists := fields[name]; exists {
+			continue
+		}
+		if i >= len(fv.Defaults) || fv.Defaults[i] == nil {
+			continue
+		}
+		if defExpr, ok := fv.Defaults[i].(ast.Expr); ok {
+			fields[name] = ev.evalExpr(defExpr)
+		}
 	}
 }
 
@@ -1435,6 +1461,8 @@ func (ev *Evaluator) callFunc(fv *FuncVal, positional []Value, kwargs map[string
 			return ev.callParseInt(positional, kwargs, callSpan)
 		}
 
+		ev.applyDeclDefaults(fv, fields)
+
 		if strings.HasPrefix(fv.RetType, "block[") && strings.HasSuffix(fv.RetType, "]") {
 			innerType := fv.RetType[6 : len(fv.RetType)-1]
 			return &BlockVal{FuncName: fv.Name, InnerType: innerType, Fields: fields}
@@ -1521,17 +1549,23 @@ func (ev *Evaluator) evalStructLit(lit *ast.StructLit) Value {
 		return ev.expandUserStep(fv, fields)
 	}
 	if qualName != typeName {
-		if fv, ok := ev.lookupStepQualified(qualName); ok && fv.body != nil {
-			// User module decls with bodies are evaluated via
-			// callFunc which handles return statements and builds
-			// proper StructVals with declReturns resolution. Stubs
-			// (no body) fall through to the normal struct-lit path.
-			//
-			// Return the result directly - don't emitValue here.
-			// The caller handles emission: ExprStmt emits via
-			// evalStmt; LetStmt binds without emitting so the user
-			// can let-bind and re-emit later (ref() pattern).
-			return ev.callFunc(fv, nil, fields, lit.Span())
+		if fv, ok := ev.lookupStepQualified(qualName); ok {
+			if fv.body != nil {
+				// User module decls with bodies are evaluated via
+				// callFunc which handles return statements and builds
+				// proper StructVals with declReturns resolution. Stubs
+				// (no body) fall through to the normal struct-lit path.
+				//
+				// Return the result directly - don't emitValue here.
+				// The caller handles emission: ExprStmt emits via
+				// evalStmt; LetStmt binds without emitting so the user
+				// can let-bind and re-emit later (ref() pattern).
+				return ev.callFunc(fv, nil, fields, lit.Span())
+			}
+			// Bodiless stub decl invoked in block syntax:
+			// materialize declared parameter defaults for
+			// omitted fields.
+			ev.applyDeclDefaults(fv, fields)
 		}
 	}
 

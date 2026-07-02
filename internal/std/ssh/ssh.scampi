@@ -4,13 +4,17 @@ module ssh
 
 import "std"
 
+// Connect to a remote host via SSH
 pub decl target(
   name:         string
   host:         string
   user:         string
   port:         int = 22
+  // path to private key
   key:          string?
+  // skip host key verification
   insecure:     bool?
   timeout:      string = "5s"
+  // client-side cap on concurrent sessions
   max_sessions: int = 10
 ) std.Target

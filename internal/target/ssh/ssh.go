@@ -34,14 +34,13 @@ const knownHostsFile = "~/.ssh/known_hosts"
 type (
 	SSH    struct{}
 	Config struct {
-		_           struct{} `summary:"Connect to a remote host via SSH"`
-		Host        string   `step:"Hostname or IP address" example:"10.0.0.1"`
-		Port        int      `step:"SSH port" default:"22"`
-		User        string   `step:"SSH user" example:"root"`
-		Key         string   `step:"Path to SSH private key" optional:"true"`
-		Insecure    bool     `step:"Skip host key verification" optional:"true"`
-		Timeout     string   `step:"Connection timeout" default:"5s"`
-		MaxSessions int      `step:"Max concurrent SSH sessions (client-side sanity cap)" default:"10" optional:"true"`
+		Host        string
+		Port        int
+		User        string
+		Key         string
+		Insecure    bool
+		Timeout     string
+		MaxSessions int
 	}
 )
 

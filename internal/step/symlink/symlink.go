@@ -20,13 +20,11 @@ const ensureSymlinkID = "symlink"
 type (
 	Symlink       struct{}
 	SymlinkConfig struct {
-		_ struct{} `summary:"Create and manage symbolic links"`
-
-		Desc     string   `step:"Human-readable description" optional:"true"`
-		Target   string   `step:"Path the symlink points to (like ln -s TARGET)" example:"/opt/app/config.yaml"`
-		Link     string   `step:"Path where symlink is created (like ln -s ... LINK)" example:"/etc/app/config.yaml"`
-		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc     string
+		Target   string
+		Link     string
+		Promises []string
+		Inputs   []string
 	}
 	symlinkStep struct {
 		desc   string

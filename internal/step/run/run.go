@@ -10,16 +10,13 @@ import (
 type (
 	Run       struct{}
 	RunConfig struct {
-		_ struct{} `summary:"Run an arbitrary shell command with optional check for idempotency"`
-
-		Desc  string `step:"Human-readable description" optional:"true"`
-		Apply string `step:"Shell command to execute" example:"sysctl -w net.ipv4.ip_forward=1"`
-		Check string `step:"Exit 0 = already satisfied" optional:"true" exclusive:"trigger"`
-		//nolint:revive // line-length unavoidable: long tag set; splitting tags hurts readability
-		Always   bool              `step:"Always run apply, skip check" optional:"true" exclusive:"trigger" default:"false"`
-		Env      map[string]string `step:"Environment variables for apply and check" optional:"true"`
-		Promises []string          `step:"Resources this step produces (cross-deploy ordering)" optional:"true"`
-		Inputs   []string          `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
+		Desc     string
+		Apply    string
+		Check    string
+		Always   bool
+		Env      map[string]string
+		Promises []string
+		Inputs   []string
 	}
 	runStep struct {
 		desc   string

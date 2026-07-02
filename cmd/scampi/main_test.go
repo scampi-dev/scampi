@@ -228,14 +228,14 @@ func FuzzCLI(f *testing.F) {
 		"plan",
 
 		// subcommand with too many args
-		"index one two",
+		"inspect one two",
 
 		// working commands (should exit 0)
 		"legend",
 		"--color=never legend",
 		"--ascii legend",
 		"-v legend",
-		"index",
+		"version",
 
 		// nonsense
 		"",

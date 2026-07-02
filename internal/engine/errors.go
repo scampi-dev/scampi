@@ -183,29 +183,6 @@ func emitOpDiagnostic(ctx diagnostic.Ctx, _ int, _, _, _ string, err error) (dia
 	return emitScopedDiagnostic(ctx, err)
 }
 
-// Index errors
-// -----------------------------------------------------------------------------
-
-type UnknownIndexKindError struct {
-	Kind string
-}
-
-func (e UnknownIndexKindError) Error() string {
-	return fmt.Sprintf("unknown step kind %q", e.Kind)
-}
-
-func (e UnknownIndexKindError) Diagnostic() event.Event {
-	return event.Error{
-		Impact: event.ImpactAbort,
-		Template: event.Template{
-			ID:   CodeUnknownIndexKind,
-			Text: `unknown step kind "{{.Kind}}"`,
-			Hint: "use 'scampi index' to list available step types",
-			Data: e,
-		},
-	}
-}
-
 // Resolution errors
 // -----------------------------------------------------------------------------
 

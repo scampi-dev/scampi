@@ -218,9 +218,10 @@ the feedback loop is tight, not to substitute for CI.
 
 Every user-facing change or feature **must** include updates to the site
 documentation in `site/content/`. Update relevant pages when adding states,
-fields, behaviors, or new step types. The per-step reference is
-`scampi index` (generated from config struct tags); dedicated site pages
-are deliberately deferred until the surface stabilizes.
+fields, behaviors, or new step types. The per-step reference is the std
+stubs (`internal/std/.../*.scampi`) — typed params, defaults, validation
+attributes, and doc comments, all type-checked. Dedicated site pages are
+deliberately deferred until the surface stabilizes.
 
 **Markdown tables must have aligned columns** — pad cells so that pipe
 characters line up vertically. This applies to all markdown files in
@@ -229,8 +230,12 @@ characters line up vertically. This applies to all markdown files in
 ## Adding a New Step Type
 
 1. Create `internal/step/<kind>/<kind>.go` — implement `spec.StepKind` interface
-2. Add config struct with `step`/`summary`/`optional`/`default`/`example` tags
-3. Register in `internal/engine/registry.go`
+2. Add a config struct — exported fields map to stub params by snake_case
+   name; no struct tags
+3. Declare the stub in `internal/std/.../*.scampi` — types, defaults,
+   validation attributes, and doc comments live there; the stub IS the
+   step reference (`Test_Rule_StubDrift` keeps them in sync)
+4. Register in `internal/engine/registry.go`
 
 ## Testing
 

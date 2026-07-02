@@ -21,9 +21,6 @@ const (
 	stateAbsent  = "absent"
 )
 
-// StateValues is the exhaustive list of accepted state strings.
-var StateValues = []string{statePresent, stateAbsent}
-
 func (s State) String() string {
 	switch s {
 	case StatePresent:
@@ -49,15 +46,13 @@ func parseState(s string) State {
 type (
 	Group       struct{}
 	GroupConfig struct {
-		_ struct{} `summary:"Ensure a group exists or is absent on the target"`
-
-		Desc     string   `step:"Human-readable description" optional:"true"`
-		Name     string   `step:"Group name to manage" example:"appusers"`
-		State    string   `step:"Desired state" default:"present" example:"absent"`
-		GID      int      `step:"Group ID" optional:"true" example:"1100"`
-		System   bool     `step:"Create as system group" optional:"true"`
-		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc     string
+		Name     string
+		State    string
+		GID      int
+		System   bool
+		Promises []string
+		Inputs   []string
 	}
 	groupStep struct {
 		desc   string
@@ -68,12 +63,6 @@ type (
 		step   spec.DeclaredStep
 	}
 )
-
-func (*GroupConfig) FieldEnumValues() map[string][]string {
-	return map[string][]string{
-		"state": StateValues,
-	}
-}
 
 func (Group) Kind() string   { return "group" }
 func (Group) NewConfig() any { return &GroupConfig{} }

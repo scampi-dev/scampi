@@ -32,9 +32,6 @@ const (
 	stateLatest  = "latest"
 )
 
-// StateValues is the exhaustive list of accepted state strings.
-var StateValues = []string{statePresent, stateAbsent, stateLatest}
-
 func (s State) String() string {
 	switch s {
 	case StatePresent:
@@ -64,14 +61,12 @@ func parseState(s string) State {
 type (
 	Pkg       struct{}
 	PkgConfig struct {
-		_ struct{} `summary:"Ensure packages are present, absent, or at the latest version on the target"`
-
-		Desc     string            `step:"Human-readable description" optional:"true"`
-		Packages []string          `step:"Packages to manage" example:"[\"nginx\", \"curl\"]"`
-		State    string            `step:"Desired package state" default:"present" example:"latest"`
-		Source   spec.PkgSourceRef `step:"Package source" example:"system()|apt_repo(url=..., key_url=...)"`
-		Promises []string          `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string          `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc     string
+		Packages []string
+		State    string
+		Source   spec.PkgSourceRef
+		Promises []string
+		Inputs   []string
 	}
 	pkgStep struct {
 		desc     string
@@ -81,12 +76,6 @@ type (
 		step     spec.DeclaredStep
 	}
 )
-
-func (*PkgConfig) FieldEnumValues() map[string][]string {
-	return map[string][]string{
-		"state": StateValues,
-	}
-}
 
 func (Pkg) Kind() string   { return "pkg" }
 func (Pkg) NewConfig() any { return &PkgConfig{} }

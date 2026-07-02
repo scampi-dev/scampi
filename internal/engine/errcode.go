@@ -18,7 +18,6 @@ const (
 	CodeNoDiffableOps       errs.Code = "engine.inspect.NoDiffableOps"
 	CodeMultipleDiffableOps errs.Code = "engine.inspect.MultipleDiffableOps"
 	CodeDuplicateResource   errs.Code = "engine.DuplicateResource"
-	CodeUnknownIndexKind    errs.Code = "index.UnknownKind"
 	CodeUnknownDeployBlock  errs.Code = "config.UnknownDeployBlock"
 	CodeNoDeployBlocks      errs.Code = "config.NoDeployBlocks"
 	CodeNoTargetsInDeploy   errs.Code = "config.NoTargetsInDeploy"

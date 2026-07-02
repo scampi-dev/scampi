@@ -4,7 +4,6 @@ package linker
 
 import (
 	"reflect"
-	"strconv"
 	"strings"
 
 	"scampi.dev/scampi/internal/lang/eval"
@@ -37,10 +36,8 @@ func mapFields(fields map[string]eval.Value, cfg any, lc *linkConfig) error {
 		}
 		val, ok := fields[name]
 		if !ok {
-			// Apply default from struct tag if present.
-			if def := f.Tag.Get("default"); def != "" {
-				applyDefault(v.Field(i), def)
-			}
+			// Absent fields stay zero-valued: defaults are declared in the
+			// std stubs and materialized by eval before linking.
 			continue
 		}
 		fv := v.Field(i)
@@ -196,20 +193,6 @@ func setStructVal(dst reflect.Value, sv *eval.StructVal, lc *linkConfig) error {
 		}
 	}
 	return nil
-}
-
-// applyDefault sets a struct field to its default value from the tag.
-func applyDefault(dst reflect.Value, def string) {
-	switch dst.Kind() {
-	case reflect.String:
-		dst.SetString(def)
-	case reflect.Bool:
-		dst.SetBool(def == "true")
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if v, err := strconv.ParseInt(def, 10, 64); err == nil {
-			dst.SetInt(v)
-		}
-	}
 }
 
 // evalToGo converts an eval.Value to a Go native type (for any/interface fields).

@@ -5,7 +5,6 @@ package diagnostic
 import (
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
-	"scampi.dev/scampi/internal/spec"
 )
 
 // Output is a command-output backend. A single implementation renders both
@@ -28,8 +27,6 @@ type Output interface {
 	RenderSummary(rep result.Execution, checkOnly bool)
 	RenderPlan(result.Plan)
 	RenderInspect(result.Inspect)
-	RenderIndexAll([]spec.StepDoc)
-	RenderIndexStep(spec.StepDoc)
 	RenderLegend()
 }
 
@@ -42,6 +39,4 @@ func (Discard) RenderEvent(event.Event)              {}
 func (Discard) RenderSummary(result.Execution, bool) {}
 func (Discard) RenderPlan(result.Plan)               {}
 func (Discard) RenderInspect(result.Inspect)         {}
-func (Discard) RenderIndexAll([]spec.StepDoc)        {}
-func (Discard) RenderIndexStep(spec.StepDoc)         {}
 func (Discard) RenderLegend()                        {}

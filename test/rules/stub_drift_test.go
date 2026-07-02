@@ -18,13 +18,13 @@ import (
 )
 
 // Test_Rule_StubDrift is the drift lint that replaces the deleted
-// stub generator (#163). Stubs in std/ are now hand-written and serve as
-// the source of truth for parameter names, types, and validation
-// attributes. This lint asserts the cheaper half of that contract:
-// every step:-tagged Go field on a registered StepKind/TargetKind
-// config struct must have a corresponding parameter on the matching
-// stub decl, using the same snake_case conversion the linker applies
-// at link time (linker.ToSnake).
+// stub generator (#163). Stubs in std/ are hand-written and serve as
+// the source of truth for parameter names, types, validation
+// attributes, and documentation (#450). This lint asserts the cheaper
+// half of that contract: every exported Go field on a registered
+// StepKind/TargetKind config struct must have a corresponding
+// parameter on the matching stub decl, using the same snake_case
+// conversion the linker applies at link time (linker.ToSnake).
 //
 // What this catches:
 //
@@ -194,8 +194,9 @@ func loadStubDecls(t *testing.T) map[string]map[string]map[string]bool {
 	return out
 }
 
-// missingStubParams returns the snake-cased names of every step:-tagged
-// exported Go field that has no corresponding entry in stubParams.
+// missingStubParams returns the snake-cased names of every exported Go
+// field that has no corresponding entry in stubParams. Exported fields
+// ARE the user-facing schema: mapFields maps them all by name.
 func missingStubParams(cfg any, stubParams map[string]bool) []string {
 	v := reflect.ValueOf(cfg)
 	if v.Kind() == reflect.Pointer {
@@ -210,11 +211,6 @@ func missingStubParams(cfg any, stubParams map[string]bool) []string {
 	for f := range t.Fields() {
 		f := f
 		if !f.IsExported() {
-			continue
-		}
-		if f.Tag.Get("step") == "" {
-			// Untagged exported fields are internal - not part
-			// of the user-facing schema.
 			continue
 		}
 		name := linker.ToSnake(f.Name)

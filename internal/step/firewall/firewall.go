@@ -34,12 +34,6 @@ const (
 	ActionReject
 )
 
-// ActionValues is the exhaustive list of accepted action strings.
-var ActionValues = []string{"allow", "deny", "reject"}
-
-// ProtoValues is the exhaustive list of accepted protocol strings.
-var ProtoValues = []string{"tcp", "udp"}
-
 func (a Action) String() string {
 	switch a {
 	case ActionAllow:
@@ -80,15 +74,13 @@ func parseProto(s string) target.PortProto {
 type (
 	Firewall       struct{}
 	FirewallConfig struct {
-		_ struct{} `summary:"Manage firewall rules via UFW or firewalld"`
-
-		Desc     string   `step:"Human-readable description" optional:"true"`
-		Port     int      `step:"Port number" example:"8080"`
-		EndPort  int      `step:"End of port range (for ranges)" optional:"true" example:"9000"`
-		Proto    string   `step:"Protocol" default:"tcp" example:"udp"`
-		Action   string   `step:"Rule action" default:"allow" example:"allow|deny|reject"`
-		Promises []string `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc     string
+		Port     int
+		EndPort  int
+		Proto    string
+		Action   string
+		Promises []string
+		Inputs   []string
 	}
 	firewallStep struct {
 		desc   string
@@ -103,13 +95,6 @@ func (Firewall) NewConfig() any { return &FirewallConfig{} }
 
 func (c *FirewallConfig) ResourceDeclarations() (promises, inputs []string) {
 	return c.Promises, c.Inputs
-}
-
-func (*FirewallConfig) FieldEnumValues() map[string][]string {
-	return map[string][]string{
-		"action": ActionValues,
-		"proto":  ProtoValues,
-	}
 }
 
 func (Firewall) Plan(step spec.DeclaredStep) (spec.Step, error) {

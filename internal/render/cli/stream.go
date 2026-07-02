@@ -10,7 +10,6 @@ import (
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/render/order"
-	"scampi.dev/scampi/internal/spec"
 )
 
 const (
@@ -145,9 +144,7 @@ func (s *streamSink) stop() {
 }
 
 // One-shot value methods delegate to the CLI. Not used on the stream surface
-// (plan/inspect/index build the synchronous sink), but Output requires them.
-func (s *streamSink) RenderPlan(p result.Plan)           { s.cli.RenderPlan(p) }
-func (s *streamSink) RenderInspect(d result.Inspect)     { s.cli.RenderInspect(d) }
-func (s *streamSink) RenderIndexAll(docs []spec.StepDoc) { s.cli.RenderIndexAll(docs) }
-func (s *streamSink) RenderIndexStep(doc spec.StepDoc)   { s.cli.RenderIndexStep(doc) }
-func (s *streamSink) RenderLegend()                      { s.cli.RenderLegend() }
+// (plan/inspect build the synchronous sink), but Output requires them.
+func (s *streamSink) RenderPlan(p result.Plan)       { s.cli.RenderPlan(p) }
+func (s *streamSink) RenderInspect(d result.Inspect) { s.cli.RenderInspect(d) }
+func (s *streamSink) RenderLegend()                  { s.cli.RenderLegend() }

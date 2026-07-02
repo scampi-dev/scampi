@@ -36,7 +36,7 @@ mod gh 'github.just'
 # Build
 # -----------------------------------------------------------------------------
 
-version  := `git describe --tags --always --dirty 2>/dev/null || echo dev`
+version  := `git describe --tags --match 'v*' --always --dirty 2>/dev/null || echo dev`
 ldflags  := "-s -w -X main.version=" + version
 
 [group('build')]

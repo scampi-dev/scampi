@@ -49,18 +49,23 @@ pub decl pkg_dnf_repo(
 // File operations
 // -----------------------------------------------------------------------------
 
+// Copy files with owner and permission management
 pub decl copy(
   src:       Source
   @std.path(absolute=true)
   dest:      string
   @std.filemode
   perm:      string
+  // user name or uid
   @std.nonempty
   owner:     string
+  // group name or gid
   @std.nonempty
   group:     string
+  // validation command (%s = temp file)
   @std.pattern(regex="^([^%]|%[^s])*%s([^%]|%[^s])*$")
   verify:    string?
+  // back up existing file to .bak before overwriting
   backup:    bool = false
   desc:      string?
   on_change: list[std.Step] = []
@@ -68,12 +73,16 @@ pub decl copy(
   inputs:    list[string] = []
 ) std.Step
 
+// Ensure a directory exists with optional permissions and ownership
 pub decl dir(
+  // creates missing parents
   @std.path(absolute=true)
   path:      string
   @std.filemode
   perm:      string?
+  // user name or uid
   owner:     string?
+  // group name or gid
   group:     string?
   desc:      string?
   on_change: list[std.Step] = []
@@ -81,9 +90,12 @@ pub decl dir(
   inputs:    list[string] = []
 ) std.Step
 
+// Create and manage symbolic links
 pub decl symlink(
+  // path the link points to (ln -s TARGET)
   @std.path(absolute=true)
   target:    string
+  // path where the link is created (ln -s ... LINK)
   @std.path(absolute=true)
   link:      string
   desc:      string?
@@ -92,6 +104,7 @@ pub decl symlink(
   inputs:    list[string] = []
 ) std.Step
 
+// Render templates with data substitution and owner/permission management
 pub decl template(
   src:       Source
   @std.path(absolute=true)
@@ -99,12 +112,16 @@ pub decl template(
   data:      any?
   @std.filemode
   perm:      string
+  // user name or uid
   @std.nonempty
   owner:     string
+  // group name or gid
   @std.nonempty
   group:     string
+  // validation command (%s = temp file)
   @std.pattern(regex="^([^%]|%[^s])*%s([^%]|%[^s])*$")
   verify:    string?
+  // back up existing file to .bak before overwriting
   backup:    bool = false
   desc:      string?
   on_change: list[std.Step] = []
@@ -112,11 +129,14 @@ pub decl template(
   inputs:    list[string] = []
 ) std.Step
 
+// Extract an archive to a target directory with optional recursive unpacking
 pub decl unarchive(
   src:       Source
   @std.path(absolute=true)
   dest:      string
+  // nested archive recursion (-1 = unlimited, 0 = top only)
   depth:     int? = 0
+  // owner, group, and perm are applied recursively after extraction
   owner:     string?
   group:     string?
   @std.filemode
@@ -130,6 +150,7 @@ pub decl unarchive(
 // Package management
 // -----------------------------------------------------------------------------
 
+// Ensure packages are present, absent, or at the latest version on the target
 pub decl pkg(
   @std.nonempty
   packages:  list[string]
@@ -149,10 +170,12 @@ pub decl pkg(
 // Service management
 // -----------------------------------------------------------------------------
 
+// Manage service state: running, stopped, restarted, or reloaded
 pub decl service(
   @std.nonempty
   name:      string
   state:     ServiceState = ServiceState.running
+  // start at boot
   enabled:   bool = true
   desc:      string?
   on_change: list[std.Step] = []
@@ -166,6 +189,7 @@ pub decl service(
 // User and group management
 // -----------------------------------------------------------------------------
 
+// Ensure a user account exists or is absent on the target
 pub decl user(
   @std.nonempty
   name:      string
@@ -173,7 +197,9 @@ pub decl user(
   shell:     string?
   home:      string?
   system:    bool?
+  // password hash, not plaintext
   password:  string?
+  // supplementary groups
   groups:    list[string]?
   desc:      string?
   on_change: list[std.Step] = []
@@ -181,6 +207,7 @@ pub decl user(
   inputs:    list[string] = []
 ) std.Step
 
+// Ensure a group exists or is absent on the target
 pub decl group(
   @std.nonempty
   name:      string
@@ -196,11 +223,13 @@ pub decl group(
 // System configuration
 // -----------------------------------------------------------------------------
 
+// Manage kernel parameters via sysctl with optional persistence
 pub decl sysctl(
   @std.nonempty
   key:       string
   @std.nonempty
   value:     string
+  // write to /etc/sysctl.d/ to survive reboots
   persist:   bool = true
   desc:      string?
   on_change: list[std.Step] = []
@@ -208,7 +237,9 @@ pub decl sysctl(
   inputs:    list[string] = []
 ) std.Step
 
+// Manage filesystem mounts and fstab entries
 pub decl mount(
+  // device or remote path
   @std.nonempty
   src:       string
   @std.path(absolute=true)
@@ -222,6 +253,7 @@ pub decl mount(
   inputs:    list[string] = []
 ) std.Step
 
+// Manage firewall rules via UFW or firewalld
 pub decl firewall(
   @std.min(value=1)
   @std.max(value=65535)
@@ -240,10 +272,13 @@ pub decl firewall(
 // Command execution
 // -----------------------------------------------------------------------------
 
+// Run an arbitrary shell command with optional check for idempotency
 pub decl run(
   @std.nonempty
   apply:     string
+  // exit 0 means already satisfied, apply is skipped
   check:     string?
+  // always run apply, skip check
   always:    bool? = false
   desc:      string?
   // Environment variables set on the apply and check invocations.
@@ -268,11 +303,13 @@ pub decl run(
 //   {{ items }}     — runs once with all items, space-separated
 //   {{ items_csv }} — runs once with all items, comma-separated
 pub decl run_set(
+  // must print identifiers, one per line
   @std.nonempty
   list:      string
   add:       string?
   remove:    string?
   desired:   list[string] = []
+  // bootstrap command, run when list exits non-zero
   init:      string?
   desc:      string?
   // Environment variables set on every invocation (list, add,

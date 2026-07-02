@@ -110,7 +110,6 @@ func main() {
 			applyCmd(),
 			inspectCmd(),
 			testCmd(),
-			indexCmd(),
 			secretsCmd(),
 			legendCmd(),
 			versionCmd(),

@@ -13,7 +13,6 @@ import (
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/render/order"
-	"scampi.dev/scampi/internal/spec"
 )
 
 // recorder is a diagnostic.Output that records the order things are released.
@@ -37,8 +36,6 @@ func (r *recorder) RenderEvent(e event.Event) {
 func (r *recorder) RenderSummary(result.Execution, bool) { r.log = append(r.log, "summary") }
 func (r *recorder) RenderPlan(result.Plan)               {}
 func (r *recorder) RenderInspect(result.Inspect)         {}
-func (r *recorder) RenderIndexAll([]spec.StepDoc)        {}
-func (r *recorder) RenderIndexStep(spec.StepDoc)         {}
 func (r *recorder) RenderLegend()                        {}
 
 // lane returns a "name:" prefix for named (multi-deploy) lanes, "" otherwise,

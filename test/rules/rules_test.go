@@ -1060,7 +1060,7 @@ var expectationVerbs = []string{
 	"Mixes", "Mounts", "Narrows", "Needs",
 	"Normalizes", "Omits", "Orders", "Overrides",
 	"Panics", "Parallelizes", "Parses", "Passes",
-	"Picks", "Populates", "Prepends", "Preserves",
+	"Picks", "Populates", "Prefers", "Prepends", "Preserves",
 	"Quotes",
 	"Prevents", "Probes", "Propagates", "Recreates",
 	"Redacts", "Redraws", "Registers", "Rejects",

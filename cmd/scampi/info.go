@@ -4,63 +4,10 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/urfave/cli/v3"
-	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/errs"
 )
-
-// scampi index
-// -----------------------------------------------------------------------------
-
-func indexCmd() *cli.Command {
-	return &cli.Command{
-		Name:      "index",
-		Usage:     "List available steps and their documentation",
-		ArgsUsage: "[step]",
-		Description: `Prints the index of steps supported by the engine.
-
-Without arguments, the command lists all available steps with a short
-description. When a step name is provided, detailed documentation is
-shown, including fields, behavior, and examples.`,
-		UseShortOptionHandling: true,
-		Suggest:                true,
-		HideHelp:               false,
-		OnUsageError:           onUsageError,
-		Before:                 requireMaxArgs(1),
-		Action: func(ctx context.Context, cmd *cli.Command) error {
-			opts := mustGlobalOpts(ctx)
-
-			pol := cliPolicy(opts)
-
-			displ, cleanup := withDisplayer(ctx, opts, nil)
-			defer cleanup()
-
-			dctx := diagnostic.NewCtx(ctx, diagnostic.NewEmitter(pol, displ))
-			args := cmd.Args()
-
-			if args.Len() == 0 {
-				displ.RenderIndexAll(engine.IndexAll(ctx))
-				return nil
-			}
-
-			doc, err := engine.IndexStep(dctx, args.First())
-			if err != nil {
-				var abort engine.AbortError
-				if !errors.As(err, &abort) {
-					panic(errs.BUG("engine.IndexStep returned unexpected error: %w", err))
-				}
-				return cli.Exit("", exitUserError)
-			}
-			displ.RenderIndexStep(doc)
-
-			return nil
-		},
-	}
-}
 
 // scampi legend
 // -----------------------------------------------------------------------------

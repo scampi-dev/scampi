@@ -17,18 +17,16 @@ var _ spec.StepKind = Copy{}
 type (
 	Copy       struct{}
 	CopyConfig struct {
-		_ struct{} `summary:"Copy files with owner and permission management"`
-
-		Desc     string         `step:"Human-readable description" optional:"true"`
-		Src      spec.SourceRef `step:"Source" example:"local(\"./config.yaml\") | inline(\"content\")"`
-		Dest     string         `step:"Destination file path" example:"/etc/app/config.yaml"`
-		Perm     string         `step:"File permissions" example:"0644|u=rw,g=r,o=r|rw-r--r--"`
-		Owner    string         `step:"Owner user name or UID" example:"root"`
-		Group    string         `step:"Group name or GID" example:"root"`
-		Verify   string         `step:"Validation command (%s = temp file)" optional:"true" example:"visudo -cf %s"`
-		Backup   bool           `step:"Back up existing file to .bak before overwriting" optional:"true"`
-		Promises []string       `step:"Cross-deploy resources this step produces" optional:"true"`
-		Inputs   []string       `step:"Cross-deploy resources this step consumes" optional:"true"`
+		Desc     string
+		Src      spec.SourceRef
+		Dest     string
+		Perm     string
+		Owner    string
+		Group    string
+		Verify   string
+		Backup   bool
+		Promises []string
+		Inputs   []string
 	}
 	copyStep struct {
 		desc   string

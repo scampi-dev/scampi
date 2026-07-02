@@ -11,7 +11,6 @@ import (
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/source"
-	"scampi.dev/scampi/internal/spec"
 )
 
 // nopDisplayer satisfies diagnostic.Output, capturing events and no-opping the
@@ -27,8 +26,6 @@ func (d *nopDisplayer) RenderEvent(e event.Event) {
 func (d *nopDisplayer) RenderSummary(result.Execution, bool) {}
 func (d *nopDisplayer) RenderPlan(result.Plan)               {}
 func (d *nopDisplayer) RenderInspect(result.Inspect)         {}
-func (d *nopDisplayer) RenderIndexAll([]spec.StepDoc)        {}
-func (d *nopDisplayer) RenderIndexStep(spec.StepDoc)         {}
 func (d *nopDisplayer) RenderLegend()                        {}
 
 var _ diagnostic.Output = (*nopDisplayer)(nil)

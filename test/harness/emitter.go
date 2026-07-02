@@ -10,7 +10,6 @@ import (
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
-	"scampi.dev/scampi/internal/spec"
 )
 
 type (
@@ -51,8 +50,6 @@ func (r *RecordingDisplayer) RenderEvent(e event.Event) {
 func (r *RecordingDisplayer) RenderSummary(result.Execution, bool) {}
 func (r *RecordingDisplayer) RenderPlan(result.Plan)               {}
 func (r *RecordingDisplayer) RenderInspect(result.Inspect)         {}
-func (r *RecordingDisplayer) RenderIndexAll([]spec.StepDoc)        {}
-func (r *RecordingDisplayer) RenderIndexStep(spec.StepDoc)         {}
 func (r *RecordingDisplayer) RenderLegend()                        {}
 
 func (r *RecordingDisplayer) String() string {

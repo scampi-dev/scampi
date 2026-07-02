@@ -12,19 +12,15 @@ import (
 type (
 	RunSet       struct{}
 	RunSetConfig struct {
-		_ struct{} `summary:"Shell-driven set reconciliation: list / add / remove a CLI-managed collection"`
-
-		Desc string `step:"Human-readable description" optional:"true"`
-		//nolint:revive // line-length: long step tag
-		List    string   `step:"Shell command listing identifiers, one per line" example:"samba-tool group listmembers admins"`
-		Add     string   `step:"Add command; use {{ item }}, {{ items }}, or {{ items_csv }}" optional:"true"`
-		Remove  string   `step:"Remove command; same template shape as add" optional:"true"`
-		Desired []string `step:"Identifiers that should be present" optional:"true"`
-		Init    string   `step:"Bootstrap command run if list exits non-zero" optional:"true"`
-		//nolint:revive // line-length unavoidable: tag set
-		Env      map[string]string `step:"Environment variables for list/add/remove/init invocations" optional:"true"`
-		Promises []string          `step:"Resources this step produces (cross-deploy ordering)" optional:"true"`
-		Inputs   []string          `step:"Resources this step requires (cross-deploy ordering)" optional:"true"`
+		Desc     string
+		List     string
+		Add      string
+		Remove   string
+		Desired  []string
+		Init     string
+		Env      map[string]string
+		Promises []string
+		Inputs   []string
 	}
 
 	runSetStep struct {
