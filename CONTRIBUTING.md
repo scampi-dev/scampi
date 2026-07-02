@@ -44,9 +44,9 @@ works, but `just` recipes do the right thing without you having to
 remember flags.
 
 ```bash
-just build       # build scampi and scampls binaries to ./build/bin/
+just build       # build the scampi binary to ./build/bin/
 just test all    # fast tests, no containers, no race detector
-just lint        # golangci-lint
+just lint        # golangci-lint + codebase invariant rules
 just fmt         # format Go + markdown tables
 ```
 
@@ -81,6 +81,10 @@ linter doesn't catch:
   Target; the linker emits `Declared*` types (`DeclaredConfig`,
   `DeclaredStep`, …), the engine runs the bare execution nouns.
   Avoid `Impl`, `Handler`, `Spec`, and `Instance`/`Type` suffixes.
+- **Test names** are `Test_Subject_Expectation`, where the expectation
+  states the asserted outcome with a verb: `Test_SSH_RejectsWrongKey`,
+  not `Test_SSH_ConnectWrongKey`. `just lint` enforces the shape and
+  the verb vocabulary.
 
 If you're unsure whether a change fits the project style, file the
 issue first and we'll talk it through before you write code.
@@ -96,7 +100,7 @@ fix(lang/format): emit attributes on type-decl fields (refs #244)
 ```
 
 - `(closes #N)` for everything that resolves an issue
-- `(fixes #N)` for bug fixes specifically (label `Kind/Bug`)
+- `(fixes #N)` for bug fixes specifically (label `kind/bug`)
 - `(refs #N)` if the commit relates to an issue but doesn't close it
 
 `<type>` matches conventional commits (`feat`, `fix`, `docs`, `chore`,
@@ -109,14 +113,14 @@ No commit bodies, no signed-off-by.
 
 If you're adding a new step kind:
 
-1. Create `step/<kind>/<kind>.go` implementing the `spec.StepType`
-   interface.
+1. Create `internal/step/<kind>/<kind>.go` implementing the
+   `spec.StepKind` interface.
 2. Add a config struct with `step` / `summary` / `optional` /
    `default` / `example` field tags.
-3. Register in `engine/registry.go`.
-4. Cover it with an integration test under `test/` exercising the
-   full plan → check → apply pipeline.
-5. Update site docs under `site/content/docs/steps/`.
+3. Register in `internal/engine/registry.go`.
+4. Cover it with an E2E scenario under `test/testdata/e2e/` exercising
+   the full plan → check → apply pipeline.
+5. Update the site documentation under `site/content/`.
 
 ## A note on scope
 

@@ -72,7 +72,7 @@ scampi apply hello.scampi
 cat /tmp/scampi-hello.txt
 ```
 
-Stack `-v` flags on any of those for more detail — `-v` (why), `-vv` (how), `-vvv` (everything). Quiet → `-vvv` is a *brutal* jump; add as many `v`s as you can stomach.
+Stack `-v` flags on any of those for more detail — quiet is a single summary line, `-v` shows why (every step's verdict), `-vv` shows how (op-level detail).
 
 Output styling: `--color auto|always|never` (auto by default; [`NO_COLOR`](https://no-color.org) is honored) and `--ascii` for terminals without fancy glyphs.
 

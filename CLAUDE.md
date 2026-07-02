@@ -38,6 +38,7 @@ just test containers   # All tests with containers
 just test nocontainers # Everything except container-gated tests
 just test everything   # Full suite including containers
 just test race         # Tests with race-detector
+just test rules        # Codebase invariant rules
 just test fuzz         # Fuzz tests (30s default)
 just test coverage     # Coverage report
 ```
@@ -46,26 +47,36 @@ just test coverage     # Coverage report
 
 Core flow: **scampi step → StepKind → Step → Op → Target**
 
+All engine code lives under `internal/`; the only entrypoint is `cmd/scampi`.
+
 ```
-cmd/         # CLI entrypoint: scampi (engine)
-lang/        # Language implementation: lexer, parser, AST, evaluator, formatter
-std/         # Standard library (.scampi files + embedded Go)
-mod/         # scampi.mod manifest parser (local multi-file/submodule resolution)
-linker/      # Submodule linker
-engine/      # Planning and execution (deterministic, fail-fast)
-spec/        # Core interfaces: StepKind, Step, Op, Plan
-step/        # StepKind implementations (one subdir per kind)
-diagnostic/  # Event emission (observational only, no control flow)
-render/      # CLI output formatting
-model/       # Execution reports and op outcomes
-source/      # Source-side access: configs, env, and local cache
-target/      # Write-side effects (mutations only)
+cmd/scampi/           # CLI entrypoint
+internal/lang/        # Language implementation: lexer, parser, AST, checker, evaluator, formatter
+internal/std/         # Standard library (.scampi files + embedded Go)
+internal/mod/         # scampi.mod manifest parser (local multi-file/submodule resolution)
+internal/linker/      # Submodule linker
+internal/engine/      # Planning and execution
+internal/spec/        # Core interfaces: StepKind, Step, Op, Plan
+internal/step/        # StepKind implementations (one subdir per kind)
+internal/capability/  # Execution guarantees checked at plan time
+internal/diagnostic/  # Event emission; execution reports live in diagnostic/result
+internal/render/      # CLI output formatting
+internal/signal/      # Verbosity / color / severity enums
+internal/source/      # Source-side access: configs, env, and local cache
+internal/target/      # Managed-environment surface (reads for drift, writes for mutations)
+internal/errs/        # Error plumbing (codes, BUG panics)
+internal/secret/      # Secret backends + redaction
+internal/osutil/      # Local OS helpers (diff, signals, config dir)
+internal/perm/        # Permission string parsing
+internal/testkit/     # scampi's own test framework
 ```
 
 **Key boundaries:**
 - `lang`: full language pipeline — never touches engine or target
 - `engine`: orchestration logic, fail-fast semantics
-- `diagnostic`: emits events, never influences execution
+- `diagnostic`: emits events; rendering never feeds back into execution.
+  Abort decisions come from `event.Impact` on typed errors, not from
+  renderer state.
 - `render`: transforms diagnostics to user output, purely presentational
 - `source`: source-side access (configs, env, local cache — never touches target)
 - `target`: managed-environment surface — both reads (drift detection during Check) and writes (mutations during Execute). Planning logic does not live here.
@@ -73,7 +84,8 @@ target/      # Write-side effects (mutations only)
 **Execution model** — three nested dependency DAGs, not sequential phases:
 - **Deploys**: ordered into levels by the cross-deploy resource graph
   (`StaticPromiseProvider`/`StaticInputProvider`). Deploys in a level run
-  concurrently (errgroup); downstream levels wait.
+  concurrently; a failing deploy does NOT cancel its level siblings (they
+  target independent systems), but downstream levels are skipped.
 - **Steps within a deploy**: a DAG built from declared resources (`Promiser`
   inputs/promises). Independent steps run in parallel; a step that declares no
   resources is a barrier — that conservative default is the only thing that
@@ -109,17 +121,19 @@ disambiguation suffixes. Package names are singular nouns describing contents.
 
 Colors are semantic, not decorative. The canonical palette is:
 
-| Color   | Meaning                 |
-| ------- | ----------------------- |
-| Yellow  | Change / Mutation       |
-| Green   | Correctness / Stability |
-| Red     | Failure                 |
-| Blue    | Deploy block boundaries |
-| Cyan    | Step boundaries         |
-| Magenta | Plan structure          |
-| Dim     | Detail / Noise          |
+| Color   | Meaning                        |
+| ------- | ------------------------------ |
+| Yellow  | Change / Mutation              |
+| Green   | Correctness / Stability        |
+| Red     | Failure                        |
+| Blue    | Deploy tags, engine boundaries |
+| Cyan    | Step context                   |
+| Magenta | Plan structure                 |
+| Dim     | Detail / Noise                 |
 
-Verbosity: `-v` (why), `-vv` (how), `-vvv` (everything)
+Verbosity: quiet (one line when converged), `-v` (why), `-vv` (how). The
+ladder deliberately ends at `-vv` — no `-vvv` until there is genuinely more
+to show.
 
 **Glyphs**: All glyphs/symbols in CLI output MUST go through the `glyphSet` in `render/cli/glyph.go` — never hardcode Unicode characters. The ASCII fallback set must work for every glyph.
 
@@ -161,7 +175,7 @@ This is how errors reach the render pipeline (`--color`, `--ascii`,
 ## Code Style
 
 - **No trivial comments** — don't restate what the code already says.
-- **Section comments** use the banner style everywhere:
+- **Section comments** in non-test code use the banner style:
   ```go
   // Title
   // -----------------------------------------------------------------------------
@@ -203,19 +217,20 @@ the feedback loop is tight, not to substitute for CI.
 ## Site Documentation
 
 Every user-facing change or feature **must** include updates to the site
-documentation in `site/content/`. Step reference pages live under
-`site/content/docs/steps/`. Update relevant pages when adding states,
-fields, behaviors, or new step types.
+documentation in `site/content/`. Update relevant pages when adding states,
+fields, behaviors, or new step types. The per-step reference is
+`scampi index` (generated from config struct tags); dedicated site pages
+are deliberately deferred until the surface stabilizes.
 
 **Markdown tables must have aligned columns** — pad cells so that pipe
 characters line up vertically. This applies to all markdown files in
-`site/`, `doc/`, and `README.md`.
+`site/` and the repo root (README.md, CLAUDE.md, TERMINOLOGY.md, ...).
 
 ## Adding a New Step Type
 
-1. Create `step/<kind>/<kind>.go` — implement `spec.StepKind` interface
+1. Create `internal/step/<kind>/<kind>.go` — implement `spec.StepKind` interface
 2. Add config struct with `step`/`summary`/`optional`/`default`/`example` tags
-3. Register in `engine/registry.go`
+3. Register in `internal/engine/registry.go`
 
 ## Testing
 
@@ -237,27 +252,31 @@ characters line up vertically. This applies to all markdown files in
   test helpers that grow into their own little framework.
 - **Naming**: test functions are `Test_Subject_Expectation` (exactly two
   UpperCamel segments; `TestMain` and `Fuzz*` exempt; enforcement rules use
-  the `Rule` subject, e.g. `Test_Rule_BareErrorBan`), and every `foo_test.go`
-  must sit next to its `foo.go` - both enforced in `test/rules/`.
+  the `Rule` subject, e.g. `Test_Rule_BareErrorBan`). The expectation states
+  the asserted outcome with a verb — `Test_SSH_RejectsWrongKey`, not
+  `Test_SSH_ConnectWrongKey` — drawn from the curated `expectationVerbs`
+  vocabulary in `test/rules/`. Every `foo_test.go` must sit next to its
+  `foo.go`. All of it enforced by `Test_Rule_TestNaming` and
+  `Test_Rule_NoOrphanTestFiles`.
 
 ### Test layout
 
 Tests are organized by layer. Pick the lowest layer that exercises the
 behavior you care about.
 
-| Layer                | Lives in                                  | Style                                                                                  |
-| -------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------- |
-| Lang (lex/parse/AST) | `lang/<pkg>/*_test.go`                    | Unit tests, table-driven. Standalone — must not import `engine`/`target`.              |
-| Formatter            | `lang/format/testdata/`                   | Pairs: `<name>.scampi.unformatted` (input) + `<name>.expected.scampi` (golden).        |
-| Lang golden          | `lang/test/testdata/{errors,eval,parse}/` | Pairs: `<name>.scampi` (input) + `<name>.json` (expected result).                      |
-| Engine internals     | `engine/*_test.go`                        | Unit tests on graph building, planning, scheduling, errors.                            |
-| Diagnostics          | `test/testdata/diagnostics/<case>/`       | `config.scampi` + `expect.json`. Snapshot mode: `SCAMPI_UPDATE=1`.                     |
-| E2E (full pipeline)  | `test/testdata/e2e/<case>/`               | `config.scampi` + `source.json` (initial state) + `expect.json` (final state + ops).   |
-| Integration (Go)     | `test/integration/*_test.go`              | Inline Go tests of engine wiring (mock targets, error paths). No fixtures.             |
-| Drift                | `test/drift/`                             | Drift-detection scenarios.                                                             |
-| Rules                | `test/rules/`                             | Codebase invariants (bare-error ban, markdown table alignment, signature style, etc.). |
-| testkit              | `test/testdata/testkit/`                  | scampi's own test framework fixtures.                                                  |
-| SSH                  | `test/ssh/`                               | Container-gated; `just test ssh`.                                                      |
+| Layer                | Lives in                                           | Style                                                                                  |
+| -------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Lang (lex/parse/AST) | `internal/lang/<pkg>/*_test.go`                    | Unit tests, table-driven. Standalone — must not import `engine`/`target`.              |
+| Formatter            | `internal/lang/format/testdata/`                   | Pairs: `<name>.scampi.unformatted` (input) + `<name>.expected.scampi` (golden).        |
+| Lang golden          | `internal/lang/test/testdata/{errors,eval,parse}/` | Pairs: `<name>.scampi` (input) + `<name>.json` (expected result).                      |
+| Engine internals     | `internal/engine/*_test.go`                        | Unit tests on graph building, planning, scheduling, errors.                            |
+| Diagnostics          | `test/testdata/diagnostics/<case>/`                | `config.scampi` + `expect.json`. Snapshot mode: `SCAMPI_UPDATE=1`.                     |
+| E2E (full pipeline)  | `test/testdata/e2e/<case>/`                        | `config.scampi` + `source.json` (initial state) + `expect.json` (final state + ops).   |
+| Integration (Go)     | `test/integration/*_test.go`                       | Inline Go tests of engine wiring (mock targets, error paths). No fixtures.             |
+| Drift                | `test/drift/`                                      | Drift-detection scenarios.                                                             |
+| Rules                | `test/rules/`                                      | Codebase invariants (bare-error ban, markdown table alignment, signature style, etc.). |
+| testkit              | `test/testdata/testkit/`                           | scampi's own test framework fixtures.                                                  |
+| SSH                  | `test/ssh/`                                        | Container-gated; `just test ssh`.                                                      |
 
 **Format input files use `.scampi.unformatted`** so `scampi fmt ./...` skips
 them — never rename back to `.scampi`.

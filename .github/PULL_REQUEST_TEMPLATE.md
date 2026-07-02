@@ -18,7 +18,7 @@
 <!--
   Use a magic keyword in parentheses if this PR resolves an issue:
     closes #123       (general)
-    fixes #123        (bugs, label Kind/Bug)
+    fixes #123        (bugs, label kind/bug)
     refs #123         (related but doesn't close)
 -->
 

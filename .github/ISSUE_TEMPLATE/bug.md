@@ -25,8 +25,8 @@ labels: ["kind/bug"]
 
 - scampi version: <!-- `scampi --version` -->
 - OS: <!-- linux/macos/freebsd + version -->
-- Target type: <!-- local, ssh, rest, ... -->
+- Target type: <!-- local, ssh -->
 
 ## Additional context
 
-<!-- Logs, stack traces, screenshots — anything useful. Stack `-vvv` if you can. -->
+<!-- Logs, stack traces, screenshots — anything useful. Run with `-vv` if you can. -->

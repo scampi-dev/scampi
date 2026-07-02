@@ -43,16 +43,14 @@ in release notes.
 
 ## In scope
 
-- The `scampi` engine and `scampls` LSP — planning, execution, target
-  dispatch, source resolution
-- `target/ssh` — remote command execution and privilege escalation
-- `target/local` — local-target operations and escalation
-- `secret/` — secret resolvers and storage
-- `source/remote` — module fetching, checksum verification
-- `mod/` and `linker/` — module integrity (`scampi.sum`), remote
-  module resolution
-- The official module library at
-  [scampi-dev/modules](https://github.com/scampi-dev/modules)
+- The `scampi` engine — planning, execution, target dispatch, source
+  resolution
+- `internal/target/ssh` — remote command execution and privilege
+  escalation
+- `internal/target/local` — local-target operations and escalation
+- `internal/secret` — secret backends (age, file) and redaction
+- `internal/mod` and `internal/linker` — local module and submodule
+  resolution
 - The install pipeline: `get.scampi.dev`, release artifacts,
   `install.sh`, and `SHA256SUMS`
 
@@ -61,7 +59,7 @@ in release notes.
 - Third-party Go dependencies — please file upstream first; only
   forward to scampi if a dependency vuln has scampi-specific impact
   not addressed upstream
-- Example configs in `doc/` and on the website
+- Example configs on the website
 - Issues that require an attacker to already have root on the target
   machine, or to already control the secret store
 - Best-effort hardening suggestions ("you should also check X") —
