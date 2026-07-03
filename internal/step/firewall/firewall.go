@@ -79,8 +79,8 @@ type (
 		EndPort  int
 		Proto    string
 		Action   string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	firewallStep struct {
 		desc   string
@@ -93,8 +93,8 @@ type (
 func (Firewall) Kind() string   { return "firewall" }
 func (Firewall) NewConfig() any { return &FirewallConfig{} }
 
-func (c *FirewallConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *FirewallConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (Firewall) Plan(step spec.DeclaredStep) (spec.Step, error) {

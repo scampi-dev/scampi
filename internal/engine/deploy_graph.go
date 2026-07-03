@@ -11,12 +11,12 @@ import (
 )
 
 // deployNode is one resolved-config plan plus the resources it
-// produces and consumes, used to build the cross-deploy DAG.
+// provides and requires, used to build the cross-deploy DAG.
 type deployNode struct {
 	idx      int // index into the Config slice
 	res      spec.Config
-	promises []spec.Resource
-	inputs   []spec.Resource
+	provides []spec.Resource
+	requires []spec.Resource
 	deps     []*deployNode // upstream nodes this one waits for
 }
 
@@ -28,12 +28,12 @@ type deployGraph struct {
 	levels [][]*deployNode
 }
 
-// buildDeployGraph computes producer/consumer relationships across
-// resolved deploy blocks via the static Promiser/Inputs surface and
+// buildDeployGraph computes provider/requirer relationships across
+// resolved deploy blocks via the static Provider/Requirer surface and
 // topo-sorts them into execution levels.
 //
-// External inputs (a node consumes a resource that no node in this
-// run produces) are treated as already-satisfied - those nodes
+// External requirements (a node requires a resource that no node in
+// this run provides) are treated as already-satisfied - those nodes
 // become roots. If the resource genuinely doesn't exist at runtime,
 // downstream errors surface that cleanly.
 func buildDeployGraph(resolved []spec.Config) (*deployGraph, error) {
@@ -42,8 +42,8 @@ func buildDeployGraph(resolved []spec.Config) (*deployGraph, error) {
 		nodes[i] = &deployNode{
 			idx:      i,
 			res:      r,
-			promises: collectPromises(r),
-			inputs:   collectInputs(r),
+			provides: collectProvides(r),
+			requires: collectRequires(r),
 		}
 	}
 
@@ -51,23 +51,23 @@ func buildDeployGraph(resolved []spec.Config) (*deployGraph, error) {
 	// is ambiguous and must be flagged.
 	producer := make(map[spec.Resource][]*deployNode)
 	for _, n := range nodes {
-		for _, p := range n.promises {
+		for _, p := range n.provides {
 			producer[p] = append(producer[p], n)
 		}
 	}
 	for r, prods := range producer {
 		if len(prods) > 1 {
-			return nil, MultipleProducersError{
+			return nil, MultipleProvidersError{
 				Resource: r,
 				Deploys:  deployNamesOf(prods),
 			}
 		}
 	}
 
-	// Wire deps. Inputs without a producer in this run are external -
-	// no edge added.
+	// Wire deps. Requirements without a producer in this run are
+	// external - no edge added.
 	for _, n := range nodes {
-		for _, in := range n.inputs {
+		for _, in := range n.requires {
 			prods := producer[in]
 			if len(prods) == 0 {
 				continue
@@ -83,17 +83,17 @@ func buildDeployGraph(resolved []spec.Config) (*deployGraph, error) {
 	return &deployGraph{levels: kahnLevels(nodes)}, nil
 }
 
-func collectPromises(r spec.Config) []spec.Resource {
+func collectProvides(r spec.Config) []spec.Resource {
 	var out []spec.Resource
 	for _, step := range r.Steps {
-		// Type-driven: a step kind auto-promises resources from its config.
-		if p, ok := step.Type.(spec.StaticPromiseProvider); ok {
-			out = append(out, p.StaticPromises(step.Config)...)
+		// Type-driven: a step kind auto-provides resources from its config.
+		if p, ok := step.Type.(spec.StaticProvider); ok {
+			out = append(out, p.StaticProvides(step.Config)...)
 		}
-		// Config-driven user labels (e.g. posix.service { promises = ["..."] }).
+		// Config-driven user labels (e.g. posix.service { provides = ["..."] }).
 		if d, ok := step.Config.(spec.ResourceDeclarer); ok {
-			promises, _ := d.ResourceDeclarations()
-			for _, p := range promises {
+			provides, _ := d.ResourceDeclarations()
+			for _, p := range provides {
 				out = append(out, spec.LabelResource(p))
 			}
 		}
@@ -101,20 +101,20 @@ func collectPromises(r spec.Config) []spec.Resource {
 	return out
 }
 
-func collectInputs(r spec.Config) []spec.Resource {
+func collectRequires(r spec.Config) []spec.Resource {
 	var out []spec.Resource
-	// Target-driven: a target kind consumes resources from its config.
-	if p, ok := r.Target.Type.(spec.StaticInputProvider); ok {
-		out = append(out, p.StaticInputs(r.Target.Config)...)
+	// Target-driven: a target kind requires resources from its config.
+	if p, ok := r.Target.Type.(spec.StaticRequirer); ok {
+		out = append(out, p.StaticRequires(r.Target.Config)...)
 	}
-	// Config-driven user labels on steps (e.g. posix.run { inputs = ["..."] }).
+	// Config-driven user labels on steps (e.g. posix.run { requires = ["..."] }).
 	for _, step := range r.Steps {
 		d, ok := step.Config.(spec.ResourceDeclarer)
 		if !ok {
 			continue
 		}
-		_, inputs := d.ResourceDeclarations()
-		for _, in := range inputs {
+		_, requires := d.ResourceDeclarations()
+		for _, in := range requires {
 			out = append(out, spec.LabelResource(in))
 		}
 	}
@@ -213,28 +213,28 @@ func deployNamesOf(ns []*deployNode) []string {
 	return out
 }
 
-// MultipleProducersError fires when two or more deploy blocks declare
-// they produce the same resource. Ambiguous ordering would let either
+// MultipleProvidersError fires when two or more deploy blocks declare
+// they provide the same resource. Ambiguous ordering would let either
 // run first, so this is fatal at link time.
-type MultipleProducersError struct {
+type MultipleProvidersError struct {
 	Resource spec.Resource
 	Deploys  []string
 }
 
-func (e MultipleProducersError) Error() string {
+func (e MultipleProvidersError) Error() string {
 	return fmt.Sprintf(
-		"resource %s:%s has multiple producers: %s",
+		"resource %s:%s is provided by multiple deploy blocks: %s",
 		resourceKindName(e.Resource.Kind), e.Resource.Name,
 		strings.Join(e.Deploys, ", "),
 	)
 }
 
-func (e MultipleProducersError) Diagnostic() event.Event {
+func (e MultipleProvidersError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID: CodeMultipleProducers,
-			Text: `resource {{.Resource}} has multiple producers: ` +
+			ID: CodeMultipleProviders,
+			Text: `resource {{.Resource}} is provided by multiple deploy blocks: ` +
 				`{{range $i, $d := .Deploys}}{{if $i}}, {{end}}{{$d}}{{end}}`,
 			Hint: "ensure only one deploy block creates this resource",
 			Data: e,
@@ -243,8 +243,8 @@ func (e MultipleProducersError) Diagnostic() event.Event {
 }
 
 // DeployCycleError fires when deploy blocks form a circular dependency
-// through their resource graph (A consumes a resource produced by B,
-// and B consumes one produced by A).
+// through their resource graph (A requires a resource provided by B,
+// and B requires one provided by A).
 type DeployCycleError struct {
 	Deploys []string
 }

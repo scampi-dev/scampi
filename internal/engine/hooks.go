@@ -18,7 +18,7 @@ func (e *Engine) executeHooks(
 	stepReport result.Execution,
 	hp *hookPlan,
 	checkOnly bool,
-	promisedPaths map[spec.Resource]bool,
+	providedPaths map[spec.Resource]bool,
 ) (result.Execution, error) {
 	if hp == nil || len(hp.steps) == 0 {
 		return result.Execution{}, nil
@@ -75,7 +75,7 @@ func (e *Engine) executeHooks(
 			var ar result.StepReport
 			var err error
 			if checkOnly {
-				ar, err = e.runCheckStep(ctx, hookIdx, act, promisedPaths, hookID)
+				ar, err = e.runCheckStep(ctx, hookIdx, act, providedPaths, hookID)
 			} else {
 				ar, err = e.runStep(ctx, hookIdx, act, hookID)
 			}

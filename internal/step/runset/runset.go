@@ -19,8 +19,8 @@ type (
 		Desired  []string
 		Init     string
 		Env      map[string]string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 
 	runSetStep struct {
@@ -38,8 +38,8 @@ type (
 func (RunSet) Kind() string   { return "run_set" }
 func (RunSet) NewConfig() any { return &RunSetConfig{} }
 
-func (c *RunSetConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *RunSetConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (RunSet) Plan(step spec.DeclaredStep) (spec.Step, error) {

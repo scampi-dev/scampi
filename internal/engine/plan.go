@@ -228,7 +228,7 @@ func plan(
 	if err := validateHooks(ctx, cfg, hp); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
-	if err := detectDuplicatePromises(ctx, steps, stepSources, cfg.Steps); err != nil {
+	if err := detectDuplicateProvides(ctx, steps, stepSources, cfg.Steps); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 	if err := DetectPlanCycles(ctx, p); err != nil {

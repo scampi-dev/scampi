@@ -12,26 +12,26 @@ import (
 	"scampi.dev/scampi/internal/target"
 )
 
-// fakeStaticStepKind implements spec.StepKind + StaticPromiseProvider.
+// fakeStaticStepKind implements spec.StepKind + StaticProvider.
 type fakeStaticStepKind struct {
 	kind     string
-	promises []spec.Resource
+	provides []spec.Resource
 }
 
 func (f fakeStaticStepKind) Kind() string                                { return f.kind }
 func (f fakeStaticStepKind) NewConfig() any                              { return &struct{}{} }
 func (f fakeStaticStepKind) Plan(_ spec.DeclaredStep) (spec.Step, error) { return nil, nil }
-func (f fakeStaticStepKind) StaticPromises(_ any) []spec.Resource        { return f.promises }
+func (f fakeStaticStepKind) StaticProvides(_ any) []spec.Resource        { return f.provides }
 
 // fakeLabelConfig implements spec.ResourceDeclarer for testing user-driven
-// promises/inputs declared on step Configs (e.g. posix.run, posix.service).
+// provides/requires declared on step Configs (e.g. posix.run, posix.service).
 type fakeLabelConfig struct {
-	promises []string
-	inputs   []string
+	provides []string
+	requires []string
 }
 
 func (c *fakeLabelConfig) ResourceDeclarations() ([]string, []string) {
-	return c.promises, c.inputs
+	return c.provides, c.requires
 }
 
 // fakeLabelStepKind is a step type whose Config implements ResourceDeclarer.
@@ -42,23 +42,23 @@ func (f fakeLabelStepKind) Kind() string                                { return
 func (f fakeLabelStepKind) NewConfig() any                              { return &fakeLabelConfig{} }
 func (f fakeLabelStepKind) Plan(_ spec.DeclaredStep) (spec.Step, error) { return nil, nil }
 
-func mkLabeledStep(promises, inputs []string) spec.DeclaredStep {
+func mkLabeledStep(provides, requires []string) spec.DeclaredStep {
 	return spec.DeclaredStep{
 		Type:   fakeLabelStepKind{kind: "label"},
-		Config: &fakeLabelConfig{promises: promises, inputs: inputs},
+		Config: &fakeLabelConfig{provides: provides, requires: requires},
 	}
 }
 
-// fakeTargetKind implements spec.TargetKind + StaticInputProvider.
+// fakeTargetKind implements spec.TargetKind + StaticRequirer.
 type fakeTargetKind struct {
-	kind   string
-	inputs []spec.Resource
+	kind     string
+	requires []spec.Resource
 }
 
 func (f fakeTargetKind) Kind() string   { return f.kind }
 func (f fakeTargetKind) NewConfig() any { return &struct{}{} }
-func (f fakeTargetKind) StaticInputs(_ any) []spec.Resource {
-	return f.inputs
+func (f fakeTargetKind) StaticRequires(_ any) []spec.Resource {
+	return f.requires
 }
 func (f fakeTargetKind) Create(_ context.Context, _ source.Source, _ spec.DeclaredTarget) (target.Target, error) {
 	return nil, nil
@@ -81,11 +81,11 @@ func Test_BuildDeployGraph_OrdersConsumerAfterProducer(t *testing.T) {
 	create := mkResolved(
 		"create",
 		fakeTargetKind{kind: "ssh"},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	configure := mkResolved(
 		"configure",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 
 	g, err := buildDeployGraph([]spec.Config{create, configure})
@@ -103,10 +103,10 @@ func Test_BuildDeployGraph_OrdersConsumerAfterProducer(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_TreatsUnproducedInputAsExternal(t *testing.T) {
-	// Configure-only: nobody in this run produces node:1000.
+func Test_BuildDeployGraph_TreatsUnprovidedRequirementAsExternal(t *testing.T) {
+	// Configure-only: nobody in this run provides node:1000.
 	configure := mkResolved("configure",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	g, err := buildDeployGraph([]spec.Config{configure})
 	if err != nil {
@@ -137,21 +137,21 @@ func Test_BuildDeployGraph_ParallelizesIndependentDeploys(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_RejectsMultipleProducers(t *testing.T) {
+func Test_BuildDeployGraph_RejectsMultipleProviders(t *testing.T) {
 	a := mkResolved(
 		"a",
 		fakeTargetKind{kind: "ssh"},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	b := mkResolved(
 		"b",
 		fakeTargetKind{kind: "ssh"},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	_, err := buildDeployGraph([]spec.Config{a, b})
-	var multi MultipleProducersError
+	var multi MultipleProvidersError
 	if !errors.As(err, &multi) {
-		t.Fatalf("expected MultipleProducersError, got %T: %v", err, err)
+		t.Fatalf("expected MultipleProvidersError, got %T: %v", err, err)
 	}
 	if multi.Resource.Name != "node:1000" {
 		t.Errorf("Resource.Name = %q, want %q", multi.Resource.Name, "node:1000")
@@ -159,16 +159,16 @@ func Test_BuildDeployGraph_RejectsMultipleProducers(t *testing.T) {
 }
 
 func Test_BuildDeployGraph_RejectsCycle(t *testing.T) {
-	// a produces node:1000, consumes node:2000
-	// b produces node:2000, consumes node:1000
+	// a provides node:1000, requires node:2000
+	// b provides node:2000, requires node:1000
 	// -> cycle.
 	a := mkResolved("a",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:2000")}},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:2000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	b := mkResolved("b",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:2000")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:2000")}},
 	)
 	_, err := buildDeployGraph([]spec.Config{a, b})
 	var cycle DeployCycleError
@@ -182,14 +182,14 @@ func Test_BuildDeployGraph_OrdersChainIntoLevels(t *testing.T) {
 	a := mkResolved(
 		"a",
 		fakeTargetKind{kind: "ssh"},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	b := mkResolved("b",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:2000")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:2000")}},
 	)
 	c := mkResolved("c",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:2000")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:2000")}},
 	)
 
 	g, err := buildDeployGraph([]spec.Config{a, b, c})
@@ -207,7 +207,7 @@ func Test_BuildDeployGraph_OrdersChainIntoLevels(t *testing.T) {
 }
 
 func Test_BuildDeployGraph_OrdersByDeclaredLabels(t *testing.T) {
-	// dc1 promises "realm:skrynet.lan" via a step config; dc2 inputs
+	// dc1 provides "realm:skrynet.lan" via a step config; dc2 requires
 	// it. Engine orders dc2 after dc1.
 	dc1 := spec.Config{
 		DeployName: "dc1",
@@ -240,8 +240,8 @@ func Test_BuildDeployGraph_OrdersByDeclaredLabels(t *testing.T) {
 	}
 }
 
-func Test_BuildDeployGraph_TreatsUnproducedLabelAsExternal(t *testing.T) {
-	// Consumer-only: no producer of "realm:skrynet.lan" in this run.
+func Test_BuildDeployGraph_TreatsUnprovidedLabelAsExternal(t *testing.T) {
+	// Consumer-only: no provider of "realm:skrynet.lan" in this run.
 	// Treated as external - runs immediately as a root.
 	dc2 := spec.Config{
 		DeployName: "dc2",
@@ -269,19 +269,19 @@ func levelSizes(levels [][]*deployNode) []int {
 }
 
 func Test_BuildDeployGraph_ParallelizesFanoutConsumers(t *testing.T) {
-	// a produces node:1000 + node:1001, b consumes :1000, c consumes :1001
+	// a provides node:1000 + node:1001, b requires :1000, c requires :1001
 	// -> b and c run in parallel at level 1.
 	a := mkResolved(
 		"a",
 		fakeTargetKind{kind: "ssh"},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1000")}},
-		fakeStaticStepKind{kind: "make.node", promises: []spec.Resource{spec.LabelResource("node:1001")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeStaticStepKind{kind: "make.node", provides: []spec.Resource{spec.LabelResource("node:1001")}},
 	)
 	b := mkResolved("b",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1000")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:1000")}},
 	)
 	c := mkResolved("c",
-		fakeTargetKind{kind: "use.node", inputs: []spec.Resource{spec.LabelResource("node:1001")}},
+		fakeTargetKind{kind: "use.node", requires: []spec.Resource{spec.LabelResource("node:1001")}},
 	)
 
 	g, err := buildDeployGraph([]spec.Config{a, b, c})

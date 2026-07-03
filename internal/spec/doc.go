@@ -26,7 +26,7 @@
 // an executable Step.
 //
 // The spec layer is descriptive only and contains no execution logic. Types are
-// grouped by world across files: resource.go (the promise/input surface),
+// grouped by world across files: resource.go (the provides/requires surface),
 // declared.go (linker output plus per-kind types), execution.go (the planned,
 // runnable types), span.go (source locations).
 package spec

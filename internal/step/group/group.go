@@ -51,8 +51,8 @@ type (
 		State    string
 		GID      int
 		System   bool
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	groupStep struct {
 		desc   string
@@ -67,8 +67,8 @@ type (
 func (Group) Kind() string   { return "group" }
 func (Group) NewConfig() any { return &GroupConfig{} }
 
-func (c *GroupConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *GroupConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (g Group) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -87,11 +87,10 @@ func (g Group) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	}, nil
 }
 
-func (a *groupStep) Desc() string            { return a.desc }
-func (a *groupStep) Kind() string            { return "group" }
-func (a *groupStep) Inputs() []spec.Resource { return nil }
+func (a *groupStep) Desc() string { return a.desc }
+func (a *groupStep) Kind() string { return "group" }
 
-func (a *groupStep) Promises() []spec.Resource {
+func (a *groupStep) Provides() []spec.Resource {
 	if a.state == StatePresent {
 		return []spec.Resource{spec.GroupResource(a.name)}
 	}

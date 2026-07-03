@@ -23,19 +23,19 @@ func (m *mockStep) Desc() string   { return m.desc }
 func (m *mockStep) Kind() string   { return m.kind }
 func (m *mockStep) Ops() []spec.Op { return m.ops }
 
-// mockPromiserStep implements spec.Step and spec.Promiser for testing
-type mockPromiserStep struct {
+// mockResourceStep implements spec.Step and spec.Provider for testing
+type mockResourceStep struct {
 	desc     string
 	kind     string
-	inputs   []spec.Resource
-	promises []spec.Resource
+	requires []spec.Resource
+	provides []spec.Resource
 }
 
-func (m *mockPromiserStep) Desc() string              { return m.desc }
-func (m *mockPromiserStep) Kind() string              { return m.kind }
-func (m *mockPromiserStep) Ops() []spec.Op            { return nil }
-func (m *mockPromiserStep) Inputs() []spec.Resource   { return m.inputs }
-func (m *mockPromiserStep) Promises() []spec.Resource { return m.promises }
+func (m *mockResourceStep) Desc() string              { return m.desc }
+func (m *mockResourceStep) Kind() string              { return m.kind }
+func (m *mockResourceStep) Ops() []spec.Op            { return nil }
+func (m *mockResourceStep) Requires() []spec.Resource { return m.requires }
+func (m *mockResourceStep) Provides() []spec.Resource { return m.provides }
 
 func paths(s ...string) []spec.Resource {
 	r := make([]spec.Resource, len(s))
@@ -70,10 +70,10 @@ func labels(s ...string) []spec.Resource {
 }
 
 func Test_BuildStepGraph_KeepsDisjointPathsIndependent(t *testing.T) {
-	// Two Promiser steps with no path overlap -> no dependencies
+	// Two provider steps with no path overlap -> no dependencies
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: paths("/a")},
-		&mockPromiserStep{desc: "B", promises: paths("/b")},
+		&mockResourceStep{desc: "A", provides: paths("/a")},
+		&mockResourceStep{desc: "B", provides: paths("/b")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -90,8 +90,8 @@ func Test_BuildStepGraph_KeepsDisjointPathsIndependent(t *testing.T) {
 func Test_BuildStepGraph_OrdersPathReaderAfterWriter(t *testing.T) {
 	// A writes /foo, B reads /foo -> B depends on A
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: paths("/foo")},
-		&mockPromiserStep{desc: "B", inputs: paths("/foo"), promises: paths("/bar")},
+		&mockResourceStep{desc: "A", provides: paths("/foo")},
+		&mockResourceStep{desc: "B", requires: paths("/foo"), provides: paths("/bar")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -124,9 +124,9 @@ func Test_BuildStepGraph_TreatsNonPathersAsFences(t *testing.T) {
 	// Fence semantics: barriers chain and fan in/out to neighboring path
 	// nodes. P1->N1->P2->N2 with fan-in edges from Pathers between barriers.
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "P1", promises: paths("/p1")},
+		&mockResourceStep{desc: "P1", provides: paths("/p1")},
 		&mockStep{desc: "N1"},
-		&mockPromiserStep{desc: "P2", promises: paths("/p2")},
+		&mockResourceStep{desc: "P2", provides: paths("/p2")},
 		&mockStep{desc: "N2"},
 	}
 
@@ -167,9 +167,9 @@ func noDeps(t *testing.T, n *stepNode, name string) {
 func Test_BuildStepGraph_ChainsPathDependencies(t *testing.T) {
 	// A -> B -> C chain via paths
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: paths("/a")},
-		&mockPromiserStep{desc: "B", inputs: paths("/a"), promises: paths("/b")},
-		&mockPromiserStep{desc: "C", inputs: paths("/b"), promises: paths("/c")},
+		&mockResourceStep{desc: "A", provides: paths("/a")},
+		&mockResourceStep{desc: "B", requires: paths("/a"), provides: paths("/b")},
+		&mockResourceStep{desc: "C", requires: paths("/b"), provides: paths("/c")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -183,10 +183,10 @@ func Test_BuildStepGraph_OrdersChildPathAfterParentDir(t *testing.T) {
 	// dir creates /home/user/.ssh, copy writes /home/user/.ssh/authorized_keys
 	// -> copy should depend on dir (parent directory)
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "dir", promises: paths("/home/user/.ssh")},
-		&mockPromiserStep{
-			desc: "copy", inputs: paths("./keys"),
-			promises: paths("/home/user/.ssh/authorized_keys"),
+		&mockResourceStep{desc: "dir", provides: paths("/home/user/.ssh")},
+		&mockResourceStep{
+			desc: "copy", requires: paths("./keys"),
+			provides: paths("/home/user/.ssh/authorized_keys"),
 		},
 	}
 
@@ -196,10 +196,10 @@ func Test_BuildStepGraph_OrdersChildPathAfterParentDir(t *testing.T) {
 }
 
 func Test_BuildStepGraph_OrdersUserConsumerAfterProducer(t *testing.T) {
-	// user step promises user "app", dir step consumes user "app" -> dependency
+	// user step provides user "app", dir step requires user "app" -> dependency
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "user", promises: users("app")},
-		&mockPromiserStep{desc: "dir", inputs: users("app"), promises: paths("/opt/app")},
+		&mockResourceStep{desc: "user", provides: users("app")},
+		&mockResourceStep{desc: "dir", requires: users("app"), provides: paths("/opt/app")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -207,10 +207,10 @@ func Test_BuildStepGraph_OrdersUserConsumerAfterProducer(t *testing.T) {
 }
 
 func Test_BuildStepGraph_OrdersGroupConsumerAfterProducer(t *testing.T) {
-	// group step promises group "staff", dir step consumes group "staff" -> dependency
+	// group step provides group "staff", dir step requires group "staff" -> dependency
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "group", promises: groups("staff")},
-		&mockPromiserStep{desc: "dir", inputs: groups("staff"), promises: paths("/srv")},
+		&mockResourceStep{desc: "group", provides: groups("staff")},
+		&mockResourceStep{desc: "dir", requires: groups("staff"), provides: paths("/srv")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -218,25 +218,25 @@ func Test_BuildStepGraph_OrdersGroupConsumerAfterProducer(t *testing.T) {
 }
 
 func Test_BuildStepGraph_IgnoresCrossKindNameOverlap(t *testing.T) {
-	// A promises path "/foo", B consumes user "foo" -> no dependency (different kinds)
+	// A provides path "/foo", B requires user "foo" -> no dependency (different kinds)
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: paths("/foo")},
-		&mockPromiserStep{desc: "B", inputs: users("foo"), promises: paths("/bar")},
+		&mockResourceStep{desc: "A", provides: paths("/foo")},
+		&mockResourceStep{desc: "B", requires: users("foo"), provides: paths("/bar")},
 	}
 
 	nodes := buildStepGraph(steps)
 	noDeps(t, nodes[1], "B")
 }
 
-func Test_BuildStepGraph_DoesNotFenceUserPromiser(t *testing.T) {
+func Test_BuildStepGraph_DoesNotFenceUserProvider(t *testing.T) {
 	// A user step with resources is NOT a barrier - parallel path steps
 	// should not be serialized through it.
 	// P1, user, P2 with no resource overlap: P1 and P2 run in parallel,
-	// user is not a barrier because it has resources (user promise).
+	// user is not a barrier because it has resources (user resource).
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "P1", promises: paths("/a")},
-		&mockPromiserStep{desc: "user", promises: users("app")},
-		&mockPromiserStep{desc: "P2", promises: paths("/b")},
+		&mockResourceStep{desc: "P1", provides: paths("/a")},
+		&mockResourceStep{desc: "user", provides: users("app")},
+		&mockResourceStep{desc: "P2", provides: paths("/b")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -247,11 +247,11 @@ func Test_BuildStepGraph_DoesNotFenceUserPromiser(t *testing.T) {
 }
 
 func Test_BuildStepGraph_ChainsMixedResourceKinds(t *testing.T) {
-	// group -> user (consumes group) -> dir (consumes user and path)
+	// group -> user (requires group) -> dir (requires user and path)
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "group", promises: groups("staff")},
-		&mockPromiserStep{desc: "user", inputs: groups("staff"), promises: users("app")},
-		&mockPromiserStep{desc: "dir", inputs: users("app"), promises: paths("/opt/app")},
+		&mockResourceStep{desc: "group", provides: groups("staff")},
+		&mockResourceStep{desc: "user", requires: groups("staff"), provides: users("app")},
+		&mockResourceStep{desc: "dir", requires: users("app"), provides: paths("/opt/app")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -264,9 +264,9 @@ func Test_BuildStepGraph_ParallelizesDistinctLabels(t *testing.T) {
 	// Three steps with distinct label slots - no resource overlap
 	// and not barriers, so they run in parallel.
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "node100", promises: labels("node:100")},
-		&mockPromiserStep{desc: "node101", promises: labels("node:101")},
-		&mockPromiserStep{desc: "node102", promises: labels("node:102")},
+		&mockResourceStep{desc: "node100", provides: labels("node:100")},
+		&mockResourceStep{desc: "node101", provides: labels("node:101")},
+		&mockResourceStep{desc: "node102", provides: labels("node:102")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -276,13 +276,13 @@ func Test_BuildStepGraph_ParallelizesDistinctLabels(t *testing.T) {
 	}
 }
 
-func Test_BuildStepGraph_DoesNotFenceLabelPromiser(t *testing.T) {
+func Test_BuildStepGraph_DoesNotFenceLabelProvider(t *testing.T) {
 	// A label-resource step between two path steps must not act
 	// as a barrier (regression test for #235).
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "P1", promises: paths("/a")},
-		&mockPromiserStep{desc: "node", promises: labels("node:100")},
-		&mockPromiserStep{desc: "P2", promises: paths("/b")},
+		&mockResourceStep{desc: "P1", provides: paths("/a")},
+		&mockResourceStep{desc: "node", provides: labels("node:100")},
+		&mockResourceStep{desc: "P2", provides: paths("/b")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -296,8 +296,8 @@ func Test_BuildStepGraph_LimitsParentDirMatchingToPaths(t *testing.T) {
 	// Parent-directory prefix matching only applies to path resources.
 	// user "app" should NOT create a dependency on user "app/sub".
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: users("app")},
-		&mockPromiserStep{desc: "B", promises: users("app/sub")},
+		&mockResourceStep{desc: "A", provides: users("app")},
+		&mockResourceStep{desc: "B", provides: users("app/sub")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -306,8 +306,8 @@ func Test_BuildStepGraph_LimitsParentDirMatchingToPaths(t *testing.T) {
 
 func Test_InitStepPending_CountsDeps(t *testing.T) {
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: paths("/foo")},
-		&mockPromiserStep{desc: "B", inputs: paths("/foo")},
+		&mockResourceStep{desc: "A", provides: paths("/foo")},
+		&mockResourceStep{desc: "B", requires: paths("/foo")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -332,7 +332,7 @@ func Test_InitStepPending_CountsDeps(t *testing.T) {
 // has to fence - concurrent execution against any sibling step is
 // unsafe.
 //
-// The mechanism today: such steps don't implement spec.Promiser
+// The mechanism today: such steps don't implement spec.Provider
 // (or implement it trivially) and `hasResources` reports false, which
 // makes `buildStepGraph` chain them as barriers. These tests pin
 // that contract: regressing the barrier is silent in the engine -
@@ -391,7 +391,7 @@ func Test_BuildStepGraph_SerializesPkgServiceRun(t *testing.T) {
 	// dc1-v2-shaped sequence: pkg -> service -> run -> run -> run -> service.
 	// Every step is opaque (barrier), so the fence builder must chain
 	// them strictly: each step depends on the immediately preceding
-	// one. If anyone adds Promiser to one of these step types without
+	// one. If anyone adds Provider/Requirer to one of these step types without
 	// an exact, complete declaration, this test fails.
 	steps := []spec.Step{
 		asStep(t, pkg.Pkg{}, &pkg.PkgConfig{

@@ -65,8 +65,8 @@ type (
 		Packages []string
 		State    string
 		Source   spec.PkgSourceRef
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	pkgStep struct {
 		desc     string
@@ -80,8 +80,8 @@ type (
 func (Pkg) Kind() string   { return "pkg" }
 func (Pkg) NewConfig() any { return &PkgConfig{} }
 
-func (c *PkgConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *PkgConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (p Pkg) Plan(step spec.DeclaredStep) (spec.Step, error) {

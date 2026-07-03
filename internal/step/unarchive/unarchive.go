@@ -22,8 +22,8 @@ type (
 		Owner    string
 		Group    string
 		Perm     string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	unarchiveStep struct {
 		desc   string
@@ -43,8 +43,8 @@ type (
 func (Unarchive) Kind() string   { return "unarchive" }
 func (Unarchive) NewConfig() any { return &UnarchiveConfig{} }
 
-func (c *UnarchiveConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *UnarchiveConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (u Unarchive) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -108,7 +108,7 @@ func (u Unarchive) Plan(step spec.DeclaredStep) (spec.Step, error) {
 
 func (a *unarchiveStep) Desc() string { return a.desc }
 func (a *unarchiveStep) Kind() string { return a.kind }
-func (a *unarchiveStep) Inputs() []spec.Resource {
+func (a *unarchiveStep) Requires() []spec.Resource {
 	var r []spec.Resource
 	if a.owner != "" {
 		r = append(r, spec.UserResource(a.owner))
@@ -119,7 +119,7 @@ func (a *unarchiveStep) Inputs() []spec.Resource {
 	return r
 }
 func (a *unarchiveStep) SourcePaths() []string { return []string{a.src} }
-func (a *unarchiveStep) Promises() []spec.Resource {
+func (a *unarchiveStep) Provides() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.dest)}
 }
 

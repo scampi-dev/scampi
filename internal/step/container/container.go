@@ -91,8 +91,8 @@ type (
 		Labels  map[string]string
 
 		Healthcheck *target.Healthcheck
-		Promises    []string
-		Inputs      []string
+		Provides    []string
+		Requires    []string
 	}
 	instanceStep struct {
 		desc        string
@@ -113,8 +113,8 @@ type (
 func (Instance) Kind() string   { return "container.instance" }
 func (Instance) NewConfig() any { return &InstanceConfig{} }
 
-func (c *InstanceConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *InstanceConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (Instance) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -201,15 +201,13 @@ func (c *InstanceConfig) validate(step spec.DeclaredStep) error {
 func (a *instanceStep) Desc() string { return a.desc }
 func (a *instanceStep) Kind() string { return "container.instance" }
 
-func (a *instanceStep) Inputs() []spec.Resource {
+func (a *instanceStep) Requires() []spec.Resource {
 	var r []spec.Resource
 	for _, m := range a.mounts {
 		r = append(r, spec.PathResource(m.Source))
 	}
 	return r
 }
-
-func (a *instanceStep) Promises() []spec.Resource { return nil }
 
 func (a *instanceStep) Ops() []spec.Op {
 	op := &ensureContainerOp{

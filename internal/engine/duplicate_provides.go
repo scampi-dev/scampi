@@ -10,29 +10,29 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-// detectDuplicatePromises rejects plans where two steps promise the
-// same Resource. Two steps promising the same resource is always a
+// detectDuplicateProvides rejects plans where two steps provide the
+// same Resource. Two steps providing the same resource is always a
 // user error: either two writers will race, or one masks the other
 // (e.g. two posix.user "alice").
 //
-// The first step to promise a given resource is the "winner"; every
-// later step promising the same resource produces a DuplicateResourceError
+// The first step to provide a given resource is the "winner"; every
+// later step providing the same resource produces a DuplicateResourceError
 // pointing back at the original.
-func detectDuplicatePromises(
+func detectDuplicateProvides(
 	ctx diagnostic.Ctx,
 	steps []spec.Step,
 	stepSources []int,
 	declared []spec.DeclaredStep,
 ) error {
-	winners := map[spec.Resource]int{} // resource -> step index of first promiser
+	winners := map[spec.Resource]int{} // resource -> step index of first provider
 	var causes []error
 
 	for i, step := range steps {
-		p, ok := step.(spec.Promiser)
+		p, ok := step.(spec.Provider)
 		if !ok {
 			continue
 		}
-		for _, r := range p.Promises() {
+		for _, r := range p.Provides() {
 			prevIdx, dup := winners[r]
 			if !dup {
 				winners[r] = i
@@ -64,7 +64,7 @@ func detectDuplicatePromises(
 	return nil
 }
 
-// DuplicateResourceError fires when two steps promise the same Resource.
+// DuplicateResourceError fires when two steps provide the same Resource.
 type DuplicateResourceError struct {
 	Resource     spec.Resource
 	KindLabel    string // human label for Resource.Kind (e.g. "container", "path")
@@ -75,7 +75,7 @@ type DuplicateResourceError struct {
 	OtherKind    string
 	OtherDesc    string
 	OtherSource  spec.SourceSpan
-	OtherLocText string // pre-formatted location of the original promiser
+	OtherLocText string // pre-formatted location of the original provider
 }
 
 func (e DuplicateResourceError) Error() string {
@@ -123,7 +123,7 @@ func resourceKindHint(k spec.ResourceKind) string {
 	case spec.ResourcePath:
 		return "two steps cannot manage the same path - merge them or pick distinct destinations"
 	default:
-		return "two steps cannot promise the same resource - remove or rename one"
+		return "two steps cannot provide the same resource - remove or rename one"
 	}
 }
 

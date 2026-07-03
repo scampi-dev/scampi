@@ -83,7 +83,7 @@ std.deploy(name = "solo", targets = [host]) {
 }
 
 // Test_Plan_OrdersLinearChainIntoLevels covers A -> B -> C ordering via
-// label promises. Each level should hold one deploy, edges should
+// label provides. Each level should hold one deploy, edges should
 // point upstream by name, and Needs should expose the label that
 // drove each edge.
 func Test_Plan_OrdersLinearChainIntoLevels(t *testing.T) {
@@ -100,7 +100,7 @@ std.deploy(name = "base", targets = [host]) {
     desc     = "base"
     check    = "true"
     apply    = "true"
-    promises = ["ready"]
+    provides = ["ready"]
   }
 }
 
@@ -109,8 +109,8 @@ std.deploy(name = "middle", targets = [host]) {
     desc     = "middle"
     check    = "true"
     apply    = "true"
-    inputs   = ["ready"]
-    promises = ["configured"]
+    requires = ["ready"]
+    provides = ["configured"]
   }
 }
 
@@ -119,7 +119,7 @@ std.deploy(name = "app", targets = [host]) {
     desc   = "app"
     check  = "true"
     apply  = "true"
-    inputs = ["configured"]
+    requires = ["configured"]
   }
 }
 `
@@ -177,7 +177,7 @@ std.deploy(name = "base", targets = [host]) {
     desc     = "base"
     check    = "true"
     apply    = "true"
-    promises = ["ready"]
+    provides = ["ready"]
   }
 }
 
@@ -186,7 +186,7 @@ std.deploy(name = "left", targets = [host]) {
     desc   = "left"
     check  = "true"
     apply  = "true"
-    inputs = ["ready"]
+    requires = ["ready"]
   }
 }
 
@@ -195,7 +195,7 @@ std.deploy(name = "right", targets = [host]) {
     desc   = "right"
     check  = "true"
     apply  = "true"
-    inputs = ["ready"]
+    requires = ["ready"]
   }
 }
 `
@@ -232,7 +232,7 @@ std.deploy(name = "right", targets = [host]) {
 }
 
 // Test_Plan_DeployCycleErrors covers A -> B -> A: two deploys
-// promising/consuming each other's labels. Plan must return
+// providing/consuming each other's labels. Plan must return
 // DeployCycleError without panicking.
 func Test_Plan_DeployCycleErrors(t *testing.T) {
 	cfg := `
@@ -248,8 +248,8 @@ std.deploy(name = "a", targets = [host]) {
     desc     = "a"
     check    = "true"
     apply    = "true"
-    inputs   = ["from-b"]
-    promises = ["from-a"]
+    requires = ["from-b"]
+    provides = ["from-a"]
   }
 }
 
@@ -258,8 +258,8 @@ std.deploy(name = "b", targets = [host]) {
     desc     = "b"
     check    = "true"
     apply    = "true"
-    inputs   = ["from-a"]
-    promises = ["from-b"]
+    requires = ["from-a"]
+    provides = ["from-b"]
   }
 }
 `

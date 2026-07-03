@@ -15,8 +15,8 @@ type (
 		Check    string
 		Always   bool
 		Env      map[string]string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	runStep struct {
 		desc   string
@@ -31,8 +31,8 @@ type (
 func (Run) Kind() string   { return "run" }
 func (Run) NewConfig() any { return &RunConfig{} }
 
-func (c *RunConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *RunConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (Run) Plan(step spec.DeclaredStep) (spec.Step, error) {

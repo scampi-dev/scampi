@@ -87,9 +87,9 @@ func (e *Engine) converge(ctx diagnostic.Ctx, checkOnly bool) (result.Execution,
 	e.storeSourcePaths(ctx, p)
 
 	var rep result.Execution
-	var promisedPaths map[spec.Resource]bool
+	var providedPaths map[spec.Resource]bool
 	if checkOnly {
-		rep, promisedPaths, err = e.CheckPlan(ctx, p)
+		rep, providedPaths, err = e.CheckPlan(ctx, p)
 	} else {
 		rep, err = e.ExecutePlan(ctx, p)
 	}
@@ -97,7 +97,7 @@ func (e *Engine) converge(ctx diagnostic.Ctx, checkOnly bool) (result.Execution,
 		return rep, err
 	}
 
-	hookRep, err := e.executeHooks(ctx, rep, hp, checkOnly, promisedPaths)
+	hookRep, err := e.executeHooks(ctx, rep, hp, checkOnly, providedPaths)
 	if err != nil {
 		return rep, err
 	}

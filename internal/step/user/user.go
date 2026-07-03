@@ -54,8 +54,8 @@ type (
 		System   bool
 		Password string
 		Groups   []string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	userStep struct {
 		desc   string
@@ -73,8 +73,8 @@ type (
 func (User) Kind() string   { return "user" }
 func (User) NewConfig() any { return &UserConfig{} }
 
-func (c *UserConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *UserConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (u User) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -98,7 +98,7 @@ func (u User) Plan(step spec.DeclaredStep) (spec.Step, error) {
 
 func (a *userStep) Desc() string { return a.desc }
 func (a *userStep) Kind() string { return "user" }
-func (a *userStep) Inputs() []spec.Resource {
+func (a *userStep) Requires() []spec.Resource {
 	var r []spec.Resource
 	for _, g := range a.groups {
 		r = append(r, spec.GroupResource(g))
@@ -106,7 +106,7 @@ func (a *userStep) Inputs() []spec.Resource {
 	return r
 }
 
-func (a *userStep) Promises() []spec.Resource {
+func (a *userStep) Provides() []spec.Resource {
 	if a.state == StatePresent {
 		return []spec.Resource{spec.UserResource(a.name)}
 	}

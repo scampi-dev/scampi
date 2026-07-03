@@ -22,32 +22,32 @@ func mkStep(kind, file string, line int) spec.DeclaredStep {
 	}
 }
 
-func Test_DetectDuplicatePromises_AcceptsDistinctLabels(t *testing.T) {
+func Test_DetectDuplicateProvides_AcceptsDistinctLabels(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
-		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
-		&mockPromiserStep{kind: "make.node", promises: labels("node:101")},
+		&mockResourceStep{kind: "make.node", provides: labels("node:100")},
+		&mockResourceStep{kind: "make.node", provides: labels("node:101")},
 	}
 	declared := []spec.DeclaredStep{
 		mkStep("make.node", "main.scampi", 10),
 		mkStep("make.node", "main.scampi", 20),
 	}
-	if err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared); err != nil {
+	if err := detectDuplicateProvides(ctx, steps, []int{0, 1}, declared); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func Test_DetectDuplicatePromises_RejectsDuplicateLabel(t *testing.T) {
+func Test_DetectDuplicateProvides_RejectsDuplicateLabel(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
-		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
-		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
+		&mockResourceStep{kind: "make.node", provides: labels("node:100")},
+		&mockResourceStep{kind: "make.node", provides: labels("node:100")},
 	}
 	declared := []spec.DeclaredStep{
 		mkStep("make.node", "main.scampi", 10),
 		mkStep("make.node", "main.scampi", 20),
 	}
-	err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared)
+	err := detectDuplicateProvides(ctx, steps, []int{0, 1}, declared)
 	if err == nil {
 		t.Fatal("expected error for duplicate label, got nil")
 	}
@@ -76,56 +76,56 @@ func Test_DetectDuplicatePromises_RejectsDuplicateLabel(t *testing.T) {
 	}
 }
 
-func Test_DetectDuplicatePromises_RejectsDuplicatePath(t *testing.T) {
+func Test_DetectDuplicateProvides_RejectsDuplicatePath(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
-		&mockPromiserStep{kind: "dir", promises: paths("/etc/foo")},
-		&mockPromiserStep{kind: "copy", promises: paths("/etc/foo")},
+		&mockResourceStep{kind: "dir", provides: paths("/etc/foo")},
+		&mockResourceStep{kind: "copy", provides: paths("/etc/foo")},
 	}
 	declared := []spec.DeclaredStep{
 		mkStep("posix.dir", "main.scampi", 5),
 		mkStep("posix.copy", "main.scampi", 12),
 	}
-	err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared)
+	err := detectDuplicateProvides(ctx, steps, []int{0, 1}, declared)
 	if err == nil {
 		t.Fatal("expected error for duplicate path, got nil")
 	}
 }
 
-func Test_DetectDuplicatePromises_AcceptsDistinctNodeIDs(t *testing.T) {
+func Test_DetectDuplicateProvides_AcceptsDistinctNodeIDs(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
-		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
-		&mockPromiserStep{kind: "make.node", promises: labels("node:200")},
+		&mockResourceStep{kind: "make.node", provides: labels("node:100")},
+		&mockResourceStep{kind: "make.node", provides: labels("node:200")},
 	}
 	declared := []spec.DeclaredStep{
 		mkStep("make.node", "main.scampi", 10),
 		mkStep("make.node", "main.scampi", 20),
 	}
-	if err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared); err != nil {
+	if err := detectDuplicateProvides(ctx, steps, []int{0, 1}, declared); err != nil {
 		t.Fatalf("unexpected error for distinct labels: %v", err)
 	}
 }
 
-func Test_DetectDuplicatePromises_SkipsNonPromisers(t *testing.T) {
+func Test_DetectDuplicateProvides_SkipsNonProviders(t *testing.T) {
 	ctx := discardCtx(t)
 	steps := []spec.Step{
 		&mockStep{kind: "noop"},
-		&mockPromiserStep{kind: "make.node", promises: labels("node:100")},
+		&mockResourceStep{kind: "make.node", provides: labels("node:100")},
 	}
 	declared := []spec.DeclaredStep{
 		mkStep("noop", "main.scampi", 5),
 		mkStep("make.node", "main.scampi", 10),
 	}
-	if err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared); err != nil {
+	if err := detectDuplicateProvides(ctx, steps, []int{0, 1}, declared); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func Test_DetectDuplicatePromises_RejectsAllResourceKinds(t *testing.T) {
+func Test_DetectDuplicateProvides_RejectsAllResourceKinds(t *testing.T) {
 	cases := []struct {
 		name     string
-		promises []spec.Resource
+		provides []spec.Resource
 		wantKind spec.ResourceKind
 	}{
 		{"label", labels("node:100"), spec.ResourceLabel},
@@ -137,14 +137,14 @@ func Test_DetectDuplicatePromises_RejectsAllResourceKinds(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := discardCtx(t)
 			steps := []spec.Step{
-				&mockPromiserStep{kind: "x", promises: tc.promises},
-				&mockPromiserStep{kind: "x", promises: tc.promises},
+				&mockResourceStep{kind: "x", provides: tc.provides},
+				&mockResourceStep{kind: "x", provides: tc.provides},
 			}
 			declared := []spec.DeclaredStep{
 				mkStep("x", "main.scampi", 10),
 				mkStep("x", "main.scampi", 20),
 			}
-			err := detectDuplicatePromises(ctx, steps, []int{0, 1}, declared)
+			err := detectDuplicateProvides(ctx, steps, []int{0, 1}, declared)
 			if err == nil {
 				t.Fatal("expected duplicate error, got nil")
 			}

@@ -144,8 +144,8 @@ type (
 		Type     string
 		Opts     string
 		State    string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	mountStep struct {
 		desc  string
@@ -161,8 +161,8 @@ type (
 func (Mount) Kind() string   { return "mount" }
 func (Mount) NewConfig() any { return &MountConfig{} }
 
-func (c *MountConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *MountConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (Mount) Plan(step spec.DeclaredStep) (spec.Step, error) {

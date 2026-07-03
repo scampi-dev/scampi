@@ -2,7 +2,7 @@
 
 package spec
 
-// ResourceKind identifies the type of a promised or deferred resource.
+// ResourceKind identifies the type of a provided or deferred resource.
 type ResourceKind uint8
 
 const (
@@ -13,7 +13,7 @@ const (
 	ResourceLabel // arbitrary user-named resource (e.g. "realm:skrynet.lan")
 )
 
-// Resource is a typed key for a promised or deferred resource.
+// Resource is a typed key for a provided or deferred resource.
 type Resource struct {
 	Kind ResourceKind
 	Name string
@@ -26,40 +26,46 @@ func LabelResource(name string) Resource {
 	return Resource{Kind: ResourceLabel, Name: name}
 }
 
-// Promiser is an optional interface that steps can implement to declare
-// resources they consume and produce. Used for automatic dependency
-// inference and check-mode deferral.
-type Promiser interface {
-	Inputs() []Resource
-	Promises() []Resource
+// Requirer is an optional interface that steps can implement to declare
+// resources they require. Used for automatic dependency inference and
+// check-mode deferral.
+type Requirer interface {
+	Requires() []Resource
 }
 
-// StaticInputProvider is implemented by TargetKinds that consume resources
-// produced by other deploy blocks. The engine uses this to order plans
-// cross-deploy: a deploy block whose target inputs a resource waits for
-// whichever block promises it. Pure config inspection: no live connections,
+// Provider is an optional interface that steps can implement to declare
+// resources they provide. Used for automatic dependency inference and
+// check-mode deferral.
+type Provider interface {
+	Provides() []Resource
+}
+
+// StaticRequirer is implemented by TargetKinds that require resources
+// provided by other deploy blocks. The engine uses this to order plans
+// cross-deploy: a deploy block whose target requires a resource waits for
+// whichever block provides it. Pure config inspection: no live connections,
 // no probes.
-type StaticInputProvider interface {
-	StaticInputs(cfg any) []Resource
+type StaticRequirer interface {
+	StaticRequires(cfg any) []Resource
 }
 
-// StaticPromiseProvider is implemented by StepKinds that produce resources
-// visible to other deploy blocks, consumed by a sibling block's target inputs.
-// Pure config inspection. The op-level Promiser intra-step surface stays
-// separate: those run after Plan(); this is pre-plan.
-type StaticPromiseProvider interface {
-	StaticPromises(cfg any) []Resource
+// StaticProvider is implemented by StepKinds that provide resources
+// visible to other deploy blocks, required by a sibling block's target
+// requirements. Pure config inspection. The step-level Requirer/Provider
+// surface stays separate: those run after Plan(); this is pre-plan.
+type StaticProvider interface {
+	StaticProvides(cfg any) []Resource
 }
 
 // ResourceDeclarer is implemented by step Config structs that expose
-// user-driven `promises = [...]` / `inputs = [...]` fields (e.g. posix.run,
-// posix.service). The engine reads these alongside type-driven StaticPromises
+// user-driven `provides = [...]` / `requires = [...]` fields (e.g. posix.run,
+// posix.service). The engine reads these alongside type-driven StaticProvides
 // to build the cross-deploy resource graph: dc1's `samba-ad-dc` service can
-// promise `realm:skrynet.lan`, and dc2's join step can input it, so the engine
-// orders dc2 after dc1. Each declared name maps to a LabelResource; matching is
-// exact-string. See #275.
+// provide `realm:skrynet.lan`, and dc2's join step can require it, so the
+// engine orders dc2 after dc1. Each declared name maps to a LabelResource;
+// matching is exact-string. See #275.
 type ResourceDeclarer interface {
-	ResourceDeclarations() (promises, inputs []string)
+	ResourceDeclarations() (provides, requires []string)
 }
 
 // DriftDetail describes one field that differs between desired and current

@@ -23,8 +23,8 @@ type (
 		Desc     string
 		Target   string
 		Link     string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	symlinkStep struct {
 		desc   string
@@ -38,8 +38,8 @@ type (
 func (Symlink) Kind() string   { return "symlink" }
 func (Symlink) NewConfig() any { return &SymlinkConfig{} }
 
-func (c *SymlinkConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *SymlinkConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (s Symlink) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -61,10 +61,10 @@ func (s Symlink) Plan(step spec.DeclaredStep) (spec.Step, error) {
 
 func (a *symlinkStep) Desc() string { return a.desc }
 func (a *symlinkStep) Kind() string { return a.kind }
-func (a *symlinkStep) Inputs() []spec.Resource {
+func (a *symlinkStep) Requires() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.target)}
 }
-func (a *symlinkStep) Promises() []spec.Resource {
+func (a *symlinkStep) Provides() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.link)}
 }
 func (a *symlinkStep) Ops() []spec.Op {

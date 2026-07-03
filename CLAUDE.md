@@ -82,13 +82,13 @@ internal/testkit/     # scampi's own test framework
 
 **Execution model** — three nested dependency DAGs, not sequential phases:
 - **Deploys**: ordered into levels by the cross-deploy resource graph
-  (`StaticPromiseProvider`/`StaticInputProvider`). Deploys in a level run
+  (`StaticProvider`/`StaticRequirer`). Deploys in a level run
   concurrently; a failing deploy does NOT cancel its level siblings (they
   target independent systems), but downstream levels are skipped.
-- **Steps within a deploy**: a DAG built from declared resources (`Promiser`
-  inputs/promises). Independent steps run in parallel; a step that declares no
-  resources is a barrier — that conservative default is the only thing that
-  looks "sequential".
+- **Steps within a deploy**: a DAG built from declared resources (`Provider`
+  provides / `Requirer` requires). Independent steps run in parallel; a step
+  that declares no resources is a barrier — that conservative default is the
+  only thing that looks "sequential".
 - **Ops within a step**: a DAG by `DependsOn`, run in parallel.
 - All ops support the idempotent Check/Execute pattern.
 

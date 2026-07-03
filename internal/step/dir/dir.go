@@ -26,8 +26,8 @@ type (
 		Perm     string
 		Owner    string
 		Group    string
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	dirStep struct {
 		desc string
@@ -40,8 +40,8 @@ type (
 func (Dir) Kind() string   { return "dir" }
 func (Dir) NewConfig() any { return &DirConfig{} }
 
-func (c *DirConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *DirConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (d Dir) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -77,7 +77,7 @@ func (d Dir) Plan(step spec.DeclaredStep) (spec.Step, error) {
 func (a *dirStep) Desc() string { return a.desc }
 func (a *dirStep) Kind() string { return a.kind }
 
-func (a *dirStep) Inputs() []spec.Resource {
+func (a *dirStep) Requires() []spec.Resource {
 	cfg := a.step.Config.(*DirConfig)
 	var r []spec.Resource
 	if cfg.Owner != "" {
@@ -88,7 +88,7 @@ func (a *dirStep) Inputs() []spec.Resource {
 	}
 	return r
 }
-func (a *dirStep) Promises() []spec.Resource { return []spec.Resource{spec.PathResource(a.path)} }
+func (a *dirStep) Provides() []spec.Resource { return []spec.Resource{spec.PathResource(a.path)} }
 
 func (a *dirStep) Ops() []spec.Op {
 	cfg := a.step.Config.(*DirConfig)

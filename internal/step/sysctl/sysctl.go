@@ -16,8 +16,8 @@ type (
 		Key      string
 		Value    string
 		Persist  bool
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	sysctlStep struct {
 		desc    string
@@ -31,8 +31,8 @@ type (
 func (Sysctl) Kind() string   { return "sysctl" }
 func (Sysctl) NewConfig() any { return &SysctlConfig{} }
 
-func (c *SysctlConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *SysctlConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (Sysctl) Plan(step spec.DeclaredStep) (spec.Step, error) {

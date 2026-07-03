@@ -24,8 +24,8 @@ type (
 		Group    string
 		Verify   string
 		Backup   bool
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	DataConfig struct {
 		Values map[string]any
@@ -50,8 +50,8 @@ type (
 func (Template) Kind() string   { return "template" }
 func (Template) NewConfig() any { return &TemplateConfig{} }
 
-func (c *TemplateConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *TemplateConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (t Template) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -88,7 +88,7 @@ func (t Template) Plan(step spec.DeclaredStep) (spec.Step, error) {
 func (a *templateStep) Desc() string { return a.desc }
 func (a *templateStep) Kind() string { return a.kind }
 
-func (a *templateStep) Inputs() []spec.Resource {
+func (a *templateStep) Requires() []spec.Resource {
 	var r []spec.Resource
 	if a.owner != "" {
 		r = append(r, spec.UserResource(a.owner))
@@ -102,7 +102,7 @@ func (a *templateStep) SourcePaths() []string {
 	return []string{a.src}
 }
 
-func (a *templateStep) Promises() []spec.Resource {
+func (a *templateStep) Provides() []spec.Resource {
 	return []spec.Resource{spec.PathResource(a.dest)}
 }
 

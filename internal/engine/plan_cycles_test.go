@@ -224,9 +224,9 @@ func detectStepCyclesForTest(nodes []*stepNode) [][]spec.Step {
 func Test_DetectStepCycles_ReturnsEmptyOnLinearChain(t *testing.T) {
 	// Linear chain: A -> B -> C
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: paths("/a")},
-		&mockPromiserStep{desc: "B", inputs: paths("/a"), promises: paths("/b")},
-		&mockPromiserStep{desc: "C", inputs: paths("/b")},
+		&mockResourceStep{desc: "A", provides: paths("/a")},
+		&mockResourceStep{desc: "B", requires: paths("/a"), provides: paths("/b")},
+		&mockResourceStep{desc: "C", requires: paths("/b")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -242,8 +242,8 @@ func Test_DetectStepCycles_FindsSimpleCycle(t *testing.T) {
 	// B writes /b, reads /a
 	// -> cycle: A -> B -> A
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", inputs: paths("/b"), promises: paths("/a")},
-		&mockPromiserStep{desc: "B", inputs: paths("/a"), promises: paths("/b")},
+		&mockResourceStep{desc: "A", requires: paths("/b"), provides: paths("/a")},
+		&mockResourceStep{desc: "B", requires: paths("/a"), provides: paths("/b")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -261,9 +261,9 @@ func Test_DetectStepCycles_FindsSimpleCycle(t *testing.T) {
 func Test_DetectStepCycles_ReturnsEmptyOnIndependentSteps(t *testing.T) {
 	// No path overlap -> no dependencies -> no cycles
 	steps := []spec.Step{
-		&mockPromiserStep{desc: "A", promises: paths("/a")},
-		&mockPromiserStep{desc: "B", promises: paths("/b")},
-		&mockPromiserStep{desc: "C", promises: paths("/c")},
+		&mockResourceStep{desc: "A", provides: paths("/a")},
+		&mockResourceStep{desc: "B", provides: paths("/b")},
+		&mockResourceStep{desc: "C", provides: paths("/c")},
 	}
 
 	nodes := buildStepGraph(steps)
@@ -275,8 +275,8 @@ func Test_DetectStepCycles_ReturnsEmptyOnIndependentSteps(t *testing.T) {
 }
 
 func Test_StepCyclicDependencyError_IncludesCycleSteps(t *testing.T) {
-	a := &mockPromiserStep{desc: "step-A"}
-	b := &mockPromiserStep{desc: "step-B"}
+	a := &mockResourceStep{desc: "step-A"}
+	b := &mockResourceStep{desc: "step-B"}
 
 	err := StepCyclicDependencyError{
 		Cycle: []spec.Step{a, b, a},

@@ -69,8 +69,8 @@ pub decl copy(
   backup:    bool = false
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Ensure a directory exists with optional permissions and ownership
@@ -86,8 +86,8 @@ pub decl dir(
   group:     string?
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Create and manage symbolic links
@@ -100,8 +100,8 @@ pub decl symlink(
   link:      string
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Render templates with data substitution and owner/permission management
@@ -125,8 +125,8 @@ pub decl template(
   backup:    bool = false
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Extract an archive to a target directory with optional recursive unpacking
@@ -143,8 +143,8 @@ pub decl unarchive(
   perm:      string?
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Package management
@@ -158,8 +158,8 @@ pub decl pkg(
   state:     PkgState = PkgState.present
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Note on `@std.nonempty` placement:
@@ -179,11 +179,11 @@ pub decl service(
   enabled:   bool = true
   desc:      string?
   on_change: list[std.Step] = []
-  // Cross-deploy ordering: this step produces / consumes named
+  // Cross-deploy ordering: this step provides / requires named
   // resources visible to other deploy blocks. Matching is exact
   // string. See engine/deploy_graph.go (#275).
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // User and group management
@@ -203,8 +203,8 @@ pub decl user(
   groups:    list[string]?
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Ensure a group exists or is absent on the target
@@ -216,8 +216,8 @@ pub decl group(
   system:    bool?
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // System configuration
@@ -233,8 +233,8 @@ pub decl sysctl(
   persist:   bool = true
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Manage filesystem mounts and fstab entries
@@ -249,8 +249,8 @@ pub decl mount(
   state:     MountState? = MountState.mounted
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Manage firewall rules via UFW or firewalld
@@ -265,8 +265,8 @@ pub decl firewall(
   action:    FirewallAction = FirewallAction.allow
   desc:      string?
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // Command execution
@@ -286,11 +286,11 @@ pub decl run(
   // pass secrets without leaking into logs.
   env:       map[string, string] = {}
   on_change: list[std.Step] = []
-  // Cross-deploy ordering: this step produces / consumes named
+  // Cross-deploy ordering: this step provides / requires named
   // resources visible to other deploy blocks. Matching is exact
   // string. See engine/deploy_graph.go (#275).
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step
 
 // run_set: shell-driven set reconciliation. The shell-equivalent of
@@ -317,6 +317,6 @@ pub decl run_set(
   // for secrets.
   env:       map[string, string] = {}
   on_change: list[std.Step] = []
-  promises:  list[string] = []
-  inputs:    list[string] = []
+  provides:  list[string] = []
+  requires:  list[string] = []
 ) std.Step

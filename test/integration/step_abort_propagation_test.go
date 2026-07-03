@@ -19,7 +19,7 @@ import (
 // diagnostic, the step must still surface a non-nil error so downstream
 // steps don't get scheduled against the broken upstream.
 func Test_ExecutePlan_OpAbortedNonAbortImpactBlocksDownstream(t *testing.T) {
-	actA := mkPromiserStep(nil, paths("/foo"),
+	actA := mkResourceStep(nil, paths("/foo"),
 		&harness.FakeOp{
 			Name:    "A",
 			CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
@@ -32,7 +32,7 @@ func Test_ExecutePlan_OpAbortedNonAbortImpactBlocksDownstream(t *testing.T) {
 		CheckFn: harness.OkCheckFn(spec.CheckUnsatisfied),
 		ExecFn:  harness.PanicExecFn("B must not run when A's op aborted"),
 	}
-	actB := mkPromiserStep(paths("/foo"), paths("/bar"), bOp)
+	actB := mkResourceStep(paths("/foo"), paths("/bar"), bOp)
 
 	plan := spec.Plan{
 		Deploy: spec.Deploy{

@@ -13,8 +13,8 @@ import (
 
 // Package-level Check drives the full multi-deploy converge: config load,
 // resolve, the level graph, and report aggregation. The config has three
-// deploys: "alpha" (slow, promises shared:ready), "beta" (fast, independent),
-// and "gamma" (consumes shared:ready, so level 1). All checks are satisfied
+// deploys: "alpha" (slow, provides shared:ready), "beta" (fast, independent),
+// and "gamma" (requires shared:ready, so level 1). All checks are satisfied
 // no-ops against the local target.
 const multiDeployConfig = `
 module main
@@ -30,7 +30,7 @@ std.deploy(name = "alpha", targets = [host]) {
     desc     = "alpha step"
     check    = "sleep 0.2"
     apply    = "true"
-    promises = ["shared:ready"]
+    provides = ["shared:ready"]
   }
 }
 
@@ -43,7 +43,7 @@ std.deploy(name = "gamma", targets = [host]) {
     desc   = "gamma step"
     check  = "true"
     apply  = "true"
-    inputs = ["shared:ready"]
+    requires = ["shared:ready"]
   }
 }
 `

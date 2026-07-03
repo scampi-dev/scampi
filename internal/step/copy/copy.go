@@ -25,8 +25,8 @@ type (
 		Group    string
 		Verify   string
 		Backup   bool
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	copyStep struct {
 		desc   string
@@ -46,8 +46,8 @@ type (
 func (Copy) Kind() string   { return "copy" }
 func (Copy) NewConfig() any { return &CopyConfig{} }
 
-func (c *CopyConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *CopyConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (c Copy) Plan(step spec.DeclaredStep) (spec.Step, error) {
@@ -88,7 +88,7 @@ func (c Copy) Plan(step spec.DeclaredStep) (spec.Step, error) {
 func (c *copyStep) Desc() string { return c.desc }
 func (c *copyStep) Kind() string { return c.kind }
 
-func (c *copyStep) Inputs() []spec.Resource {
+func (c *copyStep) Requires() []spec.Resource {
 	var r []spec.Resource
 	if c.owner != "" {
 		r = append(r, spec.UserResource(c.owner))
@@ -101,7 +101,7 @@ func (c *copyStep) Inputs() []spec.Resource {
 func (c *copyStep) SourcePaths() []string {
 	return []string{c.src}
 }
-func (c *copyStep) Promises() []spec.Resource { return []spec.Resource{spec.PathResource(c.dest)} }
+func (c *copyStep) Provides() []spec.Resource { return []spec.Resource{spec.PathResource(c.dest)} }
 
 func (c *copyStep) Ops() []spec.Op {
 	cp := &copyFileOp{

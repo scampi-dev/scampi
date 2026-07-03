@@ -39,6 +39,6 @@ pub decl instance(
   healthcheck: Healthcheck?
   desc:        string?
   on_change:   list[std.Step] = []
-  promises:    list[string] = []
-  inputs:      list[string] = []
+  provides:    list[string] = []
+  requires:    list[string] = []
 ) std.Step

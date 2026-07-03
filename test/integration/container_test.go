@@ -1183,7 +1183,7 @@ std.deploy(name = "test", targets = [host]) {
 	}
 }
 
-func Test_Container_RunsWhenMountSourcePromised(t *testing.T) {
+func Test_Container_RunsWhenMountSourceProvided(t *testing.T) {
 	cfgStr := `
 module main
 import "std"

@@ -18,54 +18,56 @@ type stepNode struct {
 	pending     int                    // runtime counter for scheduling
 }
 
-// hasResources returns true if the step declares any resource inputs or
-// promises. Steps without resources act as barriers in the dependency graph.
+// hasResources returns true if the step declares any required or provided
+// resources. Steps without resources act as barriers in the dependency graph.
 func hasResources(act spec.Step) bool {
-	p, ok := act.(spec.Promiser)
-	if !ok {
-		return false
+	if r, ok := act.(spec.Requirer); ok && len(r.Requires()) > 0 {
+		return true
 	}
-	return len(p.Inputs()) > 0 || len(p.Promises()) > 0
+	if p, ok := act.(spec.Provider); ok && len(p.Provides()) > 0 {
+		return true
+	}
+	return false
 }
 
 // buildStepGraph constructs a dependency graph from steps based on their
-// declared resource inputs and promises. Independent steps (no resource
-// overlap) run in parallel; dependent steps run in order.
+// declared resource requirements and provisions. Independent steps (no
+// resource overlap) run in parallel; dependent steps run in order.
 func buildStepGraph(steps []spec.Step) []*stepNode {
 	nodes := make([]*stepNode, len(steps))
 	for i, act := range steps {
 		nodes[i] = &stepNode{step: act, idx: i}
 	}
 
-	// Map promised resources to the step that produces them.
+	// Map provided resources to the step that provides them.
 	producers := map[spec.Resource]*stepNode{}
 	for _, n := range nodes {
-		if p, ok := n.step.(spec.Promiser); ok {
-			for _, r := range p.Promises() {
+		if p, ok := n.step.(spec.Provider); ok {
+			for _, r := range p.Provides() {
 				producers[r] = n
 			}
 		}
 	}
 
-	// For each step that consumes a resource, depend on the producer.
-	// For path resources, also add parent-directory edges (a promised path
+	// For each step that requires a resource, depend on the provider.
+	// For path resources, also add parent-directory edges (a provided path
 	// /foo/bar implies /foo exists via MkdirAll semantics).
 	for _, n := range nodes {
-		p, ok := n.step.(spec.Promiser)
-		if !ok {
-			continue
-		}
-		for _, in := range p.Inputs() {
-			if producer := producers[in]; producer != nil && producer != n {
-				addEdge(producer, n)
+		if r, ok := n.step.(spec.Requirer); ok {
+			for _, in := range r.Requires() {
+				if producer := producers[in]; producer != nil && producer != n {
+					addEdge(producer, n)
+				}
 			}
 		}
-		for _, out := range p.Promises() {
-			if out.Kind == spec.ResourcePath {
-				for r, producer := range producers {
-					if producer != n && r.Kind == spec.ResourcePath &&
-						strings.HasPrefix(out.Name, r.Name+"/") {
-						addEdge(producer, n)
+		if p, ok := n.step.(spec.Provider); ok {
+			for _, out := range p.Provides() {
+				if out.Kind == spec.ResourcePath {
+					for r, producer := range producers {
+						if producer != n && r.Kind == spec.ResourcePath &&
+							strings.HasPrefix(out.Name, r.Name+"/") {
+							addEdge(producer, n)
+						}
 					}
 				}
 			}

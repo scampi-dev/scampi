@@ -78,10 +78,10 @@ type scheduler struct {
 	hookID    string // non-empty when running ops for a hook
 	checkOnly bool   // true for check command (affects op event chattiness)
 
-	// promised holds resources that upstream steps have promised to create.
-	// Used during check mode to defer abort errors for resources that don't
-	// exist yet.
-	promised map[spec.Resource]bool
+	// provided holds resources that upstream steps will provide once
+	// applied. Used during check mode to defer abort errors for resources
+	// that don't exist yet.
+	provided map[spec.Resource]bool
 
 	mu      sync.Mutex
 	results []spec.Result
@@ -291,9 +291,9 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 }
 
 // isDeferred returns true when err references a missing resource that an
-// upstream step has already promised to create.
+// upstream step will provide once applied.
 func (s *scheduler) isDeferred(err error) bool {
-	if len(s.promised) == 0 {
+	if len(s.provided) == 0 {
 		return false
 	}
 	var d diagnostic.Deferrable
@@ -301,13 +301,13 @@ func (s *scheduler) isDeferred(err error) bool {
 		return false
 	}
 	res := d.DeferredResource()
-	if s.promised[res] {
+	if s.provided[res] {
 		return true
 	}
-	// A promised path like /foo/bar implies /foo will also exist
-	// (MkdirAll semantics), so check if any promised path is a descendant.
+	// A provided path like /foo/bar implies /foo will also exist
+	// (MkdirAll semantics), so check if any provided path is a descendant.
 	if res.Kind == spec.ResourcePath {
-		for pp := range s.promised {
+		for pp := range s.provided {
 			if pp.Kind == spec.ResourcePath && strings.HasPrefix(pp.Name, res.Name+"/") {
 				return true
 			}
@@ -361,13 +361,13 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 	outputs := newStepOutputs()
 
 	var mu sync.Mutex
-	promised := map[spec.Resource]bool{}
+	provided := map[spec.Resource]bool{}
 	grp, gctx := errgroup.WithContext(ctx)
 
 	var scheduleNode func(n *stepNode)
 	scheduleNode = func(n *stepNode) {
-		// Snapshot promised resources for this step under the lock
-		snap := maps.Clone(promised)
+		// Snapshot provided resources for this step under the lock
+		snap := maps.Clone(provided)
 
 		grp.Go(func() error {
 			if err := gctx.Err(); err != nil {
@@ -402,12 +402,12 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 				return err
 			}
 
-			// If this step would change something, add its promised
+			// If this step would change something, add its provided
 			// resources to the set for downstream steps.
 			if res.Summary.WouldChange > 0 {
-				if p, ok := n.step.(spec.Promiser); ok {
-					for _, key := range p.Promises() {
-						promised[key] = true
+				if p, ok := n.step.(spec.Provider); ok {
+					for _, key := range p.Provides() {
+						provided[key] = true
 					}
 				}
 			}
@@ -437,23 +437,23 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 		rep.Err = err
 	}
 
-	return rep, promised, err
+	return rep, provided, err
 }
 
 func (e *Engine) checkStep(
 	ctx diagnostic.Ctx,
 	idx int,
 	act spec.Step,
-	promised map[spec.Resource]bool,
+	provided map[spec.Resource]bool,
 ) (result.StepReport, error) {
-	return e.runCheckStep(ctx, idx, act, promised, "")
+	return e.runCheckStep(ctx, idx, act, provided, "")
 }
 
 func (e *Engine) runCheckStep(
 	ctx diagnostic.Ctx,
 	idx int,
 	act spec.Step,
-	promised map[spec.Resource]bool,
+	provided map[spec.Resource]bool,
 	hookID string,
 ) (result.StepReport, error) {
 	nodes, planErr := buildPlan(act.Ops())
@@ -470,7 +470,7 @@ func (e *Engine) runCheckStep(
 		actDesc:   act.Desc(),
 		hookID:    hookID,
 		checkOnly: true,
-		promised:  promised,
+		provided:  provided,
 	}
 	grp, gctx := errgroup.WithContext(ctx)
 	s.grp = grp

@@ -61,8 +61,8 @@ type (
 		Name     string
 		State    string
 		Enabled  bool
-		Promises []string
-		Inputs   []string
+		Provides []string
+		Requires []string
 	}
 	serviceStep struct {
 		desc    string
@@ -76,8 +76,8 @@ type (
 func (Service) Kind() string   { return "service" }
 func (Service) NewConfig() any { return &ServiceConfig{} }
 
-func (c *ServiceConfig) ResourceDeclarations() (promises, inputs []string) {
-	return c.Promises, c.Inputs
+func (c *ServiceConfig) ResourceDeclarations() (provides, requires []string) {
+	return c.Provides, c.Requires
 }
 
 func (s Service) Plan(step spec.DeclaredStep) (spec.Step, error) {

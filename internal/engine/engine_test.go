@@ -170,16 +170,16 @@ func Test_RunPlansConcurrent_RunsSiblingsDespiteFailure(t *testing.T) {
 }
 
 // mkLeveledConfigs builds a three-deploy set with a real resource edge:
-// "producer" promises label x, "consumer"'s target consumes it, and "other"
+// "producer" provides label x, "consumer"'s target requires it, and "other"
 // is independent. Levels: 0 = {producer, other}, 1 = {consumer}.
 func mkLeveledConfigs() []spec.Config {
 	producer := mkResolved("producer",
 		fakeTargetKind{kind: "t"},
-		fakeStaticStepKind{kind: "make.x", promises: []spec.Resource{spec.LabelResource("x")}},
+		fakeStaticStepKind{kind: "make.x", provides: []spec.Resource{spec.LabelResource("x")}},
 	)
 	other := mkResolved("other", fakeTargetKind{kind: "t"}, fakeStaticStepKind{kind: "noop"})
 	consumer := mkResolved("consumer",
-		fakeTargetKind{kind: "t", inputs: []spec.Resource{spec.LabelResource("x")}},
+		fakeTargetKind{kind: "t", requires: []spec.Resource{spec.LabelResource("x")}},
 		fakeStaticStepKind{kind: "use.x"},
 	)
 	return []spec.Config{producer, other, consumer}
