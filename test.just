@@ -10,23 +10,13 @@
 # -----------------------------------------------------------------------------
 
 [group('broad')]
-[doc("Run all tests (pass 'quiet' to suppress passing output)")]
-all mode='':
+[doc("Per-commit gate: fast suite, no race, no containers (pass 'quiet' to suppress passing output)")]
+fast mode='':
   #!/usr/bin/env bash
   case "{{mode}}" in
     quiet) just test _q 'go test ./...' ;;
     *)     go test ./... ;;
   esac
-
-[group('broad')]
-[doc("Shortcut for 'just test all quiet'")]
-quiet:
-  just test all quiet
-
-[group('broad')]
-[doc("Run all tests with containers")]
-containers:
-  SCAMPI_TEST_CONTAINERS=1 go test -v ./test/...
 
 # Fuzz funcs are NOT run with -fuzz here: plain `go test` already
 # executes their f.Add() seeds (and any saved corpus) as deterministic
@@ -35,26 +25,8 @@ containers:
 # scheduled jobs or `just test fuzz <dur>`.
 
 [group('broad')]
-[doc("Run everything except container-gated tests (pre-commit gate; pass 'quiet' to suppress passing output)")]
-nocontainers mode='':
-  #!/usr/bin/env bash
-  set -e
-  case "{{mode}}" in
-    quiet)
-      just test _q 'go test -race -v ./...'
-      just test _q 'just test testkit'
-      just test _q 'go test ./test/integration -bench=. -benchmem -count=1 -benchtime=1x'
-      ;;
-    *)
-      go test -race -v ./...
-      just test testkit
-      go test ./test/integration -bench=. -benchmem -count=1 -benchtime=1x
-      ;;
-  esac
-
-[group('broad')]
-[doc("Run all tests with race-detector and containers (pre-push gate; pass 'quiet' to suppress passing output)")]
-everything mode='':
+[doc("Complete run: race + containers + testkit + bench smoke (pass 'quiet' to suppress passing output)")]
+full mode='':
   #!/usr/bin/env bash
   set -e
   case "{{mode}}" in
@@ -207,3 +179,11 @@ coverage-html:
     exit 1
   fi
   go tool cover -html=coverage.out
+
+# Diagnostics & cleanup
+# -----------------------------------------------------------------------------
+
+[group('cleanup')]
+[doc("Clean test caches")]
+clean:
+  go clean -testcache

@@ -25,7 +25,7 @@
 ## Test plan
 
 <!--
-  How did you verify this works? "Ran just test nocontainers" is a fine
+  How did you verify this works? "Ran just test full" is a fine
   answer if behavior is covered. "Not sure how to test this" is also a
   fine answer — it opens a conversation.
 -->
@@ -34,5 +34,5 @@
 
 - [ ] `just fmt` is clean
 - [ ] `just lint` is clean
-- [ ] `just test nocontainers` passes
+- [ ] `just test full` passes (same suite CI runs)
 - [ ] Docs under `site/content/` updated if behavior changed

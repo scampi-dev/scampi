@@ -21,7 +21,7 @@ A declarative system convergence engine. Users describe desired system state in 
 
 ```bash
 just build          # Build the scampi binary
-just test           # Show test recipes; `just test all` runs the full suite
+just test           # Show test recipes; `just test fast` is the per-commit gate
 just lint           # Run golangci-lint
 just fmt            # Format code
 just scampi <args>  # Build and run scampi locally
@@ -30,13 +30,12 @@ just help site      # Site build/dev subcommands
 
 Testing is a `just` module — run `just help test` for all subcommands:
 ```bash
+just test fast         # Per-commit gate: fast suite, no race, no containers
+just test full         # Complete run: race + containers + testkit + bench
 just test unit         # Per-package unit tests (excludes integration)
 just test integration  # Integration tests
 just test ssh          # SSH tests (requires containers)
 just test testkit      # scampi test framework tests
-just test containers   # All tests with containers
-just test nocontainers # Everything except container-gated tests
-just test everything   # Full suite including containers
 just test race         # Tests with race-detector
 just test rules        # Codebase invariant rules
 just test fuzz         # Fuzz tests (30s default)
@@ -190,29 +189,24 @@ Three enforced categories (see `.golangci.yml`):
 
 ## Test gates
 
-Three tiers, each with a clear trigger:
-
-**Inner loop** — after every meaningful change:
+The flow: decide and discuss the solution, implement, and when the work is
+done run the two gates — **`just lint` and `just test fast`**. Both green is
+the precondition for EVERY commit; then `git commit` and move on. No commit
+skips the gates, not even mid-session "checkpoint" commits.
 
 ```bash
-just test all    # fast, no containers, no race
-just fmt
-just lint
+just test fast   # per-commit gate: no containers, no race
+just lint        # golangci-lint, markdown, rules, shellcheck, licenses
+just fmt         # before the gates when files changed
 ```
 
-**Pre-commit gate** — `just test nocontainers`. Runs race-detector, integration,
-testkit, and bench smoke — everything CI runs except the container-gated
-tests. Run before committing a meaningful chunk so CI doesn't catch what you
-could've.
+Once a commit is agreed on (or committed in auto-mode), run
+**`just test full`** — the complete run: race + containers + testkit +
+bench smoke. CI runs the same.
 
-**Pre-push gate** — `just test everything`. Same as `nocontainers` plus the
-container suite. Run before pushing so CI stays green. Don't run it as a
-development sanity check, after every commit in a multi-commit session, or
-to re-confirm a previous clean run on unchanged code.
-
-CI catches anything that escapes, but pushing a known-red branch wastes
-everyone's time. The point of these gates is to fail fast locally where
-the feedback loop is tight, not to substitute for CI.
+**Pushing is not special.** Every commit has already been through the
+gates, so main is push-safe at all times — a push can happen at any moment
+and needs no extra ceremony.
 
 ## Site Documentation
 

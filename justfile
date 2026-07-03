@@ -112,7 +112,7 @@ fmt:
 lint:
   go tool golangci-lint run
   go tool gomarklint
-  go test -run 'Test_Rule_' ./test/rules/
+  go test ./test/rules/
   shellcheck **/*.sh
   just license-check
   just _gopls-hints
