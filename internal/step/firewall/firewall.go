@@ -108,20 +108,20 @@ func (Firewall) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	if cfg.Port < 1 || cfg.Port > 65535 {
 		return nil, PortOutOfRangeError{
 			Field: "port", Value: cfg.Port,
-			Source: step.Fields["port"].Value,
+			Span: step.Fields["port"].Value,
 		}
 	}
 	if cfg.EndPort != 0 {
 		if cfg.EndPort < 1 || cfg.EndPort > 65535 {
 			return nil, PortOutOfRangeError{
 				Field: "end_port", Value: cfg.EndPort,
-				Source: step.Fields["end_port"].Value,
+				Span: step.Fields["end_port"].Value,
 			}
 		}
 		if cfg.EndPort <= cfg.Port {
 			return nil, InvalidRangeError{
 				Port: cfg.Port, EndPort: cfg.EndPort,
-				Source: step.Fields["end_port"].Value,
+				Span: step.Fields["end_port"].Value,
 			}
 		}
 	}

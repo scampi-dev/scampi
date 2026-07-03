@@ -192,7 +192,7 @@ func (v *attributeCheckVisitor) checkCall(call *ast.CallExpr, ft *check.FuncType
 			if behaviour == nil {
 				continue
 			}
-			useSpan := nodeSourceSpan(argExpr, v.source, v.cfgPath)
+			useSpan := nodeSpan(argExpr, v.source, v.cfgPath)
 			ctx := StaticCheckContext{
 				Linker:    v.ctx,
 				AttrName:  attr.QualifiedName,
@@ -275,11 +275,11 @@ func (lc *linkContext) Raise(d diagnostic.Raisable) {
 	lc.em.Raise(d)
 }
 
-func nodeSourceSpan(node ast.Node, source []byte, cfgPath string) spec.SourceSpan {
+func nodeSpan(node ast.Node, source []byte, cfgPath string) spec.Span {
 	span := node.Span()
 	startLine, startCol := offsetToLineCol(source, int(span.Start))
 	endLine, endCol := offsetToLineCol(source, int(span.End))
-	return spec.SourceSpan{
+	return spec.Span{
 		Filename:  cfgPath,
 		StartLine: startLine,
 		StartCol:  startCol,

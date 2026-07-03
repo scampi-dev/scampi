@@ -5,7 +5,7 @@
       "id": "lang.DuplicateField",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 12,
         "start_col": 5,
         "end_line": 12,

@@ -57,7 +57,7 @@ func Test_SSH_RejectsWrongKey(t *testing.T) {
 	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
-			"host": {Value: spec.SourceSpan{}},
+			"host": {Value: spec.Span{}},
 		},
 	})
 
@@ -94,7 +94,7 @@ func Test_SSH_ErrorsOnUnknownHost(t *testing.T) {
 	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
-			"host": {Value: spec.SourceSpan{}},
+			"host": {Value: spec.Span{}},
 		},
 	})
 
@@ -121,7 +121,7 @@ func Test_SSH_RejectsInvalidTimeout(t *testing.T) {
 	_, err := sshType.Create(t.Context(), source.NewMemSource(), spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
-			"timeout": {Value: spec.SourceSpan{Filename: "test.scampi", StartLine: 5}},
+			"timeout": {Value: spec.Span{Filename: "test.scampi", StartLine: 5}},
 		},
 	})
 
@@ -138,8 +138,8 @@ func Test_SSH_RejectsInvalidTimeout(t *testing.T) {
 		t.Errorf("Expected value %q, got %q", "not-a-duration", timeoutErr.Value)
 	}
 
-	if timeoutErr.Source.StartLine != 5 {
-		t.Errorf("Expected source line 5, got %d", timeoutErr.Source.StartLine)
+	if timeoutErr.Span.StartLine != 5 {
+		t.Errorf("Expected source line 5, got %d", timeoutErr.Span.StartLine)
 	}
 }
 
@@ -165,7 +165,7 @@ func Test_SSH_RejectsPublicKeyAsPrivate(t *testing.T) {
 	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
-			"host": {Value: spec.SourceSpan{}},
+			"host": {Value: spec.Span{}},
 		},
 	})
 

@@ -16,8 +16,8 @@ const restartID = "restart_service"
 
 type restartOp struct {
 	sharedop.BaseOp
-	name       string
-	nameSource spec.SourceSpan
+	name     string
+	nameSpan spec.Span
 }
 
 func (op *restartOp) Check(
@@ -42,7 +42,7 @@ func (op *restartOp) Execute(
 		return spec.Result{}, DaemonReloadError{
 			Name:   op.name,
 			Stderr: err.Error(),
-			Source: op.nameSource,
+			Span:   op.nameSpan,
 		}
 	}
 
@@ -51,7 +51,7 @@ func (op *restartOp) Execute(
 			Op:     "restart",
 			Name:   op.name,
 			Stderr: err.Error(),
-			Source: op.nameSource,
+			Span:   op.nameSpan,
 		}
 	}
 

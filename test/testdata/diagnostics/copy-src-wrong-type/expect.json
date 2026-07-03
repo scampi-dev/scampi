@@ -5,7 +5,7 @@
       "id": "lang.FieldTypeMismatch",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 10,
         "start_col": 16,
         "end_line": 10,

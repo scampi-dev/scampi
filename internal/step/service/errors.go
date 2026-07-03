@@ -14,7 +14,7 @@ type ServiceCommandError struct {
 	Op     string
 	Name   string
 	Stderr string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e ServiceCommandError) Error() string {
@@ -25,12 +25,12 @@ func (e ServiceCommandError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeCommandFailed,
-			Text:   `failed to {{.Op}} service {{.Name}}: {{.Stderr}}`,
-			Hint:   "check that the service name is correct and the init system is available",
-			Help:   "the service command exited with a non-zero status",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeCommandFailed,
+			Text: `failed to {{.Op}} service {{.Name}}: {{.Stderr}}`,
+			Hint: "check that the service name is correct and the init system is available",
+			Help: "the service command exited with a non-zero status",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -39,7 +39,7 @@ func (e ServiceCommandError) Diagnostic() event.Event {
 type DaemonReloadError struct {
 	Name   string
 	Stderr string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e DaemonReloadError) Error() string {
@@ -50,11 +50,11 @@ func (e DaemonReloadError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeDaemonReloadFailed,
-			Text:   `daemon-reload failed before starting service {{.Name}}: {{.Stderr}}`,
-			Hint:   "check systemd configuration and permissions",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeDaemonReloadFailed,
+			Text: `daemon-reload failed before starting service {{.Name}}: {{.Stderr}}`,
+			Hint: "check systemd configuration and permissions",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

@@ -138,10 +138,10 @@ func Test_LoadConfig_ReportsParseErrorWithSpan(t *testing.T) {
 	}
 
 	tmpl := firstDiagnosticTemplate(t, capture)
-	if tmpl.Source == nil {
+	if tmpl.Span == nil {
 		t.Fatal("diagnostic should have source span")
 	}
-	if tmpl.Source.StartLine == 0 {
+	if tmpl.Span.StartLine == 0 {
 		t.Error("diagnostic source span should have non-zero line")
 	}
 }
@@ -187,11 +187,11 @@ std.deploy(name = "test", targets = [host]) {
 	}
 
 	tmpl := firstDiagnosticTemplate(t, capture)
-	if tmpl.Source == nil {
+	if tmpl.Span == nil {
 		t.Fatal("diagnostic should have source span")
 	}
-	if tmpl.Source.StartLine != 7 {
-		t.Errorf("expected error at line 7 (secret call), got line %d", tmpl.Source.StartLine)
+	if tmpl.Span.StartLine != 7 {
+		t.Errorf("expected error at line 7 (secret call), got line %d", tmpl.Span.StartLine)
 	}
 }
 
@@ -241,11 +241,11 @@ std.deploy(name = "web", targets = [vps]) {
 	if !ok {
 		t.Fatal("target 'vps' not found")
 	}
-	if ti.Source.StartLine == 0 {
+	if ti.Span.StartLine == 0 {
 		t.Errorf("target Source.StartLine: got 0, want non-zero")
 	}
-	if ti.Source.Filename != "test.scampi" {
-		t.Errorf("target Source.Filename: got %q, want %q", ti.Source.Filename, "test.scampi")
+	if ti.Span.Filename != "test.scampi" {
+		t.Errorf("target Source.Filename: got %q, want %q", ti.Span.Filename, "test.scampi")
 	}
 	if fs, ok := ti.Fields["host"]; !ok {
 		t.Error("target Fields[host]: missing")
@@ -258,7 +258,7 @@ std.deploy(name = "web", targets = [vps]) {
 		t.Fatal("no steps in deploy")
 	}
 	step := cfg.Deploy[0].Steps[0]
-	if step.Source.StartLine == 0 {
+	if step.Span.StartLine == 0 {
 		t.Errorf("step Source.StartLine: got 0, want non-zero")
 	}
 	if fs, ok := step.Fields["path"]; !ok {
@@ -283,9 +283,9 @@ std.deploy(name = "web", targets = [vps]) {
   posix.dir { path = "/var/www" }
 }
 `)
-	if cfg.Targets["vps"].Source.StartLine != 0 {
+	if cfg.Targets["vps"].Span.StartLine != 0 {
 		t.Errorf("expected zero StartLine without WithSource, got %d",
-			cfg.Targets["vps"].Source.StartLine)
+			cfg.Targets["vps"].Span.StartLine)
 	}
 	if len(cfg.Targets["vps"].Fields) != 0 {
 		t.Errorf("expected nil Fields without WithSource, got %d entries",

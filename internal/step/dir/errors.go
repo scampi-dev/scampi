@@ -12,7 +12,7 @@ import (
 type PartialOwnershipError struct {
 	Set     string
 	Missing string
-	Source  spec.SourceSpan
+	Span    spec.Span
 }
 
 func (e PartialOwnershipError) Error() string {
@@ -23,11 +23,11 @@ func (e PartialOwnershipError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodePartialOwnership,
-			Text:   `{{.Set}} is set but {{.Missing}} is empty`,
-			Hint:   `add {{.Missing}}="<value>" or remove {{.Set}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodePartialOwnership,
+			Text: `{{.Set}} is set but {{.Missing}} is empty`,
+			Hint: `add {{.Missing}}="<value>" or remove {{.Set}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

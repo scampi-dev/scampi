@@ -97,7 +97,7 @@ type StaticCheckContext struct {
 
 	// UseSpan is the source span of the call-site argument, for
 	// anchoring diagnostics.
-	UseSpan spec.SourceSpan
+	UseSpan spec.Span
 }
 
 // LinkContext is the linker-side context passed to an attribute's

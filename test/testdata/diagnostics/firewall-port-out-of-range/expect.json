@@ -5,7 +5,7 @@
       "id": "linker.AttributeViolation",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 11,
         "start_col": 27,
         "end_line": 11,

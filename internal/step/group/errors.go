@@ -11,9 +11,9 @@ import (
 
 // GroupCreateError is emitted when creating a group fails.
 type GroupCreateError struct {
-	Name   string
-	Err    error
-	Source spec.SourceSpan
+	Name string
+	Err  error
+	Span spec.Span
 }
 
 func (e GroupCreateError) Error() string {
@@ -26,21 +26,21 @@ func (e GroupCreateError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeCreateFailed,
-			Text:   `failed to create group "{{.Name}}"`,
-			Hint:   `verify "{{.Name}}" is a valid group name and no conflicting group exists on the target`,
-			Help:   `{{.Err}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeCreateFailed,
+			Text: `failed to create group "{{.Name}}"`,
+			Hint: `verify "{{.Name}}" is a valid group name and no conflicting group exists on the target`,
+			Help: `{{.Err}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 // GroupDeleteError is emitted when deleting a group fails.
 type GroupDeleteError struct {
-	Name   string
-	Err    error
-	Source spec.SourceSpan
+	Name string
+	Err  error
+	Span spec.Span
 }
 
 func (e GroupDeleteError) Error() string {
@@ -57,9 +57,9 @@ func (e GroupDeleteError) Diagnostic() event.Event {
 			Text: `failed to delete group "{{.Name}}"`,
 			Hint: `confirm no users have "{{.Name}}" as their primary group ` +
 				`(getent passwd | awk -F: '$4 == "<gid>"')`,
-			Help:   `{{.Err}}`,
-			Data:   e,
-			Source: &e.Source,
+			Help: `{{.Err}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

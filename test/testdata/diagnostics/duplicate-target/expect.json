@@ -5,7 +5,7 @@
       "id": "lang.DuplicateLet",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 8,
         "start_col": 1,
         "end_line": 9,

@@ -46,7 +46,7 @@ func (e *ConfigReadError) Diagnostic() event.Event {
 				Path:   e.Path,
 				Reason: e.Cause.Error(),
 			},
-			Source: &spec.SourceSpan{Filename: e.Path},
+			Span: &spec.Span{Filename: e.Path},
 		},
 	}
 }

@@ -119,21 +119,21 @@ func (a *userStep) Ops() []spec.Op {
 	switch a.state {
 	case StateAbsent:
 		op := &removeUserOp{
-			name:       a.name,
-			nameSource: nameSource,
+			name:     a.name,
+			nameSpan: nameSource,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}
 
 	default:
 		op := &ensureUserOp{
-			name:       a.name,
-			shell:      a.shell,
-			home:       a.home,
-			system:     a.system,
-			password:   a.pass,
-			groups:     a.groups,
-			nameSource: nameSource,
+			name:     a.name,
+			shell:    a.shell,
+			home:     a.home,
+			system:   a.system,
+			password: a.pass,
+			groups:   a.groups,
+			nameSpan: nameSource,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}

@@ -123,7 +123,7 @@ func dispatchEvalAttributes(
 			continue
 		}
 		resolved := evalToGo(evalVal)
-		useSpan := evalSpanToSourceSpan(sv.FieldSpans[p.Name], source, cfgPath)
+		useSpan := evalSpanToSpec(sv.FieldSpans[p.Name], source, cfgPath)
 		for _, attr := range p.Attributes {
 			behaviour := registry.Lookup(attr.QualifiedName)
 			if behaviour == nil {
@@ -142,17 +142,17 @@ func dispatchEvalAttributes(
 	}
 }
 
-// evalSpanToSourceSpan converts an eval-side token span to a
-// renderable spec.SourceSpan, anchored on the entry-point file.
+// evalSpanToSpec converts an eval-side token span to a spec.Span.
+// renderable spec.Span, anchored on the entry-point file.
 // Returns a Filename-only span when source bytes aren't available
 // (e.g. tests that don't plumb source through Analyze).
-func evalSpanToSourceSpan(span token.Span, source []byte, cfgPath string) spec.SourceSpan {
+func evalSpanToSpec(span token.Span, source []byte, cfgPath string) spec.Span {
 	if span.End == 0 || len(source) == 0 {
-		return spec.SourceSpan{Filename: cfgPath}
+		return spec.Span{Filename: cfgPath}
 	}
 	sLine, sCol := offsetToLineCol(source, int(span.Start))
 	eLine, eCol := offsetToLineCol(source, int(span.End))
-	return spec.SourceSpan{
+	return spec.Span{
 		Filename:  cfgPath,
 		StartLine: sLine,
 		StartCol:  sCol,

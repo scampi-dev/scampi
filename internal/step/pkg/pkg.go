@@ -108,11 +108,11 @@ func (a *pkgStep) Ops() []spec.Op {
 	// Build the package install/remove op.
 	var pkgOp spec.Op
 	if a.state == StateLatest {
-		o := &ensureLatestPkgOp{packages: a.packages, pkgsSource: pkgsSource}
+		o := &ensureLatestPkgOp{packages: a.packages, pkgsSpan: pkgsSource}
 		o.SetStep(a)
 		pkgOp = o
 	} else {
-		o := &ensurePkgOp{packages: a.packages, state: a.state, pkgsSource: pkgsSource}
+		o := &ensurePkgOp{packages: a.packages, state: a.state, pkgsSpan: pkgsSource}
 		o.SetStep(a)
 		pkgOp = o
 	}

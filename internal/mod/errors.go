@@ -16,15 +16,15 @@ import (
 type ParseError struct {
 	Detail string
 	Hint   string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e ParseError) Error() string {
-	if e.Source.StartLine > 0 {
-		return fmt.Sprintf("%s:%d: %s", e.Source.Filename, e.Source.StartLine, e.Detail)
+	if e.Span.StartLine > 0 {
+		return fmt.Sprintf("%s:%d: %s", e.Span.Filename, e.Span.StartLine, e.Detail)
 	}
-	if e.Source.Filename != "" {
-		return fmt.Sprintf("%s: %s", e.Source.Filename, e.Detail)
+	if e.Span.Filename != "" {
+		return fmt.Sprintf("%s: %s", e.Span.Filename, e.Detail)
 	}
 	return e.Detail
 }
@@ -33,11 +33,11 @@ func (e ParseError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeParseError,
-			Text:   "{{.Detail}}",
-			Hint:   "{{.Hint}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeParseError,
+			Text: "{{.Detail}}",
+			Hint: "{{.Hint}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

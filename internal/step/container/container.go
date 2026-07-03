@@ -150,7 +150,7 @@ func (c *InstanceConfig) validate(step spec.DeclaredStep) error {
 
 	if c.State != stateAbsent && c.Image == "" {
 		return EmptyImageError{
-			Source: step.Source,
+			Span: step.Span,
 		}
 	}
 
@@ -159,21 +159,21 @@ func (c *InstanceConfig) validate(step spec.DeclaredStep) error {
 			return InvalidMountError{
 				Got:    m.String(),
 				Reason: `must be "host:container" or "host:container:ro"`,
-				Source: step.Fields["mounts"].Value,
+				Span:   step.Fields["mounts"].Value,
 			}
 		}
 		if m.Source[0] != '/' {
 			return InvalidMountError{
 				Got:    m.String(),
 				Reason: "host path must be absolute",
-				Source: step.Fields["mounts"].Value,
+				Span:   step.Fields["mounts"].Value,
 			}
 		}
 		if m.Target[0] != '/' {
 			return InvalidMountError{
 				Got:    m.String(),
 				Reason: "container path must be absolute",
-				Source: step.Fields["mounts"].Value,
+				Span:   step.Fields["mounts"].Value,
 			}
 		}
 	}
@@ -183,14 +183,14 @@ func (c *InstanceConfig) validate(step spec.DeclaredStep) error {
 			return InvalidLabelError{
 				Key:    k,
 				Reason: "label key must not be empty",
-				Source: step.Fields["labels"].Value,
+				Span:   step.Fields["labels"].Value,
 			}
 		}
 		if strings.ContainsAny(k, " \t") {
 			return InvalidLabelError{
 				Key:    k,
 				Reason: "label key must not contain whitespace",
-				Source: step.Fields["labels"].Value,
+				Span:   step.Fields["labels"].Value,
 			}
 		}
 	}

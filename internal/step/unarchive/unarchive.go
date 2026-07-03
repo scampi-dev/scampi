@@ -64,21 +64,21 @@ func (u Unarchive) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	fmt, ok := detectFormat(formatPath)
 	if !ok {
 		return nil, UnsupportedArchiveError{
-			Path:   formatPath,
-			Source: step.Fields["src"].Value,
+			Path: formatPath,
+			Span: step.Fields["src"].Value,
 		}
 	}
 
 	if cfg.Owner != "" && cfg.Group == "" {
 		return nil, PartialOwnershipError{
 			Set: "owner", Missing: "group",
-			Source: step.Fields["owner"].Value,
+			Span: step.Fields["owner"].Value,
 		}
 	}
 	if cfg.Group != "" && cfg.Owner == "" {
 		return nil, PartialOwnershipError{
 			Set: "group", Missing: "owner",
-			Source: step.Fields["group"].Value,
+			Span: step.Fields["group"].Value,
 		}
 	}
 

@@ -77,9 +77,9 @@ func (op *unarchiveOp) Check(
 			return result, drift, nil
 		}
 		return spec.CheckUnsatisfied, nil, ArchiveNotFoundError{
-			Path:   op.src,
-			Err:    err,
-			Source: op.SrcSpan,
+			Path: op.src,
+			Err:  err,
+			Span: op.SrcSpan,
 		}
 	}
 
@@ -119,9 +119,9 @@ func (op *unarchiveOp) Execute(
 	srcData, err := src.ReadFile(ctx, op.src)
 	if err != nil {
 		return spec.Result{}, ArchiveNotFoundError{
-			Path:   op.src,
-			Err:    err,
-			Source: op.SrcSpan,
+			Path: op.src,
+			Err:  err,
+			Span: op.SrcSpan,
 		}
 	}
 
@@ -139,7 +139,7 @@ func (op *unarchiveOp) Execute(
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "mkdir " + op.dest,
-				Source:    op.DestSpan,
+				Span:      op.DestSpan,
 				Err:       err,
 			}
 		}
@@ -149,7 +149,7 @@ func (op *unarchiveOp) Execute(
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "mkdir " + stateDir,
-				Source:    op.DestSpan,
+				Span:      op.DestSpan,
 				Err:       err,
 			}
 		}
@@ -228,7 +228,7 @@ func (op *unarchiveOp) extractWithTool(
 			Cmd:    cmd,
 			Stderr: truncateStderr(res.Stderr),
 			Advice: extractionAdvice(res.Stderr),
-			Source: op.SrcSpan,
+			Span:   op.SrcSpan,
 		}
 	}
 
@@ -250,7 +250,7 @@ func (op *unarchiveOp) extractWithGo(
 				Cmd:    "gzip decompress",
 				Stderr: err.Error(),
 				Advice: extractionAdvice(err.Error()),
-				Source: op.SrcSpan,
+				Span:   op.SrcSpan,
 			}
 		}
 		defer func() { _ = r.Close() }()
@@ -265,7 +265,7 @@ func (op *unarchiveOp) extractWithGo(
 				Cmd:    "xz decompress",
 				Stderr: err.Error(),
 				Advice: extractionAdvice(err.Error()),
-				Source: op.SrcSpan,
+				Span:   op.SrcSpan,
 			}
 		}
 		return extractTar(ctx, fsTgt, r, op.dest)
@@ -276,7 +276,7 @@ func (op *unarchiveOp) extractWithGo(
 				Cmd:    "zstd decompress",
 				Stderr: err.Error(),
 				Advice: extractionAdvice(err.Error()),
-				Source: op.SrcSpan,
+				Span:   op.SrcSpan,
 			}
 		}
 		defer d.Close()
@@ -398,7 +398,7 @@ func (op *unarchiveOp) extractNested(
 				Cmd:    cmd,
 				Stderr: truncateStderr(extractRes.Stderr),
 				Advice: extractionAdvice(extractRes.Stderr),
-				Source: op.DestSpan,
+				Span:   op.DestSpan,
 			}
 		}
 
@@ -413,7 +413,7 @@ func (op *unarchiveOp) extractNested(
 				Cmd:    rmCmd,
 				Stderr: truncateStderr(rmRes.Stderr),
 				Advice: extractionAdvice(rmRes.Stderr),
-				Source: op.DestSpan,
+				Span:   op.DestSpan,
 			}
 		}
 	}

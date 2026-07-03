@@ -102,32 +102,32 @@ func (a *serviceStep) Ops() []spec.Op {
 	switch a.state {
 	case StateRestarted:
 		op := &restartOp{
-			name:       a.name,
-			nameSource: a.step.Fields["name"].Value,
+			name:     a.name,
+			nameSpan: a.step.Fields["name"].Value,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}
 
 	case StateReloaded:
 		op := &reloadOp{
-			name:       a.name,
-			nameSource: a.step.Fields["name"].Value,
+			name:     a.name,
+			nameSpan: a.step.Fields["name"].Value,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}
 
 	default:
 		activeOp := &ensureActiveOp{
-			name:       a.name,
-			state:      a.state,
-			nameSource: a.step.Fields["name"].Value,
+			name:     a.name,
+			state:    a.state,
+			nameSpan: a.step.Fields["name"].Value,
 		}
 		activeOp.SetStep(a)
 
 		enabledOp := &ensureEnabledOp{
-			name:       a.name,
-			enabled:    a.enabled,
-			nameSource: a.step.Fields["name"].Value,
+			name:     a.name,
+			enabled:  a.enabled,
+			nameSpan: a.step.Fields["name"].Value,
 		}
 		enabledOp.SetStep(a)
 

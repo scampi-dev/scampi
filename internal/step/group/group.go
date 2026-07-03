@@ -103,18 +103,18 @@ func (a *groupStep) Ops() []spec.Op {
 	switch a.state {
 	case StateAbsent:
 		op := &removeGroupOp{
-			name:       a.name,
-			nameSource: nameSource,
+			name:     a.name,
+			nameSpan: nameSource,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}
 
 	default:
 		op := &ensureGroupOp{
-			name:       a.name,
-			gid:        a.gid,
-			system:     a.system,
-			nameSource: nameSource,
+			name:     a.name,
+			gid:      a.gid,
+			system:   a.system,
+			nameSpan: nameSource,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}

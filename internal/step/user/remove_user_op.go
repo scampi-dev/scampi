@@ -16,8 +16,8 @@ const removeUserID = "remove_user"
 
 type removeUserOp struct {
 	sharedop.BaseOp
-	name       string
-	nameSource spec.SourceSpan
+	name     string
+	nameSpan spec.Span
 }
 
 func (op *removeUserOp) Check(
@@ -61,9 +61,9 @@ func (op *removeUserOp) Execute(
 
 	if err := um.DeleteUser(ctx, op.name); err != nil {
 		return spec.Result{}, UserDeleteError{
-			Name:   op.name,
-			Err:    err,
-			Source: op.nameSource,
+			Name: op.name,
+			Err:  err,
+			Span: op.nameSpan,
 		}
 	}
 

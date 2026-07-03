@@ -46,7 +46,7 @@ func newSecretCtx(t *testing.T, backend *stubBackend, arg ast.Expr) StaticCheckC
 		AttrName:        "secrets.@secretkey",
 		ParamName:       "key",
 		ParamArg:        arg,
-		UseSpan:         spec.SourceSpan{},
+		UseSpan:         spec.Span{},
 	}
 }
 

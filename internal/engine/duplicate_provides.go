@@ -47,11 +47,11 @@ func detectDuplicateProvides(
 				HintText:     resourceKindHint(r.Kind),
 				StepKind:     cur.Type.Kind(),
 				StepDesc:     cur.Desc,
-				Source:       cur.Source,
+				Span:         cur.Span,
 				OtherKind:    prev.Type.Kind(),
 				OtherDesc:    prev.Desc,
-				OtherSource:  prev.Source,
-				OtherLocText: formatSpan(prev.Source),
+				OtherSpan:    prev.Span,
+				OtherLocText: formatSpan(prev.Span),
 			}
 			causes = append(causes, err)
 			emitPlanDiagnostic(ctx, stepSources[i], cur.Type.Kind(), cur.Desc, err)
@@ -71,10 +71,10 @@ type DuplicateResourceError struct {
 	HintText     string // pre-computed hint (depends on Resource.Kind)
 	StepKind     string
 	StepDesc     string
-	Source       spec.SourceSpan
+	Span         spec.Span
 	OtherKind    string
 	OtherDesc    string
-	OtherSource  spec.SourceSpan
+	OtherSpan    spec.Span
 	OtherLocText string // pre-formatted location of the original provider
 }
 
@@ -92,9 +92,9 @@ func (e DuplicateResourceError) Diagnostic() event.Event {
 			ID: CodeDuplicateResource,
 			Text: `duplicate {{.KindLabel}} "{{.Resource.Name}}"` +
 				` - already declared by {{.OtherKind}} at {{.OtherLocText}}`,
-			Hint:   `{{.HintText}}`,
-			Data:   e,
-			Source: &e.Source,
+			Hint: `{{.HintText}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -127,7 +127,7 @@ func resourceKindHint(k spec.ResourceKind) string {
 	}
 }
 
-func formatSpan(s spec.SourceSpan) string {
+func formatSpan(s spec.Span) string {
 	if s.Filename == "" {
 		return "(unknown location)"
 	}

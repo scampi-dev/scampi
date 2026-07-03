@@ -15,7 +15,7 @@ type ListFailedError struct {
 	Cmd      string
 	ExitCode int
 	Stderr   string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e ListFailedError) Error() string {
@@ -30,9 +30,9 @@ func (e ListFailedError) Diagnostic() event.Event {
 			Text: `run_set list command failed: {{.Cmd}} (exit {{.ExitCode}})`,
 			Hint: `the list command must succeed and print one identifier per line; ` +
 				`provide init to bootstrap when the set's container does not exist yet`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -42,7 +42,7 @@ type AddFailedError struct {
 	Cmd      string
 	ExitCode int
 	Stderr   string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e AddFailedError) Error() string {
@@ -57,9 +57,9 @@ func (e AddFailedError) Diagnostic() event.Event {
 			Text: `run_set add command failed: {{.Cmd}} (exit {{.ExitCode}})`,
 			Hint: `the add command must succeed for the missing items; ` +
 				`check the rendered command above and the stderr below`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -69,7 +69,7 @@ type RemoveFailedError struct {
 	Cmd      string
 	ExitCode int
 	Stderr   string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e RemoveFailedError) Error() string {
@@ -84,9 +84,9 @@ func (e RemoveFailedError) Diagnostic() event.Event {
 			Text: `run_set remove command failed: {{.Cmd}} (exit {{.ExitCode}})`,
 			Hint: `the remove command must succeed for the orphan items; ` +
 				`check the rendered command above and the stderr below`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -96,7 +96,7 @@ type InitFailedError struct {
 	Cmd      string
 	ExitCode int
 	Stderr   string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e InitFailedError) Error() string {
@@ -107,12 +107,12 @@ func (e InitFailedError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeInitFailed,
-			Text:   `run_set init command failed: {{.Cmd}} (exit {{.ExitCode}})`,
-			Hint:   `init runs only when list returns non-zero; verify init creates the container that list queries`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeInitFailed,
+			Text: `run_set init command failed: {{.Cmd}} (exit {{.ExitCode}})`,
+			Hint: `init runs only when list returns non-zero; verify init creates the container that list queries`,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -120,9 +120,9 @@ func (e InitFailedError) Diagnostic() event.Event {
 // MissingTemplateError is raised at plan time when the template in
 // add or remove has no recognised placeholder.
 type MissingTemplateError struct {
-	Field  string // "add" or "remove"
-	Cmd    string
-	Source spec.SourceSpan
+	Field string // "add" or "remove"
+	Cmd   string
+	Span  spec.Span
 }
 
 func (e MissingTemplateError) Error() string {
@@ -139,8 +139,8 @@ func (e MissingTemplateError) Diagnostic() event.Event {
 			Hint: `use {{"{{ item }}"}} for per-item invocations, ` +
 				`{{"{{ items }}"}} for space-separated batch, ` +
 				`or {{"{{ items_csv }}"}} for comma-separated batch`,
-			Data:   e,
-			Source: &e.Source,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -148,9 +148,9 @@ func (e MissingTemplateError) Diagnostic() event.Event {
 // InvalidTemplateError flags a template that mixes per-item with
 // batch placeholders.
 type InvalidTemplateError struct {
-	Field  string
-	Cmd    string
-	Source spec.SourceSpan
+	Field string
+	Cmd   string
+	Span  spec.Span
 }
 
 func (e InvalidTemplateError) Error() string {
@@ -164,9 +164,9 @@ func (e InvalidTemplateError) Diagnostic() event.Event {
 			ID: CodeInvalidTemplate,
 			Text: `run_set {{.Field}} template mixes {{"{{ item }}"}} with ` +
 				`{{"{{ items }}"}} or {{"{{ items_csv }}"}}: {{.Cmd}}`,
-			Hint:   `pick one - per-item runs the command once per element, batch runs it once with all elements`,
-			Data:   e,
-			Source: &e.Source,
+			Hint: `pick one - per-item runs the command once per element, batch runs it once with all elements`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -174,7 +174,7 @@ func (e InvalidTemplateError) Diagnostic() event.Event {
 // NothingToDeclareError is raised at plan time when neither add
 // nor remove is provided - the step would be a noop forever.
 type NothingToDeclareError struct {
-	Source spec.SourceSpan
+	Span spec.Span
 }
 
 func (e NothingToDeclareError) Error() string {
@@ -185,11 +185,11 @@ func (e NothingToDeclareError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeNothingToDeclare,
-			Text:   `run_set requires at least one of add or remove`,
-			Hint:   `add for desired-not-live items, remove for live-not-desired (orphan) items; both are typical`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeNothingToDeclare,
+			Text: `run_set requires at least one of add or remove`,
+			Hint: `add for desired-not-live items, remove for live-not-desired (orphan) items; both are typical`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

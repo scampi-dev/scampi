@@ -23,10 +23,10 @@ type ExpectedDiagnostic struct {
 	Severity string `json:"severity"`
 	Kind     string `json:"kind"`
 
-	Source *ExpectedSource `json:"source,omitempty"`
+	Span *ExpectedSpan `json:"span,omitempty"`
 }
 
-type ExpectedSource struct {
+type ExpectedSpan struct {
 	StartLine int `json:"start_line"`
 	StartCol  int `json:"start_col"`
 	EndLine   int `json:"end_line"`
@@ -139,9 +139,9 @@ func WriteSnapshot(t *testing.T, path string, abort bool, rec *RecordingDisplaye
 			Kind:     "DiagnosticRaised",
 			Severity: d.severity,
 		}
-		if d.template.Source != nil && d.template.Source.Filename == cfgPath {
-			s := d.template.Source
-			exp.Source = &ExpectedSource{
+		if d.template.Span != nil && d.template.Span.Filename == cfgPath {
+			s := d.template.Span
+			exp.Span = &ExpectedSpan{
 				StartLine: s.StartLine,
 				StartCol:  s.StartCol,
 				EndLine:   s.EndLine,
@@ -190,15 +190,15 @@ func AssertDiagnostics(
 			t.Fatalf("[%d] expected id %q, got %q", i, exp.ID, tmpl.ID)
 		}
 
-		if exp.Source != nil {
-			if tmpl.Source == nil {
+		if exp.Span != nil {
+			if tmpl.Span == nil {
 				t.Fatalf("[%d] expected source, got nil", i)
 			}
-			if tmpl.Source.Filename != cfgPath {
-				t.Fatalf("[%d] expected source file %q, got %q", i, cfgPath, tmpl.Source.Filename)
+			if tmpl.Span.Filename != cfgPath {
+				t.Fatalf("[%d] expected source file %q, got %q", i, cfgPath, tmpl.Span.Filename)
 			}
-			s := tmpl.Source
-			e := exp.Source
+			s := tmpl.Span
+			e := exp.Span
 			startMatch := s.StartLine == e.StartLine && s.StartCol == e.StartCol
 			endMatch := s.EndLine == e.EndLine && s.EndCol == e.EndCol
 			if !startMatch || !endMatch {

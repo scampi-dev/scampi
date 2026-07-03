@@ -16,8 +16,8 @@ const removeGroupID = "remove_group"
 
 type removeGroupOp struct {
 	sharedop.BaseOp
-	name       string
-	nameSource spec.SourceSpan
+	name     string
+	nameSpan spec.Span
 }
 
 func (op *removeGroupOp) Check(
@@ -61,9 +61,9 @@ func (op *removeGroupOp) Execute(
 
 	if err := gm.DeleteGroup(ctx, op.name); err != nil {
 		return spec.Result{}, GroupDeleteError{
-			Name:   op.name,
-			Err:    err,
-			Source: op.nameSource,
+			Name: op.name,
+			Err:  err,
+			Span: op.nameSpan,
 		}
 	}
 

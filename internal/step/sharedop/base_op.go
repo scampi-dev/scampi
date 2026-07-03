@@ -5,8 +5,8 @@ package sharedop
 import "scampi.dev/scampi/internal/spec"
 
 type BaseOp struct {
-	SrcSpan  spec.SourceSpan
-	DestSpan spec.SourceSpan
+	SrcSpan  spec.Span
+	DestSpan spec.Span
 	step     spec.Step
 	deps     []spec.Op
 }

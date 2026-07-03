@@ -48,8 +48,8 @@ func (e StepAbortedError) Unwrap() error { return e.Cause }
 // guarantees the user sees *something* in the render pipeline rather
 // than a silent abort.
 type LoadConfigError struct {
-	Cause  error
-	Source spec.SourceSpan
+	Cause error
+	Span  spec.Span
 }
 
 func (e *LoadConfigError) Error() string {
@@ -69,7 +69,7 @@ func (e *LoadConfigError) Diagnostic() event.Event {
 			Data: loadConfigErrorData{
 				Message: e.Error(),
 			},
-			Source: &e.Source,
+			Span: &e.Span,
 		},
 	}
 }
@@ -92,7 +92,7 @@ type CapabilityMismatchError struct {
 	RequiredCaps capability.Capability
 	MissingCaps  capability.Capability
 	ProvidedCaps capability.Capability
-	Source       spec.SourceSpan
+	Span         spec.Span
 }
 
 func (e CapabilityMismatchError) Error() string {
@@ -106,12 +106,12 @@ func (e CapabilityMismatchError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeCapabilityMismatch,
-			Text:   `step "{{.StepKind}}" requires capabilities not provided by target`,
-			Hint:   "use a different target or remove incompatible steps",
-			Help:   "missing:  {{.MissingCaps}}\nrequired: {{.RequiredCaps}}\nprovided: {{.ProvidedCaps}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeCapabilityMismatch,
+			Text: `step "{{.StepKind}}" requires capabilities not provided by target`,
+			Hint: "use a different target or remove incompatible steps",
+			Help: "missing:  {{.MissingCaps}}\nrequired: {{.RequiredCaps}}\nprovided: {{.ProvidedCaps}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -187,8 +187,8 @@ func emitOpDiagnostic(ctx diagnostic.Ctx, _ int, _, _, _ string, err error) (dia
 // -----------------------------------------------------------------------------
 
 type UnknownDeployBlockError struct {
-	Name   string
-	Source spec.SourceSpan
+	Name string
+	Span spec.Span
 }
 
 func (e UnknownDeployBlockError) Error() string {
@@ -199,17 +199,17 @@ func (e UnknownDeployBlockError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeUnknownDeployBlock,
-			Text:   `unknown deploy block "{{.Name}}"`,
-			Hint:   "check that the deploy block name is spelled correctly",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeUnknownDeployBlock,
+			Text: `unknown deploy block "{{.Name}}"`,
+			Hint: "check that the deploy block name is spelled correctly",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 type NoDeployBlocksError struct {
-	Source spec.SourceSpan
+	Span spec.Span
 }
 
 func (NoDeployBlocksError) Error() string {
@@ -220,18 +220,18 @@ func (e NoDeployBlocksError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeNoDeployBlocks,
-			Text:   "no deploy blocks defined",
-			Hint:   "add at least one deploy block to the configuration",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeNoDeployBlocks,
+			Text: "no deploy blocks defined",
+			Hint: "add at least one deploy block to the configuration",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 type NoTargetsInDeployError struct {
 	Deploy string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e NoTargetsInDeployError) Error() string {
@@ -242,11 +242,11 @@ func (e NoTargetsInDeployError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeNoTargetsInDeploy,
-			Text:   `deploy block "{{.Deploy}}" has no targets`,
-			Hint:   "add at least one target to the deploy block's targets list",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeNoTargetsInDeploy,
+			Text: `deploy block "{{.Deploy}}" has no targets`,
+			Hint: "add at least one target to the deploy block's targets list",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -254,7 +254,7 @@ func (e NoTargetsInDeployError) Diagnostic() event.Event {
 type UnknownTargetError struct {
 	Name   string
 	Deploy string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e UnknownTargetError) Error() string {
@@ -265,11 +265,11 @@ func (e UnknownTargetError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeUnknownTarget,
-			Text:   `unknown target "{{.Name}}" referenced in deploy block "{{.Deploy}}"`,
-			Hint:   "check that the target is defined in the targets map",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeUnknownTarget,
+			Text: `unknown target "{{.Name}}" referenced in deploy block "{{.Deploy}}"`,
+			Hint: "check that the target is defined in the targets map",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -277,7 +277,7 @@ func (e UnknownTargetError) Diagnostic() event.Event {
 type TargetNotInDeployError struct {
 	Target string
 	Deploy string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e TargetNotInDeployError) Error() string {
@@ -288,11 +288,11 @@ func (e TargetNotInDeployError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeTargetNotInDeploy,
-			Text:   `target "{{.Target}}" is not in deploy block "{{.Deploy}}"'s target list`,
-			Hint:   "add the target to the deploy block's targets list or select a different target",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeTargetNotInDeploy,
+			Text: `target "{{.Target}}" is not in deploy block "{{.Deploy}}"'s target list`,
+			Hint: "add the target to the deploy block's targets list or select a different target",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -304,7 +304,7 @@ type UnknownHookError struct {
 	HookID   string
 	StepKind string
 	StepDesc string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e UnknownHookError) Error() string {
@@ -315,18 +315,18 @@ func (e UnknownHookError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeUnknownHook,
-			Text:   `on_change references unknown hook "{{.HookID}}"`,
-			Hint:   `add hooks = {"{{.HookID}}": service(name="...", state="restarted")} to the deploy block`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeUnknownHook,
+			Text: `on_change references unknown hook "{{.HookID}}"`,
+			Hint: `add hooks = {"{{.HookID}}": service(name="...", state="restarted")} to the deploy block`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 type HookCycleError struct {
-	Chain  []string
-	Source spec.SourceSpan
+	Chain []string
+	Span  spec.Span
 }
 
 func (e HookCycleError) Error() string {
@@ -337,11 +337,11 @@ func (e HookCycleError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeHookCycle,
-			Text:   "hook cycle detected",
-			Hint:   `{{join " -> " .Chain}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeHookCycle,
+			Text: "hook cycle detected",
+			Hint: `{{join " -> " .Chain}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

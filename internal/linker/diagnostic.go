@@ -20,17 +20,17 @@ type langDiagnostic struct {
 	code errs.Code
 	msg  string
 	hint string
-	src  *spec.SourceSpan
+	src  *spec.Span
 }
 
 func (d *langDiagnostic) Error() string { return d.msg }
 
 func (d *langDiagnostic) Diagnostic() event.Event {
 	t := event.Template{
-		ID:     d.code,
-		Text:   "{{.Msg}}",
-		Source: d.src,
-		Data:   langDiagData{Msg: d.msg, Hint: d.hint},
+		ID:   d.code,
+		Text: "{{.Msg}}",
+		Span: d.src,
+		Data: langDiagData{Msg: d.msg, Hint: d.hint},
 	}
 	if d.hint != "" {
 		t.Hint = "{{.Hint}}"
@@ -60,13 +60,13 @@ func raiseBrokenSiblings(ctx diagnostic.Ctx, broken []brokenSibling) {
 			code: CodeBrokenSibling,
 			msg:  "sibling file " + b.path + " has errors and was skipped",
 			hint: b.firstErr,
-			src:  &spec.SourceSpan{Filename: b.path},
+			src:  &spec.Span{Filename: b.path},
 		})
 	}
 }
 
 func toLangDiagnostic(err error, cfgPath string, source []byte) *langDiagnostic {
-	span := &spec.SourceSpan{Filename: cfgPath}
+	span := &spec.Span{Filename: cfgPath}
 
 	var hint string
 

@@ -13,7 +13,7 @@ import (
 type ApplyError struct {
 	Cmd    string
 	Stderr string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e ApplyError) Error() string {
@@ -24,12 +24,12 @@ func (e ApplyError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeApplyFailed,
-			Text:   `apply command failed: {{.Cmd}}`,
-			Hint:   `inspect the stderr output below; verify {{.Cmd}} is correct and runnable on the target`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeApplyFailed,
+			Text: `apply command failed: {{.Cmd}}`,
+			Hint: `inspect the stderr output below; verify {{.Cmd}} is correct and runnable on the target`,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -39,7 +39,7 @@ type PostApplyCheckError struct {
 	CheckCmd string
 	ApplyCmd string
 	Stderr   string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e PostApplyCheckError) Error() string {
@@ -54,16 +54,16 @@ func (e PostApplyCheckError) Diagnostic() event.Event {
 			Text: `post-apply check failed: {{.CheckCmd}}`,
 			Hint: `apply ran ({{.ApplyCmd}}) but the check still fails - ` +
 				`confirm the apply step actually achieves the condition that {{.CheckCmd}} tests for`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 // CheckAlwaysConflictError is raised when both check and always are set.
 type CheckAlwaysConflictError struct {
-	Source spec.SourceSpan
+	Span spec.Span
 }
 
 func (e CheckAlwaysConflictError) Error() string {
@@ -74,18 +74,18 @@ func (e CheckAlwaysConflictError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeCheckAlwaysConflict,
-			Text:   `check and always are mutually exclusive`,
-			Hint:   `remove one: use check for idempotent commands, always for fire-and-forget`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeCheckAlwaysConflict,
+			Text: `check and always are mutually exclusive`,
+			Hint: `remove one: use check for idempotent commands, always for fire-and-forget`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 // MissingCheckOrAlwaysError is raised when neither check nor always is provided.
 type MissingCheckOrAlwaysError struct {
-	Source spec.SourceSpan
+	Span spec.Span
 }
 
 func (e MissingCheckOrAlwaysError) Error() string {
@@ -96,11 +96,11 @@ func (e MissingCheckOrAlwaysError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeMissingCheckOrAlways,
-			Text:   `run requires either check or always=True`,
-			Hint:   `add a check command for idempotency, or set always=True to run unconditionally`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeMissingCheckOrAlways,
+			Text: `run requires either check or always=True`,
+			Hint: `add a check command for idempotency, or set always=True to run unconditionally`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

@@ -29,7 +29,7 @@ type TestFail struct {
 	Description string
 	Expected    string
 	Actual      string
-	Source      spec.SourceSpan
+	Span        spec.Span
 }
 
 func (e TestFail) Error() string { return e.Description }
@@ -38,11 +38,11 @@ func (e TestFail) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeTestFail,
-			Text:   "{{.Description}}",
-			Hint:   "expected: {{.Expected}}\nactual:   {{.Actual}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeTestFail,
+			Text: "{{.Description}}",
+			Hint: "expected: {{.Expected}}\nactual:   {{.Actual}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

@@ -19,9 +19,9 @@ import (
 const CodeInvalidPermission errs.Code = "step.InvalidPermission"
 
 type InvalidPermissionError struct {
-	Value  string
-	Hint   string
-	Source spec.SourceSpan
+	Value string
+	Hint  string
+	Span  spec.Span
 }
 
 func (e InvalidPermissionError) Error() string {
@@ -39,8 +39,8 @@ func (e InvalidPermissionError) Diagnostic() event.Event {
   - octal:        0600, 0644, 0755
   - ls-style:     rw-r--r--
   - posix style:  u=rw,g=r,o=r`,
-			Data:   e,
-			Source: &e.Source,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -51,7 +51,7 @@ var (
 	posixRe = regexp.MustCompile(`^(u|g|o)=[rwx]*(,(u|g|o)=[rwx]*)*$`)
 )
 
-func ParsePerm(s string, src spec.SourceSpan) (fs.FileMode, error) {
+func ParsePerm(s string, src spec.Span) (fs.FileMode, error) {
 	if m, ok := tryOctal(s); ok {
 		return m, nil
 	}
@@ -63,8 +63,8 @@ func ParsePerm(s string, src spec.SourceSpan) (fs.FileMode, error) {
 	}
 
 	return 0, InvalidPermissionError{
-		Value:  s,
-		Source: src,
+		Value: s,
+		Span:  src,
 	}
 }
 

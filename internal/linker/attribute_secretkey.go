@@ -83,7 +83,7 @@ type secretKeyLookupData struct {
 // secret key is not present in the configured backend.
 type secretKeyNotFoundError struct {
 	Key string
-	Src *spec.SourceSpan
+	Src *spec.Span
 }
 
 func (e *secretKeyNotFoundError) Error() string {
@@ -94,11 +94,11 @@ func (e *secretKeyNotFoundError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeSecretKeyNotFound,
-			Text:   `secret key {{printf "%q" .Key}} not found in backend`,
-			Hint:   "check secrets.from_age/from_file path or add the key to your secrets file",
-			Source: e.Src,
-			Data:   secretKeyNotFoundData{Key: e.Key},
+			ID:   CodeSecretKeyNotFound,
+			Text: `secret key {{printf "%q" .Key}} not found in backend`,
+			Hint: "check secrets.from_age/from_file path or add the key to your secrets file",
+			Span: e.Src,
+			Data: secretKeyNotFoundData{Key: e.Key},
 		},
 	}
 }
@@ -108,7 +108,7 @@ func (e *secretKeyNotFoundError) Diagnostic() event.Event {
 type secretKeyLookupError struct {
 	Key string
 	Err error
-	Src *spec.SourceSpan
+	Src *spec.Span
 }
 
 func (e *secretKeyLookupError) Error() string {
@@ -119,9 +119,9 @@ func (e *secretKeyLookupError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeSecretKeyLookupFailed,
-			Text:   `secret key {{printf "%q" .Key}} lookup failed: {{.Err}}`,
-			Source: e.Src,
+			ID:   CodeSecretKeyLookupFailed,
+			Text: `secret key {{printf "%q" .Key}} lookup failed: {{.Err}}`,
+			Span: e.Src,
 			Data: secretKeyLookupData{
 				Key: e.Key,
 				Err: e.Err.Error(),

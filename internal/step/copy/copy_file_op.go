@@ -44,9 +44,9 @@ func (op *copyFileOp) getContent(ctx context.Context, src source.Source, tgt tar
 	}
 	if err != nil {
 		return nil, CopySourceMissingError{
-			Path:   op.src,
-			Err:    err,
-			Source: op.SrcSpan,
+			Path: op.src,
+			Err:  err,
+			Span: op.SrcSpan,
 		}
 	}
 	return data, nil
@@ -69,9 +69,9 @@ func (op *copyFileOp) Check(
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
 		return spec.CheckUnsatisfied, nil, CopyDestDirMissingError{
-			Path:   filepath.Dir(op.dest),
-			Err:    err,
-			Source: op.DestSpan,
+			Path: filepath.Dir(op.dest),
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -111,9 +111,9 @@ func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
 		return spec.Result{}, CopyDestDirMissingError{
-			Path:   filepath.Dir(op.dest),
-			Err:    err,
-			Source: op.DestSpan,
+			Path: filepath.Dir(op.dest),
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -197,9 +197,9 @@ func (op *copyFileOp) Inspect() []spec.InspectField {
 // -----------------------------------------------------------------------------
 
 type CopySourceMissingError struct {
-	Path   string
-	Source spec.SourceSpan
-	Err    error
+	Path string
+	Span spec.Span
+	Err  error
 }
 
 func (e CopySourceMissingError) Error() string {
@@ -210,20 +210,20 @@ func (e CopySourceMissingError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeSourceMissing,
-			Text:   `source file "{{.Path}}" does not exist`,
-			Hint:   "ensure the source file exists and is readable",
-			Help:   "the copy step cannot proceed without a readable source file",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeSourceMissing,
+			Text: `source file "{{.Path}}" does not exist`,
+			Hint: "ensure the source file exists and is readable",
+			Help: "the copy step cannot proceed without a readable source file",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 type CopyDestDirMissingError struct {
-	Path   string
-	Source spec.SourceSpan
-	Err    error
+	Path string
+	Span spec.Span
+	Err  error
 }
 
 func (e CopyDestDirMissingError) Error() string {
@@ -234,12 +234,12 @@ func (e CopyDestDirMissingError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeDestDirMissing,
-			Text:   `destination directory "{{.Path}}" does not exist`,
-			Hint:   "create the destination directory before running this step",
-			Help:   "the copy step does not create directories automatically",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeDestDirMissing,
+			Text: `destination directory "{{.Path}}" does not exist`,
+			Hint: "create the destination directory before running this step",
+			Help: "the copy step does not create directories automatically",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

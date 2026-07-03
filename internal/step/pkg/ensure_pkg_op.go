@@ -26,9 +26,9 @@ const cacheStaleThreshold = 1 * time.Second
 
 type ensurePkgOp struct {
 	sharedop.BaseOp
-	packages   []string
-	state      State
-	pkgsSource spec.SourceSpan
+	packages []string
+	state    State
+	pkgsSpan spec.Span
 }
 
 func (op *ensurePkgOp) Check(
@@ -108,7 +108,7 @@ func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.
 				return spec.Result{}, PkgInstallError{
 					Pkgs:   actionable,
 					Stderr: installErr.Error(),
-					Source: op.pkgsSource,
+					Span:   op.pkgsSpan,
 				}
 			}
 		}
@@ -117,7 +117,7 @@ func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.
 			return spec.Result{}, PkgRemoveError{
 				Pkgs:   actionable,
 				Stderr: err.Error(),
-				Source: op.pkgsSource,
+				Span:   op.pkgsSpan,
 			}
 		}
 	}
@@ -150,7 +150,7 @@ func (op *ensurePkgOp) retryInstallWithCacheRefresh(
 	if err := updater.UpdateCache(ctx); err != nil {
 		return true, PkgCacheError{
 			Stderr: err.Error(),
-			Source: op.pkgsSource,
+			Span:   op.pkgsSpan,
 		}
 	}
 
@@ -159,7 +159,7 @@ func (op *ensurePkgOp) retryInstallWithCacheRefresh(
 		return true, PkgInstallError{
 			Pkgs:   pkgs,
 			Stderr: err.Error(),
-			Source: op.pkgsSource,
+			Span:   op.pkgsSpan,
 		}
 	}
 
@@ -182,8 +182,8 @@ func (op *ensurePkgOp) Inspect() []spec.InspectField {
 
 type ensureLatestPkgOp struct {
 	sharedop.BaseOp
-	packages   []string
-	pkgsSource spec.SourceSpan
+	packages []string
+	pkgsSpan spec.Span
 }
 
 func (op *ensureLatestPkgOp) Check(
@@ -246,7 +246,7 @@ func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt t
 	if err := t.UpdateCache(ctx); err != nil {
 		return spec.Result{}, PkgCacheError{
 			Stderr: err.Error(),
-			Source: op.pkgsSource,
+			Span:   op.pkgsSpan,
 		}
 	}
 
@@ -278,7 +278,7 @@ func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt t
 		return spec.Result{}, PkgInstallError{
 			Pkgs:   actionable,
 			Stderr: err.Error(),
-			Source: op.pkgsSource,
+			Span:   op.pkgsSpan,
 		}
 	}
 

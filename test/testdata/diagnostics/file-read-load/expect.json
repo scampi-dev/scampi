@@ -5,7 +5,7 @@
       "id": "lang.UnknownModule",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 3,
         "start_col": 1,
         "end_line": 3,

@@ -78,9 +78,9 @@ func (e RuleApplyError) Diagnostic() event.Event {
 
 // PortOutOfRangeError is returned when a port number is outside 1-65535.
 type PortOutOfRangeError struct {
-	Field  string
-	Value  int
-	Source spec.SourceSpan
+	Field string
+	Value int
+	Span  spec.Span
 }
 
 func (e PortOutOfRangeError) Error() string {
@@ -91,11 +91,11 @@ func (e PortOutOfRangeError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodePortOutOfRange,
-			Text:   `{{.Field}} {{.Value}} is out of range`,
-			Hint:   "port numbers must be between 1 and 65535",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodePortOutOfRange,
+			Text: `{{.Field}} {{.Value}} is out of range`,
+			Hint: "port numbers must be between 1 and 65535",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -104,7 +104,7 @@ func (e PortOutOfRangeError) Diagnostic() event.Event {
 type InvalidRangeError struct {
 	Port    int
 	EndPort int
-	Source  spec.SourceSpan
+	Span    spec.Span
 }
 
 func (e InvalidRangeError) Error() string {
@@ -115,11 +115,11 @@ func (e InvalidRangeError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeInvalidRange,
-			Text:   `end_port {{.EndPort}} must be greater than port {{.Port}}`,
-			Hint:   "end_port defines the upper bound of a port range",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeInvalidRange,
+			Text: `end_port {{.EndPort}} must be greater than port {{.Port}}`,
+			Hint: "end_port defines the upper bound of a port range",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

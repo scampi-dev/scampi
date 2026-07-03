@@ -16,8 +16,8 @@ const reloadID = "reload_service"
 
 type reloadOp struct {
 	sharedop.BaseOp
-	name       string
-	nameSource spec.SourceSpan
+	name     string
+	nameSpan spec.Span
 }
 
 func (op *reloadOp) Check(
@@ -49,7 +49,7 @@ func (op *reloadOp) Execute(
 		return spec.Result{}, DaemonReloadError{
 			Name:   op.name,
 			Stderr: err.Error(),
-			Source: op.nameSource,
+			Span:   op.nameSpan,
 		}
 	}
 
@@ -59,7 +59,7 @@ func (op *reloadOp) Execute(
 				Op:     "restart",
 				Name:   op.name,
 				Stderr: err.Error(),
-				Source: op.nameSource,
+				Span:   op.nameSpan,
 			}
 		}
 		return spec.Result{Changed: true}, nil
@@ -70,7 +70,7 @@ func (op *reloadOp) Execute(
 			Op:     "reload",
 			Name:   op.name,
 			Stderr: err.Error(),
-			Source: op.nameSource,
+			Span:   op.nameSpan,
 		}
 	}
 

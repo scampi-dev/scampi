@@ -5,7 +5,7 @@
       "id": "lang.EnvVarNotSet",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 5,
         "start_col": 11,
         "end_line": 5,

@@ -5,7 +5,7 @@
       "id": "lang.ModuleMemberUndef",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 14,
         "start_col": 29,
         "end_line": 14,

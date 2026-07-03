@@ -334,7 +334,7 @@ type attrDocError struct {
 	Message string
 	Hint    string
 	Help    string
-	Src     *spec.SourceSpan
+	Src     *spec.Span
 }
 
 func (e *attrDocError) Error() string {
@@ -345,11 +345,11 @@ func (e *attrDocError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeAttributeViolation,
-			Text:   "{{.Message}}",
-			Hint:   "{{.Hint}}",
-			Help:   "{{.Help}}",
-			Source: e.Src,
+			ID:   CodeAttributeViolation,
+			Text: "{{.Message}}",
+			Hint: "{{.Hint}}",
+			Help: "{{.Help}}",
+			Span: e.Src,
 			Data: attrDocErrorData{
 				Param:   e.Param,
 				Attr:    e.Attr,
@@ -375,7 +375,7 @@ type attrDeprecationWarning struct {
 	Param   string
 	Attr    string
 	Message string
-	Src     *spec.SourceSpan
+	Src     *spec.Span
 }
 
 func (e *attrDeprecationWarning) Error() string {
@@ -388,9 +388,9 @@ func (e *attrDeprecationWarning) Error() string {
 func (e *attrDeprecationWarning) Diagnostic() event.Event {
 	return event.Warning{
 		Template: event.Template{
-			ID:     CodeAttributeDeprecated,
-			Text:   "{{.Param}} is deprecated{{if .Message}}: {{.Message}}{{end}}",
-			Source: e.Src,
+			ID:   CodeAttributeDeprecated,
+			Text: "{{.Param}} is deprecated{{if .Message}}: {{.Message}}{{end}}",
+			Span: e.Src,
 			Data: attrDeprecationData{
 				Param:   e.Param,
 				Message: e.Message,

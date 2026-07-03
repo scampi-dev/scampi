@@ -13,9 +13,9 @@ type StepID uint64
 // state. Created by the ref() scampi builtin, it survives in
 // map[string]any configs and is resolved by the engine at execution time.
 type Ref struct {
-	TargetID StepID     // step to reference
-	Expr     string     // jq expression to evaluate against the step's output
-	Source   SourceSpan // call site of ref() for error reporting
+	TargetID StepID // step to reference
+	Expr     string // jq expression to evaluate against the step's output
+	Span     Span   // call site of ref() for error reporting
 }
 
 // RefResolver resolves a Ref to a concrete value. The engine provides

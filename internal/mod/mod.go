@@ -33,17 +33,17 @@ func (d Dependency) IsLocal() bool {
 		strings.HasPrefix(d.Version, "/")
 }
 
-// span builds a SourceSpan pointing to a specific line in this module file.
-func (m *Module) span(line int) spec.SourceSpan {
-	return spec.SourceSpan{
+// span builds a Span pointing to a specific line in this module file.
+func (m *Module) span(line int) spec.Span {
+	return spec.Span{
 		Filename:  m.Filename,
 		StartLine: line,
 		EndLine:   line,
 	}
 }
 
-// DepSpan returns a SourceSpan for a dependency entry.
-func (m *Module) DepSpan(dep *Dependency) spec.SourceSpan {
+// DepSpan returns a Span for a dependency entry.
+func (m *Module) DepSpan(dep *Dependency) spec.Span {
 	return m.span(dep.Line)
 }
 
@@ -129,7 +129,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 				return nil, ParseError{
 					Detail: "duplicate module directive",
 					Hint:   "remove the duplicate - only one module directive is allowed",
-					Source: m.span(lineNum),
+					Span:   m.span(lineNum),
 				}
 			}
 			path := strings.TrimSpace(line[len("module "):])
@@ -138,7 +138,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 					Detail: "invalid module path " + quote(path),
 					Hint: "module path must be a host/path URL, e.g. " +
 						"module github.com/" + nonEmpty(path, "yourname/yourmodule"),
-					Source: m.span(lineNum),
+					Span: m.span(lineNum),
 				}
 			}
 			m.Module = path
@@ -168,7 +168,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 		return nil, ParseError{
 			Detail: "unexpected token " + quote(firstWord(line)),
 			Hint:   "scampi.mod supports only module and require directives",
-			Source: m.span(lineNum),
+			Span:   m.span(lineNum),
 		}
 	}
 
@@ -176,7 +176,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 		return nil, ParseError{
 			Detail: "unclosed require block",
 			Hint:   "add a closing ) to end the require block",
-			Source: m.span(requireOpenLine),
+			Span:   m.span(requireOpenLine),
 		}
 	}
 
@@ -184,7 +184,7 @@ func Parse(filename string, data []byte) (*Module, error) {
 		return nil, ParseError{
 			Detail: "missing module directive",
 			Hint:   "add a module directive as the first line, e.g. module github.com/yourname/yourmodule",
-			Source: spec.SourceSpan{Filename: filename},
+			Span:   spec.Span{Filename: filename},
 		}
 	}
 
@@ -200,7 +200,7 @@ func parseDependency(m *Module, line string, lineNum int, indirect bool) (*Depen
 		return nil, ParseError{
 			Detail: "malformed require entry " + quote(line),
 			Hint:   "require entries must be: " + nonEmpty(fields[0], "github.com/example/module") + " v1.0.0",
-			Source: m.span(lineNum),
+			Span:   m.span(lineNum),
 		}
 	}
 	path, version := fields[0], fields[1]
@@ -210,7 +210,7 @@ func parseDependency(m *Module, line string, lineNum int, indirect bool) (*Depen
 		return nil, ParseError{
 			Detail: "invalid module path " + quote(path),
 			Hint:   "module path must be a host/path URL, e.g. github.com/" + nonEmpty(path, "example/module"),
-			Source: m.span(lineNum),
+			Span:   m.span(lineNum),
 		}
 	}
 	// Version can be a semver tag (v1.0.0), branch (main), or

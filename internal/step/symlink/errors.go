@@ -10,9 +10,9 @@ import (
 )
 
 type LinkDirMissingError struct {
-	Path   string
-	Source spec.SourceSpan
-	Err    error
+	Path string
+	Span spec.Span
+	Err  error
 }
 
 func (e LinkDirMissingError) Error() string {
@@ -23,12 +23,12 @@ func (e LinkDirMissingError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeLinkDirMissing,
-			Text:   `link directory "{{.Path}}" does not exist`,
-			Hint:   `add dir(path="{{.Path}}") to your deploy steps before this symlink`,
-			Help:   "the symlink step does not create directories automatically",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeLinkDirMissing,
+			Text: `link directory "{{.Path}}" does not exist`,
+			Hint: `add dir(path="{{.Path}}") to your deploy steps before this symlink`,
+			Help: "the symlink step does not create directories automatically",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -38,9 +38,9 @@ func (e LinkDirMissingError) DeferredResource() spec.Resource {
 }
 
 type LinkReadError struct {
-	Path   string
-	Source spec.SourceSpan
-	Err    error
+	Path string
+	Span spec.Span
+	Err  error
 }
 
 func (e LinkReadError) Error() string {
@@ -55,12 +55,12 @@ func (e LinkReadError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeLinkRead,
-			Text:   `cannot read link "{{.Path}}"`,
-			Hint:   `verify the parent directory of "{{.Path}}" exists and scampi has read permission on it`,
-			Help:   `{{.Err}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeLinkRead,
+			Text: `cannot read link "{{.Path}}"`,
+			Hint: `verify the parent directory of "{{.Path}}" exists and scampi has read permission on it`,
+			Help: `{{.Err}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

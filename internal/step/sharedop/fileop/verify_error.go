@@ -17,7 +17,7 @@ type VerifyError struct {
 	Dest     string
 	ExitCode int
 	Stderr   string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e *VerifyError) Error() string {
@@ -28,12 +28,12 @@ func (e *VerifyError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeVerifyFailed,
-			Text:   `verify command failed (exit {{.ExitCode}}): {{.Cmd}}`,
-			Hint:   `the content did not pass validation - {{.Dest}} was not modified`,
-			Help:   "{{.Stderr}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeVerifyFailed,
+			Text: `verify command failed (exit {{.ExitCode}}): {{.Cmd}}`,
+			Hint: `the content did not pass validation - {{.Dest}} was not modified`,
+			Help: "{{.Stderr}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -48,9 +48,9 @@ func (e *VerifyError) Diagnostic() event.Event {
 // so the message can show the user *which* malformation they hit
 // (zero placeholders vs three placeholders are different mistakes).
 type VerifyPlaceholderError struct {
-	Cmd    string
-	Count  int
-	Source spec.SourceSpan
+	Cmd   string
+	Count int
+	Span  spec.Span
 }
 
 func (e *VerifyPlaceholderError) Error() string {

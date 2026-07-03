@@ -57,8 +57,8 @@ func (op *renderTemplateOp) Check(
 	tmpl, err := rendertmpl.New("template").Parse(string(tmplContent))
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, TemplateParseError{
-			Err:    err,
-			Source: op.SrcSpan,
+			Err:  err,
+			Span: op.SrcSpan,
 		}
 	}
 
@@ -69,9 +69,9 @@ func (op *renderTemplateOp) Check(
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
 		return spec.CheckUnsatisfied, nil, DestDirMissingError{
-			Path:   filepath.Dir(op.dest),
-			Err:    err,
-			Source: op.DestSpan,
+			Path: filepath.Dir(op.dest),
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -126,9 +126,9 @@ func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt 
 
 	if _, err := fsTgt.Stat(ctx, filepath.Dir(op.dest)); err != nil {
 		return spec.Result{}, DestDirMissingError{
-			Path:   filepath.Dir(op.dest),
-			Err:    err,
-			Source: op.DestSpan,
+			Path: filepath.Dir(op.dest),
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -154,7 +154,7 @@ func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt 
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "write " + op.dest,
-				Source:    op.DestSpan,
+				Span:      op.DestSpan,
 				Err:       err,
 			}
 		}
@@ -184,7 +184,7 @@ func (op *renderTemplateOp) DesiredContent(ctx context.Context, src source.Sourc
 
 	tmpl, err := rendertmpl.New("template").Parse(string(tmplContent))
 	if err != nil {
-		return nil, TemplateParseError{Err: err, Source: op.SrcSpan}
+		return nil, TemplateParseError{Err: err, Span: op.SrcSpan}
 	}
 
 	var buf bytes.Buffer
@@ -225,9 +225,9 @@ func (op *renderTemplateOp) getTemplateContent(
 	}
 	if err != nil {
 		return nil, TemplateSourceMissingError{
-			Path:   op.src,
-			Err:    err,
-			Source: op.SrcSpan,
+			Path: op.src,
+			Err:  err,
+			Span: op.SrcSpan,
 		}
 	}
 	return data, nil
@@ -289,26 +289,26 @@ func (op *renderTemplateOp) execError(err error, tmplContent string) TemplateExe
 	if key != "" {
 		return TemplateExecError{
 			// bare-error: inner detail of TemplateExecError diagnostic
-			Err:    errs.Errorf("missing template variable %q", key),
-			Source: span,
+			Err:  errs.Errorf("missing template variable %q", key),
+			Span: span,
 		}
 	}
 
-	return TemplateExecError{Err: err, Source: span}
+	return TemplateExecError{Err: err, Span: span}
 }
 
-// tmplFileErrorSpan computes a SourceSpan pointing into the template source
+// tmplFileErrorSpan computes a spec.Span pointing into the template source
 // file. The Go template error gives us line/col within the file directly.
-func tmplFileErrorSpan(err error, srcPath string) (spec.SourceSpan, bool) {
+func tmplFileErrorSpan(err error, srcPath string) (spec.Span, bool) {
 	msg := err.Error()
 	parts := strings.SplitN(msg, ":", 5)
 	if len(parts) < 5 {
-		return spec.SourceSpan{}, false
+		return spec.Span{}, false
 	}
 	tmplLine, lineErr := strconv.Atoi(strings.TrimSpace(parts[2]))
 	tmplCol, colErr := strconv.Atoi(strings.TrimSpace(parts[3]))
 	if lineErr != nil || colErr != nil {
-		return spec.SourceSpan{}, false
+		return spec.Span{}, false
 	}
 
 	exprLen := 0
@@ -326,7 +326,7 @@ func tmplFileErrorSpan(err error, srcPath string) (spec.SourceSpan, bool) {
 		endCol = srcCol + exprLen
 	}
 
-	return spec.SourceSpan{
+	return spec.Span{
 		Filename:  srcPath,
 		StartLine: tmplLine,
 		EndLine:   tmplLine,
@@ -335,24 +335,24 @@ func tmplFileErrorSpan(err error, srcPath string) (spec.SourceSpan, bool) {
 	}, true
 }
 
-// tmplErrorSpan computes a SourceSpan pointing at the offending expression
+// tmplErrorSpan computes a spec.Span pointing at the offending expression
 // inside an inline template string. The Go template error format is:
 //
 //	template: <name>:<line>:<col>: ...
 //
 // We offset from the content string literal's start position in the scampi
 // source to land on the right line/col.
-func tmplErrorSpan(err error, content string, contentSpan spec.SourceSpan) (spec.SourceSpan, bool) {
+func tmplErrorSpan(err error, content string, contentSpan spec.Span) (spec.Span, bool) {
 	// Parse "template: template:<line>:<col>: ..."
 	msg := err.Error()
 	parts := strings.SplitN(msg, ":", 5)
 	if len(parts) < 5 {
-		return spec.SourceSpan{}, false
+		return spec.Span{}, false
 	}
 	tmplLine, lineErr := strconv.Atoi(strings.TrimSpace(parts[2]))
 	tmplCol, colErr := strconv.Atoi(strings.TrimSpace(parts[3]))
 	if lineErr != nil || colErr != nil {
-		return spec.SourceSpan{}, false
+		return spec.Span{}, false
 	}
 
 	// Extract the expression (between < and > in the error) for underline.
@@ -392,7 +392,7 @@ func tmplErrorSpan(err error, content string, contentSpan spec.SourceSpan) (spec
 		endCol = srcCol + exprLen
 	}
 
-	return spec.SourceSpan{
+	return spec.Span{
 		Filename:  contentSpan.Filename,
 		StartLine: srcLine,
 		EndLine:   srcLine,

@@ -5,7 +5,7 @@
       "id": "step.download.Error",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 11,
         "start_col": 13,
         "end_line": 11,

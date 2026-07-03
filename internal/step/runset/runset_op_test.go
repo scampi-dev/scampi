@@ -178,4 +178,4 @@ func Test_EnvPrefix_SortsKeys(t *testing.T) {
 	}
 }
 
-func anySpan() spec.SourceSpan { return spec.SourceSpan{} }
+func anySpan() spec.Span { return spec.Span{} }

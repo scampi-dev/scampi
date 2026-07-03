@@ -19,13 +19,13 @@ const ensureUserID = "ensure_user"
 
 type ensureUserOp struct {
 	sharedop.BaseOp
-	name       string
-	shell      string
-	home       string
-	system     bool
-	password   string
-	groups     []string
-	nameSource spec.SourceSpan
+	name     string
+	shell    string
+	home     string
+	system   bool
+	password string
+	groups   []string
+	nameSpan spec.Span
 }
 
 func (op *ensureUserOp) Check(
@@ -152,9 +152,9 @@ func (op *ensureUserOp) Execute(
 	if !exists {
 		if err := um.CreateUser(ctx, info); err != nil {
 			return spec.Result{}, UserCreateError{
-				Name:   op.name,
-				Err:    err,
-				Source: op.nameSource,
+				Name: op.name,
+				Err:  err,
+				Span: op.nameSpan,
 			}
 		}
 		changed = true
@@ -173,9 +173,9 @@ func (op *ensureUserOp) Execute(
 		if needsModify {
 			if err := um.ModifyUser(ctx, info); err != nil {
 				return spec.Result{}, UserModifyError{
-					Name:   op.name,
-					Err:    err,
-					Source: op.nameSource,
+					Name: op.name,
+					Err:  err,
+					Span: op.nameSpan,
 				}
 			}
 			changed = true

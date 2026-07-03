@@ -56,13 +56,13 @@ func (d Dir) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	if cfg.Owner != "" && cfg.Group == "" {
 		return nil, PartialOwnershipError{
 			Set: "owner", Missing: "group",
-			Source: step.Fields["owner"].Value,
+			Span: step.Fields["owner"].Value,
 		}
 	}
 	if cfg.Group != "" && cfg.Owner == "" {
 		return nil, PartialOwnershipError{
 			Set: "group", Missing: "owner",
-			Source: step.Fields["group"].Value,
+			Span: step.Fields["group"].Value,
 		}
 	}
 
@@ -140,7 +140,7 @@ func (a *dirStep) Ops() []spec.Op {
 type ensureDirOp struct {
 	sharedop.BaseOp
 	path     string
-	pathSpan spec.SourceSpan
+	pathSpan spec.Span
 }
 
 func (op *ensureDirOp) Check(
@@ -210,7 +210,7 @@ func (op *ensureDirOp) Execute(
 			if target.IsPermission(err) {
 				return spec.Result{}, sharedop.PermissionDeniedError{
 					Operation: "remove " + op.path,
-					Source:    op.pathSpan,
+					Span:      op.pathSpan,
 					Err:       err,
 				}
 			}
@@ -224,7 +224,7 @@ func (op *ensureDirOp) Execute(
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "mkdir " + op.path,
-				Source:    op.pathSpan,
+				Span:      op.pathSpan,
 				Err:       err,
 			}
 		}

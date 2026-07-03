@@ -26,7 +26,7 @@ type DeclaredDeploy struct {
 	Targets []string                  // references target names
 	Steps   []DeclaredStep            // ordered steps
 	Hooks   map[string][]DeclaredStep // hook ID -> steps (execute only when notified)
-	Source  SourceSpan                // source location
+	Span    Span                      // source location
 }
 
 // Config is one resolved run unit: a single deploy block paired with a single
@@ -48,7 +48,7 @@ type Config struct {
 type DeclaredTarget struct {
 	Type   TargetKind
 	Config any
-	Source SourceSpan
+	Span   Span
 	Fields map[string]FieldSpan
 }
 
@@ -60,7 +60,7 @@ type DeclaredStep struct {
 	Type     StepKind
 	Config   any
 	OnChange []string // hook IDs to notify when this step changes
-	Source   SourceSpan
+	Span     Span
 	Fields   map[string]FieldSpan
 }
 

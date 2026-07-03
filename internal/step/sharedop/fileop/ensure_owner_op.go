@@ -23,8 +23,8 @@ type EnsureOwnerOp struct {
 	Owner     string
 	Group     string
 	Recursive bool
-	OwnerSpan spec.SourceSpan
-	GroupSpan spec.SourceSpan
+	OwnerSpan spec.Span
+	GroupSpan spec.Span
 }
 
 func (op *EnsureOwnerOp) Check(
@@ -37,16 +37,16 @@ func (op *EnsureOwnerOp) Check(
 
 	if !owTgt.HasUser(ctx, op.Owner) {
 		return spec.CheckUnsatisfied, nil, sharedop.UnknownUserError{
-			User:   op.Owner,
-			Source: op.OwnerSpan,
-			Err:    nil,
+			User: op.Owner,
+			Span: op.OwnerSpan,
+			Err:  nil,
 		}
 	}
 	if !owTgt.HasGroup(ctx, op.Group) {
 		return spec.CheckUnsatisfied, nil, sharedop.UnknownGroupError{
-			Group:  op.Group,
-			Source: op.GroupSpan,
-			Err:    nil,
+			Group: op.Group,
+			Span:  op.GroupSpan,
+			Err:   nil,
 		}
 	}
 
@@ -77,9 +77,9 @@ func (op *EnsureOwnerOp) checkPath(
 		}
 
 		return spec.CheckUnsatisfied, nil, ownerReadError{
-			Path:   path,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: path,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -105,9 +105,9 @@ func (op *EnsureOwnerOp) checkTree(
 	entries, err := fsTgt.ReadDir(ctx, dir)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, ownerReadError{
-			Path:   dir,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: dir,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -143,9 +143,9 @@ func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt targe
 		}
 
 		return spec.Result{}, ownerReadError{
-			Path:   op.Path,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: op.Path,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -154,16 +154,16 @@ func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt targe
 	if err := owTgt.Chown(ctx, op.Path, target.Owner{User: op.Owner, Group: op.Group}); err != nil {
 		if target.IsUnknownUser(err) {
 			return spec.Result{}, sharedop.UnknownUserError{
-				User:   op.Owner,
-				Source: op.OwnerSpan,
-				Err:    err,
+				User: op.Owner,
+				Span: op.OwnerSpan,
+				Err:  err,
 			}
 		}
 		if target.IsUnknownGroup(err) {
 			return spec.Result{}, sharedop.UnknownGroupError{
-				Group:  op.Group,
-				Source: op.GroupSpan,
-				Err:    err,
+				Group: op.Group,
+				Span:  op.GroupSpan,
+				Err:   err,
 			}
 		}
 		// Can't catch during Check: file may not exist yet, and probing
@@ -171,7 +171,7 @@ func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt targe
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chown %s:%s %s", op.Owner, op.Group, op.Path),
-				Source:    op.OwnerSpan,
+				Span:      op.OwnerSpan,
 				Err:       err,
 			}
 		}
@@ -187,22 +187,22 @@ func (op *EnsureOwnerOp) executeRecursive(ctx context.Context, tgt target.Target
 	if err := owTgt.ChownRecursive(ctx, op.Path, target.Owner{User: op.Owner, Group: op.Group}); err != nil {
 		if target.IsUnknownUser(err) {
 			return spec.Result{}, sharedop.UnknownUserError{
-				User:   op.Owner,
-				Source: op.OwnerSpan,
-				Err:    err,
+				User: op.Owner,
+				Span: op.OwnerSpan,
+				Err:  err,
 			}
 		}
 		if target.IsUnknownGroup(err) {
 			return spec.Result{}, sharedop.UnknownGroupError{
-				Group:  op.Group,
-				Source: op.GroupSpan,
-				Err:    err,
+				Group: op.Group,
+				Span:  op.GroupSpan,
+				Err:   err,
 			}
 		}
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chown -R %s:%s %s", op.Owner, op.Group, op.Path),
-				Source:    op.OwnerSpan,
+				Span:      op.OwnerSpan,
 				Err:       err,
 			}
 		}
@@ -239,9 +239,9 @@ func (op *EnsureOwnerOp) OpDescription() spec.OpDescription {
 }
 
 type ownerReadError struct {
-	Path   string
-	Source spec.SourceSpan
-	Err    error
+	Path string
+	Span spec.Span
+	Err  error
 }
 
 func (e ownerReadError) Error() string {
@@ -256,11 +256,11 @@ func (e ownerReadError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeOwnerRead,
-			Text:   `cannot read ownership of "{{.Path}}"`,
-			Hint:   "check file permissions and ensure the path is accessible",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeOwnerRead,
+			Text: `cannot read ownership of "{{.Path}}"`,
+			Hint: "check file permissions and ensure the path is accessible",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

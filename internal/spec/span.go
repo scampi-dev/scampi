@@ -2,8 +2,8 @@
 
 package spec
 
-// SourceSpan locates a region of scampi source, used to anchor diagnostics.
-type SourceSpan struct {
+// Span locates a region of scampi source, used to anchor diagnostics.
+type Span struct {
 	Filename  string
 	StartLine int
 	EndLine   int
@@ -13,6 +13,6 @@ type SourceSpan struct {
 
 // FieldSpan carries the source spans of a config field's name and value.
 type FieldSpan struct {
-	Field SourceSpan
-	Value SourceSpan
+	Field Span
+	Value Span
 }

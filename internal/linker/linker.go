@@ -47,7 +47,7 @@ func WithSourceResolver(ctx context.Context, cfgPath string, src source.Source) 
 
 // WithSource provides the raw source bytes of the entry-point config
 // file. Required for translating eval-side token offsets into
-// line/col coordinates on DeclaredStep.Source and DeclaredStep.Fields.
+// line/col coordinates on DeclaredStep.Span and DeclaredStep.Fields.
 // Without it, linked instances carry zero-valued spans.
 func WithSource(data []byte) LinkOption {
 	return func(lc *linkConfig) {
@@ -132,11 +132,11 @@ func linkBlockResult(bv *eval.BlockResultVal, reg Registry, cfg *spec.DeclaredCo
 // the link config has no source bytes, returns zero values - callers
 // that only care about Type/Config see the same DeclaredStep shape as
 // before this plumbing existed.
-func structValSpans(sv *eval.StructVal, lc *linkConfig) (spec.SourceSpan, map[string]spec.FieldSpan) {
+func structValSpans(sv *eval.StructVal, lc *linkConfig) (spec.Span, map[string]spec.FieldSpan) {
 	if len(lc.source) == 0 {
-		return spec.SourceSpan{}, nil
+		return spec.Span{}, nil
 	}
-	source := spec.SourceSpan{Filename: lc.cfgPath}
+	source := spec.Span{Filename: lc.cfgPath}
 	if sv.SrcSpan.End > 0 {
 		sLine, sCol := offsetToLineCol(lc.source, int(sv.SrcSpan.Start))
 		eLine, eCol := offsetToLineCol(lc.source, int(sv.SrcSpan.End))
@@ -153,7 +153,7 @@ func structValSpans(sv *eval.StructVal, lc *linkConfig) (spec.SourceSpan, map[st
 		sLine, sCol := offsetToLineCol(lc.source, int(span.Start))
 		eLine, eCol := offsetToLineCol(lc.source, int(span.End))
 		fields[name] = spec.FieldSpan{
-			Value: spec.SourceSpan{
+			Value: spec.Span{
 				Filename:  lc.cfgPath,
 				StartLine: sLine,
 				StartCol:  sCol,
@@ -187,7 +187,7 @@ func linkTarget(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.Declared
 	return spec.DeclaredTarget{
 		Type:   tt,
 		Config: cfg,
-		Source: source,
+		Span:   source,
 		Fields: fields,
 	}, nil
 }
@@ -357,7 +357,7 @@ func linkStep(sv *eval.StructVal, reg Registry, lc *linkConfig) (spec.DeclaredSt
 		Type:   st,
 		Config: cfg,
 		Desc:   desc,
-		Source: source,
+		Span:   source,
 		Fields: fields,
 	}, nil
 }

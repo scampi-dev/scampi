@@ -124,18 +124,18 @@ func (op *ensureSymlinkOp) Check(
 
 	if _, err := t.Stat(ctx, filepath.Dir(op.link)); err != nil {
 		return spec.CheckUnsatisfied, nil, LinkDirMissingError{
-			Path:   filepath.Dir(op.link),
-			Err:    err,
-			Source: op.DestSpan,
+			Path: filepath.Dir(op.link),
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
 	relTarget, err := resolveTarget(op.target, op.link)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, LinkReadError{
-			Path:   op.link,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: op.link,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -149,9 +149,9 @@ func (op *ensureSymlinkOp) Check(
 		}
 
 		return spec.CheckUnsatisfied, nil, LinkReadError{
-			Path:   op.link,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: op.link,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -170,9 +170,9 @@ func (op *ensureSymlinkOp) Check(
 	current, err := t.Readlink(ctx, op.link)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, LinkReadError{
-			Path:   op.link,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: op.link,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -229,7 +229,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 			if target.IsPermission(err) {
 				return spec.Result{}, sharedop.PermissionDeniedError{
 					Operation: "remove " + op.link,
-					Source:    op.DestSpan,
+					Span:      op.DestSpan,
 					Err:       err,
 				}
 			}
@@ -242,7 +242,7 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: "symlink " + op.link,
-				Source:    op.DestSpan,
+				Span:      op.DestSpan,
 				Err:       err,
 			}
 		}

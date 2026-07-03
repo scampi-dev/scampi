@@ -80,7 +80,7 @@ func (op *DownloadOp) Check(
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("creating request: %v", err),
-			Source: op.SrcSpan,
+			Span: op.SrcSpan,
 		}
 	}
 	if meta.ETag != "" {
@@ -147,7 +147,7 @@ func (op *DownloadOp) Execute(
 	if err != nil {
 		return spec.Result{}, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("creating request: %v", err),
-			Source: op.SrcSpan,
+			Span: op.SrcSpan,
 		}
 	}
 
@@ -155,7 +155,7 @@ func (op *DownloadOp) Execute(
 	if err != nil {
 		return spec.Result{}, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("request failed: %v", err),
-			Source: op.SrcSpan,
+			Span: op.SrcSpan,
 		}
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -164,7 +164,7 @@ func (op *DownloadOp) Execute(
 		return spec.Result{}, DownloadError{
 			URL:    op.URL,
 			Detail: fmt.Sprintf("HTTP %d %s", resp.StatusCode, resp.Status),
-			Source: op.SrcSpan,
+			Span:   op.SrcSpan,
 		}
 	}
 
@@ -172,7 +172,7 @@ func (op *DownloadOp) Execute(
 	if err != nil {
 		return spec.Result{}, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("reading response: %v", err),
-			Source: op.SrcSpan,
+			Span: op.SrcSpan,
 		}
 	}
 
@@ -182,7 +182,7 @@ func (op *DownloadOp) Execute(
 				URL:      op.URL,
 				Expected: op.Checksum.String(),
 				Got:      computeChecksum(data, op.Checksum),
-				Source:   op.SrcSpan,
+				Span:     op.SrcSpan,
 			}
 		}
 	}
@@ -191,14 +191,14 @@ func (op *DownloadOp) Execute(
 	if err := src.EnsureDir(ctx, cacheDir); err != nil {
 		return spec.Result{}, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("creating cache dir: %v", err),
-			Source: op.SrcSpan,
+			Span: op.SrcSpan,
 		}
 	}
 
 	if err := src.WriteFile(ctx, op.CachePath, data); err != nil {
 		return spec.Result{}, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("writing cache file: %v", err),
-			Source: op.SrcSpan,
+			Span: op.SrcSpan,
 		}
 	}
 
@@ -304,7 +304,7 @@ func newHash(algo spec.ChecksumAlgo) hash.Hash {
 type DownloadError struct {
 	URL    string
 	Detail string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e DownloadError) Error() string {
@@ -315,11 +315,11 @@ func (e DownloadError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeDownloadError,
-			Text:   `download "{{.URL}}": {{.Detail}}`,
-			Hint:   "check that the URL is reachable and correct",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeDownloadError,
+			Text: `download "{{.URL}}": {{.Detail}}`,
+			Hint: "check that the URL is reachable and correct",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -328,7 +328,7 @@ type ChecksumMismatchError struct {
 	URL      string
 	Expected string
 	Got      string
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e ChecksumMismatchError) Error() string {
@@ -344,8 +344,8 @@ func (e ChecksumMismatchError) Diagnostic() event.Event {
 			Hint: "expected {{.Expected}}, got {{.Got}}",
 			Help: "the downloaded content does not match the declared checksum - " +
 				"verify the URL serves the expected file",
-			Data:   e,
-			Source: &e.Source,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

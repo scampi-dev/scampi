@@ -58,12 +58,12 @@ func (Run) Plan(step spec.DeclaredStep) (spec.Step, error) {
 func (c *RunConfig) Validate(step spec.DeclaredStep) error {
 	if c.Check != "" && c.Always {
 		return CheckAlwaysConflictError{
-			Source: step.Source,
+			Span: step.Span,
 		}
 	}
 	if c.Check == "" && !c.Always {
 		return MissingCheckOrAlwaysError{
-			Source: step.Source,
+			Span: step.Span,
 		}
 	}
 	return nil

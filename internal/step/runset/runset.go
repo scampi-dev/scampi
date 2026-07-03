@@ -49,14 +49,14 @@ func (RunSet) Plan(step spec.DeclaredStep) (spec.Step, error) {
 	}
 
 	if cfg.Add == "" && cfg.Remove == "" {
-		return nil, NothingToDeclareError{Source: step.Source}
+		return nil, NothingToDeclareError{Span: step.Span}
 	}
 
-	addTpl, err := parseTemplate("add", cfg.Add, step.Source)
+	addTpl, err := parseTemplate("add", cfg.Add, step.Span)
 	if err != nil {
 		return nil, err
 	}
-	removeTpl, err := parseTemplate("remove", cfg.Remove, step.Source)
+	removeTpl, err := parseTemplate("remove", cfg.Remove, step.Span)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (a *runSetStep) Ops() []spec.Op {
 		desired:   a.desired,
 		init:      a.init,
 		env:       a.env,
-		source:    a.step.Source,
+		span:      a.step.Span,
 	}
 	op.SetStep(a)
 	return []spec.Op{op}
@@ -164,16 +164,16 @@ func containsAny(s string, candidates []string) bool {
 	return false
 }
 
-func parseTemplate(field, cmd string, src spec.SourceSpan) (*itemTemplate, error) {
+func parseTemplate(field, cmd string, src spec.Span) (*itemTemplate, error) {
 	if cmd == "" {
 		return nil, nil
 	}
 	kind := detectPlaceholder(cmd)
 	if kind == -1 {
-		return nil, InvalidTemplateError{Field: field, Cmd: cmd, Source: src}
+		return nil, InvalidTemplateError{Field: field, Cmd: cmd, Span: src}
 	}
 	if kind == tplEmpty {
-		return nil, MissingTemplateError{Field: field, Cmd: cmd, Source: src}
+		return nil, MissingTemplateError{Field: field, Cmd: cmd, Span: src}
 	}
 	return &itemTemplate{raw: cmd, kind: kind}, nil
 }

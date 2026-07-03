@@ -38,7 +38,7 @@ type Template struct {
 	Help string
 	Data any
 
-	Source *spec.SourceSpan
+	Span *spec.Span
 }
 
 // Field is a single renderable text within a Template.

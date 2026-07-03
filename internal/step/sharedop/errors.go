@@ -12,9 +12,9 @@ import (
 )
 
 type UnknownUserError struct {
-	User   string
-	Source spec.SourceSpan
-	Err    error
+	User string
+	Span spec.Span
+	Err  error
 }
 
 func (e UnknownUserError) Error() string {
@@ -29,11 +29,11 @@ func (e UnknownUserError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeUnknownUser,
-			Text:   `unknown user "{{.User}}"`,
-			Hint:   `create user "{{.User}}" with useradd or adduser before setting file owner`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeUnknownUser,
+			Text: `unknown user "{{.User}}"`,
+			Hint: `create user "{{.User}}" with useradd or adduser before setting file owner`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -43,9 +43,9 @@ func (e UnknownUserError) DeferredResource() spec.Resource {
 }
 
 type UnknownGroupError struct {
-	Group  string
-	Source spec.SourceSpan
-	Err    error
+	Group string
+	Span  spec.Span
+	Err   error
 }
 
 func (e UnknownGroupError) Error() string {
@@ -60,11 +60,11 @@ func (e UnknownGroupError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeUnknownGroup,
-			Text:   `unknown group "{{.Group}}"`,
-			Hint:   `create group "{{.Group}}" with groupadd or addgroup before setting file owner`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeUnknownGroup,
+			Text: `unknown group "{{.Group}}"`,
+			Hint: `create group "{{.Group}}" with groupadd or addgroup before setting file owner`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -75,7 +75,7 @@ func (e UnknownGroupError) DeferredResource() spec.Resource {
 
 type PermissionDeniedError struct {
 	Operation string
-	Source    spec.SourceSpan
+	Span      spec.Span
 	Err       error
 }
 
@@ -91,11 +91,11 @@ func (e PermissionDeniedError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodePermissionDenied,
-			Text:   `permission denied for operation "{{.Operation}}"`,
-			Hint:   "run as root, or configure passwordless sudo/doas for the target user",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodePermissionDenied,
+			Text: `permission denied for operation "{{.Operation}}"`,
+			Hint: "run as root, or configure passwordless sudo/doas for the target user",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

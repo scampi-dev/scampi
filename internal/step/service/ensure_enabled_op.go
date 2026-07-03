@@ -17,9 +17,9 @@ const ensureEnabledID = "ensure_service_enabled"
 
 type ensureEnabledOp struct {
 	sharedop.BaseOp
-	name       string
-	enabled    bool
-	nameSource spec.SourceSpan
+	name     string
+	enabled  bool
+	nameSpan spec.Span
 }
 
 func (op *ensureEnabledOp) Check(
@@ -75,7 +75,7 @@ func (op *ensureEnabledOp) Execute(
 				Op:     "enable",
 				Name:   op.name,
 				Stderr: err.Error(),
-				Source: op.nameSource,
+				Span:   op.nameSpan,
 			}
 		}
 	} else {
@@ -84,7 +84,7 @@ func (op *ensureEnabledOp) Execute(
 				Op:     "disable",
 				Name:   op.name,
 				Stderr: err.Error(),
-				Source: op.nameSource,
+				Span:   op.nameSpan,
 			}
 		}
 	}

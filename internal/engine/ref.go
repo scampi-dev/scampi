@@ -48,7 +48,7 @@ type refPending struct{}
 // return a pending sentinel instead of erroring.
 func buildRefResolver(outputs *stepOutputs, checkMode bool) spec.RefResolver {
 	return func(ref spec.Ref) (any, error) {
-		src := &ref.Source
+		src := &ref.Span
 
 		out, ok := outputs.Load(ref.TargetID)
 		if !ok {
@@ -58,17 +58,17 @@ func buildRefResolver(outputs *stepOutputs, checkMode bool) spec.RefResolver {
 			return nil, RefError{
 				Expr:   ref.Expr,
 				Detail: "referenced step has no output - is it included in the steps list?",
-				Source: src,
+				Span:   src,
 			}
 		}
 
 		query, err := gojq.Parse(ref.Expr)
 		if err != nil {
-			return nil, RefError{Expr: ref.Expr, Detail: fmt.Sprintf("invalid jq: %v", err), Source: src}
+			return nil, RefError{Expr: ref.Expr, Detail: fmt.Sprintf("invalid jq: %v", err), Span: src}
 		}
 		code, err := gojq.Compile(query)
 		if err != nil {
-			return nil, RefError{Expr: ref.Expr, Detail: fmt.Sprintf("jq compile: %v", err), Source: src}
+			return nil, RefError{Expr: ref.Expr, Detail: fmt.Sprintf("jq compile: %v", err), Span: src}
 		}
 
 		iter := code.Run(out)
@@ -78,7 +78,7 @@ func buildRefResolver(outputs *stepOutputs, checkMode bool) spec.RefResolver {
 				break
 			}
 			if jqErr, isErr := v.(error); isErr {
-				return nil, RefError{Expr: ref.Expr, Detail: fmt.Sprintf("jq: %v", jqErr), Source: src}
+				return nil, RefError{Expr: ref.Expr, Detail: fmt.Sprintf("jq: %v", jqErr), Span: src}
 			}
 			if v != nil && v != false {
 				return normalizeJQValue(v), nil
@@ -87,7 +87,7 @@ func buildRefResolver(outputs *stepOutputs, checkMode bool) spec.RefResolver {
 		return nil, RefError{
 			Expr:   ref.Expr,
 			Detail: "expression produced no result",
-			Source: src,
+			Span:   src,
 		}
 	}
 }
@@ -123,7 +123,7 @@ type refResolvable interface {
 type RefError struct {
 	Expr   string
 	Detail string
-	Source *spec.SourceSpan
+	Span   *spec.Span
 }
 
 func (e RefError) Error() string {
@@ -134,11 +134,11 @@ func (e RefError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeRefError,
-			Text:   "ref({{.Expr}}) failed",
-			Hint:   "{{.Detail}}",
-			Data:   e,
-			Source: e.Source,
+			ID:   CodeRefError,
+			Text: "ref({{.Expr}}) failed",
+			Hint: "{{.Detail}}",
+			Data: e,
+			Span: e.Span,
 		},
 	}
 }

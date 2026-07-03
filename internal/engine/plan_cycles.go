@@ -132,7 +132,7 @@ func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.DeclaredStep) 
 	if len(cycles) > 0 {
 		cycle := cycles[0]
 		source := findCycleEdgeSource(hooks, cycle)
-		err := HookCycleError{Chain: cycle, Source: source}
+		err := HookCycleError{Chain: cycle, Span: source}
 		ctx.Raise(err)
 		return AbortError{Causes: []error{err}}
 	}
@@ -143,7 +143,7 @@ func detectHookCycles(ctx diagnostic.Ctx, hooks map[string][]spec.DeclaredStep) 
 // findCycleEdgeSource locates the on_change field span for the edge that
 // closes the cycle. The cycle slice is [A, ..., X, A] so the closing edge
 // is from X -> A.
-func findCycleEdgeSource(hooks map[string][]spec.DeclaredStep, cycle []string) spec.SourceSpan {
+func findCycleEdgeSource(hooks map[string][]spec.DeclaredStep, cycle []string) spec.Span {
 	from := cycle[len(cycle)-2]
 	to := cycle[len(cycle)-1]
 	for _, step := range hooks[from] {
@@ -152,11 +152,11 @@ func findCycleEdgeSource(hooks map[string][]spec.DeclaredStep, cycle []string) s
 				if fs, ok := step.Fields["on_change"]; ok {
 					return fs.Value
 				}
-				return step.Source
+				return step.Span
 			}
 		}
 	}
-	return spec.SourceSpan{}
+	return spec.Span{}
 }
 
 // DetectStepCycles checks for cycles in the step dependency graph.

@@ -55,9 +55,9 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 	timeout, err := time.ParseDuration(cfg.Timeout)
 	if err != nil {
 		return nil, InvalidTimeoutError{
-			Value:  cfg.Timeout,
-			Source: tgt.Fields["timeout"].Value,
-			Err:    err,
+			Value: cfg.Timeout,
+			Span:  tgt.Fields["timeout"].Value,
+			Err:   err,
 		}
 	}
 
@@ -70,8 +70,8 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 	if !isHostResolvable(cfg.Host) {
 		_ = closeAgent()
 		return nil, NoSuchHostError{
-			Host:   cfg.Host,
-			Source: tgt.Fields["host"].Value,
+			Host: cfg.Host,
+			Span: tgt.Fields["host"].Value,
 		}
 	}
 

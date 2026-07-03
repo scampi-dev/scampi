@@ -34,7 +34,7 @@ func (e MountCommandError) Diagnostic() event.Event {
 
 type MissingToolError struct {
 	FsType string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e MissingToolError) Error() string {
@@ -53,8 +53,8 @@ func (e MissingToolError) Diagnostic() event.Event {
 				`{{else if eq .FsType "ceph"}}add a pkg step for ceph-common` +
 				`{{else if eq .FsType "glusterfs"}}add a pkg step for glusterfs-client` +
 				`{{else}}ensure the required filesystem tools are installed via a pkg step{{end}}`,
-			Data:   e,
-			Source: &e.Source,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

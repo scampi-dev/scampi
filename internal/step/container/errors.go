@@ -32,7 +32,7 @@ func (e InvalidHealthcheckError) Diagnostic() event.Event {
 }
 
 type EmptyImageError struct {
-	Source spec.SourceSpan
+	Span spec.Span
 }
 
 func (e EmptyImageError) Error() string {
@@ -43,11 +43,11 @@ func (e EmptyImageError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeEmptyImage,
-			Text:   "container image is required",
-			Hint:   `add image = "registry/name:tag"`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeEmptyImage,
+			Text: "container image is required",
+			Hint: `add image = "registry/name:tag"`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -55,7 +55,7 @@ func (e EmptyImageError) Diagnostic() event.Event {
 type InvalidMountError struct {
 	Got    string
 	Reason string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e InvalidMountError) Error() string {
@@ -66,11 +66,11 @@ func (e InvalidMountError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeInvalidMount,
-			Text:   `invalid mount "{{.Got}}"`,
-			Hint:   "{{.Reason}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeInvalidMount,
+			Text: `invalid mount "{{.Got}}"`,
+			Hint: "{{.Reason}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -78,7 +78,7 @@ func (e InvalidMountError) Diagnostic() event.Event {
 type InvalidLabelError struct {
 	Key    string
 	Reason string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e InvalidLabelError) Error() string {
@@ -89,18 +89,18 @@ func (e InvalidLabelError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeInvalidLabel,
-			Text:   `invalid label key "{{.Key}}"`,
-			Hint:   "{{.Reason}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeInvalidLabel,
+			Text: `invalid label key "{{.Key}}"`,
+			Hint: "{{.Reason}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 type MountSourceMissingError struct {
-	Path   string
-	Source spec.SourceSpan
+	Path string
+	Span spec.Span
 }
 
 func (e MountSourceMissingError) Error() string {
@@ -111,11 +111,11 @@ func (e MountSourceMissingError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeMountSourceMissing,
-			Text:   `mount source "{{.Path}}" does not exist`,
-			Hint:   `add dir(path = "{{.Path}}") before this step`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeMountSourceMissing,
+			Text: `mount source "{{.Path}}" does not exist`,
+			Hint: `add dir(path = "{{.Path}}") before this step`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -125,8 +125,8 @@ func (e MountSourceMissingError) DeferredResource() spec.Resource {
 }
 
 type HealthWaitTimeoutError struct {
-	Name   string
-	Source spec.SourceSpan
+	Name string
+	Span spec.Span
 }
 
 func (e HealthWaitTimeoutError) Error() string {
@@ -137,18 +137,18 @@ func (e HealthWaitTimeoutError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeHealthWaitTimeout,
-			Text:   `container "{{.Name}}" did not become healthy in time`,
-			Hint:   "check container logs for healthcheck failures",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeHealthWaitTimeout,
+			Text: `container "{{.Name}}" did not become healthy in time`,
+			Hint: "check container logs for healthcheck failures",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 type ContainerUnhealthyError struct {
-	Name   string
-	Source spec.SourceSpan
+	Name string
+	Span spec.Span
 }
 
 func (e ContainerUnhealthyError) Error() string {
@@ -159,11 +159,11 @@ func (e ContainerUnhealthyError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeUnhealthy,
-			Text:   `container "{{.Name}}" reported unhealthy`,
-			Hint:   "check container logs for healthcheck failures",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeUnhealthy,
+			Text: `container "{{.Name}}" reported unhealthy`,
+			Hint: "check container logs for healthcheck failures",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -172,7 +172,7 @@ type ContainerCommandError struct {
 	Op     string
 	Name   string
 	Stderr string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e ContainerCommandError) Error() string {
@@ -183,11 +183,11 @@ func (e ContainerCommandError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeCommandFailed,
-			Text:   `container {{.Op}} "{{.Name}}" failed`,
-			Help:   "{{.Stderr}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeCommandFailed,
+			Text: `container {{.Op}} "{{.Name}}" failed`,
+			Help: "{{.Stderr}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

@@ -260,7 +260,7 @@ func planOneStep(
 			RequiredCaps: reqCaps,
 			MissingCaps:  misCaps,
 			ProvidedCaps: tgtCaps,
-			Source:       step.Source,
+			Span:         step.Span,
 		}
 	}
 	return act, err
@@ -338,7 +338,7 @@ func validateHooks(ctx diagnostic.Ctx, cfg spec.Config, hp *hookPlan) error {
 	for i, step := range cfg.Steps {
 		for _, hookID := range step.OnChange {
 			if _, ok := hp.steps[hookID]; !ok {
-				source := step.Source
+				source := step.Span
 				if fs, ok := step.Fields["on_change"]; ok {
 					source = fs.Value
 				}
@@ -346,7 +346,7 @@ func validateHooks(ctx diagnostic.Ctx, cfg spec.Config, hp *hookPlan) error {
 					HookID:   hookID,
 					StepKind: step.Type.Kind(),
 					StepDesc: step.Desc,
-					Source:   source,
+					Span:     source,
 				}
 				impact, _ := emitPlanDiagnostic(ctx, i, step.Type.Kind(), step.Desc, err)
 				if impact.ShouldAbort() {
@@ -361,7 +361,7 @@ func validateHooks(ctx diagnostic.Ctx, cfg spec.Config, hp *hookPlan) error {
 		for _, step := range steps {
 			for _, hookID := range step.OnChange {
 				if _, ok := hp.steps[hookID]; !ok {
-					source := step.Source
+					source := step.Span
 					if fs, ok := step.Fields["on_change"]; ok {
 						source = fs.Value
 					}
@@ -369,7 +369,7 @@ func validateHooks(ctx diagnostic.Ctx, cfg spec.Config, hp *hookPlan) error {
 						HookID:   hookID,
 						StepKind: step.Type.Kind(),
 						StepDesc: step.Desc,
-						Source:   source,
+						Span:     source,
 					}
 					impact, _ := emitPlanDiagnostic(ctx, -1, step.Type.Kind(), "hook:"+id, err)
 					if impact.ShouldAbort() {

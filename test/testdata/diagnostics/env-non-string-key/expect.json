@@ -5,7 +5,7 @@
       "id": "lang.ArgTypeMismatch",
       "severity": "Error",
       "kind": "DiagnosticRaised",
-      "source": {
+      "span": {
         "start_line": 5,
         "start_col": 19,
         "end_line": 5,

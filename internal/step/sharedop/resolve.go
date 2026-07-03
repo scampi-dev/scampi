@@ -16,7 +16,7 @@ func ResolveSourceOps(
 	ref spec.SourceRef,
 	primaryOp DependencyAdder,
 	step spec.Step,
-	srcSpan spec.SourceSpan,
+	srcSpan spec.Span,
 ) []spec.Op {
 	if !ref.NeedsResolution() {
 		return nil

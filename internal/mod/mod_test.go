@@ -159,11 +159,11 @@ func Test_Parse_RejectsEmptyFile(t *testing.T) {
 	if !errors.As(err, &pe) {
 		t.Fatalf("expected ParseError, got %T", err)
 	}
-	if pe.Source.StartLine != 0 {
-		t.Errorf("expected no line for missing-module error, got %d", pe.Source.StartLine)
+	if pe.Span.StartLine != 0 {
+		t.Errorf("expected no line for missing-module error, got %d", pe.Span.StartLine)
 	}
-	if pe.Source.Filename != testFile {
-		t.Errorf("Source.Filename = %q, want %q", pe.Source.Filename, testFile)
+	if pe.Span.Filename != testFile {
+		t.Errorf("Source.Filename = %q, want %q", pe.Span.Filename, testFile)
 	}
 }
 
@@ -177,8 +177,8 @@ func Test_Parse_RejectsDuplicateModule(t *testing.T) {
 	if !errors.As(err, &pe) {
 		t.Fatalf("expected ParseError, got %T", err)
 	}
-	if pe.Source.StartLine != 2 {
-		t.Errorf("expected error on line 2, got %d", pe.Source.StartLine)
+	if pe.Span.StartLine != 2 {
+		t.Errorf("expected error on line 2, got %d", pe.Span.StartLine)
 	}
 }
 
@@ -192,8 +192,8 @@ func Test_Parse_RejectsInvalidModulePath(t *testing.T) {
 	if !errors.As(err, &pe) {
 		t.Fatalf("expected ParseError, got %T", err)
 	}
-	if pe.Source.StartLine != 1 {
-		t.Errorf("expected error on line 1, got %d", pe.Source.StartLine)
+	if pe.Span.StartLine != 1 {
+		t.Errorf("expected error on line 1, got %d", pe.Span.StartLine)
 	}
 }
 
@@ -218,8 +218,8 @@ func Test_Parse_RejectsMalformedRequireEntry(t *testing.T) {
 	if !errors.As(err, &pe) {
 		t.Fatalf("expected ParseError, got %T", err)
 	}
-	if pe.Source.StartLine != 4 {
-		t.Errorf("expected error on line 4, got %d", pe.Source.StartLine)
+	if pe.Span.StartLine != 4 {
+		t.Errorf("expected error on line 4, got %d", pe.Span.StartLine)
 	}
 }
 
@@ -234,8 +234,8 @@ func Test_Parse_SetsErrorSpanFilename(t *testing.T) {
 	if !errors.As(err, &pe) {
 		t.Fatalf("expected ParseError, got %T", err)
 	}
-	if pe.Source.Filename != filename {
-		t.Errorf("Source.Filename = %q, want %q", pe.Source.Filename, filename)
+	if pe.Span.Filename != filename {
+		t.Errorf("Source.Filename = %q, want %q", pe.Span.Filename, filename)
 	}
 }
 
@@ -281,8 +281,8 @@ func Test_Parse_RejectsUnexpectedToken(t *testing.T) {
 	if !errors.As(err, &pe) {
 		t.Fatalf("expected ParseError, got %T", err)
 	}
-	if pe.Source.StartLine != 2 {
-		t.Errorf("expected error on line 2, got %d", pe.Source.StartLine)
+	if pe.Span.StartLine != 2 {
+		t.Errorf("expected error on line 2, got %d", pe.Span.StartLine)
 	}
 }
 
@@ -300,8 +300,8 @@ func Test_Parse_EmitsTypedDiagnostic(t *testing.T) {
 	if tmpl.ID != "mod.ParseError" {
 		t.Errorf("Template.ID = %q, want %q", tmpl.ID, "mod.ParseError")
 	}
-	if tmpl.Source == nil {
-		t.Error("Template.Source is nil")
+	if tmpl.Span == nil {
+		t.Error("Template.Span is nil")
 	}
 	if tmpl.Hint == "" {
 		t.Error("Template.Hint is empty")

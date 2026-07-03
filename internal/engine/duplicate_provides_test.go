@@ -17,8 +17,8 @@ func (f fakeStepKind) Plan(spec.DeclaredStep) (spec.Step, error) { return nil, n
 
 func mkStep(kind, file string, line int) spec.DeclaredStep {
 	return spec.DeclaredStep{
-		Type:   fakeStepKind{kind: kind},
-		Source: spec.SourceSpan{Filename: file, StartLine: line, EndLine: line},
+		Type: fakeStepKind{kind: kind},
+		Span: spec.Span{Filename: file, StartLine: line, EndLine: line},
 	}
 }
 
@@ -68,11 +68,11 @@ func Test_DetectDuplicateProvides_RejectsDuplicateLabel(t *testing.T) {
 	if dup.Resource.Name != "node:100" {
 		t.Errorf("name = %q, want node:100", dup.Resource.Name)
 	}
-	if dup.Source.StartLine != 20 {
-		t.Errorf("Source.StartLine = %d, want 20 (the duplicate)", dup.Source.StartLine)
+	if dup.Span.StartLine != 20 {
+		t.Errorf("Source.StartLine = %d, want 20 (the duplicate)", dup.Span.StartLine)
 	}
-	if dup.OtherSource.StartLine != 10 {
-		t.Errorf("OtherSource.StartLine = %d, want 10 (the original)", dup.OtherSource.StartLine)
+	if dup.OtherSpan.StartLine != 10 {
+		t.Errorf("OtherSource.StartLine = %d, want 10 (the original)", dup.OtherSpan.StartLine)
 	}
 }
 

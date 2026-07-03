@@ -51,7 +51,7 @@ func (op *ensureContainerOp) Check(
 			Op:     "inspect",
 			Name:   op.name,
 			Stderr: err.Error(),
-			Source: op.step.Source,
+			Span:   op.step.Span,
 		}
 	}
 
@@ -356,7 +356,7 @@ func (op *ensureContainerOp) Execute(
 			Op:     "inspect",
 			Name:   op.name,
 			Stderr: err.Error(),
-			Source: op.step.Source,
+			Span:   op.step.Span,
 		}
 	}
 
@@ -496,8 +496,8 @@ func (op *ensureContainerOp) waitHealthy(ctx context.Context, cm target.Containe
 			return true, nil
 		case "unhealthy":
 			return true, ContainerUnhealthyError{
-				Name:   op.name,
-				Source: op.step.Source,
+				Name: op.name,
+				Span: op.step.Span,
 			}
 		}
 		return false, nil
@@ -512,8 +512,8 @@ func (op *ensureContainerOp) waitHealthy(ctx context.Context, cm target.Containe
 		select {
 		case <-ctx.Done():
 			return HealthWaitTimeoutError{
-				Name:   op.name,
-				Source: op.step.Source,
+				Name: op.name,
+				Span: op.step.Span,
 			}
 		case <-ticker.C:
 			if done, err := check(); done || err != nil {
@@ -548,8 +548,8 @@ func (op *ensureContainerOp) checkMountSources(ctx context.Context, tgt target.T
 		if err != nil {
 			if target.IsNotExist(err) {
 				return MountSourceMissingError{
-					Path:   m.Source,
-					Source: op.step.Fields["mounts"].Value,
+					Path: m.Source,
+					Span: op.step.Fields["mounts"].Value,
 				}
 			}
 			return err
@@ -558,7 +558,7 @@ func (op *ensureContainerOp) checkMountSources(ctx context.Context, tgt target.T
 			return InvalidMountError{
 				Got:    m.String(),
 				Reason: "mount source is not a directory",
-				Source: op.step.Fields["mounts"].Value,
+				Span:   op.step.Fields["mounts"].Value,
 			}
 		}
 	}
@@ -570,7 +570,7 @@ func (op *ensureContainerOp) cmdErr(operation string, err error) ContainerComman
 		Op:     operation,
 		Name:   op.name,
 		Stderr: err.Error(),
-		Source: op.step.Source,
+		Span:   op.step.Span,
 	}
 }
 

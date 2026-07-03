@@ -59,9 +59,9 @@ func (op *EnsureModeOp) checkPath(
 		}
 
 		return spec.CheckUnsatisfied, nil, modeReadError{
-			Path:   path,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: path,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -84,9 +84,9 @@ func (op *EnsureModeOp) checkTree(
 	entries, err := fsTgt.ReadDir(ctx, dir)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, modeReadError{
-			Path:   dir,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: dir,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -125,9 +125,9 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 		}
 
 		return spec.Result{}, modeReadError{
-			Path:   op.Path,
-			Err:    err,
-			Source: op.DestSpan,
+			Path: op.Path,
+			Err:  err,
+			Span: op.DestSpan,
 		}
 	}
 
@@ -139,7 +139,7 @@ func (op *EnsureModeOp) Execute(ctx context.Context, _ source.Source, tgt target
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chmod %s %s", op.Mode, op.Path),
-				Source:    op.DestSpan,
+				Span:      op.DestSpan,
 				Err:       err,
 			}
 		}
@@ -156,7 +156,7 @@ func (op *EnsureModeOp) executeRecursive(ctx context.Context, tgt target.Target)
 		if target.IsPermission(err) {
 			return spec.Result{}, sharedop.PermissionDeniedError{
 				Operation: fmt.Sprintf("chmod -R %s %s", op.Mode, op.Path),
-				Source:    op.DestSpan,
+				Span:      op.DestSpan,
 				Err:       err,
 			}
 		}
@@ -191,9 +191,9 @@ func (op *EnsureModeOp) OpDescription() spec.OpDescription {
 }
 
 type modeReadError struct {
-	Path   string
-	Source spec.SourceSpan
-	Err    error
+	Path string
+	Span spec.Span
+	Err  error
 }
 
 func (e modeReadError) Error() string {
@@ -208,11 +208,11 @@ func (e modeReadError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeModeRead,
-			Text:   `cannot read mode of "{{.Path}}"`,
-			Hint:   "check file permissions and ensure the path is accessible",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeModeRead,
+			Text: `cannot read mode of "{{.Path}}"`,
+			Hint: "check file permissions and ensure the path is accessible",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

@@ -41,7 +41,7 @@ func Test_ParsePerm_RejectsInvalidPermissions(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := ParsePerm(tc.input, spec.SourceSpan{})
+			_, err := ParsePerm(tc.input, spec.Span{})
 			if err == nil {
 				t.Fatalf("expected error for input %q", tc.input)
 			}
@@ -91,7 +91,7 @@ func Test_ParsePerm_AcceptsValidPermissions(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := ParsePerm(tc.input, spec.SourceSpan{})
+			_, err := ParsePerm(tc.input, spec.Span{})
 			if err != nil {
 				t.Fatalf("expected success for %q, got %v", tc.input, err)
 			}

@@ -15,7 +15,7 @@ type PkgInstallError struct {
 	Pkgs     []string
 	Stderr   string
 	ExitCode int
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e PkgInstallError) Error() string {
@@ -30,9 +30,9 @@ func (e PkgInstallError) Diagnostic() event.Event {
 			Text: `failed to install pkgs [{{.Pkgs}}]`,
 			Hint: `verify the package names in [{{.Pkgs}}] exist in the ` +
 				`configured repos and the package cache is current`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -42,7 +42,7 @@ type PkgRemoveError struct {
 	Pkgs     []string
 	Stderr   string
 	ExitCode int
-	Source   spec.SourceSpan
+	Span     spec.Span
 }
 
 func (e PkgRemoveError) Error() string {
@@ -53,12 +53,12 @@ func (e PkgRemoveError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeRemoveFailed,
-			Text:   `failed to remove pkgs [{{.Pkgs}}]`,
-			Hint:   `confirm packages in [{{.Pkgs}}] are installed and not held by another package`,
-			Help:   `{{.Stderr}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeRemoveFailed,
+			Text: `failed to remove pkgs [{{.Pkgs}}]`,
+			Hint: `confirm packages in [{{.Pkgs}}] are installed and not held by another package`,
+			Help: `{{.Stderr}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -66,7 +66,7 @@ func (e PkgRemoveError) Diagnostic() event.Event {
 // PkgCacheError is emitted when a package cache update fails.
 type PkgCacheError struct {
 	Stderr string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e PkgCacheError) Error() string {
@@ -77,12 +77,12 @@ func (e PkgCacheError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeCacheUpdateFailed,
-			Text:   `failed to update package cache: {{.Stderr}}`,
-			Hint:   "check network connectivity and package manager configuration",
-			Help:   "the cache refresh command exited with a non-zero status",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeCacheUpdateFailed,
+			Text: `failed to update package cache: {{.Stderr}}`,
+			Hint: "check network connectivity and package manager configuration",
+			Help: "the cache refresh command exited with a non-zero status",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -161,7 +161,7 @@ func (e SuiteDetectionError) Diagnostic() event.Event {
 type SourceBackendMismatchError struct {
 	SourceKind string
 	TargetKind string
-	Source     spec.SourceSpan
+	Span       spec.Span
 }
 
 func (e SourceBackendMismatchError) Error() string {
@@ -172,11 +172,11 @@ func (e SourceBackendMismatchError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeSourceBackendMismatch,
-			Text:   `{{.SourceKind}} source cannot be used on a {{.TargetKind}} target`,
-			Hint:   "use a source that matches the target's package manager",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeSourceBackendMismatch,
+			Text: `{{.SourceKind}} source cannot be used on a {{.TargetKind}} target`,
+			Hint: "use a source that matches the target's package manager",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }

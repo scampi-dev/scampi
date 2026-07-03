@@ -165,7 +165,7 @@ of this. Every user-facing error must:
   - `event.Error{Template: event.Template{...}}` for non-fatal errors that don't abort
   - `event.Warning{Template: event.Template{...}}` for warnings
   - `event.Info{Template: event.Template{...}}` for info
-- The Template carries `ID`, `Text`, `Hint`, `Help`, `Data`, `Source` (a `*spec.SourceSpan`)
+- The Template carries `ID`, `Text`, `Hint`, `Help`, `Data`, `Span` (a `*spec.Span`)
 - The error gets raised via `em.Raise(err)` at the production site
 
 This is how errors reach the render pipeline (`--color`, `--ascii`,

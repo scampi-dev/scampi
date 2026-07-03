@@ -55,8 +55,8 @@ func LoadConfig(
 			_, emitted := emitEngineDiagnostic(ctx, cfgPath, err)
 			if !emitted {
 				ctx.Raise(&LoadConfigError{
-					Cause:  err,
-					Source: spec.SourceSpan{Filename: cfgPath},
+					Cause: err,
+					Span:  spec.Span{Filename: cfgPath},
 				})
 			}
 		}
@@ -69,14 +69,14 @@ func LoadConfig(
 // ResolveMultiple produces one Config for all matching (deploy, target)
 // combinations based on the provided options.
 func ResolveMultiple(cfg spec.DeclaredConfig, opts spec.ResolveOptions) ([]spec.Config, error) {
-	cfgSpan := spec.SourceSpan{Filename: cfg.Path}
+	cfgSpan := spec.Span{Filename: cfg.Path}
 
 	var blocks []spec.DeclaredDeploy
 	if len(opts.DeployNames) > 0 {
 		for _, name := range opts.DeployNames {
 			b, ok := cfg.DeployByName(name)
 			if !ok {
-				return nil, UnknownDeployBlockError{Name: name, Source: cfgSpan}
+				return nil, UnknownDeployBlockError{Name: name, Span: cfgSpan}
 			}
 			blocks = append(blocks, b)
 		}
@@ -85,7 +85,7 @@ func ResolveMultiple(cfg spec.DeclaredConfig, opts spec.ResolveOptions) ([]spec.
 	}
 
 	if len(blocks) == 0 {
-		return nil, NoDeployBlocksError{Source: cfgSpan}
+		return nil, NoDeployBlocksError{Span: cfgSpan}
 	}
 
 	var results []spec.Config
@@ -108,7 +108,7 @@ func ResolveMultiple(cfg spec.DeclaredConfig, opts spec.ResolveOptions) ([]spec.
 		}
 
 		if len(targetNames) == 0 {
-			return nil, NoTargetsInDeployError{Deploy: deployName, Source: block.Source}
+			return nil, NoTargetsInDeployError{Deploy: deployName, Span: block.Span}
 		}
 
 		for _, targetName := range targetNames {
@@ -117,7 +117,7 @@ func ResolveMultiple(cfg spec.DeclaredConfig, opts spec.ResolveOptions) ([]spec.
 				return nil, UnknownTargetError{
 					Name:   targetName,
 					Deploy: deployName,
-					Source: block.Source,
+					Span:   block.Span,
 				}
 			}
 
@@ -162,7 +162,7 @@ func Resolve(cfg spec.DeclaredConfig, deployName, targetName string) (spec.Confi
 		if len(block.Targets) == 0 {
 			return spec.Config{}, NoTargetsInDeployError{
 				Deploy: deployName,
-				Source: block.Source,
+				Span:   block.Span,
 			}
 		}
 		targetName = block.Targets[0]
@@ -173,7 +173,7 @@ func Resolve(cfg spec.DeclaredConfig, deployName, targetName string) (spec.Confi
 		return spec.Config{}, UnknownTargetError{
 			Name:   targetName,
 			Deploy: deployName,
-			Source: block.Source,
+			Span:   block.Span,
 		}
 	}
 
@@ -181,7 +181,7 @@ func Resolve(cfg spec.DeclaredConfig, deployName, targetName string) (spec.Confi
 		return spec.Config{}, TargetNotInDeployError{
 			Target: targetName,
 			Deploy: deployName,
-			Source: block.Source,
+			Span:   block.Span,
 		}
 	}
 

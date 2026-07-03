@@ -36,8 +36,8 @@ func (e NoKnownHostsError) Diagnostic() event.Event {
 }
 
 type NoSuchHostError struct {
-	Host   string
-	Source spec.SourceSpan
+	Host string
+	Span spec.Span
 }
 
 func (e NoSuchHostError) Error() string {
@@ -48,11 +48,11 @@ func (e NoSuchHostError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeNoSuchHost,
-			Text:   "no such host {{.Host}}",
-			Hint:   "make sure the host is reachable",
-			Source: &e.Source,
-			Data:   e,
+			ID:   CodeNoSuchHost,
+			Text: "no such host {{.Host}}",
+			Hint: "make sure the host is reachable",
+			Span: &e.Span,
+			Data: e,
 		},
 	}
 }
@@ -279,9 +279,9 @@ func (e AuthError) Diagnostic() event.Event {
 }
 
 type InvalidTimeoutError struct {
-	Value  string
-	Source spec.SourceSpan
-	Err    error
+	Value string
+	Span  spec.Span
+	Err   error
 }
 
 func (e InvalidTimeoutError) Error() string {
@@ -294,11 +294,11 @@ func (e InvalidTimeoutError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeInvalidTimeout,
-			Text:   `invalid timeout "{{.Value}}"`,
-			Hint:   `use a human-readable duration like "2s", "1m30s", or "500ms"`,
-			Source: &e.Source,
-			Data:   e,
+			ID:   CodeInvalidTimeout,
+			Text: `invalid timeout "{{.Value}}"`,
+			Hint: `use a human-readable duration like "2s", "1m30s", or "500ms"`,
+			Span: &e.Span,
+			Data: e,
 		},
 	}
 }

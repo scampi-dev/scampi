@@ -88,7 +88,7 @@ func (f *formatter) fmtTemplate(
 		f.fmtfMsgTo(&buf, txtCol, "[%s]%s %s%s", prefix, glyphR(glyph), f.redact(text), msg)
 	}
 
-	if snippet, ok := f.renderSnippet(tmpl.Source); ok {
+	if snippet, ok := f.renderSnippet(tmpl.Span); ok {
 		buf.WriteString("\n")
 		buf.WriteString(f.redact(snippet))
 	}
@@ -120,8 +120,8 @@ func (f *formatter) fmtTemplate(
 	return strings.Split(strings.TrimSpace(buf.String()), "\n")
 }
 
-func (f *formatter) renderSnippet(src *spec.SourceSpan) (string, bool) {
-	if src == nil || f.store == nil || *src == (spec.SourceSpan{}) {
+func (f *formatter) renderSnippet(src *spec.Span) (string, bool) {
+	if src == nil || f.store == nil || *src == (spec.Span{}) {
 		return "", false
 	}
 	v := f.loadSourceLine(src)
@@ -144,7 +144,7 @@ func (f *formatter) renderSnippet(src *spec.SourceSpan) (string, bool) {
 	return b.String(), true
 }
 
-func (f *formatter) loadSourceLine(src *spec.SourceSpan) sourceLine {
+func (f *formatter) loadSourceLine(src *spec.Span) sourceLine {
 	text, ok := f.store.Line(src.Filename, src.StartLine)
 	endCol := src.EndCol
 	if src.StartLine < src.EndLine {

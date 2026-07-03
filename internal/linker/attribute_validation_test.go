@@ -38,7 +38,7 @@ func newAttrCtx(t *testing.T, name, paramName string, arg ast.Expr, args map[str
 		AttrArgs:  args,
 		ParamName: paramName,
 		ParamArg:  arg,
-		UseSpan:   spec.SourceSpan{},
+		UseSpan:   spec.Span{},
 	}
 }
 
@@ -51,7 +51,7 @@ func newResolvedCtx(t *testing.T, name, paramName string, resolved any, args map
 		AttrArgs:  args,
 		ParamName: paramName,
 		Resolved:  resolved,
-		UseSpan:   spec.SourceSpan{},
+		UseSpan:   spec.Span{},
 	}
 }
 

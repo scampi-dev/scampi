@@ -17,10 +17,10 @@ const ensureGroupID = "ensure_group"
 
 type ensureGroupOp struct {
 	sharedop.BaseOp
-	name       string
-	gid        int
-	system     bool
-	nameSource spec.SourceSpan
+	name     string
+	gid      int
+	system   bool
+	nameSpan spec.Span
 }
 
 func (op *ensureGroupOp) Check(
@@ -69,9 +69,9 @@ func (op *ensureGroupOp) Execute(
 
 	if err := gm.CreateGroup(ctx, info); err != nil {
 		return spec.Result{}, GroupCreateError{
-			Name:   op.name,
-			Err:    err,
-			Source: op.nameSource,
+			Name: op.name,
+			Err:  err,
+			Span: op.nameSpan,
 		}
 	}
 

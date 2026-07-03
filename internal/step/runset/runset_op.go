@@ -25,7 +25,7 @@ type runSetOp struct {
 	desired   []string
 	init      string
 	env       map[string]string
-	source    spec.SourceSpan
+	span      spec.Span
 
 	// Set during Check, consumed during Execute.
 	plan setPlan
@@ -84,12 +84,12 @@ func (op *runSetOp) Execute(
 			res, err := cmdr.RunCommand(ctx, op.withEnv(cmd))
 			if err != nil {
 				return spec.Result{}, RemoveFailedError{
-					Cmd: cmd, Stderr: err.Error(), Source: op.source,
+					Cmd: cmd, Stderr: err.Error(), Span: op.span,
 				}
 			}
 			if res.ExitCode != 0 {
 				return spec.Result{}, RemoveFailedError{
-					Cmd: cmd, ExitCode: res.ExitCode, Stderr: res.Stderr, Source: op.source,
+					Cmd: cmd, ExitCode: res.ExitCode, Stderr: res.Stderr, Span: op.span,
 				}
 			}
 		}
@@ -100,12 +100,12 @@ func (op *runSetOp) Execute(
 			res, err := cmdr.RunCommand(ctx, op.withEnv(cmd))
 			if err != nil {
 				return spec.Result{}, AddFailedError{
-					Cmd: cmd, Stderr: err.Error(), Source: op.source,
+					Cmd: cmd, Stderr: err.Error(), Span: op.span,
 				}
 			}
 			if res.ExitCode != 0 {
 				return spec.Result{}, AddFailedError{
-					Cmd: cmd, ExitCode: res.ExitCode, Stderr: res.Stderr, Source: op.source,
+					Cmd: cmd, ExitCode: res.ExitCode, Stderr: res.Stderr, Span: op.span,
 				}
 			}
 		}
@@ -119,31 +119,31 @@ func (op *runSetOp) Execute(
 func (op *runSetOp) listLive(ctx context.Context, cmdr target.Command) ([]string, error) {
 	res, err := cmdr.RunCommand(ctx, op.withEnv(op.list))
 	if err != nil {
-		return nil, ListFailedError{Cmd: op.list, Stderr: err.Error(), Source: op.source}
+		return nil, ListFailedError{Cmd: op.list, Stderr: err.Error(), Span: op.span}
 	}
 	if res.ExitCode != 0 {
 		if op.init == "" {
 			return nil, ListFailedError{
-				Cmd: op.list, ExitCode: res.ExitCode, Stderr: res.Stderr, Source: op.source,
+				Cmd: op.list, ExitCode: res.ExitCode, Stderr: res.Stderr, Span: op.span,
 			}
 		}
 		// init bootstrap: run, then re-list.
 		initRes, err := cmdr.RunCommand(ctx, op.withEnv(op.init))
 		if err != nil {
-			return nil, InitFailedError{Cmd: op.init, Stderr: err.Error(), Source: op.source}
+			return nil, InitFailedError{Cmd: op.init, Stderr: err.Error(), Span: op.span}
 		}
 		if initRes.ExitCode != 0 {
 			return nil, InitFailedError{
-				Cmd: op.init, ExitCode: initRes.ExitCode, Stderr: initRes.Stderr, Source: op.source,
+				Cmd: op.init, ExitCode: initRes.ExitCode, Stderr: initRes.Stderr, Span: op.span,
 			}
 		}
 		res, err = cmdr.RunCommand(ctx, op.withEnv(op.list))
 		if err != nil {
-			return nil, ListFailedError{Cmd: op.list, Stderr: err.Error(), Source: op.source}
+			return nil, ListFailedError{Cmd: op.list, Stderr: err.Error(), Span: op.span}
 		}
 		if res.ExitCode != 0 {
 			return nil, ListFailedError{
-				Cmd: op.list, ExitCode: res.ExitCode, Stderr: res.Stderr, Source: op.source,
+				Cmd: op.list, ExitCode: res.ExitCode, Stderr: res.Stderr, Span: op.span,
 			}
 		}
 	}

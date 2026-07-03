@@ -348,7 +348,7 @@ func ConnectSSH(t *testing.T, env *SSHTestEnv) *ssh.SSHTarget {
 	tgt, err := sshType.Create(context.Background(), src, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
-			"host": {Value: spec.SourceSpan{}},
+			"host": {Value: spec.Span{}},
 		},
 	})
 	if err != nil {

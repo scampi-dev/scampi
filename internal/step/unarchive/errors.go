@@ -12,8 +12,8 @@ import (
 
 // UnsupportedArchiveError is raised at plan time for unknown archive extensions.
 type UnsupportedArchiveError struct {
-	Path   string
-	Source spec.SourceSpan
+	Path string
+	Span spec.Span
 }
 
 func (e UnsupportedArchiveError) Error() string {
@@ -24,20 +24,20 @@ func (e UnsupportedArchiveError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeUnsupportedArchive,
-			Text:   `unsupported archive format: "{{.Path}}"`,
-			Hint:   "supported: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .txz, .tar.zst, .tzst, .tar, .zip",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeUnsupportedArchive,
+			Text: `unsupported archive format: "{{.Path}}"`,
+			Hint: "supported: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .txz, .tar.zst, .tzst, .tar, .zip",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
 
 // ArchiveNotFoundError is raised when the source archive does not exist.
 type ArchiveNotFoundError struct {
-	Path   string
-	Source spec.SourceSpan
-	Err    error
+	Path string
+	Span spec.Span
+	Err  error
 }
 
 func (e ArchiveNotFoundError) Error() string {
@@ -48,11 +48,11 @@ func (e ArchiveNotFoundError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeArchiveNotFound,
-			Text:   `source archive "{{.Path}}" does not exist`,
-			Hint:   "ensure the archive file exists and is readable",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeArchiveNotFound,
+			Text: `source archive "{{.Path}}" does not exist`,
+			Hint: "ensure the archive file exists and is readable",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -62,7 +62,7 @@ type ExtractionError struct {
 	Cmd    string
 	Stderr string
 	Advice string
-	Source spec.SourceSpan
+	Span   spec.Span
 }
 
 func (e ExtractionError) Error() string {
@@ -73,12 +73,12 @@ func (e ExtractionError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodeExtractionFailed,
-			Text:   `extraction failed: {{.Cmd}}`,
-			Hint:   "{{.Advice}}",
-			Help:   "{{.Stderr}}",
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodeExtractionFailed,
+			Text: `extraction failed: {{.Cmd}}`,
+			Hint: "{{.Advice}}",
+			Help: "{{.Stderr}}",
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
@@ -137,7 +137,7 @@ func extractionAdvice(stderr string) string {
 type PartialOwnershipError struct {
 	Set     string
 	Missing string
-	Source  spec.SourceSpan
+	Span    spec.Span
 }
 
 func (e PartialOwnershipError) Error() string {
@@ -148,11 +148,11 @@ func (e PartialOwnershipError) Diagnostic() event.Event {
 	return event.Error{
 		Impact: event.ImpactAbort,
 		Template: event.Template{
-			ID:     CodePartialOwnership,
-			Text:   `{{.Set}} is set but {{.Missing}} is empty`,
-			Hint:   `add {{.Missing}}="<value>" or remove {{.Set}}`,
-			Data:   e,
-			Source: &e.Source,
+			ID:   CodePartialOwnership,
+			Text: `{{.Set}} is set but {{.Missing}} is empty`,
+			Hint: `add {{.Missing}}="<value>" or remove {{.Set}}`,
+			Data: e,
+			Span: &e.Span,
 		},
 	}
 }
