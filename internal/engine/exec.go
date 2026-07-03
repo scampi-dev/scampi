@@ -300,15 +300,15 @@ func (s *scheduler) isDeferred(err error) bool {
 	if !errors.As(err, &d) {
 		return false
 	}
-	res := d.DeferredResource()
-	if s.provided[res] {
+	deferred := d.DeferredResource()
+	if s.provided[deferred] {
 		return true
 	}
 	// A provided path like /foo/bar implies /foo will also exist
 	// (MkdirAll semantics), so check if any provided path is a descendant.
-	if res.Kind == spec.ResourcePath {
+	if deferred.Kind == spec.ResourcePath {
 		for pp := range s.provided {
-			if pp.Kind == spec.ResourcePath && strings.HasPrefix(pp.Name, res.Name+"/") {
+			if pp.Kind == spec.ResourcePath && strings.HasPrefix(pp.Name, deferred.Name+"/") {
 				return true
 			}
 		}
@@ -335,19 +335,19 @@ func (s *scheduler) initPending(nodes []*opNode) {
 }
 
 func (e *Engine) ExecutePlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution, error) {
-	res, err := e.executePlan(ctx, plan)
+	rep, err := e.executePlan(ctx, plan)
 	if err != nil {
-		return res, panicIfNotAbortError(err)
+		return rep, panicIfNotAbortError(err)
 	}
-	return res, nil
+	return rep, nil
 }
 
 func (e *Engine) CheckPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution, map[spec.Resource]bool, error) {
-	res, pp, err := e.checkPlan(ctx, plan)
+	rep, pp, err := e.checkPlan(ctx, plan)
 	if err != nil {
-		return res, pp, panicIfNotAbortError(err)
+		return rep, pp, panicIfNotAbortError(err)
 	}
-	return res, pp, nil
+	return rep, pp, nil
 }
 
 func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution, map[spec.Resource]bool, error) {
@@ -387,15 +387,15 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 				}
 			}
 
-			res, err := e.checkStep(ctx.With(gctx), n.idx, n.step, snap)
+			stepRep, err := e.checkStep(ctx.With(gctx), n.idx, n.step, snap)
 
 			mu.Lock()
 			defer mu.Unlock()
 
-			rep.Steps[n.idx] = res
+			rep.Steps[n.idx] = stepRep
 
 			// Capture step output for downstream refs.
-			captureStepOutput(n.step, res, outputs)
+			captureStepOutput(n.step, stepRep, outputs)
 
 			if err != nil {
 				rep.Err = err
@@ -404,7 +404,7 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 
 			// If this step would change something, add its provided
 			// resources to the set for downstream steps.
-			if res.Summary.WouldChange > 0 {
+			if stepRep.Summary.WouldChange > 0 {
 				if p, ok := n.step.(spec.Provider); ok {
 					for _, key := range p.Provides() {
 						provided[key] = true
@@ -555,15 +555,15 @@ func (e *Engine) executePlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Executi
 				}
 			}
 
-			res, err := e.executeStep(ctx.With(gctx), n.idx, n.step)
+			stepRep, err := e.executeStep(ctx.With(gctx), n.idx, n.step)
 
 			mu.Lock()
 			defer mu.Unlock()
 
-			rep.Steps[n.idx] = res
+			rep.Steps[n.idx] = stepRep
 
 			// Capture step output for downstream refs.
-			captureStepOutput(n.step, res, outputs)
+			captureStepOutput(n.step, stepRep, outputs)
 
 			if err != nil {
 				rep.Err = err
@@ -616,11 +616,11 @@ func captureStepOutput(act spec.Step, report result.StepReport, outputs *stepOut
 }
 
 func (e *Engine) executeStep(ctx diagnostic.Ctx, idx int, act spec.Step) (result.StepReport, error) {
-	res, err := e.runStep(ctx, idx, act, "")
+	rep, err := e.runStep(ctx, idx, act, "")
 	if err != nil {
-		return res, err
+		return rep, err
 	}
-	return res, nil
+	return rep, nil
 }
 
 func (e *Engine) runStep(ctx diagnostic.Ctx, idx int, act spec.Step, hookID string) (result.StepReport, error) {

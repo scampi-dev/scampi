@@ -51,6 +51,19 @@ Default to `*Kind` for our own discriminator enums (`ResourceKind`, `CauseKind`,
 `ScopeKind`, `SymbolKind`, `ErrKind`, `PkgSourceKind`, `SourceRefKind`).
 Use `*Type` only when it mirrors a hard external term.
 
+## Local naming conventions
+
+Two abbreviation families in the engine, never mixed:
+
+- **`rep`** — reports: `result.Execution`, `result.StepReport` (the
+  execution reports in `diagnostic/result`). Step-scoped locals inside a
+  function that already holds a plan-level `rep` use `stepRep`.
+- **`res`** — results: `spec.Result`, `spec.CheckResult` (op/step
+  outcomes returned by Check/Execute).
+
+A `spec.Resource` local is spelled out (`deferred`, `resource`) — never
+`res`.
+
 ## Avoid
 
 `Impl`, `Handler`, `Spec`, and bare `Instance` / `Type` / `Resolved` as
