@@ -21,8 +21,10 @@ import (
 )
 
 // DockerProbe reports whether the docker CLI exists and the daemon
-// responds, memoized across the package. Container-gated tests use it to
-// SKIP (not fail) when SCAMPI_TEST_CONTAINERS is set but docker can't run.
+// responds, memoized across the package. When SCAMPI_TEST_CONTAINERS is
+// set, container suites fail fast on a probe error: an explicitly
+// requested container run without a runtime is an environment error,
+// and skipping would let the full gate go green while dropping coverage.
 var DockerProbe = sync.OnceValue(func() error {
 	if _, err := exec.LookPath("docker"); err != nil {
 		return fmt.Errorf("docker not in PATH: %w", err)
@@ -221,10 +223,6 @@ func SetupSSHTestEnv(t *testing.T) (*SSHTestEnv, func()) {
 
 	if os.Getenv("SCAMPI_TEST_CONTAINERS") == "" {
 		t.Skip("SSH tests disabled (set SCAMPI_TEST_CONTAINERS=1 to enable)")
-	}
-
-	if err := DockerProbe(); err != nil {
-		t.Skipf("SSH tests skipped: %v", err)
 	}
 
 	if SharedSSHEnv == nil {

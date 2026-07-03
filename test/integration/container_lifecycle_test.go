@@ -3,10 +3,12 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"scampi.dev/scampi/internal/capability"
 	"scampi.dev/scampi/internal/diagnostic"
@@ -29,7 +31,7 @@ func setupContainerTest(t *testing.T, name string) target.Target {
 	}
 
 	if err := harness.DockerProbe(); err != nil {
-		t.Skipf("container tests skipped: %v", err)
+		t.Fatalf("SCAMPI_TEST_CONTAINERS is set but no container runtime is available: %v", err)
 	}
 
 	ctx := t.Context()
@@ -47,9 +49,20 @@ func setupContainerTest(t *testing.T, name string) target.Target {
 		t.Skip("no container runtime detected")
 	}
 
+	// t.Context() is already cancelled when cleanups run, so a fresh
+	// bounded context is required - with the test context every stop and
+	// remove aborted instantly and containers leaked on every run.
 	t.Cleanup(func() {
-		_ = cm.StopContainer(t.Context(), name)
-		_ = cm.RemoveContainer(t.Context(), name)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_, exists, err := cm.InspectContainer(ctx, name)
+		if err != nil || !exists {
+			return
+		}
+		_ = cm.StopContainer(ctx, name)
+		if err := cm.RemoveContainer(ctx, name); err != nil {
+			t.Errorf("cleanup: remove container %s: %v", name, err)
+		}
 	})
 
 	return tgt
