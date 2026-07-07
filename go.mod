@@ -14,7 +14,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/itchyny/gojq v0.12.19
-	github.com/klauspost/compress v1.18.7
+	github.com/klauspost/compress v1.19.0
 	github.com/mattn/go-runewidth v0.0.24
 	github.com/pkg/sftp v1.13.10
 	github.com/ulikunitz/xz v0.5.15
