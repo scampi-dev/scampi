@@ -86,24 +86,18 @@ func (setSysctlOp) RequiredCapabilities() capability.Capability {
 	return capability.Command
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type setSysctlDesc struct {
-	Key   string
-	Value string
-}
-
-func (d setSysctlDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *setSysctlOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   setSysctlID,
 		Text: `set sysctl {{.Key}} = {{.Value}}`,
-		Data: d,
+		Data: struct {
+			Key   string
+			Value string
+		}{
+			Key:   op.key,
+			Value: op.value,
+		},
 	}
-}
-
-func (op *setSysctlOp) OpDescription() spec.OpDescription {
-	return setSysctlDesc{Key: op.key, Value: op.value}
 }
 
 func (op *setSysctlOp) Inspect() []spec.InspectField {

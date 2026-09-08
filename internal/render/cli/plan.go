@@ -210,8 +210,8 @@ func (p *planRenderer) collectOpTreeLines(
 		gutter: b.String(),
 		id:     p.fmt.fmtMsg(colOpHeader, op.DisplayID),
 	}
-	if v >= signal.VV && op.Template != nil {
-		if text, ok := template.Render(*op.Template); ok {
+	if v >= signal.VV && op.Description != nil {
+		if text, ok := template.Render(*op.Description); ok {
 			ln.detail = &layout.Col{Text: " (" + text + ")", Style: p.style(colOpDesc), Elide: layout.Middle, Order: 3}
 		}
 	}

@@ -10,13 +10,11 @@ import (
 )
 
 // OpDisplayID derives a display identifier for an op.
-// Uses OpDescriber template ID if available, otherwise falls back to type name.
+// Uses OpDescriber description ID if available, otherwise falls back to type name.
 func OpDisplayID(op spec.Op) string {
 	if d, ok := op.(spec.OpDescriber); ok {
-		if desc := d.OpDescription(); desc != nil {
-			if id := desc.PlanTemplate().ID; id != "" {
-				return string(id)
-			}
+		if id := d.Describe().ID; id != "" {
+			return string(id)
 		}
 	}
 	// Fallback: use the struct type name

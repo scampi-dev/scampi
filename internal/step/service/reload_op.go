@@ -81,18 +81,14 @@ func (reloadOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-type reloadDesc struct {
-	Name string
-}
-
-func (d reloadDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *reloadOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   reloadID,
 		Text: `reload service {{.Name}}`,
-		Data: d,
+		Data: struct {
+			Name string
+		}{
+			Name: op.name,
+		},
 	}
-}
-
-func (op *reloadOp) OpDescription() spec.OpDescription {
-	return reloadDesc{Name: op.name}
 }

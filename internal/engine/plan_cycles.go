@@ -15,12 +15,10 @@ type CyclicDependencyError struct {
 	Cycle []spec.Op
 }
 
-// opID returns an identifier for an op (template ID if available, otherwise pointer)
+// opID returns an identifier for an op (description ID if available, otherwise pointer)
 func opID(op spec.Op) string {
 	if d, ok := op.(spec.OpDescriber); ok {
-		if desc := d.OpDescription(); desc != nil {
-			return desc.PlanTemplate().ID
-		}
+		return d.Describe().ID
 	}
 	return fmt.Sprintf("%p", op)
 }
@@ -44,8 +42,12 @@ func (e CyclicDependencyError) Diagnostic() event.Event {
 		Template: event.Template{
 			ID:   CodeCyclicDependency,
 			Text: "cyclic dependency detected",
-			Hint: `{{join " -> " .}}`,
-			Data: ids,
+			Hint: `{{join " -> " .Cycle}}`,
+			Data: struct {
+				Cycle []string
+			}{
+				Cycle: ids,
+			},
 		},
 	}
 }
@@ -106,8 +108,12 @@ func (e StepCyclicDependencyError) Diagnostic() event.Event {
 		Template: event.Template{
 			ID:   CodeStepCyclicDep,
 			Text: "cyclic step dependency detected",
-			Hint: `{{join " -> " .}}`,
-			Data: ids,
+			Hint: `{{join " -> " .Cycle}}`,
+			Data: struct {
+				Cycle []string
+			}{
+				Cycle: ids,
+			},
 		},
 	}
 }

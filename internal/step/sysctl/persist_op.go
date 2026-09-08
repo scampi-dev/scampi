@@ -77,21 +77,14 @@ func (persistSysctlOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type persistSysctlDesc struct {
-	Path string
-}
-
-func (d persistSysctlDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *persistSysctlOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   persistSysctlID,
 		Text: `persist sysctl to {{.Path}}`,
-		Data: d,
+		Data: struct {
+			Path string
+		}{
+			Path: op.path,
+		},
 	}
-}
-
-func (op *persistSysctlOp) OpDescription() spec.OpDescription {
-	return persistSysctlDesc{Path: op.path}
 }

@@ -314,30 +314,21 @@ func (op *ensureMountOp) checkTools(ctx context.Context, cmdr target.Command) er
 	return nil
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type ensureMountDesc struct {
-	State State
-	Src   string
-	Dest  string
-	Type  string
-}
-
-func (d ensureMountDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureMountOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureMountID,
 		Text: `mount {{.State}} {{.Dest}} ({{.Type}} from {{.Src}})`,
-		Data: d,
-	}
-}
-
-func (op *ensureMountOp) OpDescription() spec.OpDescription {
-	return ensureMountDesc{
-		State: op.state,
-		Src:   op.src,
-		Dest:  op.dest,
-		Type:  op.fstyp.String(),
+		Data: struct {
+			State State
+			Src   string
+			Dest  string
+			Type  string
+		}{
+			State: op.state,
+			Src:   op.src,
+			Dest:  op.dest,
+			Type:  op.fstyp.String(),
+		},
 	}
 }
 

@@ -258,19 +258,6 @@ func mergeData(cfg DataConfig, src source.Source) (map[string]any, error) {
 	return data, nil
 }
 
-type renderTemplateDesc struct {
-	Src  string
-	Dest string
-}
-
-func (d renderTemplateDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
-		ID:   renderTemplateID,
-		Text: `render "{{.Src}}" -> "{{.Dest}}"`,
-		Data: d,
-	}
-}
-
 // execError builds a TemplateExecError with a source span that points at
 // the offending placeholder inside the template content when possible.
 func (op *renderTemplateOp) execError(err error, tmplContent string) TemplateExecError {
@@ -412,10 +399,17 @@ func extractMissingKey(err error) string {
 	return strings.Trim(after, "\"")
 }
 
-func (op *renderTemplateOp) OpDescription() spec.OpDescription {
-	return renderTemplateDesc{
-		Src:  op.srcRef.DisplayPath(),
-		Dest: op.dest,
+func (op *renderTemplateOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
+		ID:   renderTemplateID,
+		Text: `render "{{.Src}}" -> "{{.Dest}}"`,
+		Data: struct {
+			Src  string
+			Dest string
+		}{
+			Src:  op.srcRef.DisplayPath(),
+			Dest: op.dest,
+		},
 	}
 }
 

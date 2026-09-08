@@ -144,26 +144,17 @@ func (runOp) RequiredCapabilities() capability.Capability {
 	return capability.Command
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type runOpDesc struct {
-	Apply  string
-	Always bool
-}
-
-func (d runOpDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *runOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   runID,
 		Text: `run{{if .Always}} (always){{end}}: {{.Apply}}`,
-		Data: d,
-	}
-}
-
-func (op *runOp) OpDescription() spec.OpDescription {
-	return runOpDesc{
-		Apply:  op.apply,
-		Always: op.always,
+		Data: struct {
+			Apply  string
+			Always bool
+		}{
+			Apply:  op.apply,
+			Always: op.always,
+		},
 	}
 }
 

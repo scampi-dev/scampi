@@ -97,18 +97,14 @@ func (writeRepoConfigOp) RequiredCapabilities() capability.Capability {
 	return capability.PkgRepo
 }
 
-type writeRepoConfigDesc struct {
-	Name string
-}
-
-func (d writeRepoConfigDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *writeRepoConfigOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   writeRepoConfigID,
 		Text: `configure repo source "{{.Name}}"`,
-		Data: d,
+		Data: struct {
+			Name string
+		}{
+			Name: op.source.Name,
+		},
 	}
-}
-
-func (op *writeRepoConfigOp) OpDescription() spec.OpDescription {
-	return writeRepoConfigDesc{Name: op.source.Name}
 }

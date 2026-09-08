@@ -16,13 +16,14 @@ import (
 )
 
 // Test_Rule_TemplateRender is a contract test that auto-discovers every
-// diagnostic.Raisable and spec.OpDescription implementation in the module,
+// diagnostic.Raisable and spec.OpDescriber implementation in the module,
 // extracts their template string literals from the AST, resolves the Data
 // type via go/types, and renders each template with both populated and nil
 // data. A panic means a template references a field that doesn't exist on
-// the Data struct.
+// the Data struct. Data must be a struct (by value or pointer, nil allowed)
+// so field references are statically checkable.
 //
-// Adding a new Raisable or OpDescription type is automatically picked up
+// Adding a new Raisable or OpDescriber type is automatically picked up
 // - no manual registration.
 func Test_Rule_TemplateRender(t *testing.T) {
 	cfg := &packages.Config{
@@ -42,9 +43,9 @@ func Test_Rule_TemplateRender(t *testing.T) {
 		t.Fatal("diagnostic.Raisable interface not found")
 	}
 
-	opDescIface := findInterface(pkgs, "OpDescription")
+	opDescIface := findInterface(pkgs, "OpDescriber")
 	if opDescIface == nil {
-		t.Fatal("spec.OpDescription interface not found")
+		t.Fatal("spec.OpDescriber interface not found")
 	}
 
 	var all []renderable
@@ -89,7 +90,7 @@ func Test_Rule_TemplateRender(t *testing.T) {
 	}
 
 	if checked == 0 {
-		t.Fatal("no Diagnostic or OpDescription implementations found")
+		t.Fatal("no Diagnostic or OpDescriber implementations found")
 	}
 
 	t.Logf("discovered %d implementors, %d renderable templates", checked, len(all))
@@ -150,11 +151,11 @@ func extractDiagnosticTemplates(t *testing.T, pkg *packages.Package, named *type
 	return extractFromMethod(t, pkg, named, "Diagnostic", []string{"Text", "Hint", "Help"})
 }
 
-// extractOpDescTemplates finds the PlanTemplate() method of an OpDescription
-// implementor and extracts template literals from the returned spec.PlanTemplate{}.
+// extractOpDescTemplates finds the Describe() method of an OpDescriber
+// implementor and extracts template literals from the returned spec.OpDescription{}.
 func extractOpDescTemplates(t *testing.T, pkg *packages.Package, named *types.Named) []renderable {
 	t.Helper()
-	return extractFromMethod(t, pkg, named, "PlanTemplate", []string{"Text"})
+	return extractFromMethod(t, pkg, named, "Describe", []string{"Text"})
 }
 
 // extractFromMethod locates the named method on the given type, finds the
@@ -215,13 +216,14 @@ func extractFromMethod(
 					// Drill into the Template field of an event.Error /
 					// event.Warning / event.Info wrapper so we operate on
 					// the Template literal regardless of whether it was
-					// returned bare (PlanTemplate) or wrapped (Diagnostic).
+					// returned bare (Describe) or wrapped (Diagnostic).
 					if inner := findTemplateField(cl); inner != nil {
 						cl = inner
 					}
 
 					fields := extractStringFields(t, typeName, cl, fieldNames)
 					dataType := extractDataType(pkg, cl)
+					assertStructData(t, typeName, dataType)
 					data := buildTestData(dataType)
 
 					// Extract the ID field
@@ -338,6 +340,27 @@ func extractStringField(_ *packages.Package, cl *ast.CompositeLit, fieldName str
 		return stripQuotes(lit.Value)
 	}
 	return ""
+}
+
+// assertStructData enforces that a template's Data expression resolves to a
+// struct so {{.Field}} references are statically checkable. Nil or absent
+// Data is allowed.
+func assertStructData(t *testing.T, typeName string, typ types.Type) {
+	t.Helper()
+	if typ == nil {
+		return
+	}
+	u := types.Unalias(typ)
+	if basic, ok := u.(*types.Basic); ok && basic.Kind() == types.UntypedNil {
+		return
+	}
+	if ptr, ok := u.(*types.Pointer); ok {
+		u = ptr.Elem()
+	}
+	if _, ok := u.Underlying().(*types.Struct); !ok {
+		t.Errorf("%s: Template Data must be a struct (by value or pointer) so {{.Field}} references"+
+			" are statically checkable; maps and scalars are not enforceable", typeName)
+	}
 }
 
 // extractDataType resolves the Go type of the Data field expression.

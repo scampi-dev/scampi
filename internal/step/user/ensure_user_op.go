@@ -232,20 +232,16 @@ func (ensureUserOp) RequiredCapabilities() capability.Capability {
 	return capability.User
 }
 
-type ensureUserDesc struct {
-	Name string
-}
-
-func (d ensureUserDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureUserOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureUserID,
 		Text: `ensure user "{{.Name}}" is present`,
-		Data: d,
+		Data: struct {
+			Name string
+		}{
+			Name: op.name,
+		},
 	}
-}
-
-func (op *ensureUserOp) OpDescription() spec.OpDescription {
-	return ensureUserDesc{Name: op.name}
 }
 
 func (op *ensureUserOp) Inspect() []spec.InspectField {

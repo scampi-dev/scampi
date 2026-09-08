@@ -96,23 +96,17 @@ func (ensureEnabledOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-type ensureEnabledDesc struct {
-	Name    string
-	Enabled string
-}
-
-func (d ensureEnabledDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureEnabledOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureEnabledID,
 		Text: `ensure service {{.Name}} is {{.Enabled}}`,
-		Data: d,
-	}
-}
-
-func (op *ensureEnabledOp) OpDescription() spec.OpDescription {
-	return ensureEnabledDesc{
-		Name:    op.name,
-		Enabled: fmt.Sprintf("%v", op.enabled),
+		Data: struct {
+			Name    string
+			Enabled string
+		}{
+			Name:    op.name,
+			Enabled: fmt.Sprintf("%v", op.enabled),
+		},
 	}
 }
 

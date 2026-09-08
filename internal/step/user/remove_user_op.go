@@ -74,20 +74,16 @@ func (removeUserOp) RequiredCapabilities() capability.Capability {
 	return capability.User
 }
 
-type removeUserDesc struct {
-	Name string
-}
-
-func (d removeUserDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *removeUserOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   removeUserID,
 		Text: `ensure user "{{.Name}}" is absent`,
-		Data: d,
+		Data: struct {
+			Name string
+		}{
+			Name: op.name,
+		},
 	}
-}
-
-func (op *removeUserOp) OpDescription() spec.OpDescription {
-	return removeUserDesc{Name: op.name}
 }
 
 func (op *removeUserOp) Inspect() []spec.InspectField {

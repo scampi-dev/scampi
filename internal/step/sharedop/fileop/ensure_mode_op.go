@@ -170,23 +170,17 @@ func (op EnsureModeOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem | capability.FileMode
 }
 
-type ensureModeDesc struct {
-	Mode string
-	Path string
-}
-
-func (d ensureModeDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *EnsureModeOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureModeID,
 		Text: `ensure mode {{.Mode}} on "{{.Path}}"`,
-		Data: d,
-	}
-}
-
-func (op *EnsureModeOp) OpDescription() spec.OpDescription {
-	return ensureModeDesc{
-		Mode: op.Mode.String(),
-		Path: op.Path,
+		Data: struct {
+			Mode string
+			Path string
+		}{
+			Mode: op.Mode.String(),
+			Path: op.Path,
+		},
 	}
 }
 

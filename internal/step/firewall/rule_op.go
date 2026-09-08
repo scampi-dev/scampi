@@ -260,22 +260,16 @@ func (op *ensureRuleOp) Inspect() []spec.InspectField {
 	}
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type ensureRuleDesc struct {
-	Action Action
-	Port   string
-}
-
-func (d ensureRuleDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureRuleOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureRuleID,
 		Text: `firewall {{.Action}} {{.Port}}`,
-		Data: d,
+		Data: struct {
+			Action Action
+			Port   string
+		}{
+			Action: op.action,
+			Port:   op.port.String(),
+		},
 	}
-}
-
-func (op *ensureRuleOp) OpDescription() spec.OpDescription {
-	return ensureRuleDesc{Action: op.action, Port: op.port.String()}
 }

@@ -82,20 +82,16 @@ func (ensureGroupOp) RequiredCapabilities() capability.Capability {
 	return capability.Group
 }
 
-type ensureGroupDesc struct {
-	Name string
-}
-
-func (d ensureGroupDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureGroupOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureGroupID,
 		Text: `ensure group "{{.Name}}" is present`,
-		Data: d,
+		Data: struct {
+			Name string
+		}{
+			Name: op.name,
+		},
 	}
-}
-
-func (op *ensureGroupOp) OpDescription() spec.OpDescription {
-	return ensureGroupDesc{Name: op.name}
 }
 
 func (op *ensureGroupOp) Inspect() []spec.InspectField {

@@ -237,3 +237,21 @@ func (op *ensureDirOp) Execute(
 func (ensureDirOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
+
+func (op *ensureDirOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
+		ID:   ensureDirID,
+		Text: `ensure directory "{{.Path}}"`,
+		Data: struct {
+			Path string
+		}{
+			Path: op.path,
+		},
+	}
+}
+
+func (op *ensureDirOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "path", Value: op.path},
+	}
+}

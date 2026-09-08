@@ -255,3 +255,24 @@ func (op *ensureSymlinkOp) Execute(ctx context.Context, _ source.Source, tgt tar
 func (ensureSymlinkOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem | capability.Symlink
 }
+
+func (op *ensureSymlinkOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
+		ID:   ensureSymlinkID,
+		Text: `symlink "{{.Link}}" -> "{{.Target}}"`,
+		Data: struct {
+			Target string
+			Link   string
+		}{
+			Target: op.target,
+			Link:   op.link,
+		},
+	}
+}
+
+func (op *ensureSymlinkOp) Inspect() []spec.InspectField {
+	return []spec.InspectField{
+		{Label: "target", Value: op.target},
+		{Label: "link", Value: op.link},
+	}
+}

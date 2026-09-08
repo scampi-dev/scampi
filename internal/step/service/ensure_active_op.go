@@ -100,23 +100,17 @@ func (ensureActiveOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-type ensureActiveDesc struct {
-	Name  string
-	State State
-}
-
-func (d ensureActiveDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureActiveOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureActiveID,
 		Text: `ensure service {{.Name}} is {{.State}}`,
-		Data: d,
-	}
-}
-
-func (op *ensureActiveOp) OpDescription() spec.OpDescription {
-	return ensureActiveDesc{
-		Name:  op.name,
-		State: op.state,
+		Data: struct {
+			Name  string
+			State State
+		}{
+			Name:  op.name,
+			State: op.state,
+		},
 	}
 }
 

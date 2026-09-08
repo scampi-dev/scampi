@@ -648,27 +648,18 @@ func joinOrNone(ports []string) string {
 	return s.String()
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type ensureContainerDesc struct {
-	Name  string
-	State string
-	Image string
-}
-
-func (d ensureContainerDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureContainerOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureContainerID,
 		Text: `ensure container "{{.Name}}" is {{.State}} ({{.Image}})`,
-		Data: d,
-	}
-}
-
-func (op *ensureContainerOp) OpDescription() spec.OpDescription {
-	return ensureContainerDesc{
-		Name:  op.name,
-		State: op.state.String(),
-		Image: op.image,
+		Data: struct {
+			Name  string
+			State string
+			Image string
+		}{
+			Name:  op.name,
+			State: op.state.String(),
+			Image: op.image,
+		},
 	}
 }

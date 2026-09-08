@@ -18,10 +18,10 @@ import (
 // no data needed - the renderer renders it verbatim).
 func op(idx int, id, text string, deps ...int) result.PlannedOp {
 	return result.PlannedOp{
-		Index:     idx,
-		DisplayID: id,
-		DependsOn: deps,
-		Template:  &spec.PlanTemplate{ID: id, Text: text},
+		Index:       idx,
+		DisplayID:   id,
+		DependsOn:   deps,
+		Description: &spec.OpDescription{ID: id, Text: text},
 	}
 }
 

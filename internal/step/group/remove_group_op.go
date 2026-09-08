@@ -74,20 +74,16 @@ func (removeGroupOp) RequiredCapabilities() capability.Capability {
 	return capability.Group
 }
 
-type removeGroupDesc struct {
-	Name string
-}
-
-func (d removeGroupDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *removeGroupOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   removeGroupID,
 		Text: `ensure group "{{.Name}}" is absent`,
-		Data: d,
+		Data: struct {
+			Name string
+		}{
+			Name: op.name,
+		},
 	}
-}
-
-func (op *removeGroupOp) OpDescription() spec.OpDescription {
-	return removeGroupDesc{Name: op.name}
 }
 
 func (op *removeGroupOp) Inspect() []spec.InspectField {

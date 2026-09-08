@@ -295,29 +295,30 @@ func (op *ensureLatestPkgOp) Inspect() []spec.InspectField {
 	}
 }
 
-func (op *ensureLatestPkgOp) OpDescription() spec.OpDescription {
-	return ensurePkgDesc{
-		Pkgs:  fmt.Sprintf("[%s]", strings.Join(op.packages, ", ")),
-		State: StateLatest,
-	}
-}
-
-type ensurePkgDesc struct {
-	Pkgs  string
-	State State
-}
-
-func (d ensurePkgDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *ensureLatestPkgOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensurePkgID,
 		Text: `ensure pkgs {{.Pkgs}} are {{.State}}`,
-		Data: d,
+		Data: struct {
+			Pkgs  string
+			State State
+		}{
+			Pkgs:  fmt.Sprintf("[%s]", strings.Join(op.packages, ", ")),
+			State: StateLatest,
+		},
 	}
 }
 
-func (op *ensurePkgOp) OpDescription() spec.OpDescription {
-	return ensurePkgDesc{
-		Pkgs:  fmt.Sprintf("[%s]", strings.Join(op.packages, ", ")),
-		State: op.state,
+func (op *ensurePkgOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
+		ID:   ensurePkgID,
+		Text: `ensure pkgs {{.Pkgs}} are {{.State}}`,
+		Data: struct {
+			Pkgs  string
+			State State
+		}{
+			Pkgs:  fmt.Sprintf("[%s]", strings.Join(op.packages, ", ")),
+			State: op.state,
+		},
 	}
 }

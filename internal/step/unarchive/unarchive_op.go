@@ -429,26 +429,17 @@ func (op *unarchiveOp) extractNested(
 	return nil
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type unarchiveDesc struct {
-	Src  string
-	Dest string
-}
-
-func (d unarchiveDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *unarchiveOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   unarchiveID,
 		Text: `unarchive "{{.Src}}" -> "{{.Dest}}"`,
-		Data: d,
-	}
-}
-
-func (op *unarchiveOp) OpDescription() spec.OpDescription {
-	return unarchiveDesc{
-		Src:  op.src,
-		Dest: op.dest,
+		Data: struct {
+			Src  string
+			Dest string
+		}{
+			Src:  op.src,
+			Dest: op.dest,
+		},
 	}
 }
 

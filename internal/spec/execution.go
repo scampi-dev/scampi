@@ -81,8 +81,12 @@ type OpInspector interface {
 	Inspect() []InspectField
 }
 
+// OpDescriber is an optional interface that ops implement to expose their
+// plan-line description. The returned OpDescription's Data must be a struct
+// so template field references ({{.State}}, {{.Dest}}, ...) are statically
+// checkable.
 type OpDescriber interface {
-	OpDescription() OpDescription
+	Describe() OpDescription
 }
 
 // Deduplicatable is an optional interface that step configs can implement to
@@ -101,19 +105,16 @@ type OutputProvider interface {
 	Output() any
 }
 
-type OpDescription interface {
-	PlanTemplate() PlanTemplate
-}
-
-type PlanTemplate struct {
+// OpDescription is the render contract for an op's plan line.
+type OpDescription struct {
 	ID   string
 	Text string
 	Data any
 }
 
-func (t PlanTemplate) TemplateID() string   { return t.ID }
-func (t PlanTemplate) TemplateText() string { return t.Text }
-func (t PlanTemplate) TemplateData() any    { return t.Data }
+func (t OpDescription) TemplateID() string   { return t.ID }
+func (t OpDescription) TemplateText() string { return t.Text }
+func (t OpDescription) TemplateData() any    { return t.Data }
 
 type Result struct {
 	Changed bool

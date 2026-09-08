@@ -162,23 +162,17 @@ func (op *copyFileOp) DestPath() string {
 	return op.dest
 }
 
-type copyFileDesc struct {
-	Src  string
-	Dest string
-}
-
-func (d copyFileDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *copyFileOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   copyFileID,
 		Text: `copy "{{.Src}}" -> "{{.Dest}}"`,
-		Data: d,
-	}
-}
-
-func (op *copyFileOp) OpDescription() spec.OpDescription {
-	return copyFileDesc{
-		Src:  op.srcRef.DisplayPath(),
-		Dest: op.dest,
+		Data: struct {
+			Src  string
+			Dest string
+		}{
+			Src:  op.srcRef.DisplayPath(),
+			Dest: op.dest,
+		},
 	}
 }
 

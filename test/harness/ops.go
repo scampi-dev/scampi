@@ -101,12 +101,8 @@ func (o *FakeOp) Execute(ctx context.Context, src source.Source, tgt target.Targ
 	return o.ExecFn(ctx, src, tgt)
 }
 
-func (o FakeOp) OpDescription() spec.OpDescription {
-	return o
-}
-
-func (o FakeOp) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{ID: o.Name}
+func (o FakeOp) Describe() spec.OpDescription {
+	return spec.OpDescription{ID: o.Name}
 }
 
 func (FakeOp) RequiredCapabilities() capability.Capability {

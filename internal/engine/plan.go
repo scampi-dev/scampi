@@ -150,22 +150,20 @@ func planDetail(p spec.Plan, stepDeps StepDeps) result.PlanDetail {
 
 	plannedOps := make([]result.PlannedOp, len(allOps))
 	for i, op := range allOps {
-		var tmpl *spec.PlanTemplate
+		var desc *spec.OpDescription
 		if d, ok := op.(spec.OpDescriber); ok {
-			if desc := d.OpDescription(); desc != nil {
-				t := desc.PlanTemplate()
-				tmpl = &t
-			}
+			od := d.Describe()
+			desc = &od
 		}
 		var deps []int
 		for _, dep := range op.DependsOn() {
 			deps = append(deps, opIndex[dep])
 		}
 		plannedOps[i] = result.PlannedOp{
-			Index:     i,
-			DisplayID: diagnostic.OpDisplayID(op),
-			DependsOn: deps,
-			Template:  tmpl,
+			Index:       i,
+			DisplayID:   diagnostic.OpDisplayID(op),
+			DependsOn:   deps,
+			Description: desc,
 		}
 	}
 

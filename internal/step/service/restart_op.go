@@ -62,18 +62,14 @@ func (restartOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-type restartDesc struct {
-	Name string
-}
-
-func (d restartDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *restartOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   restartID,
 		Text: `restart service {{.Name}}`,
-		Data: d,
+		Data: struct {
+			Name string
+		}{
+			Name: op.name,
+		},
 	}
-}
-
-func (op *restartOp) OpDescription() spec.OpDescription {
-	return restartDesc{Name: op.name}
 }

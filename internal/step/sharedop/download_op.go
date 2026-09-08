@@ -215,26 +215,17 @@ func (op *DownloadOp) RequiredCapabilities() capability.Capability {
 	return capability.None
 }
 
-// OpDescription
-// -----------------------------------------------------------------------------
-
-type downloadDesc struct {
-	URL  string
-	Dest string
-}
-
-func (d downloadDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *DownloadOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   downloadID,
 		Text: `download "{{.URL}}" -> "{{.Dest}}"`,
-		Data: d,
-	}
-}
-
-func (op *DownloadOp) OpDescription() spec.OpDescription {
-	return downloadDesc{
-		URL:  op.URL,
-		Dest: op.CachePath,
+		Data: struct {
+			URL  string
+			Dest string
+		}{
+			URL:  op.URL,
+			Dest: op.CachePath,
+		},
 	}
 }
 

@@ -216,25 +216,19 @@ func (op EnsureOwnerOp) RequiredCapabilities() capability.Capability {
 	return capability.Ownership
 }
 
-type ensureOwnerDesc struct {
-	User  string
-	Group string
-	Path  string
-}
-
-func (d ensureOwnerDesc) PlanTemplate() spec.PlanTemplate {
-	return spec.PlanTemplate{
+func (op *EnsureOwnerOp) Describe() spec.OpDescription {
+	return spec.OpDescription{
 		ID:   ensureOwnerID,
 		Text: `ensure owner "{{.User}}:{{.Group}}" on "{{.Path}}"`,
-		Data: d,
-	}
-}
-
-func (op *EnsureOwnerOp) OpDescription() spec.OpDescription {
-	return ensureOwnerDesc{
-		User:  op.Owner,
-		Group: op.Group,
-		Path:  op.Path,
+		Data: struct {
+			User  string
+			Group string
+			Path  string
+		}{
+			User:  op.Owner,
+			Group: op.Group,
+			Path:  op.Path,
+		},
 	}
 }
 

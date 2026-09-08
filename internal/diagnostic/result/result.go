@@ -103,10 +103,10 @@ type PlannedStep struct {
 }
 
 type PlannedOp struct {
-	Index     int
-	DisplayID string
-	DependsOn []int
-	Template  *spec.PlanTemplate // nil = no template, use DisplayID
+	Index       int
+	DisplayID   string
+	DependsOn   []int
+	Description *spec.OpDescription // nil = no description, use DisplayID
 }
 
 // Inspect
