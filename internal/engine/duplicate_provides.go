@@ -21,7 +21,7 @@ import (
 func detectDuplicateProvides(
 	ctx diagnostic.Ctx,
 	steps []spec.Step,
-	stepSources []int,
+	declaredIdx []int,
 	declared []spec.DeclaredStep,
 ) error {
 	winners := map[spec.Resource]int{} // resource -> step index of first provider
@@ -39,8 +39,8 @@ func detectDuplicateProvides(
 				continue
 			}
 
-			cur := declared[stepSources[i]]
-			prev := declared[stepSources[prevIdx]]
+			cur := declared[declaredIdx[i]]
+			prev := declared[declaredIdx[prevIdx]]
 			err := DuplicateResourceError{
 				Resource:     r,
 				KindLabel:    resourceKindLabel(r.Kind),
@@ -54,7 +54,7 @@ func detectDuplicateProvides(
 				OtherLocText: formatSpan(prev.Span),
 			}
 			causes = append(causes, err)
-			emitPlanDiagnostic(ctx, stepSources[i], cur.Type.Kind(), cur.Desc, err)
+			emitPlanDiagnostic(ctx, declaredIdx[i], cur.Type.Kind(), cur.Desc, err)
 		}
 	}
 

@@ -203,7 +203,7 @@ func plan(
 ) (spec.Plan, StepDeps, *hookPlan, error) {
 	deployID := spec.DeployID(cfg.DeployName)
 
-	steps, stepSources, onChange, causes, impacts := planSteps(cfg.Steps, ctx, tgtCaps)
+	steps, declaredIdx, onChange, causes, impacts := planSteps(cfg.Steps, ctx, tgtCaps)
 	hookSteps, hookCauses, hookImpacts := planHooks(cfg.Hooks, ctx, tgtCaps)
 	causes = append(causes, hookCauses...)
 	impacts = append(impacts, hookImpacts...)
@@ -226,7 +226,7 @@ func plan(
 	if err := validateHooks(ctx, cfg, hp); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
-	if err := detectDuplicateProvides(ctx, steps, stepSources, cfg.Steps); err != nil {
+	if err := detectDuplicateProvides(ctx, steps, declaredIdx, cfg.Steps); err != nil {
 		return spec.Plan{}, nil, nil, err
 	}
 	if err := DetectPlanCycles(ctx, p); err != nil {
@@ -270,7 +270,9 @@ func planSteps(
 	tgtCaps capability.Capability,
 ) ([]spec.Step, []int, map[int][]string, []error, []diagnostic.Impact) {
 	var steps []spec.Step
-	var stepSources []int // stepSources[k] = source step index of steps[k]
+	// Planning drops steps that fail, so steps[k] no longer lines up with
+	// declared[k]. declaredIdx[k] recovers the originating DeclaredStep.
+	var declaredIdx []int
 	onChange := make(map[int][]string)
 	var causes []error
 	var impacts []diagnostic.Impact
@@ -288,14 +290,14 @@ func planSteps(
 
 		stepIdx := len(steps)
 		steps = append(steps, planned)
-		stepSources = append(stepSources, i)
+		declaredIdx = append(declaredIdx, i)
 
 		if len(decl.OnChange) > 0 {
 			onChange[stepIdx] = decl.OnChange
 		}
 	}
 
-	return steps, stepSources, onChange, causes, impacts
+	return steps, declaredIdx, onChange, causes, impacts
 }
 
 func planHooks(
