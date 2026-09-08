@@ -250,7 +250,7 @@ func mustGlobalOpts(ctx context.Context) globalOpts {
 // Displayer
 // -----------------------------------------------------------------------------
 
-func newDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.SourceStore) diagnostic.Output {
+func newDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.InputStore) diagnostic.Output {
 	return clir.New(
 		clir.Options{
 			ColorMode:  opts.colorMode,
@@ -265,7 +265,7 @@ func newDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.Source
 // withDisplayer creates the output backend and returns a cleanup function that
 // should be deferred. Output is written synchronously, so cleanup only recovers
 // from panics. SIGINT is handled by cancelling the run context (see main).
-func withDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.SourceStore) (diagnostic.Output, func()) {
+func withDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.InputStore) (diagnostic.Output, func()) {
 	d := newDisplayer(ctx, opts, store)
 	return d, func() {
 		recoverAndReport(recover())
@@ -279,7 +279,7 @@ func withDisplayer(ctx context.Context, opts globalOpts, store *diagnostic.Sourc
 func withStreamDisplayer(
 	ctx context.Context,
 	opts globalOpts,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 ) (diagnostic.Output, func()) {
 	c := newDisplayer(ctx, opts, store).(*clir.CLI)
 	stream := clir.NewStream(c)

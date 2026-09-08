@@ -23,7 +23,7 @@ func loadAndResolve(
 	src source.Source,
 	tgt target.Target,
 	em *diagnostic.Emitter,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 ) (*engine.Engine, error) {
 	t.Helper()
 
@@ -78,7 +78,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -152,7 +152,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -209,7 +209,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -285,7 +285,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -340,7 +340,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -409,7 +409,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -465,7 +465,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -530,7 +530,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -584,7 +584,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -636,7 +636,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -654,7 +654,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec2 := &harness.RecordingDisplayer{}
 	em2 := diagnostic.NewEmitter(diagnostic.Policy{}, rec2)
-	store2 := diagnostic.NewSourceStore()
+	store2 := diagnostic.NewInputStore()
 
 	e2, err := loadAndResolve(t, cfgStr, src, tgt, em2, store2)
 	if err != nil {
@@ -711,7 +711,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -764,7 +764,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -821,7 +821,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -885,7 +885,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -945,7 +945,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1002,7 +1002,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1062,7 +1062,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	// Should fail at compile time - undefined variable.
 	_, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
@@ -1115,7 +1115,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	// In scampi, forward references (hook_b -> hook_a before
 	// hook_a is defined) are caught by the eval. This is a compile
@@ -1163,7 +1163,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1236,7 +1236,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1311,7 +1311,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {
@@ -1358,7 +1358,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {

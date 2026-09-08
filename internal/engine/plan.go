@@ -26,7 +26,7 @@ import (
 func Plan(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 ) (result.Plan, error) {
 	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
@@ -129,7 +129,7 @@ func (e *Engine) PlanDeploy(ctx diagnostic.Ctx) (result.PlanDetail, error) {
 	if err != nil {
 		return result.PlanDetail{}, err
 	}
-	e.storeSourcePaths(ctx, p)
+	e.storeInputFiles(ctx, p)
 	return planDetail(p, stepDeps), nil
 }
 

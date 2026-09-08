@@ -104,7 +104,7 @@ std.deploy(name = "bench", targets = [host]) {
 			src := source.LocalPosixSource{}
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
@@ -177,7 +177,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -243,7 +243,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -309,7 +309,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -389,7 +389,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -463,7 +463,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -527,7 +527,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -592,7 +592,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -659,7 +659,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -730,7 +730,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -801,7 +801,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -877,7 +877,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -946,7 +946,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -1017,7 +1017,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -1124,7 +1124,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -1219,7 +1219,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -1299,7 +1299,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
@@ -1375,7 +1375,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			var cmdTotal int
 			for b.Loop() {

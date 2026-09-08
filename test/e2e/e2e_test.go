@@ -184,7 +184,7 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 	// Run engine
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 

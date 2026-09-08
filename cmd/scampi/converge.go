@@ -43,7 +43,7 @@ changes when the current state differs from the declared state.`,
 
 			pol := cliPolicy(opts)
 
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			displ, cleanup := withStreamDisplayer(ctx, opts, store)
 			defer cleanup()
@@ -94,7 +94,7 @@ the actual system state.`,
 
 			pol := cliPolicy(opts)
 
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			displ, cleanup := withStreamDisplayer(ctx, opts, store)
 			defer cleanup()
@@ -144,7 +144,7 @@ does not inspect or modify the target system.`,
 
 			pol := cliPolicy(opts)
 
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			displ, cleanup := withDisplayer(ctx, opts, store)
 			defer cleanup()

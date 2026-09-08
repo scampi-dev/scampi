@@ -35,6 +35,6 @@ var (
 	colDiagError   = ansi.Red()
 	colDiagHelp    = ansi.Cyan()
 
-	colSourceGutter = ansi.BrightBlack()
-	colSourceCaret  = ansi.Red()
+	colSnippetGutter = ansi.BrightBlack()
+	colSnippetCaret  = ansi.Red()
 )

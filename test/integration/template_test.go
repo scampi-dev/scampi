@@ -49,7 +49,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -119,7 +119,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -191,7 +191,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -279,7 +279,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -352,7 +352,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -425,7 +425,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -495,7 +495,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -560,7 +560,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -630,7 +630,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -698,7 +698,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -766,7 +766,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -842,7 +842,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -909,7 +909,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -981,7 +981,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -1046,7 +1046,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -1114,7 +1114,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -1174,7 +1174,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -1242,7 +1242,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -1314,7 +1314,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -1386,7 +1386,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
@@ -1451,7 +1451,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)

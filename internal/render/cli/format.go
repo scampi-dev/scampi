@@ -16,7 +16,7 @@ import (
 	"scampi.dev/scampi/internal/spec"
 )
 
-type sourceLine struct {
+type snippet struct {
 	filename string
 	line     int
 	startCol int
@@ -28,11 +28,11 @@ type sourceLine struct {
 type formatter struct {
 	glyphs   glyphSet
 	useColor bool
-	store    *diagnostic.SourceStore
+	store    *diagnostic.InputStore
 	redactor *secret.Redactor
 }
 
-func newFormatter(glyphs glyphSet, useColor bool, store *diagnostic.SourceStore, redactor *secret.Redactor) *formatter {
+func newFormatter(glyphs glyphSet, useColor bool, store *diagnostic.InputStore, redactor *secret.Redactor) *formatter {
 	return &formatter{glyphs: glyphs, useColor: useColor, store: store, redactor: redactor}
 }
 
@@ -124,7 +124,7 @@ func (f *formatter) renderSnippet(src *spec.Span) (string, bool) {
 	if src == nil || f.store == nil || *src == (spec.Span{}) {
 		return "", false
 	}
-	v := f.loadSourceLine(src)
+	v := f.loadSnippet(src)
 	if !v.ok {
 		// No source text to show. Without a real position the pointer would
 		// be "--> file:0:0" over "<source unavailable>" (pure noise: the
@@ -134,23 +134,23 @@ func (f *formatter) renderSnippet(src *spec.Span) (string, bool) {
 			return "", false
 		}
 		var b strings.Builder
-		f.renderSourceHeader(&b, v)
+		f.renderSnippetHeader(&b, v)
 		return b.String(), true
 	}
 	var b strings.Builder
-	f.renderSourceHeader(&b, v)
+	f.renderSnippetHeader(&b, v)
 	b.WriteString("\n")
-	f.renderSourceBody(&b, v)
+	f.renderSnippetBody(&b, v)
 	return b.String(), true
 }
 
-func (f *formatter) loadSourceLine(src *spec.Span) sourceLine {
+func (f *formatter) loadSnippet(src *spec.Span) snippet {
 	text, ok := f.store.Line(src.Filename, src.StartLine)
 	endCol := src.EndCol
 	if src.StartLine < src.EndLine {
 		endCol = len(text) + 1
 	}
-	return sourceLine{
+	return snippet{
 		filename: src.Filename,
 		line:     src.StartLine,
 		startCol: src.StartCol,
@@ -160,24 +160,24 @@ func (f *formatter) loadSourceLine(src *spec.Span) sourceLine {
 	}
 }
 
-func (f *formatter) renderSourceHeader(w io.Writer, v sourceLine) {
+func (f *formatter) renderSnippetHeader(w io.Writer, v snippet) {
 	_, _ = fmt.Fprintf(w, "  --> %s:%d:%d", v.filename, v.line, v.startCol)
 }
 
-// renderSourceBody renders the numbered source line with its caret underline.
+// renderSnippetBody renders the numbered source line with its caret underline.
 // Only called with a loaded line; renderSnippet handles the unavailable cases.
-func (f *formatter) renderSourceBody(w io.Writer, v sourceLine) {
-	gutter := f.fmtfMsg(colSourceGutter, "|")
+func (f *formatter) renderSnippetBody(w io.Writer, v snippet) {
+	gutter := f.fmtfMsg(colSnippetGutter, "|")
 
 	lineNo := strconv.Itoa(v.line)
 	pad := strings.Repeat(" ", len(lineNo))
 
 	_, _ = fmt.Fprintf(w, "  %s %s\n", pad, gutter)
-	_, _ = fmt.Fprintf(w, "  %s%s%s %s %s\n", colSourceGutter, lineNo, ansi.Reset, gutter, v.text)
+	_, _ = fmt.Fprintf(w, "  %s%s%s %s %s\n", colSnippetGutter, lineNo, ansi.Reset, gutter, v.text)
 
 	if v.startCol > 0 {
 		_, _ = fmt.Fprintf(w, "  %s %s %s", pad, gutter, caretPadding(v.text, v.startCol))
-		f.fmtMsgTo(w, colSourceCaret, underlineRange(v.startCol, v.endCol))
+		f.fmtMsgTo(w, colSnippetCaret, underlineRange(v.startCol, v.endCol))
 	}
 }
 

@@ -518,7 +518,7 @@ frobnicate(name = "test")`,
 
 		rec := &harness.RecordingDisplayer{}
 		em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-		store := diagnostic.NewSourceStore()
+		store := diagnostic.NewInputStore()
 
 		// ---- Hard invariant: user input must not panic ----
 		defer func() {

@@ -18,7 +18,7 @@ import (
 func Check(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 ) (result.Execution, error) {
 	return runConverge(ctx, cfgPath, store, opts, true)
@@ -29,7 +29,7 @@ func Check(
 func Apply(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 ) (result.Execution, error) {
 	return runConverge(ctx, cfgPath, store, opts, false)
@@ -40,7 +40,7 @@ func Apply(
 func runConverge(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 	checkOnly bool,
 ) (result.Execution, error) {
@@ -84,7 +84,7 @@ func (e *Engine) converge(ctx diagnostic.Ctx, checkOnly bool) (result.Execution,
 	if err != nil {
 		return result.Execution{}, err
 	}
-	e.storeSourcePaths(ctx, p)
+	e.storeInputFiles(ctx, p)
 
 	var rep result.Execution
 	var providedPaths map[spec.Resource]bool

@@ -67,7 +67,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
 

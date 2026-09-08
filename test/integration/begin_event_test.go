@@ -34,7 +34,7 @@ func Test_BeginEvent_FiresPerStepBeforeResult(t *testing.T) {
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, beginEventCfg, src, tgt, em, store)
 	if err != nil {

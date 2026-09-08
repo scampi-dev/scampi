@@ -82,7 +82,7 @@ func applyContainerConfig(t *testing.T, cfgStr string, tgt target.Target) *harne
 	src := source.NewMemSource()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {

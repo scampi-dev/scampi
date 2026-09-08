@@ -20,7 +20,7 @@ type Engine struct {
 	src    source.Source
 	tgt    target.Target
 	cfg    spec.Config
-	store  *diagnostic.SourceStore
+	store  *diagnostic.InputStore
 	deploy event.DeployRef // lane identity for events this engine emits
 }
 
@@ -63,10 +63,10 @@ func (e *Engine) Close() {
 	}
 }
 
-// storeSourcePaths reads step source files (e.g. template sources) via the
-// source and registers them in the store so the renderer can display source
-// context in error messages.
-func (e *Engine) storeSourcePaths(ctx diagnostic.Ctx, p spec.Plan) {
+// storeInputFiles reads the input files each step declares via SourcePaths
+// (template sources, copy sources) and registers them in the InputStore so
+// the renderer can quote lines from them in diagnostics.
+func (e *Engine) storeInputFiles(ctx diagnostic.Ctx, p spec.Plan) {
 	if e.store == nil {
 		return
 	}
@@ -88,7 +88,7 @@ func (e *Engine) storeSourcePaths(ctx diagnostic.Ctx, p spec.Plan) {
 func forEachResolvedOffline(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 	run func(ctx diagnostic.Ctx, e *Engine) error,
 ) error {
@@ -124,7 +124,7 @@ func forEachResolvedOffline(
 func forEachResolved(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 	run func(ctx diagnostic.Ctx, e *Engine) error,
 ) error {

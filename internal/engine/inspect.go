@@ -30,7 +30,7 @@ type InspectDiffResult struct {
 func InspectList(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 ) ([]result.Inspect, error) {
 	var (
@@ -57,7 +57,7 @@ func InspectList(
 func InspectDiffPaths(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 ) ([]string, error) {
 	var (
@@ -91,7 +91,7 @@ func InspectDiffPaths(
 func InspectDiff(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 	destPath string,
 ) (*InspectDiffResult, error) {
@@ -119,7 +119,7 @@ func (e *Engine) buildInspect(ctx diagnostic.Ctx) (result.Inspect, error) {
 	if err != nil {
 		return result.Inspect{}, err
 	}
-	e.storeSourcePaths(ctx, p)
+	e.storeInputFiles(ctx, p)
 
 	detail := result.Inspect{
 		DeployName: e.cfg.DeployName,
@@ -147,7 +147,7 @@ func (e *Engine) InspectDiffFile(ctx diagnostic.Ctx, destPath string) (*InspectD
 	if err != nil {
 		return nil, err
 	}
-	e.storeSourcePaths(ctx, p)
+	e.storeInputFiles(ctx, p)
 
 	var found []diffableOp
 	for _, act := range p.Deploy.Steps {

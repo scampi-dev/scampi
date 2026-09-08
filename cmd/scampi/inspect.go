@@ -71,7 +71,7 @@ Falls back to plain diff(1).`,
 
 			pol := cliPolicy(opts)
 
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			displ, cleanup := withDisplayer(ctx, opts, store)
 			defer cleanup()
@@ -98,7 +98,7 @@ func inspectList(
 	ctx diagnostic.Ctx,
 	displ diagnostic.Output,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	resolveOpts spec.ResolveOptions,
 ) error {
 	details, err := engine.InspectList(ctx, cfgPath, store, resolveOpts)
@@ -114,7 +114,7 @@ func inspectList(
 func inspectDiff(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 	destPath string,
 ) error {
@@ -145,7 +145,7 @@ func inspectDiff(
 func inspectDiffInteractive(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 ) error {
 	finder := os.Getenv("SCAMPI_FUZZY_FINDER")

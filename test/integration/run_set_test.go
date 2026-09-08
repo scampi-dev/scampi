@@ -358,7 +358,7 @@ func runApply(t *testing.T, cfgStr string, tgt target.Target) *harness.Recording
 	src := source.NewMemSource()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
 	if err != nil {

@@ -46,7 +46,7 @@ type CLI struct {
 	opts   Options
 	sink   *sink
 	glyphs glyphSet
-	store  *diagnostic.SourceStore
+	store  *diagnostic.InputStore
 
 	isTTY  bool
 	width  int
@@ -77,7 +77,7 @@ type CLI struct {
 var _ diagnostic.Output = (*CLI)(nil)
 
 // New creates a new CLI renderer.
-func New(opts Options, store *diagnostic.SourceStore) *CLI {
+func New(opts Options, store *diagnostic.InputStore) *CLI {
 	glyphs := fancyGlyphs
 	if opts.ForceASCII {
 		glyphs = asciiGlyphs

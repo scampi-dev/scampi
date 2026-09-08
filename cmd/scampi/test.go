@@ -33,7 +33,7 @@ func testCmd() *cli.Command {
 		},
 		Action: func(ctx context.Context, _ *cli.Command) error {
 			opts := mustGlobalOpts(ctx)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 			displ, cleanup := withDisplayer(ctx, opts, store)
 			defer cleanup()
 

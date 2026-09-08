@@ -7,29 +7,33 @@ import (
 	"sync"
 )
 
-// SourceStore caches source file contents so the renderer can display
-// source-context lines in diagnostic error messages.
+// InputStore caches the bytes of user-authored input files - the .scampi
+// config plus every file it references (templates, copy sources) - so the
+// renderer can quote the offending line under a diagnostic.
 //
-// SourceStore is safe for concurrent use - multiple plan workers writing
-// source paths in parallel and the renderer reading lines must not race.
-type SourceStore struct {
+// It holds input only, never target state. Read via Line; nothing else
+// needs the raw bytes.
+//
+// InputStore is safe for concurrent use - multiple plan workers register
+// files in parallel while the renderer reads lines.
+type InputStore struct {
 	mu    sync.RWMutex
 	files map[string][]byte
 }
 
-func NewSourceStore() *SourceStore {
-	return &SourceStore{
+func NewInputStore() *InputStore {
+	return &InputStore{
 		files: make(map[string][]byte),
 	}
 }
 
-func (s *SourceStore) AddFile(name string, data []byte) {
+func (s *InputStore) AddFile(name string, data []byte) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.files[name] = data
 }
 
-func (s *SourceStore) Line(name string, line int) (string, bool) {
+func (s *InputStore) Line(name string, line int) (string, bool) {
 	if line <= 0 {
 		return "", false
 	}
@@ -55,7 +59,7 @@ func (s *SourceStore) Line(name string, line int) (string, bool) {
 	return "", false
 }
 
-func (s *SourceStore) findFile(name string) ([]byte, bool) {
+func (s *InputStore) findFile(name string) ([]byte, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, p := range fallbackPaths(name) {

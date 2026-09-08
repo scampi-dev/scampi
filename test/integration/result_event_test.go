@@ -32,7 +32,7 @@ func Test_ResultEvent_ReportsStepChangedOnApply(t *testing.T) {
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, resultEventCfg, src, tgt, em, store)
 	if err != nil {
@@ -66,7 +66,7 @@ func Test_ResultEvent_ReportsWouldChangeAsStepChanged(t *testing.T) {
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 
 	e, err := loadAndResolve(t, resultEventCfg, src, tgt, em, store)
 	if err != nil {

@@ -44,7 +44,7 @@ std.deploy(name = "solo", targets = [host]) {
 }
 `
 	path := writeInspectCfg(t, cfg)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
 	details, err := engine.InspectList(diagnostic.NewCtx(t.Context(), em), path, store, spec.ResolveOptions{})
@@ -127,7 +127,7 @@ std.deploy(name = "mike", targets = [host]) {
 }
 `
 	path := writeInspectCfg(t, cfg)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
 	details, err := engine.InspectList(diagnostic.NewCtx(t.Context(), em), path, store, spec.ResolveOptions{})
@@ -167,7 +167,7 @@ std.deploy(name = "solo", targets = [host]) {
 }
 `
 	path := writeInspectCfg(t, cfg)
-	store := diagnostic.NewSourceStore()
+	store := diagnostic.NewInputStore()
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, &harness.RecordingDisplayer{})
 
 	details, err := engine.InspectList(diagnostic.NewCtx(t.Context(), em), path, store, spec.ResolveOptions{})

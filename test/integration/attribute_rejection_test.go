@@ -336,7 +336,7 @@ std.deploy(name = "t", targets = [host]) {
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
-			store := diagnostic.NewSourceStore()
+			store := diagnostic.NewInputStore()
 
 			if _, err := loadAndResolve(t, c.cfg, src, tgt, em, store); err == nil {
 				t.Fatal("expected link-time error, got nil")

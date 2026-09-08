@@ -20,7 +20,7 @@ import (
 func LoadConfig(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	store *diagnostic.SourceStore,
+	store *diagnostic.InputStore,
 	src source.Source,
 	opts ...linker.AnalyzeOption,
 ) (spec.DeclaredConfig, error) {
