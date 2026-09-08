@@ -10,8 +10,8 @@ import (
 
 	"github.com/urfave/cli/v3"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/testkit"
 )
 
@@ -39,7 +39,7 @@ func testCmd() *cli.Command {
 
 			pol := cliPolicy(opts)
 			dctx := diagnostic.NewCtx(ctx, diagnostic.NewEmitter(pol, displ))
-			src := source.LocalPosixSource{}
+			ctl := controller.Posix{}
 
 			files, err := findTestFiles(testPath)
 			if err != nil {
@@ -60,7 +60,7 @@ func testCmd() *cli.Command {
 			totalPassed, totalFailed := 0, 0
 
 			for _, f := range files {
-				passed, failed, err := runLangTestFile(dctx, f, src)
+				passed, failed, err := runLangTestFile(dctx, f, ctl)
 				if err != nil {
 					emitTestDiag(dctx, &testkit.TestError{
 						Detail: err.Error(),

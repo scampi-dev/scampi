@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/internal/target/ssh"
@@ -41,8 +41,8 @@ func Test_SSH_RejectsWrongKey(t *testing.T) {
 	wrongKey := harness.GenerateTempKey(t)
 	defer func() { _ = os.Remove(wrongKey) }()
 
-	src := source.NewMemSource()
-	src.Files[wrongKey], _ = os.ReadFile(wrongKey)
+	ctl := controller.NewMem()
+	ctl.Files[wrongKey], _ = os.ReadFile(wrongKey)
 
 	sshType := ssh.SSH{}
 	cfg := &ssh.Config{
@@ -54,7 +54,7 @@ func Test_SSH_RejectsWrongKey(t *testing.T) {
 		Timeout:  "5s",
 	}
 
-	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
+	_, err := sshType.Create(t.Context(), ctl, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.Span{}},
@@ -76,8 +76,8 @@ func Test_SSH_ErrorsOnUnknownHost(t *testing.T) {
 	keyPath := harness.GenerateTempKey(t)
 	defer func() { _ = os.Remove(keyPath) }()
 
-	src := source.NewMemSource()
-	src.Files[keyPath], _ = os.ReadFile(keyPath)
+	ctl := controller.NewMem()
+	ctl.Files[keyPath], _ = os.ReadFile(keyPath)
 
 	sshType := ssh.SSH{}
 	cfg := &ssh.Config{
@@ -91,7 +91,7 @@ func Test_SSH_ErrorsOnUnknownHost(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
+	_, err := sshType.Create(t.Context(), ctl, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.Span{}},
@@ -118,7 +118,7 @@ func Test_SSH_RejectsInvalidTimeout(t *testing.T) {
 		Insecure: true,
 	}
 
-	_, err := sshType.Create(t.Context(), source.NewMemSource(), spec.DeclaredTarget{
+	_, err := sshType.Create(t.Context(), controller.NewMem(), spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"timeout": {Value: spec.Span{Filename: "test.scampi", StartLine: 5}},
@@ -149,8 +149,8 @@ func Test_SSH_RejectsPublicKeyAsPrivate(t *testing.T) {
 
 	// Try to use the public key as the private key
 	pubKey := env.KeyPath + ".pub"
-	src := source.NewMemSource()
-	src.Files[pubKey], _ = os.ReadFile(pubKey)
+	ctl := controller.NewMem()
+	ctl.Files[pubKey], _ = os.ReadFile(pubKey)
 
 	sshType := ssh.SSH{}
 	cfg := &ssh.Config{
@@ -162,7 +162,7 @@ func Test_SSH_RejectsPublicKeyAsPrivate(t *testing.T) {
 		Timeout:  "5s",
 	}
 
-	_, err := sshType.Create(t.Context(), src, spec.DeclaredTarget{
+	_, err := sshType.Create(t.Context(), ctl, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.Span{}},

@@ -20,8 +20,8 @@ import (
 	"github.com/ulikunitz/xz"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/errs"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -66,12 +66,12 @@ func hashBytes(data []byte) string {
 
 func (op *unarchiveOp) Check(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](unarchiveID, tgt)
 
-	srcData, err := src.ReadFile(ctx, op.src)
+	srcData, err := ctl.ReadFile(ctx, op.src)
 	if err != nil {
 		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "archive"); ok {
 			return result, drift, nil
@@ -110,13 +110,13 @@ func (op *unarchiveOp) Check(
 
 func (op *unarchiveOp) Execute(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	fsTgt := target.Must[target.Filesystem](unarchiveID, tgt)
 	cmdTgt := target.Must[target.Command](unarchiveID, tgt)
 
-	srcData, err := src.ReadFile(ctx, op.src)
+	srcData, err := ctl.ReadFile(ctx, op.src)
 	if err != nil {
 		return spec.Result{}, ArchiveNotFoundError{
 			Path: op.src,

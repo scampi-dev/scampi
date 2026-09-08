@@ -159,7 +159,7 @@ func setStructVal(dst reflect.Value, sv *eval.StructVal, lc *linkConfig) error {
 		if converter, ok := lc.converterFor(dstType); ok {
 			cc := spec.ConvertContext{
 				CfgPath: lc.cfgPath,
-				Src:     lc.src,
+				Src:     lc.ctl,
 				Ctx:     lc.ctx,
 			}
 			result, err := converter(sv.TypeName, sv.Fields, cc)

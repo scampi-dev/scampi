@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -60,7 +60,11 @@ func (f fakeTargetKind) NewConfig() any { return &struct{}{} }
 func (f fakeTargetKind) StaticRequires(_ any) []spec.Resource {
 	return f.requires
 }
-func (f fakeTargetKind) Create(_ context.Context, _ source.Source, _ spec.DeclaredTarget) (target.Target, error) {
+func (f fakeTargetKind) Create(
+	_ context.Context,
+	_ controller.Controller,
+	_ spec.DeclaredTarget,
+) (target.Target, error) {
 	return nil, nil
 }
 

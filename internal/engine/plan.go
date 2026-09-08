@@ -10,11 +10,11 @@ import (
 	"sync"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/errs"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -29,8 +29,8 @@ func Plan(
 	store *diagnostic.InputStore,
 	opts spec.ResolveOptions,
 ) (result.Plan, error) {
-	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
-	cfg, err := LoadConfig(ctx, cfgPath, store, src)
+	ctl := controller.WithRoot(cfgPath, controller.Posix{})
+	cfg, err := LoadConfig(ctx, cfgPath, store, ctl)
 	if err != nil {
 		return result.Plan{}, err
 	}
@@ -63,7 +63,7 @@ func Plan(
 		details = make(map[int]result.PlanDetail, len(resolved))
 	)
 	err = runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, _ event.DeployRef, res spec.Config) error {
-		e, eErr := NewWithTarget(ctx, src, res, allCaps)
+		e, eErr := NewWithTarget(ctx, ctl, res, allCaps)
 		if eErr != nil {
 			return eErr
 		}

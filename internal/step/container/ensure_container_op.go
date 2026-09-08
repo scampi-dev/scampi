@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -40,7 +40,7 @@ type ensureContainerOp struct {
 
 func (op *ensureContainerOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	cm := target.Must[target.ContainerManager](ensureContainerID, tgt)
@@ -345,7 +345,7 @@ func (op *ensureContainerOp) envDrift(current map[string]string) []spec.DriftDet
 
 func (op *ensureContainerOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	cm := target.Must[target.ContainerManager](ensureContainerID, tgt)

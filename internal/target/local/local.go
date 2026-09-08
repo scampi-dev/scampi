@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/internal/target/ctrmgr"
@@ -20,7 +20,7 @@ type Local struct{}
 
 func (Local) Kind() string   { return "local" }
 func (Local) NewConfig() any { return &Config{} }
-func (Local) Create(ctx context.Context, _ source.Source, _ spec.DeclaredTarget) (target.Target, error) {
+func (Local) Create(ctx context.Context, _ controller.Controller, _ spec.DeclaredTarget) (target.Target, error) {
 	tgt := &POSIXTarget{}
 	tgt.Runner = tgt.RunCommand
 

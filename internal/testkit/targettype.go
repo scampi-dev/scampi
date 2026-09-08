@@ -5,8 +5,8 @@ package testkit
 import (
 	"context"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/lang/eval"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -40,7 +40,7 @@ func (MemTargetKind) NewConfig() any { return &MemTargetConfig{} }
 
 func (t MemTargetKind) Create(
 	_ context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt spec.DeclaredTarget,
 ) (target.Target, error) {
 	cfg, ok := tgt.Config.(*MemTargetConfig)

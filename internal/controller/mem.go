@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package source
+package controller
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type MemSource struct {
+type Mem struct {
 	mu sync.RWMutex
 
 	Files    map[string][]byte
@@ -17,15 +17,15 @@ type MemSource struct {
 	Env      map[string]string
 }
 
-func NewMemSource() *MemSource {
-	return &MemSource{
+func NewMem() *Mem {
+	return &Mem{
 		Files:    make(map[string][]byte),
 		ModTimes: make(map[string]time.Time),
 		Env:      make(map[string]string),
 	}
 }
 
-func (m *MemSource) ReadFile(_ context.Context, path string) ([]byte, error) {
+func (m *Mem) ReadFile(_ context.Context, path string) ([]byte, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -39,7 +39,7 @@ func (m *MemSource) ReadFile(_ context.Context, path string) ([]byte, error) {
 	return cp, nil
 }
 
-func (m *MemSource) WriteFile(_ context.Context, path string, data []byte) error {
+func (m *Mem) WriteFile(_ context.Context, path string, data []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -50,11 +50,11 @@ func (m *MemSource) WriteFile(_ context.Context, path string, data []byte) error
 	return nil
 }
 
-func (m *MemSource) EnsureDir(_ context.Context, _ string) error {
+func (m *Mem) EnsureDir(_ context.Context, _ string) error {
 	return nil
 }
 
-func (m *MemSource) Stat(_ context.Context, path string) (FileMeta, error) {
+func (m *Mem) Stat(_ context.Context, path string) (FileMeta, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -71,7 +71,7 @@ func (m *MemSource) Stat(_ context.Context, path string) (FileMeta, error) {
 	}, nil
 }
 
-func (m *MemSource) LookupEnv(key string) (string, bool) {
+func (m *Mem) LookupEnv(key string) (string, bool) {
 	v, ok := m.Env[key]
 	return v, ok
 }

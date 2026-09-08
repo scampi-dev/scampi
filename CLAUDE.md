@@ -61,7 +61,7 @@ internal/capability/  # Execution guarantees checked at plan time
 internal/diagnostic/  # Event emission; execution reports live in diagnostic/result
 internal/render/      # CLI output formatting
 internal/signal/      # Verbosity / color / severity enums
-internal/source/      # Source-side access: configs, env, and local cache
+internal/controller/  # The machine scampi runs on: configs, env, and local cache
 internal/target/      # Managed-environment surface (reads for drift, writes for mutations)
 internal/errs/        # Error plumbing (codes, BUG panics)
 internal/secret/      # Secret backends + redaction
@@ -77,7 +77,8 @@ internal/testkit/     # scampi's own test framework
   Abort decisions come from `event.Impact` on typed errors, not from
   renderer state.
 - `render`: transforms diagnostics to user output, purely presentational
-- `source`: source-side access (configs, env, local cache — never touches target)
+- `controller`: the machine scampi runs on, as an I/O surface (configs, env,
+  local cache — never touches target)
 - `target`: managed-environment surface — both reads (drift detection during Check) and writes (mutations during Execute). Planning logic does not live here.
 
 **Execution model** — three nested dependency DAGs, not sequential phases:

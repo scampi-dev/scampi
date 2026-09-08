@@ -5,9 +5,9 @@ package integration
 import (
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -28,13 +28,13 @@ std.deploy(name = "test", targets = [host]) {
 // Test_ResultEvent_ReportsStepChangedOnApply verifies the engine emits one Result per step as it
 // settles, with the verdict reflecting whether the step changed anything.
 func Test_ResultEvent_ReportsStepChangedOnApply(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, resultEventCfg, src, tgt, em, store)
+	e, err := loadAndResolve(t, resultEventCfg, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -62,13 +62,13 @@ func Test_ResultEvent_ReportsStepChangedOnApply(t *testing.T) {
 // Test_ResultEvent_ReportsWouldChangeAsStepChanged verifies that in check mode an unsatisfied
 // step reports StepChanged (would change), driven by the WouldChange count.
 func Test_ResultEvent_ReportsWouldChangeAsStepChanged(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, resultEventCfg, src, tgt, em, store)
+	e, err := loadAndResolve(t, resultEventCfg, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}

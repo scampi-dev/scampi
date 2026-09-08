@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target/ssh"
 )
@@ -332,8 +332,8 @@ func GenerateTempKey(t *testing.T) string {
 func ConnectSSH(t *testing.T, env *SSHTestEnv) *ssh.SSHTarget {
 	t.Helper()
 
-	src := source.NewMemSource()
-	src.Files[env.KeyPath], _ = os.ReadFile(env.KeyPath)
+	ctl := controller.NewMem()
+	ctl.Files[env.KeyPath], _ = os.ReadFile(env.KeyPath)
 
 	sshType := ssh.SSH{}
 	cfg := &ssh.Config{
@@ -345,7 +345,7 @@ func ConnectSSH(t *testing.T, env *SSHTestEnv) *ssh.SSHTarget {
 		Timeout:  "5s",
 	}
 
-	tgt, err := sshType.Create(context.Background(), src, spec.DeclaredTarget{
+	tgt, err := sshType.Create(context.Background(), ctl, spec.DeclaredTarget{
 		Config: cfg,
 		Fields: map[string]spec.FieldSpan{
 			"host": {Value: spec.Span{}},

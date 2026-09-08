@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -38,7 +38,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(_ string) (target.CommandResult, error) {
 		return target.CommandResult{ExitCode: 0}, nil
@@ -48,7 +48,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -101,7 +101,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(_ string) (target.CommandResult, error) {
 		return target.CommandResult{
@@ -114,7 +114,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -159,14 +159,14 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	if _, err := loadAndResolve(t, cfgStr, src, tgt, em, store); err == nil {
+	if _, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store); err == nil {
 		t.Fatal("expected link-time error for missing placeholder, got nil")
 	}
 }
@@ -190,14 +190,14 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -238,7 +238,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(_ string) (target.CommandResult, error) {
 		return target.CommandResult{ExitCode: 0}, nil
@@ -248,7 +248,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -294,7 +294,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(_ string) (target.CommandResult, error) {
 		return target.CommandResult{
@@ -307,7 +307,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -351,14 +351,14 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	if _, err := loadAndResolve(t, cfgStr, src, tgt, em, store); err == nil {
+	if _, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store); err == nil {
 		t.Fatal("expected link-time error for missing placeholder, got nil")
 	}
 }
@@ -386,7 +386,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	tgt.Files["/existing.txt"] = []byte("already there\n")
@@ -402,7 +402,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -436,7 +436,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(_ string) (target.CommandResult, error) {
 		return target.CommandResult{ExitCode: 1, Stderr: "fail"}, nil
@@ -446,7 +446,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}

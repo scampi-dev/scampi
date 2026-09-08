@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -33,7 +33,7 @@ type ensurePkgOp struct {
 
 func (op *ensurePkgOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
@@ -71,7 +71,7 @@ func (op *ensurePkgOp) Check(
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (op *ensurePkgOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
+func (op *ensurePkgOp) Execute(ctx context.Context, _ controller.Controller, tgt target.Target) (spec.Result, error) {
 	pm := target.Must[target.PkgManager](ensurePkgID, tgt)
 
 	var actionable []string
@@ -188,7 +188,7 @@ type ensureLatestPkgOp struct {
 
 func (op *ensureLatestPkgOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	// Check is read-only: use the existing pkg cache rather than
@@ -235,7 +235,11 @@ func (op *ensureLatestPkgOp) Check(
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (op *ensureLatestPkgOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
+func (op *ensureLatestPkgOp) Execute(
+	ctx context.Context,
+	_ controller.Controller,
+	tgt target.Target,
+) (spec.Result, error) {
 	t := target.Must[interface {
 		target.PkgManager
 		target.PkgUpdater

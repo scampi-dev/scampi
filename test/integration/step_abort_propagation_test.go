@@ -6,10 +6,10 @@ import (
 	"errors"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/signal"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target/local"
 	"scampi.dev/scampi/test/harness"
@@ -44,7 +44,7 @@ func Test_ExecutePlan_OpAbortedNonAbortImpactBlocksDownstream(t *testing.T) {
 	cfg := spec.Config{
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}

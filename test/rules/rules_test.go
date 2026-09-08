@@ -102,7 +102,7 @@ func Test_Rule_ImportCapabilities(t *testing.T) {
 			allowedImports: "os",
 		},
 		{
-			pattern:        "internal/source/local_posix.go",
+			pattern:        "internal/controller/posix.go",
 			allowedImports: "os",
 		},
 		{

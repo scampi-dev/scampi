@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"slices"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/errs"
 	"scampi.dev/scampi/internal/linker"
 	"scampi.dev/scampi/internal/secret"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 )
 
@@ -21,7 +21,7 @@ func LoadConfig(
 	ctx diagnostic.Ctx,
 	cfgPath string,
 	store *diagnostic.InputStore,
-	src source.Source,
+	ctl controller.Controller,
 	opts ...linker.AnalyzeOption,
 ) (spec.DeclaredConfig, error) {
 	cfgPath, absErr := filepath.Abs(cfgPath)
@@ -31,7 +31,7 @@ func LoadConfig(
 
 	// Add source file to store for diagnostic source rendering.
 	if store != nil {
-		if data, readErr := src.ReadFile(ctx, cfgPath); readErr == nil {
+		if data, readErr := ctl.ReadFile(ctx, cfgPath); readErr == nil {
 			store.AddFile(cfgPath, data)
 		}
 	}
@@ -44,7 +44,7 @@ func LoadConfig(
 	}
 
 	reg := NewRegistry()
-	cfg, err := linker.LoadConfig(ctx, cfgPath, src, reg, opts...)
+	cfg, err := linker.LoadConfig(ctx, cfgPath, ctl, reg, opts...)
 	if err != nil {
 		// ErrAlreadyRaised means diagnostics are already on the
 		// emitter; the engine just propagates the abort. Other errors

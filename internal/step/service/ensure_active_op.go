@@ -6,7 +6,7 @@ import (
 	"context"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -23,7 +23,7 @@ type ensureActiveOp struct {
 
 func (op *ensureActiveOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	sm := target.Must[target.ServiceManager](ensureActiveID, tgt)
@@ -51,7 +51,7 @@ func (op *ensureActiveOp) Check(
 
 func (op *ensureActiveOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	sm := target.Must[target.ServiceManager](ensureActiveID, tgt)

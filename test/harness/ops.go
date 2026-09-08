@@ -6,17 +6,17 @@ import (
 	"context"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/signal"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
 
 type (
-	CheckFn func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error)
-	ExecFn  func(context.Context, source.Source, target.Target) (spec.Result, error)
+	CheckFn func(context.Context, controller.Controller, target.Target) (spec.CheckResult, []spec.DriftDetail, error)
+	ExecFn  func(context.Context, controller.Controller, target.Target) (spec.Result, error)
 	FakeOp  struct {
 		Name       string
 		step       spec.Step
@@ -29,19 +29,19 @@ type (
 )
 
 func OkCheckFn(res spec.CheckResult) CheckFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
 		return res, nil, nil
 	}
 }
 
 func OkExecFn(changed bool) ExecFn {
-	return func(context.Context, source.Source, target.Target) (spec.Result, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 		return spec.Result{Changed: changed}, nil
 	}
 }
 
 func DiagCheckFn(severity signal.Severity, impact diagnostic.Impact) CheckFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
 		return spec.CheckUnknown, nil, &FakeDiagnostic{
 			severity: severity,
 			impact:   impact,
@@ -50,7 +50,7 @@ func DiagCheckFn(severity signal.Severity, impact diagnostic.Impact) CheckFn {
 }
 
 func DiagExecFn(severity signal.Severity, impact diagnostic.Impact) ExecFn {
-	return func(context.Context, source.Source, target.Target) (spec.Result, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 		return spec.Result{}, &FakeDiagnostic{
 			severity: severity,
 			impact:   impact,
@@ -60,26 +60,26 @@ func DiagExecFn(severity signal.Severity, impact diagnostic.Impact) ExecFn {
 
 //lint:ignore U1000
 func ErrCheckFn(err error) CheckFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
 		return spec.CheckUnknown, nil, err
 	}
 }
 
 //lint:ignore U1000
 func ErrExecFn(err error) ExecFn {
-	return func(context.Context, source.Source, target.Target) (spec.Result, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 		return spec.Result{}, err
 	}
 }
 
 func PanicCheckFn(msg string) CheckFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
 		panic(msg)
 	}
 }
 
 func PanicExecFn(msg string) ExecFn {
-	return func(context.Context, source.Source, target.Target) (spec.Result, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 		panic(msg)
 	}
 }
@@ -89,16 +89,16 @@ func (o FakeOp) DependsOn() []spec.Op { return o.Deps }
 
 func (o *FakeOp) Check(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	o.CheckCalls++
-	return o.CheckFn(ctx, src, tgt)
+	return o.CheckFn(ctx, ctl, tgt)
 }
 
-func (o *FakeOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
+func (o *FakeOp) Execute(ctx context.Context, ctl controller.Controller, tgt target.Target) (spec.Result, error) {
 	o.ExecCalls++
-	return o.ExecFn(ctx, src, tgt)
+	return o.ExecFn(ctx, ctl, tgt)
 }
 
 func (o FakeOp) Describe() spec.OpDescription {
@@ -196,11 +196,19 @@ type InspectableFakeOp struct {
 	Dest    string
 }
 
-func (o *InspectableFakeOp) DesiredContent(_ context.Context, _ source.Source, _ target.Target) ([]byte, error) {
+func (o *InspectableFakeOp) DesiredContent(
+	_ context.Context,
+	_ controller.Controller,
+	_ target.Target,
+) ([]byte, error) {
 	return o.Desired, nil
 }
 
-func (o *InspectableFakeOp) CurrentContent(_ context.Context, _ source.Source, _ target.Target) ([]byte, error) {
+func (o *InspectableFakeOp) CurrentContent(
+	_ context.Context,
+	_ controller.Controller,
+	_ target.Target,
+) ([]byte, error) {
 	return o.Current, o.CurrErr
 }
 

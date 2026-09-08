@@ -11,8 +11,8 @@ import (
 	"reflect"
 	"strings"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/lang/eval"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 )
 
@@ -30,18 +30,18 @@ type LinkOption func(*linkConfig)
 type linkConfig struct {
 	ctx          context.Context
 	cfgPath      string
-	src          source.Source
+	ctl          controller.Controller
 	source       []byte
 	converterFor func(reflect.Type) (spec.TypeConverter, bool)
 }
 
 // WithSourceResolver enables source resolution (inline caching,
 // local path resolution) during linking.
-func WithSourceResolver(ctx context.Context, cfgPath string, src source.Source) LinkOption {
+func WithSourceResolver(ctx context.Context, cfgPath string, ctl controller.Controller) LinkOption {
 	return func(lc *linkConfig) {
 		lc.ctx = ctx
 		lc.cfgPath = cfgPath
-		lc.src = src
+		lc.ctl = ctl
 	}
 }
 

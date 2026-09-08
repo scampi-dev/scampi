@@ -7,10 +7,10 @@ import (
 	"io/fs"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -20,7 +20,7 @@ import (
 func loadAndResolve(
 	t *testing.T,
 	cfgStr string,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 	em *diagnostic.Emitter,
 	store *diagnostic.InputStore,
@@ -29,12 +29,12 @@ func loadAndResolve(
 
 	ctx := t.Context()
 
-	memSrc, ok := src.(*source.MemSource)
+	memSrc, ok := ctl.(*controller.Mem)
 	if ok {
 		memSrc.Files["/config.scampi"] = []byte(cfgStr)
 	}
 
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func loadAndResolve(
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	return engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	return engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 }
 
 // Test_Integration_CopiesFileWithModeAndOwner tests the complete engine flow from config loading
@@ -71,16 +71,16 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("test content")
+	ctl.Files["/src.txt"] = []byte("test content")
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -140,10 +140,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 
 	// Pre-populate target with matching state
 	tgt.Files["/dest.txt"] = []byte("content")
@@ -154,7 +154,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -201,17 +201,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src-a.txt"] = []byte("file A")
-	src.Files["/src-b.txt"] = []byte("file B")
+	ctl.Files["/src-a.txt"] = []byte("file A")
+	ctl.Files["/src-b.txt"] = []byte("file B")
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -273,11 +273,11 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	innerTgt := target.NewMemTarget()
 	tgt := harness.NewFaultyTarget(innerTgt)
 
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 
 	// Inject write failure
 	writeErr := errors.New("disk full")
@@ -287,7 +287,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -327,23 +327,23 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	innerSrc := source.NewMemSource()
-	src := harness.NewFaultySource(innerSrc)
+	innerCtl := controller.NewMem()
+	ctl := harness.NewFaultyController(innerCtl)
 	tgt := target.NewMemTarget()
 
-	innerSrc.Files["/config.scampi"] = []byte(cfgStr)
+	innerCtl.Files["/config.scampi"] = []byte(cfgStr)
 	// Note: /missing.txt is not added, so read will fail
 
 	// Inject explicit error
 	readErr := errors.New("permission denied")
-	src.InjectFault("/missing.txt", readErr)
+	ctl.InjectFault("/missing.txt", readErr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -355,7 +355,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -397,12 +397,12 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	innerTgt := target.NewMemTarget()
 	tgt := harness.NewFaultyTarget(innerTgt)
 
-	src.Files["/src-a.txt"] = []byte("A")
-	src.Files["/src-b.txt"] = []byte("B")
+	ctl.Files["/src-a.txt"] = []byte("A")
+	ctl.Files["/src-b.txt"] = []byte("B")
 
 	// First write fails
 	tgt.InjectFault("WriteFile", "/dest-a.txt", errors.New("write failed"))
@@ -411,7 +411,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -453,10 +453,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new content")
+	ctl.Files["/src.txt"] = []byte("new content")
 
 	// Pre-populate target with OLD content
 	tgt.Files["/dest.txt"] = []byte("old content")
@@ -467,7 +467,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -518,10 +518,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 
 	// Pre-populate target with correct content but WRONG mode
 	tgt.Files["/dest.txt"] = []byte("content")
@@ -532,7 +532,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -572,10 +572,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 
 	// Pre-populate target with correct content and mode but WRONG owner
 	tgt.Files["/dest.txt"] = []byte("content")
@@ -586,7 +586,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -625,11 +625,11 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	innerTgt := target.NewMemTarget()
 	tgt := harness.NewFaultyTarget(innerTgt)
 
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 
 	// First attempt: inject fault
 	tgt.InjectFault("WriteFile", "/dest.txt", errors.New("temporary failure"))
@@ -638,7 +638,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -656,7 +656,7 @@ std.deploy(name = "test", targets = [host]) {
 	em2 := diagnostic.NewEmitter(diagnostic.Policy{}, rec2)
 	store2 := diagnostic.NewInputStore()
 
-	e2, err := loadAndResolve(t, cfgStr, src, tgt, em2, store2)
+	e2, err := loadAndResolve(t, cfgStr, ctl, tgt, em2, store2)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -702,10 +702,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new config")
+	ctl.Files["/src.txt"] = []byte("new config")
 	tgt.Services["nginx"] = true
 	tgt.EnabledServices["nginx"] = true
 
@@ -713,7 +713,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -755,10 +755,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new config")
+	ctl.Files["/src.txt"] = []byte("new config")
 	tgt.Services["nginx"] = true
 	tgt.EnabledServices["nginx"] = true
 
@@ -766,7 +766,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -808,10 +808,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 	// Pre-populate with matching state
 	tgt.Files["/dest.txt"] = []byte("content")
 	tgt.Modes["/dest.txt"] = fs.FileMode(0o644)
@@ -823,7 +823,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -875,11 +875,11 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src-a.txt"] = []byte("config A")
-	src.Files["/src-b.txt"] = []byte("config B")
+	ctl.Files["/src-a.txt"] = []byte("config A")
+	ctl.Files["/src-b.txt"] = []byte("config B")
 	tgt.Services["nginx"] = true
 	tgt.EnabledServices["nginx"] = true
 
@@ -887,7 +887,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -934,10 +934,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new config")
+	ctl.Files["/src.txt"] = []byte("new config")
 	tgt.Services["app"] = true
 	tgt.EnabledServices["app"] = true
 	tgt.Services["proxy"] = true
@@ -947,7 +947,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -993,10 +993,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new config")
+	ctl.Files["/src.txt"] = []byte("new config")
 	tgt.Services["nginx"] = true
 	tgt.EnabledServices["nginx"] = true
 
@@ -1004,7 +1004,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -1056,16 +1056,16 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	// Should fail at compile time - undefined variable.
-	_, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	_, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err == nil {
 		t.Fatal("expected error for undefined hook reference")
 	}
@@ -1105,9 +1105,9 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
-	src.Files["/src.txt"] = []byte("content")
+	ctl.Files["/src.txt"] = []byte("content")
 	tgt.Services["svc-a"] = true
 	tgt.EnabledServices["svc-a"] = true
 	tgt.Services["svc-b"] = true
@@ -1120,7 +1120,7 @@ std.deploy(name = "test", targets = [host]) {
 	// In scampi, forward references (hook_b -> hook_a before
 	// hook_a is defined) are caught by the eval. This is a compile
 	// error, not a runtime hook cycle.
-	_, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	_, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err == nil {
 		t.Fatal("expected error for forward reference / hook cycle")
 	}
@@ -1153,10 +1153,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new config")
+	ctl.Files["/src.txt"] = []byte("new config")
 	tgt.CommandFunc = func(_ string) (target.CommandResult, error) {
 		return target.CommandResult{ExitCode: 0}, nil
 	}
@@ -1165,7 +1165,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -1226,11 +1226,11 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new config")
-	src.Files["/app.conf"] = []byte("app config")
+	ctl.Files["/src.txt"] = []byte("new config")
+	ctl.Files["/app.conf"] = []byte("app config")
 	tgt.Services["app"] = true
 	tgt.EnabledServices["app"] = true
 
@@ -1238,7 +1238,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -1299,11 +1299,11 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/src.txt"] = []byte("new config")
-	src.Files["/app.conf"] = []byte("app config")
+	ctl.Files["/src.txt"] = []byte("new config")
+	ctl.Files["/app.conf"] = []byte("app config")
 	tgt.Services["app"] = true
 	tgt.EnabledServices["app"] = true
 	tgt.Services["proxy"] = true
@@ -1313,7 +1313,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -1350,7 +1350,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Services["nginx"] = true
 	tgt.EnabledServices["nginx"] = true
@@ -1360,7 +1360,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}

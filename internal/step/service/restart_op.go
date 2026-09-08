@@ -6,7 +6,7 @@ import (
 	"context"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -22,7 +22,7 @@ type restartOp struct {
 
 func (op *restartOp) Check(
 	_ context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	_ target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	return spec.CheckUnsatisfied, []spec.DriftDetail{{
@@ -33,7 +33,7 @@ func (op *restartOp) Check(
 
 func (op *restartOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	sm := target.Must[target.ServiceManager](restartID, tgt)

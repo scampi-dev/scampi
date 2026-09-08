@@ -5,7 +5,7 @@ package drift
 import (
 	"testing"
 
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/container"
 	"scampi.dev/scampi/internal/step/firewall"
@@ -20,7 +20,7 @@ import (
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsStoppedService(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Services["nginx"] = false
 	tgt.EnabledServices["nginx"] = true
@@ -33,12 +33,12 @@ func Test_Drift_ReportsStoppedService(t *testing.T) {
 		"enabled": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "stopped", "running")
 }
 
 func Test_Drift_ReportsDisabledService(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Services["nginx"] = true
 	tgt.EnabledServices["nginx"] = false
@@ -51,12 +51,12 @@ func Test_Drift_ReportsDisabledService(t *testing.T) {
 		"enabled": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "enabled", "disabled", "enabled")
 }
 
 func Test_Drift_ReportsRunningServiceWhenWantStopped(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Services["nginx"] = true
 	tgt.EnabledServices["nginx"] = false
@@ -69,7 +69,7 @@ func Test_Drift_ReportsRunningServiceWhenWantStopped(t *testing.T) {
 		"enabled": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "running", "stopped")
 }
 
@@ -77,7 +77,7 @@ func Test_Drift_ReportsRunningServiceWhenWantStopped(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsMissingUser(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	ops := planOps(t, user.User{}, &user.UserConfig{
@@ -87,12 +87,12 @@ func Test_Drift_ReportsMissingUser(t *testing.T) {
 		"state": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "", "present")
 }
 
 func Test_Drift_ReportsUserShellDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Users["app"] = target.UserInfo{Name: "app", Shell: "/bin/sh"}
 
@@ -104,12 +104,12 @@ func Test_Drift_ReportsUserShellDiff(t *testing.T) {
 		"shell": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "shell", "/bin/sh", "/bin/bash")
 }
 
 func Test_Drift_ReportsUserPresentWhenWantAbsent(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Users["app"] = target.UserInfo{Name: "app", Shell: "/bin/sh"}
 
@@ -120,7 +120,7 @@ func Test_Drift_ReportsUserPresentWhenWantAbsent(t *testing.T) {
 		"state": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "present", "absent")
 }
 
@@ -128,7 +128,7 @@ func Test_Drift_ReportsUserPresentWhenWantAbsent(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsMissingGroup(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	ops := planOps(t, group.Group{}, &group.GroupConfig{
@@ -138,12 +138,12 @@ func Test_Drift_ReportsMissingGroup(t *testing.T) {
 		"state": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "", "present")
 }
 
 func Test_Drift_ReportsGroupPresentWhenWantAbsent(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Groups["web"] = target.GroupInfo{Name: "web"}
 
@@ -154,7 +154,7 @@ func Test_Drift_ReportsGroupPresentWhenWantAbsent(t *testing.T) {
 		"state": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "present", "absent")
 }
 
@@ -179,7 +179,7 @@ func firewallMemTarget(showAdded string) *target.MemTarget {
 }
 
 func Test_Drift_ReportsMissingFirewallRule(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := firewallMemTarget("Added user rules (see 'ufw status' for running firewall):\n")
 
 	ops := planOps(t, firewall.Firewall{}, &firewall.FirewallConfig{
@@ -190,12 +190,12 @@ func Test_Drift_ReportsMissingFirewallRule(t *testing.T) {
 		"action": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "rule", "(absent)", "allow 22/tcp")
 }
 
 func Test_Drift_ReportsNoDriftWhenFirewallRulePresent(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := firewallMemTarget(
 		"Added user rules (see 'ufw status' for running firewall):\n" +
 			"ufw allow 22/tcp\n",
@@ -209,14 +209,14 @@ func Test_Drift_ReportsNoDriftWhenFirewallRulePresent(t *testing.T) {
 		"action": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	if len(details) != 0 {
 		t.Errorf("expected no drift, got %+v", details)
 	}
 }
 
 func Test_Drift_ReportsMissingFirewallPortRange(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := firewallMemTarget("Added user rules (see 'ufw status' for running firewall):\n")
 
 	ops := planOps(t, firewall.Firewall{}, &firewall.FirewallConfig{
@@ -228,7 +228,7 @@ func Test_Drift_ReportsMissingFirewallPortRange(t *testing.T) {
 		"action":   {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "rule", "(absent)", "deny 6000:6007/udp")
 }
 
@@ -253,7 +253,7 @@ func mountMemTarget(fstab string, mounted bool) *target.MemTarget {
 }
 
 func Test_Drift_ReportsMissingFstabEntry(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := mountMemTarget("# /etc/fstab: static file system information\n", false)
 
 	ops := planOps(t, mount.Mount{}, &mount.MountConfig{
@@ -272,13 +272,13 @@ func Test_Drift_ReportsMissingFstabEntry(t *testing.T) {
 		"state": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "fstab", "", "present")
 	assertDrift(t, details, "mounted", "no", "yes")
 }
 
 func Test_Drift_ReportsFstabEntryDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := mountMemTarget("/dev/sdb1 /mnt/data ext4 noatime 0 0\n", true)
 
 	ops := planOps(t, mount.Mount{}, &mount.MountConfig{
@@ -295,7 +295,7 @@ func Test_Drift_ReportsFstabEntryDiff(t *testing.T) {
 		"state": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(
 		t,
 		details,
@@ -306,7 +306,7 @@ func Test_Drift_ReportsFstabEntryDiff(t *testing.T) {
 }
 
 func Test_Drift_ReportsNoDriftWhenMountConverged(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := mountMemTarget("/dev/sdb1 /mnt/data ext4 defaults 0 0\n", true)
 
 	ops := planOps(t, mount.Mount{}, &mount.MountConfig{
@@ -323,7 +323,7 @@ func Test_Drift_ReportsNoDriftWhenMountConverged(t *testing.T) {
 		"state": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	if len(details) != 0 {
 		t.Errorf("expected no drift, got %+v", details)
 	}
@@ -333,7 +333,7 @@ func Test_Drift_ReportsNoDriftWhenMountConverged(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsMissingContainer(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	ops := planOps(t, container.Instance{}, &container.InstanceConfig{
@@ -348,12 +348,12 @@ func Test_Drift_ReportsMissingContainer(t *testing.T) {
 		"restart": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "(absent)", "running")
 }
 
 func Test_Drift_ReportsContainerImageDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Containers["web"] = target.ContainerInfo{
 		Name:    "web",
@@ -375,7 +375,7 @@ func Test_Drift_ReportsContainerImageDiff(t *testing.T) {
 		"restart": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	if len(details) != 1 {
 		t.Errorf("expected exactly one drift detail, got %+v", details)
 	}
@@ -383,7 +383,7 @@ func Test_Drift_ReportsContainerImageDiff(t *testing.T) {
 }
 
 func Test_Drift_ReportsStoppedContainer(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Containers["web"] = target.ContainerInfo{
 		Name:    "web",
@@ -404,6 +404,6 @@ func Test_Drift_ReportsStoppedContainer(t *testing.T) {
 		"restart": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "stopped", "running")
 }

@@ -21,9 +21,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -62,7 +62,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 		expectPath = filepath.Join(dir, "expect.json")
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := target.NewMemTarget()
 
 	rec := &harness.RecordingDisplayer{}
@@ -72,7 +72,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 	ctx := t.Context()
 
 	apply := func() error {
-		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), cfgPath, store, src)
+		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), cfgPath, store, ctl)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func runDiagnosticsCase(t *testing.T, dir string, cfgFilename string, format str
 
 		resolved.Target = harness.MockDeclaredTarget(tgt)
 
-		e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+		e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 		if err != nil {
 			return err
 		}

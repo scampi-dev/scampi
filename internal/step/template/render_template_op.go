@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/errs"
 	rendertmpl "scampi.dev/scampi/internal/render/template"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/step/sharedop/fileop"
@@ -36,17 +36,17 @@ type renderTemplateOp struct {
 
 func (op *renderTemplateOp) Check(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](renderTemplateID, tgt)
 
-	data, err := mergeData(op.data, src)
+	data, err := mergeData(op.data, ctl)
 	if err != nil {
 		return spec.CheckUnsatisfied, nil, err
 	}
 
-	tmplContent, err := op.getTemplateContent(ctx, src, tgt)
+	tmplContent, err := op.getTemplateContent(ctx, ctl, tgt)
 	if err != nil {
 		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "content"); ok {
 			return result, drift, nil
@@ -101,15 +101,19 @@ func (op *renderTemplateOp) Check(
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (op *renderTemplateOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
+func (op *renderTemplateOp) Execute(
+	ctx context.Context,
+	ctl controller.Controller,
+	tgt target.Target,
+) (spec.Result, error) {
 	fsTgt := target.Must[target.Filesystem](renderTemplateID, tgt)
 
-	data, err := mergeData(op.data, src)
+	data, err := mergeData(op.data, ctl)
 	if err != nil {
 		return spec.Result{}, err
 	}
 
-	tmplContent, err := op.getTemplateContent(ctx, src, tgt)
+	tmplContent, err := op.getTemplateContent(ctx, ctl, tgt)
 	if err != nil {
 		return spec.Result{}, err
 	}
@@ -171,13 +175,17 @@ func (op *renderTemplateOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-func (op *renderTemplateOp) DesiredContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error) {
-	data, err := mergeData(op.data, src)
+func (op *renderTemplateOp) DesiredContent(
+	ctx context.Context,
+	ctl controller.Controller,
+	tgt target.Target,
+) ([]byte, error) {
+	data, err := mergeData(op.data, ctl)
 	if err != nil {
 		return nil, err
 	}
 
-	tmplContent, err := op.getTemplateContent(ctx, src, tgt)
+	tmplContent, err := op.getTemplateContent(ctx, ctl, tgt)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +203,11 @@ func (op *renderTemplateOp) DesiredContent(ctx context.Context, src source.Sourc
 	return buf.Bytes(), nil
 }
 
-func (op *renderTemplateOp) CurrentContent(ctx context.Context, _ source.Source, tgt target.Target) ([]byte, error) {
+func (op *renderTemplateOp) CurrentContent(
+	ctx context.Context,
+	_ controller.Controller,
+	tgt target.Target,
+) ([]byte, error) {
 	fsTgt := target.Must[target.Filesystem](renderTemplateID, tgt)
 	return fsTgt.ReadFile(ctx, op.dest)
 }
@@ -206,7 +218,7 @@ func (op *renderTemplateOp) DestPath() string {
 
 func (op *renderTemplateOp) getTemplateContent(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) ([]byte, error) {
 	var (
@@ -221,7 +233,7 @@ func (op *renderTemplateOp) getTemplateContent(
 		fsTgt := target.Must[target.Filesystem](renderTemplateID, tgt)
 		data, err = fsTgt.ReadFile(ctx, op.src)
 	} else {
-		data, err = src.ReadFile(ctx, op.src)
+		data, err = ctl.ReadFile(ctx, op.src)
 	}
 	if err != nil {
 		return nil, TemplateSourceMissingError{
@@ -233,7 +245,7 @@ func (op *renderTemplateOp) getTemplateContent(
 	return data, nil
 }
 
-func mergeData(cfg DataConfig, src source.Source) (map[string]any, error) {
+func mergeData(cfg DataConfig, ctl controller.Controller) (map[string]any, error) {
 	data := make(map[string]any)
 
 	// Copy values as base
@@ -250,7 +262,7 @@ func mergeData(cfg DataConfig, src source.Source) (map[string]any, error) {
 		}
 
 		// If env var is set, override the value
-		if val, ok := src.LookupEnv(envVar); ok {
+		if val, ok := ctl.LookupEnv(envVar); ok {
 			data[key] = val
 		}
 	}

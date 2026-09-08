@@ -5,7 +5,7 @@ package spec
 import (
 	"context"
 
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/target"
 )
 
@@ -69,7 +69,7 @@ type DeclaredStep struct {
 type TargetKind interface {
 	Kind() string
 	NewConfig() any
-	Create(ctx context.Context, src source.Source, tgt DeclaredTarget) (target.Target, error)
+	Create(ctx context.Context, ctl controller.Controller, tgt DeclaredTarget) (target.Target, error)
 }
 
 // StepKind is the Go type representing a step kind (one per kind). It decodes

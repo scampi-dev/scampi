@@ -6,11 +6,11 @@ import (
 	"context"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/signal"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/copy"
 	"scampi.dev/scampi/internal/step/sharedop"
@@ -81,7 +81,11 @@ func Test_Check_DefersMissingDirWhenPathProvided(t *testing.T) {
 	// copy step: check returns CopyDestDirMissingError for /foo
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, copy.CopyDestDirMissingError{
 				Path: "/foo",
 			}
@@ -101,7 +105,7 @@ func Test_Check_DefersMissingDirWhenPathProvided(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -134,7 +138,11 @@ func Test_Check_DefersMissingDirWhenPathProvided(t *testing.T) {
 func Test_Check_DeferredPathNoProvideStillAborts(t *testing.T) {
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, copy.CopyDestDirMissingError{
 				Path: "/nonexistent",
 			}
@@ -154,7 +162,7 @@ func Test_Check_DeferredPathNoProvideStillAborts(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -181,7 +189,11 @@ func Test_Check_AbortsWhenUpstreamAlreadySatisfied(t *testing.T) {
 	// copy step: missing dir error
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, copy.CopyDestDirMissingError{
 				Path: "/foo",
 			}
@@ -201,7 +213,7 @@ func Test_Check_AbortsWhenUpstreamAlreadySatisfied(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -243,7 +255,7 @@ func Test_Check_DeferredPathNonDeferrableErrorStillAborts(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -270,7 +282,11 @@ func Test_Check_DefersMissingAncestorOfProvidedPath(t *testing.T) {
 	// Input depends on /foo/bar so the graph orders dir before copy.
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, copy.CopyDestDirMissingError{
 				Path: "/foo",
 			}
@@ -290,7 +306,7 @@ func Test_Check_DefersMissingAncestorOfProvidedPath(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -320,7 +336,11 @@ func Test_Check_DeferredPathOpOutcomeIsWouldChange(t *testing.T) {
 
 	copyOp := &harness.FakeOp{
 		Name: "copy-file",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, copy.CopyDestDirMissingError{
 				Path: "/foo",
 			}
@@ -340,7 +360,7 @@ func Test_Check_DeferredPathOpOutcomeIsWouldChange(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -380,7 +400,11 @@ func Test_Check_DefersUnknownUserWhenProvided(t *testing.T) {
 	// dir step: check returns UnknownUserError for appd
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, sharedop.UnknownUserError{
 				User: "appd",
 			}
@@ -400,7 +424,7 @@ func Test_Check_DefersUnknownUserWhenProvided(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -429,7 +453,11 @@ func Test_Check_DefersUnknownGroupWhenProvided(t *testing.T) {
 
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, sharedop.UnknownGroupError{
 				Group: "appusers",
 			}
@@ -449,7 +477,7 @@ func Test_Check_DefersUnknownGroupWhenProvided(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -472,7 +500,11 @@ func Test_Check_DefersUnknownGroupWhenProvided(t *testing.T) {
 func Test_Check_DeferredUserNoProvideStillAborts(t *testing.T) {
 	dirOp := &harness.FakeOp{
 		Name: "ensure-owner",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, sharedop.UnknownUserError{
 				User: "nobody-provided",
 			}
@@ -492,7 +524,7 @@ func Test_Check_DeferredUserNoProvideStillAborts(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}

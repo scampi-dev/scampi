@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
@@ -18,7 +18,7 @@ import (
 func makeInspectEngine(t *testing.T, steps []spec.Step) *engine.Engine {
 	t.Helper()
 
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	declared := make([]spec.DeclaredStep, len(steps))
@@ -36,7 +36,7 @@ func makeInspectEngine(t *testing.T, steps []spec.Step) *engine.Engine {
 		Steps:      declared,
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), harness.NoopEmitter()), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}

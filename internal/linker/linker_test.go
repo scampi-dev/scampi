@@ -5,6 +5,7 @@ package linker_test
 import (
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
@@ -13,7 +14,6 @@ import (
 	"scampi.dev/scampi/internal/lang/lex"
 	"scampi.dev/scampi/internal/lang/parse"
 	"scampi.dev/scampi/internal/linker"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/std"
 	"scampi.dev/scampi/test/harness"
@@ -127,12 +127,12 @@ func Test_Link_RejectsUnresolvedTarget(t *testing.T) {
 }
 
 func Test_LoadConfig_ReportsParseErrorWithSpan(t *testing.T) {
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte("module main\n@@@ garbage\n")
+	ctl := controller.NewMem()
+	ctl.Files["/config.scampi"] = []byte("module main\n@@@ garbage\n")
 	reg := engine.NewRegistry()
 
 	capture := &harness.Capture{}
-	_, err := linker.LoadConfig(captureCtx(t, capture), "/config.scampi", src, reg)
+	_, err := linker.LoadConfig(captureCtx(t, capture), "/config.scampi", ctl, reg)
 	if err == nil {
 		t.Fatal("expected error for broken syntax")
 	}
@@ -166,8 +166,8 @@ func firstDiagnosticTemplate(t *testing.T, capture *harness.Capture) event.Templ
 }
 
 func Test_LoadConfig_ReportsSecretErrorAtCallSite(t *testing.T) {
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte(`module main
+	ctl := controller.NewMem()
+	ctl.Files["/config.scampi"] = []byte(`module main
 import "std"
 import "std/posix"
 import "std/ssh"
@@ -181,7 +181,7 @@ std.deploy(name = "test", targets = [host]) {
 	reg := engine.NewRegistry()
 
 	capture := &harness.Capture{}
-	_, err := linker.LoadConfig(captureCtx(t, capture), "/config.scampi", src, reg)
+	_, err := linker.LoadConfig(captureCtx(t, capture), "/config.scampi", ctl, reg)
 	if err == nil {
 		t.Fatal("expected error for secret() without backend")
 	}

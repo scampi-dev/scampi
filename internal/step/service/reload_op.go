@@ -6,7 +6,7 @@ import (
 	"context"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -22,7 +22,7 @@ type reloadOp struct {
 
 func (op *reloadOp) Check(
 	_ context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	sm := target.Must[target.ServiceManager](reloadID, tgt)
@@ -40,7 +40,7 @@ func (op *reloadOp) Check(
 
 func (op *reloadOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	sm := target.Must[target.ServiceManager](reloadID, tgt)

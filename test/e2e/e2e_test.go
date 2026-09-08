@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/test/harness"
 )
 
@@ -166,19 +166,19 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 	tgt, ti := setupMemTarget(t, tgtFiles)
 
 	// Build MemSource with config + source files
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	cfgData := harness.ReadOrDie(cfgPath)
 	memCfgPath := "/" + cfgFilename
-	src.Files[memCfgPath] = cfgData
+	ctl.Files[memCfgPath] = cfgData
 	for path, content := range srcFiles.Files {
-		src.Files[path] = []byte(content)
+		ctl.Files[path] = []byte(content)
 	}
 	for path, encoded := range srcFiles.FilesBase64 {
 		data, err := base64.StdEncoding.DecodeString(encoded)
 		if err != nil {
 			t.Fatalf("invalid base64 for source file %s: %v", path, err)
 		}
-		src.Files[path] = data
+		ctl.Files[path] = data
 	}
 
 	// Run engine
@@ -189,7 +189,7 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 	ctx := t.Context()
 
 	run := func() error {
-		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), memCfgPath, store, src)
+		cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), memCfgPath, store, ctl)
 		if err != nil {
 			return err
 		}
@@ -202,7 +202,7 @@ func runE2EScenario(t *testing.T, dir string, cfgFilename string) {
 		resolved.Target = ti
 		resolved.Target.Config = ti.Config
 
-		e, err := engine.NewWithTarget(diagnostic.NewCtx(ctx, em), src, resolved, tgt)
+		e, err := engine.NewWithTarget(diagnostic.NewCtx(ctx, em), ctl, resolved, tgt)
 		if err != nil {
 			return err
 		}

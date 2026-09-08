@@ -6,9 +6,9 @@ import (
 	"errors"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -16,15 +16,15 @@ import (
 func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 	t.Helper()
 
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl := controller.NewMem()
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -36,7 +36,7 @@ func assertCapabilityMismatch(t *testing.T, cfgStr string, tgt target.Target) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}

@@ -18,8 +18,8 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/errs"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/internal/target/ctrmgr"
@@ -46,7 +46,7 @@ type (
 
 func (SSH) Kind() string   { return "ssh" }
 func (SSH) NewConfig() any { return &Config{} }
-func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarget) (target.Target, error) {
+func (SSH) Create(ctx context.Context, ctl controller.Controller, tgt spec.DeclaredTarget) (target.Target, error) {
 	cfg, ok := tgt.Config.(*Config)
 	if !ok {
 		return nil, errs.BUG("expected %T got %T", &Config{}, cfg)
@@ -61,7 +61,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 		}
 	}
 
-	sshCfg, closeAgent, err := buildSSHConfig(ctx, src, cfg, timeout)
+	sshCfg, closeAgent, err := buildSSHConfig(ctx, ctl, cfg, timeout)
 	if err != nil {
 		_ = closeAgent()
 		return nil, err
@@ -179,7 +179,7 @@ func (SSH) Create(ctx context.Context, src source.Source, tgt spec.DeclaredTarge
 
 func buildSSHConfig(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	c *Config,
 	timeout time.Duration,
 ) (*ssh.ClientConfig, func() error, error) {
@@ -192,7 +192,7 @@ func buildSSHConfig(
 		if err != nil {
 			return nil, closeAgent, KeyReadError{Path: keyPath, Err: err}
 		}
-		key, err := src.ReadFile(ctx, keyPath)
+		key, err := ctl.ReadFile(ctx, keyPath)
 		if err != nil {
 			return nil, closeAgent, KeyReadError{Path: keyPath, Err: err}
 		}
@@ -209,7 +209,7 @@ func buildSSHConfig(
 	}
 
 	// Try SSH agent
-	if sock, ok := src.LookupEnv("SSH_AUTH_SOCK"); ok {
+	if sock, ok := ctl.LookupEnv("SSH_AUTH_SOCK"); ok {
 		conn, err := net.Dial("unix", sock)
 		if err == nil {
 			ag := agent.NewClient(conn)

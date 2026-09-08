@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"testing"
 
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/copy"
 	"scampi.dev/scampi/internal/step/pkg"
@@ -38,17 +38,17 @@ func planOps(
 }
 
 type checker interface {
-	Check(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error)
+	Check(context.Context, controller.Controller, target.Target) (spec.CheckResult, []spec.DriftDetail, error)
 }
 
 func mustCheckDrift(
 	t *testing.T,
 	op checker,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) []spec.DriftDetail {
 	t.Helper()
-	_, drift, err := op.Check(t.Context(), src, tgt)
+	_, drift, err := op.Check(t.Context(), ctl, tgt)
 	if err != nil {
 		t.Fatalf("Check: %v", err)
 	}
@@ -58,13 +58,13 @@ func mustCheckDrift(
 func collectDrift(
 	t *testing.T,
 	ops []spec.Op,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) []spec.DriftDetail {
 	t.Helper()
 	var all []spec.DriftDetail
 	for _, op := range ops {
-		_, drift, err := op.Check(t.Context(), src, tgt)
+		_, drift, err := op.Check(t.Context(), ctl, tgt)
 		if err != nil {
 			t.Fatalf("Check: %v", err)
 		}
@@ -103,8 +103,8 @@ func assertDrift(
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsMissingCopyDest(t *testing.T) {
-	src := source.NewMemSource()
-	src.Files["/src.txt"] = []byte("hello")
+	ctl := controller.NewMem()
+	ctl.Files["/src.txt"] = []byte("hello")
 	tgt := target.NewMemTarget()
 	// dest file doesn't exist
 
@@ -116,13 +116,13 @@ func Test_Drift_ReportsMissingCopyDest(t *testing.T) {
 		"perm": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "content", "", "5 bytes")
 }
 
 func Test_Drift_ReportsCopyContentDiff(t *testing.T) {
-	src := source.NewMemSource()
-	src.Files["/src.txt"] = []byte("new content")
+	ctl := controller.NewMem()
+	ctl.Files["/src.txt"] = []byte("new content")
 	tgt := target.NewMemTarget()
 	tgt.Files["/dest.txt"] = []byte("old")
 	tgt.Modes["/dest.txt"] = 0o644
@@ -135,7 +135,7 @@ func Test_Drift_ReportsCopyContentDiff(t *testing.T) {
 		"perm": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "content", "3 bytes", "11 bytes")
 }
 
@@ -143,8 +143,8 @@ func Test_Drift_ReportsCopyContentDiff(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsMissingTemplateDest(t *testing.T) {
-	src := source.NewMemSource()
-	src.Files["/tmpl.txt"] = []byte("Hello {{.Name}}")
+	ctl := controller.NewMem()
+	ctl.Files["/tmpl.txt"] = []byte("Hello {{.Name}}")
 	tgt := target.NewMemTarget()
 
 	ops := planOps(t, template.Template{}, &template.TemplateConfig{
@@ -160,13 +160,13 @@ func Test_Drift_ReportsMissingTemplateDest(t *testing.T) {
 		"perm": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "content", "", "11 bytes")
 }
 
 func Test_Drift_ReportsTemplateContentDiff(t *testing.T) {
-	src := source.NewMemSource()
-	src.Files["/tmpl.txt"] = []byte("Hello {{.Name}}")
+	ctl := controller.NewMem()
+	ctl.Files["/tmpl.txt"] = []byte("Hello {{.Name}}")
 	tgt := target.NewMemTarget()
 	tgt.Files["/out.txt"] = []byte("old text here")
 	tgt.Modes["/out.txt"] = 0o644
@@ -184,7 +184,7 @@ func Test_Drift_ReportsTemplateContentDiff(t *testing.T) {
 		"perm": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "content", "13 bytes", "11 bytes")
 }
 
@@ -192,7 +192,7 @@ func Test_Drift_ReportsTemplateContentDiff(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsMissingSymlink(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	// Create a file so the parent dir exists implicitly
 	tgt.Files["/usr/local/bin/placeholder"] = []byte{}
@@ -208,12 +208,12 @@ func Test_Drift_ReportsMissingSymlink(t *testing.T) {
 		},
 	)
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "target", "", "/usr/bin/real")
 }
 
 func Test_Drift_ReportsSymlinkTargetDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Symlinks["/usr/local/bin/mylink"] = "/usr/bin/old"
 	// Parent dir needs to exist
@@ -230,7 +230,7 @@ func Test_Drift_ReportsSymlinkTargetDiff(t *testing.T) {
 		},
 	)
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "target", "/usr/bin/old", "/usr/bin/real")
 }
 
@@ -238,22 +238,22 @@ func Test_Drift_ReportsSymlinkTargetDiff(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsModeOnMissingFile(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	op := &fileop.EnsureModeOp{Path: "/etc/app.conf", Mode: 0o644}
-	details := mustCheckDrift(t, op, src, tgt)
+	details := mustCheckDrift(t, op, ctl, tgt)
 	assertDrift(t, details, "perm", "", "-rw-r--r--")
 }
 
 func Test_Drift_ReportsModeDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Files["/etc/app.conf"] = []byte("content")
 	tgt.Modes["/etc/app.conf"] = 0o755
 
 	op := &fileop.EnsureModeOp{Path: "/etc/app.conf", Mode: 0o644}
-	details := mustCheckDrift(t, op, src, tgt)
+	details := mustCheckDrift(t, op, ctl, tgt)
 	assertDrift(
 		t,
 		details,
@@ -267,18 +267,18 @@ func Test_Drift_ReportsModeDiff(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsOwnerOnMissingFile(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
 	op := &fileop.EnsureOwnerOp{
 		Path: "/etc/app.conf", Owner: "app", Group: "staff",
 	}
-	details := mustCheckDrift(t, op, src, tgt)
+	details := mustCheckDrift(t, op, ctl, tgt)
 	assertDrift(t, details, "owner:group", "", "app:staff")
 }
 
 func Test_Drift_ReportsOwnerDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Files["/etc/app.conf"] = []byte("content")
 	tgt.Modes["/etc/app.conf"] = 0o644
@@ -289,7 +289,7 @@ func Test_Drift_ReportsOwnerDiff(t *testing.T) {
 	op := &fileop.EnsureOwnerOp{
 		Path: "/etc/app.conf", Owner: "app", Group: "staff",
 	}
-	details := mustCheckDrift(t, op, src, tgt)
+	details := mustCheckDrift(t, op, ctl, tgt)
 	assertDrift(t, details, "owner:group", "root:wheel", "app:staff")
 }
 
@@ -297,7 +297,7 @@ func Test_Drift_ReportsOwnerDiff(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsPkgNotInstalled(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	// vim not installed
 
@@ -309,12 +309,12 @@ func Test_Drift_ReportsPkgNotInstalled(t *testing.T) {
 		"packages": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "vim: not installed", "present")
 }
 
 func Test_Drift_ReportsPkgUpgradable(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Pkgs["vim"] = true
 	tgt.Upgradable["vim"] = true
@@ -327,7 +327,7 @@ func Test_Drift_ReportsPkgUpgradable(t *testing.T) {
 		"packages": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "vim: upgradable", "latest")
 }
 
@@ -335,7 +335,7 @@ func Test_Drift_ReportsPkgUpgradable(t *testing.T) {
 // state=latest must not refresh the package cache during Check.
 // Cache refresh is a target mutation and belongs in Execute.
 func Test_Drift_PkgLatestCheckIsReadOnly(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Pkgs["vim"] = true
 	tgt.CacheStale = true // simulate cache that would otherwise be refreshed
@@ -348,7 +348,7 @@ func Test_Drift_PkgLatestCheckIsReadOnly(t *testing.T) {
 		"packages": {},
 	})
 
-	_ = collectDrift(t, ops, src, tgt)
+	_ = collectDrift(t, ops, ctl, tgt)
 
 	if !tgt.CacheStale {
 		t.Error("Check refreshed the pkg cache (CacheStale -> false) - Check must be read-only")
@@ -356,7 +356,7 @@ func Test_Drift_PkgLatestCheckIsReadOnly(t *testing.T) {
 }
 
 func Test_Drift_ReportsPkgInstalledWhenWantAbsent(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.Pkgs["vim"] = true
 
@@ -368,7 +368,7 @@ func Test_Drift_ReportsPkgInstalledWhenWantAbsent(t *testing.T) {
 		"packages": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "state", "vim: installed", "absent")
 }
 
@@ -382,7 +382,7 @@ func sysctlMemTarget(cmdFunc func(string) (target.CommandResult, error)) *target
 }
 
 func Test_Drift_ReportsSysctlValueDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
 			return target.CommandResult{Stdout: "0\n"}, nil
@@ -397,12 +397,12 @@ func Test_Drift_ReportsSysctlValueDiff(t *testing.T) {
 		"value": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(t, details, "net.ipv4.ip_forward", "0", "1")
 }
 
 func Test_Drift_ReportsNoDriftWhenSysctlSatisfied(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
 			return target.CommandResult{Stdout: "1\n"}, nil
@@ -417,7 +417,7 @@ func Test_Drift_ReportsNoDriftWhenSysctlSatisfied(t *testing.T) {
 		"value": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	if len(details) != 0 {
 		t.Errorf("expected no drift, got %+v", details)
 	}
@@ -427,7 +427,7 @@ func Test_Drift_ReportsNoDriftWhenSysctlSatisfied(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsMissingSysctlDropIn(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
 			return target.CommandResult{Stdout: "1\n"}, nil
@@ -442,7 +442,7 @@ func Test_Drift_ReportsMissingSysctlDropIn(t *testing.T) {
 		"value": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(
 		t,
 		details,
@@ -453,7 +453,7 @@ func Test_Drift_ReportsMissingSysctlDropIn(t *testing.T) {
 }
 
 func Test_Drift_ReportsSysctlDropInContentDiff(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
 			return target.CommandResult{Stdout: "1\n"}, nil
@@ -469,7 +469,7 @@ func Test_Drift_ReportsSysctlDropInContentDiff(t *testing.T) {
 		"value": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(
 		t,
 		details,
@@ -483,7 +483,7 @@ func Test_Drift_ReportsSysctlDropInContentDiff(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_Drift_ReportsStaleSysctlDropIn(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
 			return target.CommandResult{Stdout: "1\n"}, nil
@@ -499,7 +499,7 @@ func Test_Drift_ReportsStaleSysctlDropIn(t *testing.T) {
 		"value": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	assertDrift(
 		t,
 		details,
@@ -510,7 +510,7 @@ func Test_Drift_ReportsStaleSysctlDropIn(t *testing.T) {
 }
 
 func Test_Drift_ReportsNoDriftWithoutSysctlDropIn(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := sysctlMemTarget(func(cmd string) (target.CommandResult, error) {
 		if cmd == "sysctl -n net.ipv4.ip_forward" {
 			return target.CommandResult{Stdout: "1\n"}, nil
@@ -525,7 +525,7 @@ func Test_Drift_ReportsNoDriftWithoutSysctlDropIn(t *testing.T) {
 		"value": {},
 	})
 
-	details := collectDrift(t, ops, src, tgt)
+	details := collectDrift(t, ops, ctl, tgt)
 	if len(details) != 0 {
 		t.Errorf("expected no drift, got %+v", details)
 	}

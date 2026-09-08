@@ -6,10 +6,10 @@ import (
 	"context"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/internal/target/local"
@@ -17,7 +17,7 @@ import (
 )
 
 func driftCheckFn(drift []spec.DriftDetail) harness.CheckFn {
-	return func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+	return func(context.Context, controller.Controller, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
 		return spec.CheckUnsatisfied, drift, nil
 	}
 }
@@ -49,7 +49,7 @@ func Test_CheckPlan_EmitsDriftDetail(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -104,7 +104,7 @@ func Test_CheckPlan_EmitsNoDriftWhenSatisfied(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -145,7 +145,7 @@ func Test_ExecutePlan_EmitsNoDrift(t *testing.T) {
 		Target: harness.MockDeclaredTarget(local.POSIXTarget{}),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}

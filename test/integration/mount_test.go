@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -51,7 +51,7 @@ std.deploy(name = "test", targets = [host]) {
   posix.mount { src = "10.10.2.2:/data", dest = "/mnt/data", fs_type = posix.MountType.nfs }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	mounts := map[string]bool{}
 	tgt.CommandFunc = mountCommandFunc(mounts)
@@ -61,7 +61,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -93,7 +93,7 @@ std.deploy(name = "test", targets = [host]) {
   posix.mount { src = "10.10.2.2:/data", dest = "/mnt/data", fs_type = posix.MountType.nfs }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	mounts := map[string]bool{"/mnt/data": true}
 	tgt.CommandFunc = mountCommandFunc(mounts)
@@ -103,7 +103,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -127,7 +127,7 @@ std.deploy(name = "test", targets = [host]) {
   posix.mount { src = "10.10.2.2:/data", dest = "/mnt/data", fs_type = posix.MountType.nfs }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	mounts := map[string]bool{}
 	tgt.CommandFunc = mountCommandFunc(mounts)
@@ -137,7 +137,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -170,7 +170,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	mounts := map[string]bool{"/mnt/data": true}
 	tgt.CommandFunc = mountCommandFunc(mounts)
@@ -180,7 +180,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -217,7 +217,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	mounts := map[string]bool{"/mnt/data": true}
 	tgt.CommandFunc = mountCommandFunc(mounts)
@@ -227,7 +227,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -264,7 +264,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	mounts := map[string]bool{"/mnt/data": true}
 	tgt.CommandFunc = mountCommandFunc(mounts)
@@ -274,7 +274,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -308,7 +308,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	mounts := map[string]bool{}
 	tgt.CommandFunc = mountCommandFunc(mounts)
@@ -318,7 +318,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}

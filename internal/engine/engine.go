@@ -9,23 +9,23 @@ import (
 	"github.com/mattn/go-runewidth"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
 
 type Engine struct {
-	src    source.Source
+	ctl    controller.Controller
 	tgt    target.Target
 	cfg    spec.Config
 	store  *diagnostic.InputStore
 	deploy event.DeployRef // lane identity for events this engine emits
 }
 
-func New(ctx diagnostic.Ctx, src source.Source, cfg spec.Config) (*Engine, error) {
-	tgt, err := cfg.Target.Type.Create(ctx, src, cfg.Target)
+func New(ctx diagnostic.Ctx, ctl controller.Controller, cfg spec.Config) (*Engine, error) {
+	tgt, err := cfg.Target.Type.Create(ctx, ctl, cfg.Target)
 	if err != nil {
 		if impact, ok := emitEngineDiagnostic(ctx, cfg.Path, err); ok {
 			if impact.ShouldAbort() {
@@ -36,7 +36,7 @@ func New(ctx diagnostic.Ctx, src source.Source, cfg spec.Config) (*Engine, error
 	}
 
 	return &Engine{
-		src: src,
+		ctl: ctl,
 		tgt: tgt,
 		cfg: cfg,
 	}, nil
@@ -46,12 +46,12 @@ func New(ctx diagnostic.Ctx, src source.Source, cfg spec.Config) (*Engine, error
 // Use this for testing when you need to provide a specific target instance.
 func NewWithTarget(
 	_ diagnostic.Ctx,
-	src source.Source,
+	ctl controller.Controller,
 	cfg spec.Config,
 	tgt target.Target,
 ) (*Engine, error) {
 	return &Engine{
-		src: src,
+		ctl: ctl,
 		tgt: tgt,
 		cfg: cfg,
 	}, nil
@@ -76,7 +76,7 @@ func (e *Engine) storeInputFiles(ctx diagnostic.Ctx, p spec.Plan) {
 			continue
 		}
 		for _, path := range sr.SourcePaths() {
-			if data, err := e.src.ReadFile(ctx, path); err == nil {
+			if data, err := e.ctl.ReadFile(ctx, path); err == nil {
 				e.store.AddFile(path, data)
 			}
 		}
@@ -92,8 +92,8 @@ func forEachResolvedOffline(
 	opts spec.ResolveOptions,
 	run func(ctx diagnostic.Ctx, e *Engine) error,
 ) error {
-	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
-	cfg, err := LoadConfig(ctx, cfgPath, store, src)
+	ctl := controller.WithRoot(cfgPath, controller.Posix{})
+	cfg, err := LoadConfig(ctx, cfgPath, store, ctl)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func forEachResolvedOffline(
 
 	allCaps := capabilityTarget{caps: capability.All}
 	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error {
-		e, err := NewWithTarget(ctx, src, res, allCaps)
+		e, err := NewWithTarget(ctx, ctl, res, allCaps)
 		if err != nil {
 			return err
 		}
@@ -128,8 +128,8 @@ func forEachResolved(
 	opts spec.ResolveOptions,
 	run func(ctx diagnostic.Ctx, e *Engine) error,
 ) error {
-	src := source.WithRoot(cfgPath, source.LocalPosixSource{})
-	cfg, err := LoadConfig(ctx, cfgPath, store, src)
+	ctl := controller.WithRoot(cfgPath, controller.Posix{})
+	cfg, err := LoadConfig(ctx, cfgPath, store, ctl)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func forEachResolved(
 	}
 
 	return runPlansConcurrent(ctx, resolved, func(ctx diagnostic.Ctx, dr event.DeployRef, res spec.Config) error {
-		e, err := New(ctx, src, res)
+		e, err := New(ctx, ctl, res)
 		if err != nil {
 			return err
 		}

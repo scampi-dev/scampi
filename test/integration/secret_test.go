@@ -10,11 +10,11 @@ import (
 
 	"filippo.io/age"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/secret"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -48,16 +48,16 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/secrets.json"] = []byte(`{"db_pass": "hunter2"}`)
+	ctl.Files["/secrets.json"] = []byte(`{"db_pass": "hunter2"}`)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v\nrecorder: %s", err, rec)
 	}
@@ -105,16 +105,16 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte(cfgStr)
-	src.Files["/secrets.json"] = []byte(`{}`)
+	ctl := controller.NewMem()
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/secrets.json"] = []byte(`{}`)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err == nil {
 		t.Fatal("expected error for missing secret, got nil")
 	}
@@ -152,16 +152,16 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/my-secrets.json"] = []byte(`{"api_token": "tok-abc123"}`)
+	ctl.Files["/my-secrets.json"] = []byte(`{"api_token": "tok-abc123"}`)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -195,15 +195,15 @@ let resolver = secrets.from_file(path = "nonexistent.json")
 
 std.deploy(name = "test", targets = [host]) {}
 `
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl := controller.NewMem()
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err == nil {
 		t.Fatal("expected error for missing secrets file, got nil")
 	}
@@ -239,17 +239,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/secrets1.json"] = []byte(`{"key_a": "val_a"}`)
-	src.Files["/secrets2.json"] = []byte(`{"key_b": "val_b"}`)
+	ctl.Files["/secrets1.json"] = []byte(`{"key_a": "val_a"}`)
+	ctl.Files["/secrets2.json"] = []byte(`{"key_b": "val_b"}`)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -328,19 +328,19 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{
+	ctl.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{
 		"db_pass": "hunter2",
 	})
-	src.Env["SCAMPI_AGE_KEY"] = id.String()
+	ctl.Env["SCAMPI_AGE_KEY"] = id.String()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -390,17 +390,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte(cfgStr)
-	src.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{})
-	src.Env["SCAMPI_AGE_KEY"] = id.String()
+	ctl := controller.NewMem()
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{})
+	ctl.Env["SCAMPI_AGE_KEY"] = id.String()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err == nil {
 		t.Fatal("expected error for missing secret, got nil")
 	}
@@ -441,14 +441,14 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{
+	ctl.Files["/secrets.age.json"] = ageEncryptedJSON(t, id, map[string]string{
 		"db_pass": "hunter2",
 	})
 	// No SCAMPI_AGE_KEY - block the default-file fallback
-	src.Env["SCAMPI_AGE_KEY_FILE"] = "/nonexistent/scampi-test/age.key"
+	ctl.Env["SCAMPI_AGE_KEY_FILE"] = "/nonexistent/scampi-test/age.key"
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -456,7 +456,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	// Placeholder returns "<secret>" as the value. The template
 	// should render with that placeholder value.
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -490,17 +490,17 @@ let resolver = secrets.from_age(path = "nonexistent.age.json")
 
 std.deploy(name = "test", targets = [host]) {}
 `
-	src := source.NewMemSource()
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl := controller.NewMem()
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 	id := ageTestKeypair(t)
-	src.Env["SCAMPI_AGE_KEY"] = id.String()
+	ctl.Env["SCAMPI_AGE_KEY"] = id.String()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err == nil {
 		t.Fatal("expected error for missing secrets file, got nil")
 	}

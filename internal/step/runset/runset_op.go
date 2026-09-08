@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -40,7 +40,7 @@ type setPlan struct {
 
 func (op *runSetOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	cmdr := target.Must[target.Command](runSetID, tgt)
@@ -73,7 +73,7 @@ func (op *runSetOp) Check(
 
 func (op *runSetOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	cmdr := target.Must[target.Command](runSetID, tgt)

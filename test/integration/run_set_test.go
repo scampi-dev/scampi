@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -355,12 +355,12 @@ std.deploy(name = "test", targets = [host]) {
 // assertions. A nil return means apply failed.
 func runApply(t *testing.T, cfgStr string, tgt target.Target) *harness.RecordingDisplayer {
 	t.Helper()
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup failed: %v\n%s", err, rec)
 		return nil

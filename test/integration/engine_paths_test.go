@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/internal/target/local"
@@ -22,7 +22,7 @@ import (
 // a context cancelled mid-check surfaces as CancelledError, not a raw
 // context.Canceled or a BUG panic.
 func Test_CheckPlan_CancelledContextReturnsCancelledError(t *testing.T) {
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -31,7 +31,7 @@ func Test_CheckPlan_CancelledContextReturnsCancelledError(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -41,7 +41,7 @@ func Test_CheckPlan_CancelledContextReturnsCancelledError(t *testing.T) {
 		Name: "cancelling-check",
 		CheckFn: func(
 			ctx context.Context,
-			_ source.Source,
+			_ controller.Controller,
 			_ target.Target,
 		) (spec.CheckResult, []spec.DriftDetail, error) {
 			cancel()
@@ -84,7 +84,7 @@ func (o *timedOp) Timeout() time.Duration { return o.timeout }
 // default (30s). A hung op that honors its context can therefore not stall a
 // run forever.
 func Test_CheckPlan_OpTimeoutBoundsOpContexts(t *testing.T) {
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 	ctx := t.Context()
@@ -93,7 +93,7 @@ func Test_CheckPlan_OpTimeoutBoundsOpContexts(t *testing.T) {
 	record := func(slot *atomic.Int64) harness.CheckFn {
 		return func(
 			ctx context.Context,
-			_ source.Source,
+			_ controller.Controller,
 			_ target.Target,
 		) (spec.CheckResult, []spec.DriftDetail, error) {
 			d, ok := ctx.Deadline()
@@ -121,7 +121,7 @@ func Test_CheckPlan_OpTimeoutBoundsOpContexts(t *testing.T) {
 	cfg := spec.Config{
 		Target: harness.MockDeclaredTarget(tgt),
 	}
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -223,7 +223,7 @@ func newRefEngine(t *testing.T) *engine.Engine {
 	t.Helper()
 	em := harness.NoopEmitter()
 	cfg := spec.Config{Target: harness.MockDeclaredTarget(local.POSIXTarget{})}
-	e, err := engine.New(diagnostic.NewCtx(t.Context(), em), source.LocalPosixSource{}, cfg)
+	e, err := engine.New(diagnostic.NewCtx(t.Context(), em), controller.Posix{}, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}

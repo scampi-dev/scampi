@@ -5,9 +5,9 @@ package integration
 import (
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -30,13 +30,13 @@ std.deploy(name = "test", targets = [host]) {
 // per step, and that each step's Begin precedes its Result in the stream. Begin
 // is the live region's "step entered execution" signal; Result is its finish.
 func Test_BeginEvent_FiresPerStepBeforeResult(t *testing.T) {
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, beginEventCfg, src, tgt, em, store)
+	e, err := loadAndResolve(t, beginEventCfg, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}

@@ -6,7 +6,7 @@ import (
 	"context"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -22,7 +22,7 @@ type removeUserOp struct {
 
 func (op *removeUserOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	um := target.Must[target.UserManager](removeUserID, tgt)
@@ -45,7 +45,7 @@ func (op *removeUserOp) Check(
 
 func (op *removeUserOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	um := target.Must[target.UserManager](removeUserID, tgt)

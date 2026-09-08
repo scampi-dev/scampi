@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -157,7 +157,7 @@ func (e *Engine) InspectDiffFile(ctx diagnostic.Ctx, destPath string) (*InspectD
 				continue
 			}
 			if strings.Contains(d.DestPath(), destPath) {
-				found = append(found, diffableOp{diff: d, src: e.src, tgt: e.tgt})
+				found = append(found, diffableOp{diff: d, ctl: e.ctl, tgt: e.tgt})
 			}
 		}
 	}
@@ -180,12 +180,12 @@ func (e *Engine) InspectDiffFile(ctx diagnostic.Ctx, destPath string) (*InspectD
 
 	dop := found[0]
 
-	desired, err := dop.diff.DesiredContent(ctx, dop.src, dop.tgt)
+	desired, err := dop.diff.DesiredContent(ctx, dop.ctl, dop.tgt)
 	if err != nil {
 		return nil, err
 	}
 
-	current, err := dop.diff.CurrentContent(ctx, dop.src, dop.tgt)
+	current, err := dop.diff.CurrentContent(ctx, dop.ctl, dop.tgt)
 	if err != nil {
 		if target.IsNotExist(err) {
 			current = nil
@@ -203,7 +203,7 @@ func (e *Engine) InspectDiffFile(ctx diagnostic.Ctx, destPath string) (*InspectD
 
 type diffableOp struct {
 	diff spec.Diffable
-	src  source.Source
+	ctl  controller.Controller
 	tgt  target.Target
 }
 

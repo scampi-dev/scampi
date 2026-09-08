@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
-	"scampi.dev/scampi/internal/source"
 )
 
 // nopDisplayer satisfies diagnostic.Output, capturing events and no-opping the
@@ -82,7 +82,7 @@ std.deploy(name = "smoke", targets = [mock]) {
 	passed, failed, err := runLangTestFile(
 		ctx,
 		path,
-		source.LocalPosixSource{},
+		controller.Posix{},
 	)
 	if err != nil {
 		for _, d := range displ.events {
@@ -157,7 +157,7 @@ std.deploy(name = "smoke", targets = [mock]) {
 	passed, failed, err := runLangTestFile(
 		ctx,
 		testPath,
-		source.LocalPosixSource{},
+		controller.Posix{},
 	)
 	if err != nil {
 		for _, d := range displ.events {
@@ -205,7 +205,7 @@ std.deploy(name = "fail", targets = [mock]) {
 	passed, failed, err := runLangTestFile(
 		ctx,
 		path,
-		source.LocalPosixSource{},
+		controller.Posix{},
 	)
 	if err != nil {
 		t.Fatalf("runLangTestFile: %v", err)

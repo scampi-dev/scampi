@@ -7,11 +7,11 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/signal"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/internal/target/local"
@@ -27,10 +27,14 @@ func Test_Check_ContinuesPastNonAbortingDiagnostics(t *testing.T) {
 
 	op := &harness.FakeOp{
 		Name: "A",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, harness.NewFakeDiagnostic(signal.Warning, diagnostic.ImpactNone, nil)
 		},
-		ExecFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		ExecFn: func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 			execRan.Store(true)
 			return spec.Result{Changed: true}, nil
 		},
@@ -55,7 +59,7 @@ func Test_Check_ContinuesPastNonAbortingDiagnostics(t *testing.T) {
 
 		harness.NoopEmitter()),
 
-		source.LocalPosixSource{},
+		controller.Posix{},
 		cfg)
 
 	if err != nil {
@@ -98,10 +102,14 @@ func Test_Check_NonAbortDiagnosticAllowsSiblingOps(t *testing.T) {
 
 	opA := &harness.FakeOp{
 		Name: "A",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, harness.NewFakeDiagnostic(signal.Warning, diagnostic.ImpactNone, nil)
 		},
-		ExecFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		ExecFn: func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 			ranA.Store(true)
 			return spec.Result{Changed: true}, nil
 		},
@@ -109,10 +117,14 @@ func Test_Check_NonAbortDiagnosticAllowsSiblingOps(t *testing.T) {
 
 	opB := &harness.FakeOp{
 		Name: "B",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, nil
 		},
-		ExecFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		ExecFn: func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 			ranB.Store(true)
 			return spec.Result{Changed: true}, nil
 		},
@@ -136,7 +148,7 @@ func Test_Check_NonAbortDiagnosticAllowsSiblingOps(t *testing.T) {
 
 		harness.NoopEmitter()),
 
-		source.LocalPosixSource{},
+		controller.Posix{},
 		cfg)
 
 	if err != nil {
@@ -157,7 +169,11 @@ func Test_Check_NonAbortDiagnosticAllowsSiblingOps(t *testing.T) {
 func Test_Check_AbortDiagnosticStopsSiblingOps(t *testing.T) {
 	opA := &harness.FakeOp{
 		Name: "A",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, harness.NewFakeDiagnostic(signal.Error, diagnostic.ImpactAbort, nil)
 		},
 		ExecFn: harness.PanicExecFn("harness.ExecFn of A must not be called after aborting check"),
@@ -165,7 +181,11 @@ func Test_Check_AbortDiagnosticStopsSiblingOps(t *testing.T) {
 
 	opB := &harness.FakeOp{
 		Name: "B",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, nil
 		},
 		ExecFn: harness.PanicExecFn("harness.ExecFn of B must not be called after aborting check"),
@@ -190,7 +210,7 @@ func Test_Check_AbortDiagnosticStopsSiblingOps(t *testing.T) {
 
 		harness.NoopEmitter()),
 
-		source.LocalPosixSource{},
+		controller.Posix{},
 		cfg)
 
 	if err != nil {
@@ -208,7 +228,11 @@ func Test_Check_AbortDiagnosticStopsSiblingOps(t *testing.T) {
 func Test_Check_AbortDiagnosticStopsStepExecution(t *testing.T) {
 	op := &harness.FakeOp{
 		Name: "abort-op",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, harness.NewFakeDiagnostic(signal.Error, diagnostic.ImpactAbort, nil)
 		},
 		ExecFn: harness.PanicExecFn("exec must not run after aborting check"),
@@ -239,7 +263,7 @@ func Test_Check_AbortDiagnosticStopsStepExecution(t *testing.T) {
 
 		harness.NoopEmitter()),
 
-		source.LocalPosixSource{},
+		controller.Posix{},
 		cfg)
 
 	if err != nil {
@@ -259,10 +283,14 @@ func Test_Check_NonAbortDiagnosticAllowsSiblingExecution(t *testing.T) {
 
 	opA := &harness.FakeOp{
 		Name: "A",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, harness.NewFakeDiagnostic(signal.Warning, diagnostic.ImpactNone, nil)
 		},
-		ExecFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		ExecFn: func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 			ranA = true
 			return spec.Result{Changed: true}, nil
 		},
@@ -270,10 +298,14 @@ func Test_Check_NonAbortDiagnosticAllowsSiblingExecution(t *testing.T) {
 
 	opB := &harness.FakeOp{
 		Name: "B",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, nil
 		},
-		ExecFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		ExecFn: func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 			ranB = true
 			return spec.Result{Changed: true}, nil
 		},
@@ -298,7 +330,7 @@ func Test_Check_NonAbortDiagnosticAllowsSiblingExecution(t *testing.T) {
 
 		harness.NoopEmitter()),
 
-		source.LocalPosixSource{},
+		controller.Posix{},
 		cfg)
 
 	if err != nil {
@@ -322,10 +354,14 @@ func Test_Execute_FailedOpBlocksDependentOps(t *testing.T) {
 	// parent op: executes and fails
 	parent := &harness.FakeOp{
 		Name: "parent",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, nil
 		},
-		ExecFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		ExecFn: func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 			return spec.Result{}, harness.NewFakeDiagnostic(signal.Error, diagnostic.ImpactAbort, nil)
 		},
 	}
@@ -333,7 +369,11 @@ func Test_Execute_FailedOpBlocksDependentOps(t *testing.T) {
 	// child op: must never execute
 	child := &harness.FakeOp{
 		Name: "child",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, nil
 		},
 		ExecFn: harness.PanicExecFn("exec must not run after parent failure"),
@@ -361,7 +401,7 @@ func Test_Execute_FailedOpBlocksDependentOps(t *testing.T) {
 
 		harness.NoopEmitter()),
 
-		source.LocalPosixSource{},
+		controller.Posix{},
 		cfg)
 
 	if err != nil {

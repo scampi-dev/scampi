@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package source
+package controller
 
 import (
 	"context"
 	"os"
 )
 
-type LocalPosixSource struct{}
+type Posix struct{}
 
-func (LocalPosixSource) ReadFile(_ context.Context, path string) ([]byte, error) {
+func (Posix) ReadFile(_ context.Context, path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-func (LocalPosixSource) WriteFile(_ context.Context, path string, data []byte) error {
+func (Posix) WriteFile(_ context.Context, path string, data []byte) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func (LocalPosixSource) EnsureDir(_ context.Context, path string) error {
+func (Posix) EnsureDir(_ context.Context, path string) error {
 	return os.MkdirAll(path, 0o755)
 }
 
-func (LocalPosixSource) Stat(_ context.Context, path string) (FileMeta, error) {
+func (Posix) Stat(_ context.Context, path string) (FileMeta, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -38,6 +38,6 @@ func (LocalPosixSource) Stat(_ context.Context, path string) (FileMeta, error) {
 	}, nil
 }
 
-func (LocalPosixSource) LookupEnv(key string) (string, bool) {
+func (Posix) LookupEnv(key string) (string, bool) {
 	return os.LookupEnv(key)
 }

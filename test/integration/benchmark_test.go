@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/signal"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -101,14 +101,14 @@ std.deploy(name = "bench", targets = [host]) {
 			cfgPath := harness.AbsPath(filepath.Join(tmp, "config.scampi"))
 			harness.WriteOrDie(cfgPath, []byte(cfg), 0o644)
 
-			src := source.LocalPosixSource{}
+			ctl := controller.Posix{}
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewInputStore()
 
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), cfgPath, store, src)
+				_, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), cfgPath, store, ctl)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -166,14 +166,14 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/src.txt"] = []byte("hello")
+			ctl.Files["/src.txt"] = []byte("hello")
 			for j := range size {
 				tgt.Files[fmt.Sprintf("/dest-%d.txt", j)] = []byte("hello")
 			}
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -182,7 +182,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -194,7 +194,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -233,10 +233,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			for j := range size {
 				tgt.Symlinks[fmt.Sprintf("/link-%d.txt", j)] = "/target.txt"
 			}
@@ -248,7 +248,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -260,7 +260,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -299,10 +299,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			for j := range size {
 				tgt.Dirs[fmt.Sprintf("/mydir-%d", j)] = 0o755
 			}
@@ -314,7 +314,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -326,7 +326,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -377,11 +377,11 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/src.txt"] = []byte("hello")
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/src.txt"] = []byte("hello")
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			for j := range size {
 				tgt.Files[fmt.Sprintf("/dest-%d.txt", j)] = []byte("hello")
 				tgt.Symlinks[fmt.Sprintf("/link-%d.txt", j)] = "/target.txt"
@@ -394,7 +394,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -406,7 +406,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -453,10 +453,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			for j := range size {
 				tgt.Files[fmt.Sprintf("/out-%d.conf", j)] = []byte("server bench port=8080")
 			}
@@ -468,7 +468,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -480,7 +480,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -519,10 +519,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Pkgs["nginx"] = true
 
 			rec := &harness.RecordingDisplayer{}
@@ -532,7 +532,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -544,7 +544,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -583,10 +583,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Services["nginx"] = true
 			tgt.EnabledServices["nginx"] = true
 
@@ -597,7 +597,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -609,7 +609,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -648,10 +648,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			for j := range size {
 				name := fmt.Sprintf("deploy-%d", j)
 				tgt.Groups[name] = target.GroupInfo{Name: name}
@@ -664,7 +664,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -676,7 +676,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -715,10 +715,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			for j := range size {
 				name := fmt.Sprintf("deploy-%d", j)
 				tgt.Users[name] = target.UserInfo{
@@ -735,7 +735,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -747,7 +747,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -787,10 +787,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.Files["/etc/sysctl.d/99-scampi-net-ipv4-ip_forward.conf"] = []byte("net.ipv4.ip_forward = 1\n")
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				if cmd == "sysctl -n net.ipv4.ip_forward" {
@@ -806,7 +806,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -818,7 +818,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -857,10 +857,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				switch cmd {
 				case "ufw version":
@@ -882,7 +882,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -894,7 +894,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -933,10 +933,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
 				if cmd == "check-thing" {
 					return target.CommandResult{ExitCode: 0}, nil
@@ -951,7 +951,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -963,7 +963,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -1004,10 +1004,10 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 			for i := range size {
 				tgt.Containers[fmt.Sprintf("app-%d", i)] = target.ContainerInfo{
 					Name: fmt.Sprintf("app-%d", i), Image: "nginx:1.25",
@@ -1022,7 +1022,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -1034,7 +1034,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -1115,9 +1115,9 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, srcPath)
 
-			src := source.NewMemSource()
-			src.Files[srcPath] = archive
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl := controller.NewMem()
+			ctl.Files[srcPath] = archive
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 			tgt := target.NewMemTarget()
 			tgt.Files[destMarkerPath("/output")] = []byte(archiveHash(archive) + "\n")
@@ -1129,7 +1129,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -1141,7 +1141,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -1199,8 +1199,8 @@ std.deploy(name = "bench", targets = [host]) {
 %s}
 `, cfgEntries.String())
 
-			src := source.NewMemSource()
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl := controller.NewMem()
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 			tgt := target.NewMemTarget()
 			tgt.Files["/etc/fstab"] = []byte(fstab.String())
@@ -1224,7 +1224,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -1236,7 +1236,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -1284,8 +1284,8 @@ std.deploy(name = "bench", targets = [host]) {
 %s}
 `, cfgEntries.String())
 
-			src := source.NewMemSource()
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl := controller.NewMem()
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 			tgt := target.NewMemTarget()
 			tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
@@ -1304,7 +1304,7 @@ std.deploy(name = "bench", targets = [host]) {
 			cmdsDone := recordCmdsOp(b, tgt)
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -1316,7 +1316,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}
@@ -1370,8 +1370,8 @@ std.deploy(name = "bench", targets = [host]) {
 }
 `, size)
 
-			src := source.NewMemSource()
-			src.Files["/config.scampi"] = []byte(cfgStr)
+			ctl := controller.NewMem()
+			ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -1384,7 +1384,7 @@ std.deploy(name = "bench", targets = [host]) {
 				b.StartTimer()
 
 				ctx, cancel := context.WithCancel(b.Context())
-				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+				cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 				if err != nil {
 					b.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 				}
@@ -1396,7 +1396,7 @@ std.deploy(name = "bench", targets = [host]) {
 
 				resolved.Target = harness.MockDeclaredTarget(tgt)
 
-				e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+				e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 				if err != nil {
 					b.Fatalf("engine.New() must not return error, got %v", err)
 				}

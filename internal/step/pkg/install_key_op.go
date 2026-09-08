@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -22,7 +22,7 @@ type installKeyOp struct {
 
 func (op *installKeyOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	rm := target.Must[target.RepoManager](installKeyID, tgt)
@@ -43,13 +43,13 @@ func (op *installKeyOp) Check(
 
 func (op *installKeyOp) Execute(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	rm := target.Must[target.RepoManager](installKeyID, tgt)
 
 	cachePath := keyCachePath(op.source.KeyURL)
-	keyData, err := src.ReadFile(ctx, cachePath)
+	keyData, err := ctl.ReadFile(ctx, cachePath)
 	if err != nil {
 		return spec.Result{}, RepoKeyInstallError{
 			Name:   op.source.Name,

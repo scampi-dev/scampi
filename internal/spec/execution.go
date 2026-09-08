@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/target"
 )
 
@@ -37,7 +37,7 @@ type Step interface {
 }
 
 // SourceReader is an optional interface that steps can implement to declare
-// source-side files they read. The engine pre-caches these so the renderer can
+// controller-side files they read. The engine pre-caches these so the renderer can
 // display source context in error messages.
 type SourceReader interface {
 	SourcePaths() []string
@@ -47,8 +47,8 @@ type SourceReader interface {
 // (host/config state) and Target (system being converged).
 type Op interface {
 	Step() Step
-	Check(ctx context.Context, src source.Source, tgt target.Target) (CheckResult, []DriftDetail, error)
-	Execute(ctx context.Context, src source.Source, tgt target.Target) (Result, error)
+	Check(ctx context.Context, ctl controller.Controller, tgt target.Target) (CheckResult, []DriftDetail, error)
+	Execute(ctx context.Context, ctl controller.Controller, tgt target.Target) (Result, error)
 	DependsOn() []Op
 	RequiredCapabilities() capability.Capability
 }
@@ -60,12 +60,12 @@ type OpTimeout interface {
 }
 
 // Diffable is an optional interface that ops producing file content can
-// implement to support `scampi inspect --diff`. Both methods take src and tgt:
+// implement to support `scampi inspect --diff`. Both methods take ctl and tgt:
 // most ops only need src, but posix.copy with a `source_target { ... }`
 // resolver reads desired content from the target itself (#286).
 type Diffable interface {
-	DesiredContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error)
-	CurrentContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error)
+	DesiredContent(ctx context.Context, ctl controller.Controller, tgt target.Target) ([]byte, error)
+	CurrentContent(ctx context.Context, ctl controller.Controller, tgt target.Target) ([]byte, error)
 	DestPath() string
 }
 

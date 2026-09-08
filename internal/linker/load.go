@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/lang/ast"
 	"scampi.dev/scampi/internal/lang/check"
@@ -14,7 +15,6 @@ import (
 	"scampi.dev/scampi/internal/lang/lex"
 	"scampi.dev/scampi/internal/lang/parse"
 	"scampi.dev/scampi/internal/secret"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/std"
 )
@@ -63,14 +63,14 @@ func WithRedactor(r *secret.Redactor) AnalyzeOption {
 func Analyze(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	src source.Source,
+	ctl controller.Controller,
 	opts ...AnalyzeOption,
 ) (*Analysis, error) {
 	var o analyzeOpts
 	for _, f := range opts {
 		f(&o)
 	}
-	data, err := src.ReadFile(ctx, cfgPath)
+	data, err := ctl.ReadFile(ctx, cfgPath)
 	if err != nil {
 		ctx.Raise(&ConfigReadError{Path: cfgPath, Cause: err})
 		return nil, diagnostic.ErrAlreadyRaised
@@ -133,18 +133,18 @@ func Analyze(
 	// Evaluate with secret backend builtins registered so
 	// secrets.from_age / secrets.from_file / secrets.get work.
 	readFile := func(path string) ([]byte, error) {
-		return src.ReadFile(ctx, path)
+		return ctl.ReadFile(ctx, path)
 	}
 	configDir := filepath.Dir(cfgPath)
 	evalOpts := []eval.Option{
 		eval.WithStubs(std.FS),
 		eval.WithUserModules(userMods),
 		eval.WithSiblingModules(siblingMods),
-		eval.WithEnv(src.LookupEnv),
-		eval.WithBuiltinFunc("secrets.from_age", secretFromAge(configDir, src.LookupEnv, readFile)),
+		eval.WithEnv(ctl.LookupEnv),
+		eval.WithBuiltinFunc("secrets.from_age", secretFromAge(configDir, ctl.LookupEnv, readFile)),
 		eval.WithBuiltinFunc("secrets.from_file", secretFromFile(configDir, readFile)),
 		eval.WithBuiltinFunc("secrets.get", secretGetBuiltin(o.redactor)),
-		eval.WithBuiltinFunc("std.secret_env", secretEnvBuiltin(src.LookupEnv, o.redactor)),
+		eval.WithBuiltinFunc("std.secret_env", secretEnvBuiltin(ctl.LookupEnv, o.redactor)),
 		eval.WithBuiltinFunc("std.read_file", stdReadFileBuiltin(configDir, readFile, o.lenient)),
 	}
 	if o.lenient {
@@ -202,11 +202,11 @@ func Analyze(
 func LoadConfig(
 	ctx diagnostic.Ctx,
 	cfgPath string,
-	src source.Source,
+	ctl controller.Controller,
 	reg Registry,
 	opts ...AnalyzeOption,
 ) (spec.DeclaredConfig, error) {
-	a, err := Analyze(ctx, cfgPath, src, opts...)
+	a, err := Analyze(ctx, cfgPath, ctl, opts...)
 	if err != nil {
 		return spec.DeclaredConfig{}, err
 	}
@@ -215,7 +215,7 @@ func LoadConfig(
 		reg,
 		cfgPath,
 		WithSource(a.Source),
-		WithSourceResolver(ctx, cfgPath, src),
+		WithSourceResolver(ctx, cfgPath, ctl),
 	)
 }
 
@@ -324,7 +324,7 @@ func secretGetBuiltin(redactor *secret.Redactor) eval.BuiltinFunc {
 }
 
 // secretEnvBuiltin returns a BuiltinFunc for std.secret_env(name, default).
-// Mirrors std.env semantics - read env via the source's lookup, fall back
+// Mirrors std.env semantics - read env via the controller's lookup, fall back
 // to default on miss - but registers every successful resolution with
 // the redactor so the value gets masked in subsequent rendered output.
 // See #282.
@@ -362,7 +362,7 @@ func secretEnvBuiltin(envLookup func(string) (string, bool), redactor *secret.Re
 }
 
 // stdReadFileBuiltin returns a BuiltinFunc for std.read_file(path).
-// Reads a UTF-8 file from the source side, resolved relative to the
+// Reads a UTF-8 file from the controller side, resolved relative to the
 // calling config's directory (matching `posix.source_local`'s
 // resolution). Trims one trailing newline - the typical case is
 // "ssh-key\n" or "config\n" where the literal newline isn't part of

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package source
+package controller
 
 import (
 	"context"
@@ -9,54 +9,54 @@ import (
 	"scampi.dev/scampi/internal/errs"
 )
 
-// rootedSource wraps a Source and resolves relative paths against a base directory.
+// rooted wraps a Controller and resolves relative paths against a base directory.
 // Absolute paths are passed through unchanged.
-type rootedSource struct {
+type rooted struct {
 	base string
-	src  Source
+	src  Controller
 }
 
-// WithRoot creates a Source that resolves relative paths against baseDir.
-func WithRoot(root string, src Source) Source {
+// WithRoot creates a Controller that resolves relative paths against baseDir.
+func WithRoot(root string, src Controller) Controller {
 	base, err := baseDir(root, src)
 	if err != nil {
 		panic(errs.BUG("failed to find base-dir for %q: %w", root, err))
 	}
 
-	return &rootedSource{
+	return &rooted{
 		base: base,
 		src:  src,
 	}
 }
 
-func (r *rootedSource) resolve(path string) string {
+func (r *rooted) resolve(path string) string {
 	if filepath.IsAbs(path) {
 		return path
 	}
 	return filepath.Join(r.base, path)
 }
 
-func (r *rootedSource) ReadFile(ctx context.Context, path string) ([]byte, error) {
+func (r *rooted) ReadFile(ctx context.Context, path string) ([]byte, error) {
 	return r.src.ReadFile(ctx, r.resolve(path))
 }
 
-func (r *rootedSource) WriteFile(ctx context.Context, path string, data []byte) error {
+func (r *rooted) WriteFile(ctx context.Context, path string, data []byte) error {
 	return r.src.WriteFile(ctx, r.resolve(path), data)
 }
 
-func (r *rootedSource) EnsureDir(ctx context.Context, path string) error {
+func (r *rooted) EnsureDir(ctx context.Context, path string) error {
 	return r.src.EnsureDir(ctx, r.resolve(path))
 }
 
-func (r *rootedSource) Stat(ctx context.Context, path string) (FileMeta, error) {
+func (r *rooted) Stat(ctx context.Context, path string) (FileMeta, error) {
 	return r.src.Stat(ctx, r.resolve(path))
 }
 
-func (r *rootedSource) LookupEnv(key string) (string, bool) {
+func (r *rooted) LookupEnv(key string) (string, bool) {
 	return r.src.LookupEnv(key)
 }
 
-func baseDir(p string, src Source) (string, error) {
+func baseDir(p string, src Controller) (string, error) {
 	abs, err := filepath.Abs(p)
 	if err != nil {
 		return "", err

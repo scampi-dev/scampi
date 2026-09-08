@@ -5,11 +5,11 @@ package integration
 import (
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/signal"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target/local"
 	"scampi.dev/scampi/test/harness"
@@ -52,7 +52,7 @@ func Test_ExecuteStep_SkipsSatisfiedOps(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -61,7 +61,7 @@ func Test_ExecuteStep_SkipsSatisfiedOps(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -120,7 +120,7 @@ func Test_ExecuteStep_ExecutesEachOpOnce(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -129,7 +129,7 @@ func Test_ExecuteStep_ExecutesEachOpOnce(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -195,7 +195,7 @@ func Test_ExecuteStep_StopsChainAtFirstFailure(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -204,7 +204,7 @@ func Test_ExecuteStep_StopsChainAtFirstFailure(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -286,7 +286,7 @@ func Test_ExecuteStep_FailureBlocksOnlyDownstreamBranch(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -295,7 +295,7 @@ func Test_ExecuteStep_FailureBlocksOnlyDownstreamBranch(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -345,7 +345,7 @@ func Test_ExecuteStep_CheckDiagnosticContinues(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -354,7 +354,7 @@ func Test_ExecuteStep_CheckDiagnosticContinues(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -406,7 +406,7 @@ func Test_ExecuteStep_CheckAbortPreventsExecution(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -415,7 +415,7 @@ func Test_ExecuteStep_CheckAbortPreventsExecution(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -470,7 +470,7 @@ func Test_ExecuteStep_ExecAbortStopsDownstream(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -479,7 +479,7 @@ func Test_ExecuteStep_ExecAbortStopsDownstream(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -531,7 +531,7 @@ func Test_ExecuteStep_SkippedUpstreamExecutesDownstream(t *testing.T) {
 		},
 	}
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -540,7 +540,7 @@ func Test_ExecuteStep_SkippedUpstreamExecutesDownstream(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}

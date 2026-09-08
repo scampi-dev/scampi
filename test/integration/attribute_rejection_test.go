@@ -5,8 +5,8 @@ package integration
 import (
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -331,14 +331,14 @@ std.deploy(name = "t", targets = [host]) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			src := source.NewMemSource()
+			ctl := controller.NewMem()
 			tgt := target.NewMemTarget()
 
 			rec := &harness.RecordingDisplayer{}
 			em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 			store := diagnostic.NewInputStore()
 
-			if _, err := loadAndResolve(t, c.cfg, src, tgt, em, store); err == nil {
+			if _, err := loadAndResolve(t, c.cfg, ctl, tgt, em, store); err == nil {
 				t.Fatal("expected link-time error, got nil")
 			}
 		})

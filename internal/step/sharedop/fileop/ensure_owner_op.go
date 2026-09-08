@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/errs"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -29,7 +29,7 @@ type EnsureOwnerOp struct {
 
 func (op *EnsureOwnerOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	owTgt := target.Must[target.Ownership](ensureOwnerID, tgt)
@@ -128,7 +128,7 @@ func (op *EnsureOwnerOp) checkTree(
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (op *EnsureOwnerOp) Execute(ctx context.Context, _ source.Source, tgt target.Target) (spec.Result, error) {
+func (op *EnsureOwnerOp) Execute(ctx context.Context, _ controller.Controller, tgt target.Target) (spec.Result, error) {
 	if op.Recursive {
 		return op.executeRecursive(ctx, tgt)
 	}

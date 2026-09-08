@@ -8,29 +8,29 @@ import (
 	"sync"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/signal"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
 
-// FaultySource wraps a source.Source and injects errors on configured paths.
-type FaultySource struct {
-	source.Source
+// FaultyController wraps a controller.Controller and injects errors on configured paths.
+type FaultyController struct {
+	controller.Controller
 
 	mu     sync.RWMutex
 	faults map[string]error
 }
 
-func NewFaultySource(inner source.Source) *FaultySource {
-	return &FaultySource{
-		Source: inner,
-		faults: make(map[string]error),
+func NewFaultyController(inner controller.Controller) *FaultyController {
+	return &FaultyController{
+		Controller: inner,
+		faults:     make(map[string]error),
 	}
 }
 
-func (f *FaultySource) InjectFault(path string, err error) {
+func (f *FaultyController) InjectFault(path string, err error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.faults[path] = &FakeDiagnostic{
@@ -41,30 +41,30 @@ func (f *FaultySource) InjectFault(path string, err error) {
 }
 
 //lint:ignore U1000 kept for symmetry with FaultyTarget
-func (f *FaultySource) ClearFaults() {
+func (f *FaultyController) ClearFaults() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.faults = make(map[string]error)
 }
 
-func (f *FaultySource) getFault(path string) error {
+func (f *FaultyController) getFault(path string) error {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.faults[path]
 }
 
-func (f *FaultySource) ReadFile(ctx context.Context, path string) ([]byte, error) {
+func (f *FaultyController) ReadFile(ctx context.Context, path string) ([]byte, error) {
 	if err := f.getFault(path); err != nil {
 		return nil, err
 	}
-	return f.Source.ReadFile(ctx, path)
+	return f.Controller.ReadFile(ctx, path)
 }
 
-func (f *FaultySource) Stat(ctx context.Context, path string) (source.FileMeta, error) {
+func (f *FaultyController) Stat(ctx context.Context, path string) (controller.FileMeta, error) {
 	if err := f.getFault(path); err != nil {
-		return source.FileMeta{}, err
+		return controller.FileMeta{}, err
 	}
-	return f.Source.Stat(ctx, path)
+	return f.Controller.Stat(ctx, path)
 }
 
 // FaultyTarget wraps a target.Target and injects errors on configured method/path pairs.
@@ -295,7 +295,11 @@ type mockTargetKind struct {
 
 func (mockTargetKind) Kind() string   { return "mem" }
 func (mockTargetKind) NewConfig() any { return nil }
-func (t mockTargetKind) Create(_ context.Context, _ source.Source, _ spec.DeclaredTarget) (target.Target, error) {
+func (t mockTargetKind) Create(
+	_ context.Context,
+	_ controller.Controller,
+	_ spec.DeclaredTarget,
+) (target.Target, error) {
 	return t.tgt, nil
 }
 

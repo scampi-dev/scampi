@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -30,7 +30,7 @@ type ensureUserOp struct {
 
 func (op *ensureUserOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	um := target.Must[target.UserManager](ensureUserID, tgt)
@@ -128,7 +128,7 @@ func (op *ensureUserOp) checkHomeOwnership(ctx context.Context, tgt target.Targe
 
 func (op *ensureUserOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	um := target.Must[target.UserManager](ensureUserID, tgt)

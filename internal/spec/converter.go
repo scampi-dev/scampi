@@ -6,8 +6,8 @@ import (
 	"context"
 	"reflect"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/lang/eval"
-	"scampi.dev/scampi/internal/source"
 )
 
 // TypeConverter converts a StructVal into a Go value for a composable
@@ -24,7 +24,7 @@ type TypeConverter func(
 // leaking the linker's own types.
 type ConvertContext struct {
 	CfgPath string
-	Src     source.Source
+	Src     controller.Controller
 	Ctx     context.Context
 }
 

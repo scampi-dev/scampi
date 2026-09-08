@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/internal/target/local"
@@ -42,7 +42,7 @@ func assertEnginePanic(t *testing.T, r any, origMsg string) {
 func Test_Check_RawErrorInOpCheckPropagatesAndPanics(t *testing.T) {
 	defer func() { assertEnginePanic(t, recover(), "random check error") }()
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -51,7 +51,7 @@ func Test_Check_RawErrorInOpCheckPropagatesAndPanics(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -59,7 +59,11 @@ func Test_Check_RawErrorInOpCheckPropagatesAndPanics(t *testing.T) {
 
 	op := &harness.FakeOp{
 		Name: "raw-error-op",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, errors.New("random check error")
 		},
 		ExecFn: harness.PanicExecFn("exec must not run on raw check error"),
@@ -84,7 +88,7 @@ func Test_Check_RawErrorInOpCheckPropagatesAndPanics(t *testing.T) {
 func Test_Check_RawErrorInOpExecPropagatesAndPanics(t *testing.T) {
 	defer func() { assertEnginePanic(t, recover(), "random exec error") }()
 
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -93,7 +97,7 @@ func Test_Check_RawErrorInOpExecPropagatesAndPanics(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -101,10 +105,14 @@ func Test_Check_RawErrorInOpExecPropagatesAndPanics(t *testing.T) {
 
 	op := &harness.FakeOp{
 		Name: "raw-error-op",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, nil
 		},
-		ExecFn: func(context.Context, source.Source, target.Target) (spec.Result, error) {
+		ExecFn: func(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 			return spec.Result{}, errors.New("random exec error")
 		},
 	}
@@ -129,7 +137,7 @@ func Test_Check_RawErrorInOpExecPropagatesAndPanics(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func Test_ExecutePlan_CancelledContextReturnsCancelledError(t *testing.T) {
-	src := source.LocalPosixSource{}
+	ctl := controller.Posix{}
 	tgt := local.POSIXTarget{}
 	em := harness.NoopEmitter()
 
@@ -138,7 +146,7 @@ func Test_ExecutePlan_CancelledContextReturnsCancelledError(t *testing.T) {
 		Target: harness.MockDeclaredTarget(tgt),
 	}
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, cfg)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, cfg)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -146,10 +154,14 @@ func Test_ExecutePlan_CancelledContextReturnsCancelledError(t *testing.T) {
 
 	op := &harness.FakeOp{
 		Name: "slow-op",
-		CheckFn: func(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+		CheckFn: func(
+			context.Context,
+			controller.Controller,
+			target.Target,
+		) (spec.CheckResult, []spec.DriftDetail, error) {
 			return spec.CheckUnsatisfied, nil, nil
 		},
-		ExecFn: func(ctx context.Context, _ source.Source, _ target.Target) (spec.Result, error) {
+		ExecFn: func(ctx context.Context, _ controller.Controller, _ target.Target) (spec.Result, error) {
 			cancel()
 			return spec.Result{}, ctx.Err()
 		},

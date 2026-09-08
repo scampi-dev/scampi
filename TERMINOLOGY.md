@@ -64,6 +64,11 @@ Two abbreviation families in the engine, never mixed:
 A `spec.Resource` local is spelled out (`deferred`, `resource`) — never
 `res`.
 
+The two execution sides are three letters each, so signatures line up:
+
+- **`ctl`** — `controller.Controller`, the machine scampi runs on.
+- **`tgt`** — `target.Target`, the system being converged.
+
 ## Avoid
 
 `Impl`, `Handler`, `Spec`, and bare `Instance` / `Type` / `Resolved` as

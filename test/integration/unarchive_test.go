@@ -16,9 +16,9 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -110,8 +110,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = toolCommandFunc(tgt)
@@ -120,7 +120,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -167,8 +167,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 
@@ -188,7 +188,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -223,15 +223,15 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/archive.rar"] = []byte("not a real archive")
+	ctl := controller.NewMem()
+	ctl.Files["/archive.rar"] = []byte("not a real archive")
 	tgt := target.NewMemTarget()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -268,7 +268,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = toolCommandFunc(tgt)
 
@@ -276,7 +276,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -313,8 +313,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = makeTarGz(t, map[string]string{"f": "x"})
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = makeTarGz(t, map[string]string{"f": "x"})
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = toolCommandFunc(tgt)
 
@@ -322,7 +322,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -360,15 +360,15 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = makeTarGz(t, map[string]string{"f": "x"})
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = makeTarGz(t, map[string]string{"f": "x"})
 	tgt := target.NewMemTarget()
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	if _, err := loadAndResolve(t, cfgStr, src, tgt, em, store); err == nil {
+	if _, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store); err == nil {
 		t.Fatal("expected link-time error for relative dest, got nil")
 	}
 }
@@ -400,8 +400,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = toolCommandFunc(tgt)
@@ -410,7 +410,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -453,8 +453,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
@@ -474,7 +474,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -518,8 +518,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = toolCommandFunc(tgt)
@@ -530,7 +530,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -569,8 +569,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/data.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/data.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
@@ -591,7 +591,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -636,8 +636,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/site.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/site.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = func(cmd string) (target.CommandResult, error) {
@@ -657,7 +657,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -695,8 +695,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/data.tar.gz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/data.tar.gz"] = archive
 
 	tgt := target.NewMemTarget()
 
@@ -713,7 +713,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -869,8 +869,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/data.tar.xz"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/data.tar.xz"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = noToolCommandFunc()
@@ -879,7 +879,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -923,8 +923,8 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
-	src.Files["/data.tar.zst"] = archive
+	ctl := controller.NewMem()
+	ctl.Files["/data.tar.zst"] = archive
 
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = noToolCommandFunc()
@@ -933,7 +933,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -975,7 +975,7 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 	tgt.CommandFunc = toolCommandFunc(tgt)
 
@@ -983,7 +983,7 @@ std.deploy(name = "test", targets = [host]) {
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
-	e, err := loadAndResolve(t, cfgStr, src, tgt, em, store)
+	e, err := loadAndResolve(t, cfgStr, ctl, tgt, em, store)
 	if err != nil {
 		t.Fatalf("setup: %v", err)
 	}

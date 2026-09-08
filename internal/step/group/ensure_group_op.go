@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/target"
@@ -25,7 +25,7 @@ type ensureGroupOp struct {
 
 func (op *ensureGroupOp) Check(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	gm := target.Must[target.GroupManager](ensureGroupID, tgt)
@@ -47,7 +47,7 @@ func (op *ensureGroupOp) Check(
 
 func (op *ensureGroupOp) Execute(
 	ctx context.Context,
-	_ source.Source,
+	_ controller.Controller,
 	tgt target.Target,
 ) (spec.Result, error) {
 	gm := target.Must[target.GroupManager](ensureGroupID, tgt)

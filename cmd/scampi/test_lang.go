@@ -3,10 +3,10 @@
 package main
 
 import (
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/engine"
 	"scampi.dev/scampi/internal/linker"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/testkit"
 )
@@ -21,12 +21,12 @@ import (
 func runLangTestFile(
 	ctx diagnostic.Ctx,
 	testPath string,
-	src source.Source,
+	ctl controller.Controller,
 ) (passed, failed int, err error) {
 	tests := testkit.NewTestRegistry()
 	reg := testkit.NewEngineRegistry(engine.NewRegistry(), tests)
 
-	cfg, err := linker.LoadConfig(ctx, testPath, src, reg)
+	cfg, err := linker.LoadConfig(ctx, testPath, ctl, reg)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -37,7 +37,7 @@ func runLangTestFile(
 	}
 
 	for _, rc := range resolved {
-		e, engineErr := engine.New(ctx, src, rc)
+		e, engineErr := engine.New(ctx, ctl, rc)
 		if engineErr != nil {
 			return 0, 0, engineErr
 		}

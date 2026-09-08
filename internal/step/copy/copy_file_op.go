@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic/event"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/step/sharedop"
 	"scampi.dev/scampi/internal/step/sharedop/fileop"
@@ -28,7 +28,7 @@ type copyFileOp struct {
 	backup bool
 }
 
-func (op *copyFileOp) getContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error) {
+func (op *copyFileOp) getContent(ctx context.Context, ctl controller.Controller, tgt target.Target) ([]byte, error) {
 	var (
 		data []byte
 		err  error
@@ -40,7 +40,7 @@ func (op *copyFileOp) getContent(ctx context.Context, src source.Source, tgt tar
 		fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 		data, err = fsTgt.ReadFile(ctx, op.src)
 	} else {
-		data, err = src.ReadFile(ctx, op.src)
+		data, err = ctl.ReadFile(ctx, op.src)
 	}
 	if err != nil {
 		return nil, CopySourceMissingError{
@@ -54,12 +54,12 @@ func (op *copyFileOp) getContent(ctx context.Context, src source.Source, tgt tar
 
 func (op *copyFileOp) Check(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	tgt target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 
-	srcData, err := op.getContent(ctx, src, tgt)
+	srcData, err := op.getContent(ctx, ctl, tgt)
 	if err != nil {
 		if result, drift, ok := sharedop.CheckSourcePending(op.srcRef, "content"); ok {
 			return result, drift, nil
@@ -101,10 +101,10 @@ func (op *copyFileOp) Check(
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (op *copyFileOp) Execute(ctx context.Context, src source.Source, tgt target.Target) (spec.Result, error) {
+func (op *copyFileOp) Execute(ctx context.Context, ctl controller.Controller, tgt target.Target) (spec.Result, error) {
 	fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 
-	srcData, err := op.getContent(ctx, src, tgt)
+	srcData, err := op.getContent(ctx, ctl, tgt)
 	if err != nil {
 		return spec.Result{}, err
 	}
@@ -149,11 +149,15 @@ func (op *copyFileOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-func (op *copyFileOp) DesiredContent(ctx context.Context, src source.Source, tgt target.Target) ([]byte, error) {
-	return op.getContent(ctx, src, tgt)
+func (op *copyFileOp) DesiredContent(
+	ctx context.Context,
+	ctl controller.Controller,
+	tgt target.Target,
+) ([]byte, error) {
+	return op.getContent(ctx, ctl, tgt)
 }
 
-func (op *copyFileOp) CurrentContent(ctx context.Context, _ source.Source, tgt target.Target) ([]byte, error) {
+func (op *copyFileOp) CurrentContent(ctx context.Context, _ controller.Controller, tgt target.Target) ([]byte, error) {
 	fsTgt := target.Must[target.Filesystem](copyFileID, tgt)
 	return fsTgt.ReadFile(ctx, op.dest)
 }

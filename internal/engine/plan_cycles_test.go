@@ -16,8 +16,8 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -40,11 +40,15 @@ func (o *mockOp) Step() spec.Step                             { return o.step }
 func (o *mockOp) DependsOn() []spec.Op                        { return o.deps }
 func (o *mockOp) RequiredCapabilities() capability.Capability { return 0 }
 
-func (o *mockOp) Check(context.Context, source.Source, target.Target) (spec.CheckResult, []spec.DriftDetail, error) {
+func (o *mockOp) Check(
+	context.Context,
+	controller.Controller,
+	target.Target,
+) (spec.CheckResult, []spec.DriftDetail, error) {
 	return spec.CheckSatisfied, nil, nil
 }
 
-func (o *mockOp) Execute(context.Context, source.Source, target.Target) (spec.Result, error) {
+func (o *mockOp) Execute(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 	return spec.Result{}, nil
 }
 

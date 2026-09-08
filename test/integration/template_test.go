@@ -6,10 +6,10 @@ import (
 	"io/fs"
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -40,11 +40,11 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/tmpl.txt"] = []byte("Hello, {{.name}}!")
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/tmpl.txt"] = []byte("Hello, {{.name}}!")
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 	tgt.Files["/out.txt"] = []byte("old content")
 
 	rec := &harness.RecordingDisplayer{}
@@ -52,7 +52,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -64,7 +64,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -112,17 +112,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -134,7 +134,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New: %v", err)
 	}
@@ -183,18 +183,18 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/tmpl.txt"] = []byte("Hello, {{.name}}! Count: {{.count}}")
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/tmpl.txt"] = []byte("Hello, {{.name}}! Count: {{.count}}")
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -206,7 +206,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -272,17 +272,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -294,7 +294,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -344,18 +344,18 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
-	src.Env["MY_PORT"] = "9000" // Override via env
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Env["MY_PORT"] = "9000" // Override via env
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -367,7 +367,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -418,17 +418,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource() // No env vars
+	ctl := controller.NewMem() // No env vars
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -440,7 +440,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -483,10 +483,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate target with matching state
 	tgt.Files["/out.txt"] = []byte("static content")
@@ -498,7 +498,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -510,7 +510,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -548,10 +548,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate with different content
 	tgt.Files["/out.txt"] = []byte("old content")
@@ -563,7 +563,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -575,7 +575,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -623,17 +623,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -645,7 +645,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -691,17 +691,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -713,7 +713,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -758,10 +758,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 	// Note: /nonexistent.txt is not added
 
 	rec := &harness.RecordingDisplayer{}
@@ -769,7 +769,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -781,7 +781,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -834,18 +834,18 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
-	src.Env["MY_HOST"] = "localhost" // Set the env var
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Env["MY_HOST"] = "localhost" // Set the env var
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -857,7 +857,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -902,17 +902,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -924,7 +924,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -969,10 +969,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate with wrong mode
 	tgt.Files["/out.txt"] = []byte("content")
@@ -984,7 +984,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -996,7 +996,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -1034,10 +1034,10 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Pre-populate with wrong owner
 	tgt.Files["/out.txt"] = []byte("content")
@@ -1049,7 +1049,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1061,7 +1061,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -1107,17 +1107,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1129,7 +1129,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -1167,17 +1167,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1189,7 +1189,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -1235,17 +1235,17 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1257,7 +1257,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -1305,19 +1305,19 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
-	src.Env["MY_HOST"] = "prod.example.com"
-	src.Env["MY_PORT"] = "443"
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Env["MY_HOST"] = "prod.example.com"
+	ctl.Env["MY_PORT"] = "443"
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1329,7 +1329,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -1377,19 +1377,19 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	tgt := target.NewMemTarget()
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 	// Only set MY_HOST, not MY_PORT
-	src.Env["MY_HOST"] = "prod.example.com"
+	ctl.Env["MY_HOST"] = "prod.example.com"
 
 	rec := &harness.RecordingDisplayer{}
 	em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1401,7 +1401,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}
@@ -1440,11 +1440,11 @@ std.deploy(name = "test", targets = [host]) {
   }
 }
 `
-	src := source.NewMemSource()
+	ctl := controller.NewMem()
 	innerTgt := target.NewMemTarget()
 	tgt := harness.NewFaultyTarget(innerTgt)
 
-	src.Files["/config.scampi"] = []byte(cfgStr)
+	ctl.Files["/config.scampi"] = []byte(cfgStr)
 
 	// Inject write failure
 	tgt.InjectFault("WriteFile", "/out.txt", fs.ErrPermission)
@@ -1454,7 +1454,7 @@ std.deploy(name = "test", targets = [host]) {
 	store := diagnostic.NewInputStore()
 
 	ctx := t.Context()
-	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+	cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 	if err != nil {
 		t.Fatalf("engine.LoadConfig() must not return error, got %v", err)
 	}
@@ -1466,7 +1466,7 @@ std.deploy(name = "test", targets = [host]) {
 
 	resolved.Target = harness.MockDeclaredTarget(tgt)
 
-	e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+	e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 	if err != nil {
 		t.Fatalf("engine.New() must not return error, got %v", err)
 	}

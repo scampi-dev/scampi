@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/diagnostic/result"
 	"scampi.dev/scampi/internal/errs"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -67,7 +67,7 @@ type opNode struct {
 }
 
 type scheduler struct {
-	src source.Source
+	ctl controller.Controller
 	tgt target.Target
 
 	// step context
@@ -193,7 +193,7 @@ func (s *scheduler) schedule(n *opNode) {
 		opCtx, opCancel := context.WithTimeout(s.ctx, opTimeout(n.op))
 		defer opCancel()
 
-		res, err := n.op.Execute(opCtx, s.src, s.tgt)
+		res, err := n.op.Execute(opCtx, s.ctl, s.tgt)
 
 		if err == nil && res.Changed {
 			s.emitExecuted(displayID)
@@ -240,7 +240,7 @@ func (s *scheduler) runChecks(nodes []*opNode) error {
 			opCtx, opCancel := context.WithTimeout(ctx, opTimeout(n.op))
 			defer opCancel()
 
-			res, drift, err := n.op.Check(opCtx, s.src, s.tgt)
+			res, drift, err := n.op.Check(opCtx, s.ctl, s.tgt)
 			if err != nil {
 				if s.isDeferred(err) {
 					s.mu.Lock()
@@ -462,7 +462,7 @@ func (e *Engine) runCheckStep(
 	}
 
 	s := &scheduler{
-		src:       e.src,
+		ctl:       e.ctl,
 		tgt:       e.tgt,
 		deploy:    e.deploy,
 		actIdx:    idx,
@@ -630,7 +630,7 @@ func (e *Engine) runStep(ctx diagnostic.Ctx, idx int, act spec.Step, hookID stri
 	}
 
 	s := &scheduler{
-		src:     e.src,
+		ctl:     e.ctl,
 		tgt:     e.tgt,
 		deploy:  e.deploy,
 		actIdx:  idx,

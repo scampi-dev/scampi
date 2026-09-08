@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-package source
+package controller
 
 import (
 	"context"
@@ -14,10 +14,10 @@ type FileMeta struct {
 	Modified time.Time
 }
 
-// Source provides access to the host filesystem and environment where
-// scampi configs, templates, and secrets reside. Distinct from
-// target.Target which represents the system being converged.
-type Source interface {
+// Controller provides access to the filesystem and environment of the machine
+// running scampi, where configs, templates, and secrets reside. Distinct from
+// target.Target, which is the system being converged.
+type Controller interface {
 	ReadFile(ctx context.Context, path string) ([]byte, error)
 	WriteFile(ctx context.Context, path string, data []byte) error
 	EnsureDir(ctx context.Context, path string) error

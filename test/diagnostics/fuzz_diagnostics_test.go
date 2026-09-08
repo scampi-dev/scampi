@@ -5,10 +5,10 @@ package diagnostics
 import (
 	"testing"
 
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic"
 	"scampi.dev/scampi/internal/diagnostic/event"
 	"scampi.dev/scampi/internal/engine"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/target"
 	"scampi.dev/scampi/test/harness"
 )
@@ -511,10 +511,10 @@ frobnicate(name = "test")`,
 	}
 
 	f.Fuzz(func(t *testing.T, input string) {
-		src := source.NewMemSource()
+		ctl := controller.NewMem()
 		tgt := target.NewMemTarget()
 
-		src.Files["/config.scampi"] = []byte(input)
+		ctl.Files["/config.scampi"] = []byte(input)
 
 		rec := &harness.RecordingDisplayer{}
 		em := diagnostic.NewEmitter(diagnostic.Policy{}, rec)
@@ -529,7 +529,7 @@ frobnicate(name = "test")`,
 
 		apply := func() error {
 			ctx := t.Context()
-			cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, src)
+			cfg, err := engine.LoadConfig(diagnostic.NewCtx(ctx, em), "/config.scampi", store, ctl)
 			if err != nil {
 				return err
 			}
@@ -541,7 +541,7 @@ frobnicate(name = "test")`,
 
 			resolved.Target = harness.MockDeclaredTarget(tgt)
 
-			e, err := engine.New(diagnostic.NewCtx(ctx, em), src, resolved)
+			e, err := engine.New(diagnostic.NewCtx(ctx, em), ctl, resolved)
 			if err != nil {
 				return err
 			}

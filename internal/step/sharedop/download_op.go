@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"scampi.dev/scampi/internal/capability"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/diagnostic/event"
-	"scampi.dev/scampi/internal/source"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -54,14 +54,14 @@ type downloadMeta struct {
 
 func (op *DownloadOp) Check(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	_ target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
-	cached, _ := src.Stat(ctx, op.CachePath)
+	cached, _ := ctl.Stat(ctx, op.CachePath)
 
 	// If we have a checksum, we can verify the cached file without a network call.
 	if !op.Checksum.IsZero() && cached.Exists {
-		data, err := src.ReadFile(ctx, op.CachePath)
+		data, err := ctl.ReadFile(ctx, op.CachePath)
 		if err == nil {
 			if verifyChecksum(data, op.Checksum) {
 				return spec.CheckSatisfied, nil, nil
@@ -74,7 +74,7 @@ func (op *DownloadOp) Check(
 	}
 
 	// No checksum or no cached file - use HTTP conditional request.
-	meta := op.loadMeta(ctx, src)
+	meta := op.loadMeta(ctx, ctl)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, op.URL, nil)
 	if err != nil {
@@ -132,12 +132,12 @@ func (op *DownloadOp) Check(
 
 func (op *DownloadOp) Execute(
 	ctx context.Context,
-	src source.Source,
+	ctl controller.Controller,
 	_ target.Target,
 ) (spec.Result, error) {
 	// Idempotency re-check for checksum-verified files.
 	if !op.Checksum.IsZero() {
-		data, err := src.ReadFile(ctx, op.CachePath)
+		data, err := ctl.ReadFile(ctx, op.CachePath)
 		if err == nil && verifyChecksum(data, op.Checksum) {
 			return spec.Result{Changed: false}, nil
 		}
@@ -188,14 +188,14 @@ func (op *DownloadOp) Execute(
 	}
 
 	cacheDir := path.Dir(op.CachePath)
-	if err := src.EnsureDir(ctx, cacheDir); err != nil {
+	if err := ctl.EnsureDir(ctx, cacheDir); err != nil {
 		return spec.Result{}, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("creating cache dir: %v", err),
 			Span: op.SrcSpan,
 		}
 	}
 
-	if err := src.WriteFile(ctx, op.CachePath, data); err != nil {
+	if err := ctl.WriteFile(ctx, op.CachePath, data); err != nil {
 		return spec.Result{}, DownloadError{
 			URL: op.URL, Detail: fmt.Sprintf("writing cache file: %v", err),
 			Span: op.SrcSpan,
@@ -206,7 +206,7 @@ func (op *DownloadOp) Execute(
 		ETag:         resp.Header.Get("ETag"),
 		LastModified: resp.Header.Get("Last-Modified"),
 	}
-	op.saveMeta(ctx, src, meta)
+	op.saveMeta(ctx, ctl, meta)
 
 	return spec.Result{Changed: true}, nil
 }
@@ -239,8 +239,8 @@ func (op *DownloadOp) client() *http.Client {
 	return http.DefaultClient
 }
 
-func (op *DownloadOp) loadMeta(ctx context.Context, src source.Source) downloadMeta {
-	data, err := src.ReadFile(ctx, op.metaPath())
+func (op *DownloadOp) loadMeta(ctx context.Context, ctl controller.Controller) downloadMeta {
+	data, err := ctl.ReadFile(ctx, op.metaPath())
 	if err != nil {
 		return downloadMeta{}
 	}
@@ -251,12 +251,12 @@ func (op *DownloadOp) loadMeta(ctx context.Context, src source.Source) downloadM
 	return meta
 }
 
-func (op *DownloadOp) saveMeta(ctx context.Context, src source.Source, meta downloadMeta) {
+func (op *DownloadOp) saveMeta(ctx context.Context, ctl controller.Controller, meta downloadMeta) {
 	data, err := json.Marshal(meta)
 	if err != nil {
 		return
 	}
-	_ = src.WriteFile(ctx, op.metaPath(), data)
+	_ = ctl.WriteFile(ctx, op.metaPath(), data)
 }
 
 // Checksum helpers

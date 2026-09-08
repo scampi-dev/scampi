@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"scampi.dev/scampi/internal/capability"
-	"scampi.dev/scampi/internal/source"
+	"scampi.dev/scampi/internal/controller"
 	"scampi.dev/scampi/internal/spec"
 	"scampi.dev/scampi/internal/target"
 )
@@ -21,13 +21,13 @@ func (o *orderOp) Step() spec.Step { return nil }
 
 func (o *orderOp) Check(
 	context.Context,
-	source.Source,
+	controller.Controller,
 	target.Target,
 ) (spec.CheckResult, []spec.DriftDetail, error) {
 	return spec.CheckUnknown, nil, nil
 }
 
-func (o *orderOp) Execute(context.Context, source.Source, target.Target) (spec.Result, error) {
+func (o *orderOp) Execute(context.Context, controller.Controller, target.Target) (spec.Result, error) {
 	return spec.Result{}, nil
 }
 
