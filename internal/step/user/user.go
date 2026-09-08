@@ -114,13 +114,13 @@ func (a *userStep) Provides() []spec.Resource {
 }
 
 func (a *userStep) Ops() []spec.Op {
-	nameSource := a.step.Fields["name"].Value
+	nameSpan := a.step.Fields["name"].Value
 
 	switch a.state {
 	case StateAbsent:
 		op := &removeUserOp{
 			name:     a.name,
-			nameSpan: nameSource,
+			nameSpan: nameSpan,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}
@@ -133,7 +133,7 @@ func (a *userStep) Ops() []spec.Op {
 			system:   a.system,
 			password: a.pass,
 			groups:   a.groups,
-			nameSpan: nameSource,
+			nameSpan: nameSpan,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}

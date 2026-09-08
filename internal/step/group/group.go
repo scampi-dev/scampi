@@ -98,13 +98,13 @@ func (a *groupStep) Provides() []spec.Resource {
 }
 
 func (a *groupStep) Ops() []spec.Op {
-	nameSource := a.step.Fields["name"].Value
+	nameSpan := a.step.Fields["name"].Value
 
 	switch a.state {
 	case StateAbsent:
 		op := &removeGroupOp{
 			name:     a.name,
-			nameSpan: nameSource,
+			nameSpan: nameSpan,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}
@@ -114,7 +114,7 @@ func (a *groupStep) Ops() []spec.Op {
 			name:     a.name,
 			gid:      a.gid,
 			system:   a.system,
-			nameSpan: nameSource,
+			nameSpan: nameSpan,
 		}
 		op.SetStep(a)
 		return []spec.Op{op}
