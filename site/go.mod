@@ -1,8 +1,8 @@
 module scampi.dev/site
 
-go 1.26.0
+go 1.27.0
 
-toolchain go1.26.4
+toolchain go1.27.1
 
 tool (
 	github.com/gohugoio/hugo
@@ -116,6 +116,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hairyhenderson/go-codeowners v0.7.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/imfing/hextra v0.12.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jdkato/prose v1.2.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
