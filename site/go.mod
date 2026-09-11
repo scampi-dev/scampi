@@ -116,7 +116,6 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hairyhenderson/go-codeowners v0.7.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/imfing/hextra v0.12.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jdkato/prose v1.2.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -176,7 +175,7 @@ require (
 	go.uber.org/automaxprocs v1.5.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	gocloud.dev v0.45.0 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/image v0.42.0 // indirect
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
