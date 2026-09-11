@@ -6,12 +6,7 @@ type: docs
 ---
 
 <style>
-@font-face {
-  font-family: 'NerdSymbols';
-  src: url('/fonts/nerd-symbols-subset.woff2') format('woff2');
-  font-display: swap;
-  unicode-range: U+F012C, U+F03EB, U+F040A, U+F0026, U+F0156, U+F069C, U+F02D5, U+F0476;
-}
+{{< glyph-font >}}
 .mission {
   font-size: 1.25rem;
   font-weight: 500;
@@ -287,18 +282,37 @@ reference — here's the short version:
 
 <div class="term"><span class="cmd">$ scampi legend</span>
 <span class="d">STATE</span>
-  <span class="y">󰏫</span>  change    system state was modified
-  <span class="g">󰄬</span>  ok        already correct, no change needed
-  <span class="d">󰐊</span>  exec      operation executed
-<span class="d">COLORS</span>
-  <span class="y">yellow</span>    mutation, system state changed
-  <span class="g">green</span>     correct, no change needed
-  <span class="r">red</span>       failure
-  <span class="b">blue</span>      engine and plan boundaries
-  <span class="m">magenta</span>   plan structure
-  <span class="c">cyan</span>      step context
-  <span class="d">dim</span>       detail (higher verbosity)
+
+  <span class="y">󰏫</span>  change  system state was modified
+  <span class="g">󰄬</span>  ok      already correct, no change needed
+  <span class="d">󰐊</span>  exec    operation executed
+  <span class="y">󰀦</span>  warn    non-fatal issue
+  <span class="r">󰅖</span>  error   operation failed
+  <span class="r">󰚌</span>  fatal   unrecoverable failure
+
+<span class="d">PLAN</span>
+
+  <span class="m">┌─┬ ··· └─■</span>       plan boundary (wraps entire execution)
+  <span class="m">│</span>                 plan rail (steps listed inside)
+
+  <span class="c">┏━┯ [1] copy</span>      step start (step with ops)
+  <span class="c">┇</span> <span class="d">├─ copy_file</span>    op branch
+  <span class="c">┇</span> <span class="d">└─ ensure_mode</span>  op branch (last)
+  <span class="c">■</span>                 step end
+
+  <span class="d">•</span>  [2] symlink    collapsed step (default verbosity)
+
+  <span class="d">← [N, ...]</span>        depends on step N (must complete first)
+  <span class="d">╮</span>                 parallel execution group
+  <span class="d">│</span>
+  <span class="d">╯</span>
+  <span class="d">⏸</span>                 group boundary (engine waits for all)
 </div>
+
+Colors carry the same meaning everywhere: yellow is change, green is
+correct, red is failure, blue marks engine and deploy boundaries,
+magenta is plan structure, cyan is step context, and dim is detail that
+only appears at higher verbosity.
 
 ## See it for yourself
 

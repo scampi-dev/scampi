@@ -74,8 +74,8 @@ The install one-liner already verifies the release signature for you.
 This section is for the rest — the people who'd rather download
 manually and check before running.
 
-Every release after `v0.1.0-alpha.7` ships a signed `SHA256SUMS`
-manifest.[^pre-signing] The signing identity is `releases@scampi.dev`.
+Every release ships a signed `SHA256SUMS` manifest. The signing
+identity is `releases@scampi.dev`.
 Verification needs only `ssh-keygen` — the binary that comes with
 OpenSSH on every Linux, macOS, and BSD install — no gpg, no cosign,
 no minisign.
@@ -88,10 +88,6 @@ package manager that delivered the verifier is now part of the chain
 too. SSH skips that step. `ssh-keygen` is on every machine that talks
 to a remote server, which is every machine you'd plausibly use scampi
 from. The trust chain stops at the shortest possible point.
-
-[^pre-signing]: Earlier alpha releases (`v0.1.0-alpha.1` through
-    `v0.1.0-alpha.7`) ship the `SHA256SUMS` file but no signature.
-    They predate the signing key and won't be retroactively signed.
 
 ### One-time setup
 

@@ -80,7 +80,7 @@ std.deploy(name = "hello", targets = [machine]) {
   {{< hextra/feature-card
     title="Statically Typed"
     style="pointer-events: none"
-    subtitle="A real configuration language with types, attributes, and link-time validation. Errors caught as you type."
+    subtitle="A real configuration language with types, attributes, and link-time validation. Errors caught before anything runs."
   >}}
   {{< hextra/feature-card
     title="Batteries Included"
