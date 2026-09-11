@@ -195,4 +195,4 @@ require (
 
 // Fork that adds the scampi and scampi_mod lexers.
 // Drop this replace once the lexers are upstreamed to alecthomas/chroma.
-replace github.com/alecthomas/chroma/v2 => github.com/pskry/chroma/v2 v2.0.0-20260911161653-76c9205e54a3
+replace github.com/alecthomas/chroma/v2 => github.com/pskry/chroma/v2 v2.0.0-20260911162932-4273b17d7d14
