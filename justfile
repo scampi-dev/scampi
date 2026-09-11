@@ -64,6 +64,7 @@ cross outdir=bin_dir:
 generate:
   go generate ./...
   just _patch-license-headers
+  just site fonts
 
 # Prepend SPDX header to generated files that go generate overwrites.
 # The find commands here MUST match scripts/license-check.sh.

@@ -65,6 +65,11 @@ deploy: stage
 lint:
   {{mdlint}} content/
 
+[group('generate')]
+[doc("Regenerate the Nerd Font subset from render/cli/glyph.go")]
+fonts:
+  ../scampi/scripts/site-fonts.sh
+
 # Cleanup
 # -----------------------------------------------------------------------------
 
