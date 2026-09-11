@@ -129,3 +129,57 @@ show-pr number *args:
 [doc("List inline review comments on a PR")]
 pr-comments number:
   gh api "repos/{{repo}}/pulls/{{number}}/comments"
+
+[group('prs')]
+[doc("Show a PR's diff (--name-only for just the file list)")]
+[positional-arguments]
+pr-diff number *args:
+  #!/usr/bin/env bash
+  exec gh pr diff --repo {{repo}} "$@"
+
+[group('prs')]
+[doc("Show merge readiness of all open PRs (number, mergeable, merge state)")]
+pr-status:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  gh pr list --repo {{repo}} --json number,mergeable,mergeStateStatus,title \
+    --jq '.[] | [.number, .mergeable, .mergeStateStatus, .title] | @tsv'
+
+[group('prs')]
+[doc("Merge a PR (--squash|--merge|--rebase, --delete-branch, --auto)")]
+[positional-arguments]
+merge-pr number *args:
+  #!/usr/bin/env bash
+  exec gh pr merge --repo {{repo}} "$@"
+
+[group('prs')]
+[doc("Show PR checks / CI status")]
+[positional-arguments]
+pr-checks number *args:
+  #!/usr/bin/env bash
+  exec gh pr checks --repo {{repo}} "$@"
+
+# Security
+# -----------------------------------------------------------------------------
+
+[group('security')]
+[doc("Summarize open Dependabot alerts by severity, package and manifest")]
+alerts:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  gh api "repos/{{repo}}/dependabot/alerts?state=open&per_page=100" --paginate \
+    --jq '.[] | [.security_advisory.severity, .dependency.package.name, .dependency.manifest_path] | @tsv' \
+    | sort | uniq -c | sort -rn
+
+[group('security')]
+[doc("Show one Dependabot alert in full (number from `just gh alerts`)")]
+alert number:
+  gh api "repos/{{repo}}/dependabot/alerts/{{number}}"
+
+[group('security')]
+[doc("List open Dependabot alerts with their alert numbers")]
+list-alerts:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  gh api "repos/{{repo}}/dependabot/alerts?state=open&per_page=100" --paginate \
+    --jq '.[] | [.number, .security_advisory.severity, .dependency.package.name, .dependency.manifest_path] | @tsv'
