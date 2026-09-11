@@ -21,7 +21,7 @@ type fakeStaticStepKind struct {
 func (f fakeStaticStepKind) Kind() string                                { return f.kind }
 func (f fakeStaticStepKind) NewConfig() any                              { return &struct{}{} }
 func (f fakeStaticStepKind) Plan(_ spec.DeclaredStep) (spec.Step, error) { return nil, nil }
-func (f fakeStaticStepKind) StaticProvides(_ any) []spec.Resource        { return f.provides }
+func (f fakeStaticStepKind) ProvidesFor(_ any) []spec.Resource           { return f.provides }
 
 // fakeLabelConfig implements spec.ResourceDeclarer for testing user-driven
 // provides/requires declared on step Configs (e.g. posix.run, posix.service).
@@ -30,7 +30,7 @@ type fakeLabelConfig struct {
 	requires []string
 }
 
-func (c *fakeLabelConfig) ResourceDeclarations() ([]string, []string) {
+func (c *fakeLabelConfig) Resources() ([]string, []string) {
 	return c.provides, c.requires
 }
 
@@ -57,7 +57,7 @@ type fakeTargetKind struct {
 
 func (f fakeTargetKind) Kind() string   { return f.kind }
 func (f fakeTargetKind) NewConfig() any { return &struct{}{} }
-func (f fakeTargetKind) StaticRequires(_ any) []spec.Resource {
+func (f fakeTargetKind) RequiresFor(_ any) []spec.Resource {
 	return f.requires
 }
 func (f fakeTargetKind) Create(

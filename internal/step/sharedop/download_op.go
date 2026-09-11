@@ -215,8 +215,8 @@ func (op *DownloadOp) RequiredCapabilities() capability.Capability {
 	return capability.None
 }
 
-func (op *DownloadOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *DownloadOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   downloadID,
 		Text: `download "{{.URL}}" -> "{{.Dest}}"`,
 		Data: struct {

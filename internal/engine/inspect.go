@@ -73,7 +73,7 @@ func InspectDiffPaths(
 		var local []string
 		for _, act := range p.Deploy.Steps {
 			for _, op := range act.Ops() {
-				if d, ok := op.(spec.Diffable); ok {
+				if d, ok := op.(spec.OpContent); ok {
 					local = append(local, d.DestPath())
 				}
 			}
@@ -132,7 +132,7 @@ func (e *Engine) buildInspect(ctx diagnostic.Ctx) (result.Inspect, error) {
 			Desc:  act.Desc(),
 		}
 		for _, op := range act.Ops() {
-			if insp, ok := op.(spec.OpInspector); ok {
+			if insp, ok := op.(spec.OpInspection); ok {
 				entry.Fields = append(entry.Fields, insp.Inspect()...)
 			}
 		}
@@ -152,7 +152,7 @@ func (e *Engine) InspectDiffFile(ctx diagnostic.Ctx, destPath string) (*InspectD
 	var found []diffableOp
 	for _, act := range p.Deploy.Steps {
 		for _, op := range act.Ops() {
-			d, ok := op.(spec.Diffable)
+			d, ok := op.(spec.OpContent)
 			if !ok {
 				continue
 			}
@@ -202,7 +202,7 @@ func (e *Engine) InspectDiffFile(ctx diagnostic.Ctx, destPath string) (*InspectD
 }
 
 type diffableOp struct {
-	diff spec.Diffable
+	diff spec.OpContent
 	ctl  controller.Controller
 	tgt  target.Target
 }

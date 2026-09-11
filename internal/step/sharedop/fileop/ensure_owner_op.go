@@ -216,8 +216,8 @@ func (op EnsureOwnerOp) RequiredCapabilities() capability.Capability {
 	return capability.Ownership
 }
 
-func (op *EnsureOwnerOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *EnsureOwnerOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureOwnerID,
 		Text: `ensure owner "{{.User}}:{{.Group}}" on "{{.Path}}"`,
 		Data: struct {

@@ -46,7 +46,7 @@ type (
 func (Copy) Kind() string   { return "copy" }
 func (Copy) NewConfig() any { return &CopyConfig{} }
 
-func (c *CopyConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *CopyConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

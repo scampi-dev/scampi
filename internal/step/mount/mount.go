@@ -161,7 +161,7 @@ type (
 func (Mount) Kind() string   { return "mount" }
 func (Mount) NewConfig() any { return &MountConfig{} }
 
-func (c *MountConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *MountConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

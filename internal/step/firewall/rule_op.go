@@ -260,8 +260,8 @@ func (op *ensureRuleOp) Inspect() []spec.InspectField {
 	}
 }
 
-func (op *ensureRuleOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureRuleOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureRuleID,
 		Text: `firewall {{.Action}} {{.Port}}`,
 		Data: struct {

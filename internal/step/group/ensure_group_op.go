@@ -82,8 +82,8 @@ func (ensureGroupOp) RequiredCapabilities() capability.Capability {
 	return capability.Group
 }
 
-func (op *ensureGroupOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureGroupOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureGroupID,
 		Text: `ensure group "{{.Name}}" is present`,
 		Data: struct {

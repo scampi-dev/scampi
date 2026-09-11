@@ -65,8 +65,8 @@ func (cleanupSysctlOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-func (op *cleanupSysctlOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *cleanupSysctlOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   cleanupSysctlID,
 		Text: `remove stale drop-in {{.Path}}`,
 		Data: struct {

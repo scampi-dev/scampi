@@ -77,8 +77,8 @@ func (persistSysctlOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-func (op *persistSysctlOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *persistSysctlOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   persistSysctlID,
 		Text: `persist sysctl to {{.Path}}`,
 		Data: struct {

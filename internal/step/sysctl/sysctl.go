@@ -31,7 +31,7 @@ type (
 func (Sysctl) Kind() string   { return "sysctl" }
 func (Sysctl) NewConfig() any { return &SysctlConfig{} }
 
-func (c *SysctlConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *SysctlConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

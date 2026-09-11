@@ -93,7 +93,7 @@ type (
 func (Firewall) Kind() string   { return "firewall" }
 func (Firewall) NewConfig() any { return &FirewallConfig{} }
 
-func (c *FirewallConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *FirewallConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

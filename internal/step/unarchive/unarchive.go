@@ -43,7 +43,7 @@ type (
 func (Unarchive) Kind() string   { return "unarchive" }
 func (Unarchive) NewConfig() any { return &UnarchiveConfig{} }
 
-func (c *UnarchiveConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *UnarchiveConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

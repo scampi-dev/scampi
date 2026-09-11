@@ -314,8 +314,8 @@ func (op *ensureMountOp) checkTools(ctx context.Context, cmdr target.Command) er
 	return nil
 }
 
-func (op *ensureMountOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureMountOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureMountID,
 		Text: `mount {{.State}} {{.Dest}} ({{.Type}} from {{.Src}})`,
 		Data: struct {

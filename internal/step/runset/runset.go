@@ -38,7 +38,7 @@ type (
 func (RunSet) Kind() string   { return "run_set" }
 func (RunSet) NewConfig() any { return &RunSetConfig{} }
 
-func (c *RunSetConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *RunSetConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

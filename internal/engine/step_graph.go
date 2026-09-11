@@ -21,10 +21,10 @@ type stepNode struct {
 // hasResources returns true if the step declares any required or provided
 // resources. Steps without resources act as barriers in the dependency graph.
 func hasResources(act spec.Step) bool {
-	if r, ok := act.(spec.Requirer); ok && len(r.Requires()) > 0 {
+	if r, ok := act.(spec.StepRequires); ok && len(r.Requires()) > 0 {
 		return true
 	}
-	if p, ok := act.(spec.Provider); ok && len(p.Provides()) > 0 {
+	if p, ok := act.(spec.StepProvides); ok && len(p.Provides()) > 0 {
 		return true
 	}
 	return false
@@ -42,7 +42,7 @@ func buildStepGraph(steps []spec.Step) []*stepNode {
 	// Map provided resources to the step that provides them.
 	producers := map[spec.Resource]*stepNode{}
 	for _, n := range nodes {
-		if p, ok := n.step.(spec.Provider); ok {
+		if p, ok := n.step.(spec.StepProvides); ok {
 			for _, r := range p.Provides() {
 				producers[r] = n
 			}
@@ -53,14 +53,14 @@ func buildStepGraph(steps []spec.Step) []*stepNode {
 	// For path resources, also add parent-directory edges (a provided path
 	// /foo/bar implies /foo exists via MkdirAll semantics).
 	for _, n := range nodes {
-		if r, ok := n.step.(spec.Requirer); ok {
+		if r, ok := n.step.(spec.StepRequires); ok {
 			for _, in := range r.Requires() {
 				if producer := producers[in]; producer != nil && producer != n {
 					addEdge(producer, n)
 				}
 			}
 		}
-		if p, ok := n.step.(spec.Provider); ok {
+		if p, ok := n.step.(spec.StepProvides); ok {
 			for _, out := range p.Provides() {
 				if out.Kind == spec.ResourcePath {
 					for r, producer := range producers {

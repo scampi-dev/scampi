@@ -76,7 +76,7 @@ type (
 func (Service) Kind() string   { return "service" }
 func (Service) NewConfig() any { return &ServiceConfig{} }
 
-func (c *ServiceConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *ServiceConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

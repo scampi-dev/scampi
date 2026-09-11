@@ -17,7 +17,7 @@ type CyclicDependencyError struct {
 
 // opID returns an identifier for an op (description ID if available, otherwise pointer)
 func opID(op spec.Op) string {
-	if d, ok := op.(spec.OpDescriber); ok {
+	if d, ok := op.(spec.OpDescription); ok {
 		return d.Describe().ID
 	}
 	return fmt.Sprintf("%p", op)

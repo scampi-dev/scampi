@@ -232,8 +232,8 @@ func (ensureUserOp) RequiredCapabilities() capability.Capability {
 	return capability.User
 }
 
-func (op *ensureUserOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureUserOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureUserID,
 		Text: `ensure user "{{.Name}}" is present`,
 		Data: struct {

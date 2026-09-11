@@ -299,8 +299,8 @@ func (op *ensureLatestPkgOp) Inspect() []spec.InspectField {
 	}
 }
 
-func (op *ensureLatestPkgOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureLatestPkgOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensurePkgID,
 		Text: `ensure pkgs {{.Pkgs}} are {{.State}}`,
 		Data: struct {
@@ -313,8 +313,8 @@ func (op *ensureLatestPkgOp) Describe() spec.OpDescription {
 	}
 }
 
-func (op *ensurePkgOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensurePkgOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensurePkgID,
 		Text: `ensure pkgs {{.Pkgs}} are {{.State}}`,
 		Data: struct {

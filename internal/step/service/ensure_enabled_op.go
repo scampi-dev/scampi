@@ -96,8 +96,8 @@ func (ensureEnabledOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-func (op *ensureEnabledOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureEnabledOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureEnabledID,
 		Text: `ensure service {{.Name}} is {{.Enabled}}`,
 		Data: struct {

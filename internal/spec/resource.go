@@ -26,46 +26,63 @@ func LabelResource(name string) Resource {
 	return Resource{Kind: ResourceLabel, Name: name}
 }
 
-// Requirer is an optional interface that steps can implement to declare
-// resources they require. Used for automatic dependency inference and
-// check-mode deferral.
-type Requirer interface {
-	Requires() []Resource
-}
+// Resource graph declarations
+// -----------------------------------------------------------------------------
+//
+// Five interfaces across (implementer, phase, direction). They look alike but
+// do not overlap - the name says which cell:
+//
+//	StepProvides         planned Step   post-plan  Provides()
+//	StepRequires         planned Step   post-plan  Requires()
+//	StepKindResources    StepKind       pre-plan   ProvidesFor(cfg)
+//	TargetKindResources  TargetKind     pre-plan   RequiresFor(cfg)
+//	ConfigResources      Config struct  pre-plan   Resources() -> user strings
+//
+// All five are declarations: they report facts, they never do work. Each is
+// optional, and not implementing one is itself the declaration - so an
+// implementation never returns nil just to satisfy the shape.
 
-// Provider is an optional interface that steps can implement to declare
-// resources they provide. Used for automatic dependency inference and
-// check-mode deferral.
-type Provider interface {
+// StepProvides is an optional interface that planned steps implement to
+// declare resources they provide. Used for automatic dependency inference
+// and check-mode deferral. Implement it only if the step actually provides
+// something - absence is the declaration that it does not.
+type StepProvides interface {
 	Provides() []Resource
 }
 
-// StaticRequirer is implemented by TargetKinds that require resources
+// StepRequires is an optional interface that planned steps implement to
+// declare resources they require. Same rules as StepProvides: implement it
+// only if the step actually requires something.
+type StepRequires interface {
+	Requires() []Resource
+}
+
+// TargetKindResources is implemented by TargetKinds that require resources
 // provided by other deploy blocks. The engine uses this to order plans
 // cross-deploy: a deploy block whose target requires a resource waits for
 // whichever block provides it. Pure config inspection: no live connections,
 // no probes.
-type StaticRequirer interface {
-	StaticRequires(cfg any) []Resource
+type TargetKindResources interface {
+	RequiresFor(cfg any) []Resource
 }
 
-// StaticProvider is implemented by StepKinds that provide resources
+// StepKindResources is implemented by StepKinds that provide resources
 // visible to other deploy blocks, required by a sibling block's target
-// requirements. Pure config inspection. The step-level Requirer/Provider
-// surface stays separate: those run after Plan(); this is pre-plan.
-type StaticProvider interface {
-	StaticProvides(cfg any) []Resource
+// requirements. Pure config inspection. Distinct from StepProvides: that one
+// runs after Plan() on a planned step, this one is pre-plan on the kind.
+type StepKindResources interface {
+	ProvidesFor(cfg any) []Resource
 }
 
-// ResourceDeclarer is implemented by step Config structs that expose
+// ConfigResources is implemented by step Config structs that expose
 // user-driven `provides = [...]` / `requires = [...]` fields (e.g. posix.run,
-// posix.service). The engine reads these alongside type-driven StaticProvides
+// posix.service). The engine reads these alongside type-driven StepKindResources
 // to build the cross-deploy resource graph: dc1's `samba-ad-dc` service can
 // provide `realm:skrynet.lan`, and dc2's join step can require it, so the
 // engine orders dc2 after dc1. Each declared name maps to a LabelResource;
 // matching is exact-string. See #275.
-type ResourceDeclarer interface {
-	ResourceDeclarations() (provides, requires []string)
+type ConfigResources interface {
+	Resources() (provides, requires []string)
 }
 
 // DriftDetail describes one field that differs between desired and current

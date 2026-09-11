@@ -67,7 +67,7 @@ type (
 func (Group) Kind() string   { return "group" }
 func (Group) NewConfig() any { return &GroupConfig{} }
 
-func (c *GroupConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *GroupConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

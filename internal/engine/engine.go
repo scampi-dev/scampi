@@ -71,11 +71,11 @@ func (e *Engine) storeInputFiles(ctx diagnostic.Ctx, p spec.Plan) {
 		return
 	}
 	for _, act := range p.Deploy.Steps {
-		sr, ok := act.(spec.SourceReader)
+		sr, ok := act.(spec.StepInputs)
 		if !ok {
 			continue
 		}
-		for _, path := range sr.SourcePaths() {
+		for _, path := range sr.Inputs() {
 			if data, err := e.ctl.ReadFile(ctx, path); err == nil {
 				e.store.AddFile(path, data)
 			}

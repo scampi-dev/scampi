@@ -100,8 +100,8 @@ func (ensureActiveOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-func (op *ensureActiveOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureActiveOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureActiveID,
 		Text: `ensure service {{.Name}} is {{.State}}`,
 		Data: struct {

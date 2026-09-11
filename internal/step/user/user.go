@@ -73,7 +73,7 @@ type (
 func (User) Kind() string   { return "user" }
 func (User) NewConfig() any { return &UserConfig{} }
 
-func (c *UserConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *UserConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

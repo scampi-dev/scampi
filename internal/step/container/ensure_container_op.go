@@ -648,8 +648,8 @@ func joinOrNone(ports []string) string {
 	return s.String()
 }
 
-func (op *ensureContainerOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureContainerOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureContainerID,
 		Text: `ensure container "{{.Name}}" is {{.State}} ({{.Image}})`,
 		Data: struct {

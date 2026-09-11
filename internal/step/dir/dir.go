@@ -40,7 +40,7 @@ type (
 func (Dir) Kind() string   { return "dir" }
 func (Dir) NewConfig() any { return &DirConfig{} }
 
-func (c *DirConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *DirConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 
@@ -238,8 +238,8 @@ func (ensureDirOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem
 }
 
-func (op *ensureDirOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureDirOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureDirID,
 		Text: `ensure directory "{{.Path}}"`,
 		Data: struct {

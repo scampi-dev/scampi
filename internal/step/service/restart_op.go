@@ -62,8 +62,8 @@ func (restartOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-func (op *restartOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *restartOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   restartID,
 		Text: `restart service {{.Name}}`,
 		Data: struct {

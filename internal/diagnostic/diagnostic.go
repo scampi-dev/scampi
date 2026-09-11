@@ -12,7 +12,7 @@ import (
 // OpDisplayID derives a display identifier for an op.
 // Uses OpDescriber description ID if available, otherwise falls back to type name.
 func OpDisplayID(op spec.Op) string {
-	if d, ok := op.(spec.OpDescriber); ok {
+	if d, ok := op.(spec.OpDescription); ok {
 		if id := d.Describe().ID; id != "" {
 			return string(id)
 		}

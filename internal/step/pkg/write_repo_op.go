@@ -97,8 +97,8 @@ func (writeRepoConfigOp) RequiredCapabilities() capability.Capability {
 	return capability.PkgRepo
 }
 
-func (op *writeRepoConfigOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *writeRepoConfigOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   writeRepoConfigID,
 		Text: `configure repo source "{{.Name}}"`,
 		Data: struct {

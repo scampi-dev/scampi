@@ -405,7 +405,7 @@ func (e *Engine) checkPlan(ctx diagnostic.Ctx, plan spec.Plan) (result.Execution
 			// If this step would change something, add its provided
 			// resources to the set for downstream steps.
 			if stepRep.Summary.WouldChange > 0 {
-				if p, ok := n.step.(spec.Provider); ok {
+				if p, ok := n.step.(spec.StepProvides); ok {
 					for _, key := range p.Provides() {
 						provided[key] = true
 					}
@@ -606,7 +606,7 @@ func captureStepOutput(act spec.Step, report result.StepReport, outputs *stepOut
 		return
 	}
 	for _, opReport := range report.Ops {
-		if provider, ok := opReport.Op.(spec.OutputProvider); ok {
+		if provider, ok := opReport.Op.(spec.OpOutput); ok {
 			if out := provider.Output(); out != nil {
 				outputs.Store(id.StepID(), out)
 				return

@@ -86,8 +86,8 @@ func (setSysctlOp) RequiredCapabilities() capability.Capability {
 	return capability.Command
 }
 
-func (op *setSysctlOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *setSysctlOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   setSysctlID,
 		Text: `set sysctl {{.Key}} = {{.Value}}`,
 		Data: struct {

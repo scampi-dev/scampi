@@ -16,14 +16,14 @@ import (
 )
 
 // Test_Rule_TemplateRender is a contract test that auto-discovers every
-// diagnostic.Raisable and spec.OpDescriber implementation in the module,
+// diagnostic.Raisable and spec.OpDescription implementation in the module,
 // extracts their template string literals from the AST, resolves the Data
 // type via go/types, and renders each template with both populated and nil
 // data. A panic means a template references a field that doesn't exist on
 // the Data struct. Data must be a struct (by value or pointer, nil allowed)
 // so field references are statically checkable.
 //
-// Adding a new Raisable or OpDescriber type is automatically picked up
+// Adding a new Raisable or OpDescription type is automatically picked up
 // - no manual registration.
 func Test_Rule_TemplateRender(t *testing.T) {
 	cfg := &packages.Config{
@@ -43,9 +43,9 @@ func Test_Rule_TemplateRender(t *testing.T) {
 		t.Fatal("diagnostic.Raisable interface not found")
 	}
 
-	opDescIface := findInterface(pkgs, "OpDescriber")
+	opDescIface := findInterface(pkgs, "OpDescription")
 	if opDescIface == nil {
-		t.Fatal("spec.OpDescriber interface not found")
+		t.Fatal("spec.OpDescription interface not found")
 	}
 
 	var all []renderable
@@ -90,7 +90,7 @@ func Test_Rule_TemplateRender(t *testing.T) {
 	}
 
 	if checked == 0 {
-		t.Fatal("no Diagnostic or OpDescriber implementations found")
+		t.Fatal("no Diagnostic or OpDescription implementations found")
 	}
 
 	t.Logf("discovered %d implementors, %d renderable templates", checked, len(all))
@@ -151,8 +151,8 @@ func extractDiagnosticTemplates(t *testing.T, pkg *packages.Package, named *type
 	return extractFromMethod(t, pkg, named, "Diagnostic", []string{"Text", "Hint", "Help"})
 }
 
-// extractOpDescTemplates finds the Describe() method of an OpDescriber
-// implementor and extracts template literals from the returned spec.OpDescription{}.
+// extractOpDescTemplates finds the Describe() method of an OpDescription
+// implementor and extracts template literals from the returned spec.PlanLine{}.
 func extractOpDescTemplates(t *testing.T, pkg *packages.Package, named *types.Named) []renderable {
 	t.Helper()
 	return extractFromMethod(t, pkg, named, "Describe", []string{"Text"})

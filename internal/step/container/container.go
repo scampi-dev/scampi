@@ -113,7 +113,7 @@ type (
 func (Instance) Kind() string   { return "container.instance" }
 func (Instance) NewConfig() any { return &InstanceConfig{} }
 
-func (c *InstanceConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *InstanceConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

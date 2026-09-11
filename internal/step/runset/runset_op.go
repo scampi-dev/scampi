@@ -243,8 +243,8 @@ func (runSetOp) RequiredCapabilities() capability.Capability {
 	return capability.Command
 }
 
-func (op *runSetOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *runSetOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   runSetID,
 		Text: `{{if .Desc}}{{.Desc}}{{else}}run_set list={{.List}} ({{.Desired}} desired){{end}}`,
 		Data: struct {

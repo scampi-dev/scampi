@@ -101,8 +101,8 @@ func (o *FakeOp) Execute(ctx context.Context, ctl controller.Controller, tgt tar
 	return o.ExecFn(ctx, ctl, tgt)
 }
 
-func (o FakeOp) Describe() spec.OpDescription {
-	return spec.OpDescription{ID: o.Name}
+func (o FakeOp) Describe() spec.PlanLine {
+	return spec.PlanLine{ID: o.Name}
 }
 
 func (FakeOp) RequiredCapabilities() capability.Capability {

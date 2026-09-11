@@ -166,8 +166,8 @@ func (op *copyFileOp) DestPath() string {
 	return op.dest
 }
 
-func (op *copyFileOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *copyFileOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   copyFileID,
 		Text: `copy "{{.Src}}" -> "{{.Dest}}"`,
 		Data: struct {

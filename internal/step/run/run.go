@@ -31,7 +31,7 @@ type (
 func (Run) Kind() string   { return "run" }
 func (Run) NewConfig() any { return &RunConfig{} }
 
-func (c *RunConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *RunConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

@@ -80,7 +80,7 @@ type (
 func (Pkg) Kind() string   { return "pkg" }
 func (Pkg) NewConfig() any { return &PkgConfig{} }
 
-func (c *PkgConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *PkgConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

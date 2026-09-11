@@ -21,7 +21,7 @@ func op(idx int, id, text string, deps ...int) result.PlannedOp {
 		Index:       idx,
 		DisplayID:   id,
 		DependsOn:   deps,
-		Description: &spec.OpDescription{ID: id, Text: text},
+		Description: &spec.PlanLine{ID: id, Text: text},
 	}
 }
 

@@ -144,8 +144,8 @@ func (runOp) RequiredCapabilities() capability.Capability {
 	return capability.Command
 }
 
-func (op *runOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *runOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   runID,
 		Text: `run{{if .Always}} (always){{end}}: {{.Apply}}`,
 		Data: struct {

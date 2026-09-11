@@ -50,7 +50,7 @@ type (
 func (Template) Kind() string   { return "template" }
 func (Template) NewConfig() any { return &TemplateConfig{} }
 
-func (c *TemplateConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *TemplateConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 

@@ -74,8 +74,8 @@ func (removeUserOp) RequiredCapabilities() capability.Capability {
 	return capability.User
 }
 
-func (op *removeUserOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *removeUserOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   removeUserID,
 		Text: `ensure user "{{.Name}}" is absent`,
 		Data: struct {

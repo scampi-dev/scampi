@@ -411,8 +411,8 @@ func extractMissingKey(err error) string {
 	return strings.Trim(after, "\"")
 }
 
-func (op *renderTemplateOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *renderTemplateOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   renderTemplateID,
 		Text: `render "{{.Src}}" -> "{{.Dest}}"`,
 		Data: struct {

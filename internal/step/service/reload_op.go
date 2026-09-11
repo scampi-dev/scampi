@@ -81,8 +81,8 @@ func (reloadOp) RequiredCapabilities() capability.Capability {
 	return capability.Service
 }
 
-func (op *reloadOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *reloadOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   reloadID,
 		Text: `reload service {{.Name}}`,
 		Data: struct {

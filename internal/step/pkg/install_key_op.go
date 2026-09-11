@@ -78,8 +78,8 @@ func (installKeyOp) RequiredCapabilities() capability.Capability {
 	return capability.PkgRepo
 }
 
-func (op *installKeyOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *installKeyOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   installKeyID,
 		Text: `install signing key for "{{.Name}}"`,
 		Data: struct {

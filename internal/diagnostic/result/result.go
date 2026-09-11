@@ -106,7 +106,7 @@ type PlannedOp struct {
 	Index       int
 	DisplayID   string
 	DependsOn   []int
-	Description *spec.OpDescription // nil = no description, use DisplayID
+	Description *spec.PlanLine // nil = no description, use DisplayID
 }
 
 // Inspect

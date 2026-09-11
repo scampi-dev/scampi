@@ -36,11 +36,11 @@ type Step interface {
 	Ops() []Op
 }
 
-// SourceReader is an optional interface that steps can implement to declare
+// StepInputs is an optional interface that steps can implement to declare
 // controller-side files they read. The engine pre-caches these so the renderer can
 // display source context in error messages.
-type SourceReader interface {
-	SourcePaths() []string
+type StepInputs interface {
+	Inputs() []string
 }
 
 // Op is the smallest idempotent unit of work. Ops receive both Source
@@ -59,11 +59,11 @@ type OpTimeout interface {
 	Timeout() time.Duration
 }
 
-// Diffable is an optional interface that ops producing file content can
+// OpContent is an optional interface that ops producing file content can
 // implement to support `scampi inspect --diff`. Both methods take ctl and tgt:
 // most ops only need src, but posix.copy with a `source_target { ... }`
 // resolver reads desired content from the target itself (#286).
-type Diffable interface {
+type OpContent interface {
 	DesiredContent(ctx context.Context, ctl controller.Controller, tgt target.Target) ([]byte, error)
 	CurrentContent(ctx context.Context, ctl controller.Controller, tgt target.Target) ([]byte, error)
 	DestPath() string
@@ -75,46 +75,46 @@ type InspectField struct {
 	Value string
 }
 
-// OpInspector is an optional interface that ops can implement to expose their
+// OpInspection is an optional interface that ops can implement to expose their
 // resolved state for `scampi inspect`.
-type OpInspector interface {
+type OpInspection interface {
 	Inspect() []InspectField
 }
 
-// OpDescriber is an optional interface that ops implement to expose their
+// OpDescription is an optional interface that ops implement to expose their
 // plan-line description. The returned OpDescription's Data must be a struct
 // so template field references ({{.State}}, {{.Dest}}, ...) are statically
 // checkable.
-type OpDescriber interface {
-	Describe() OpDescription
+type OpDescription interface {
+	Describe() PlanLine
 }
 
-// Deduplicatable is an optional interface that step configs can implement to
+// ConfigDedupKey is an optional interface that step configs can implement to
 // enable dedup when the same logical step appears multiple times in a steps
 // list (e.g. returned from multiple helper functions). Steps with the same
 // Kind + DedupKey are collapsed to one; refs to dropped IDs are remapped to the
 // survivor.
-type Deduplicatable interface {
+type ConfigDedupKey interface {
 	DedupKey() string
 }
 
-// OutputProvider is an optional interface that ops can implement to expose their
+// OpOutput is an optional interface that ops can implement to expose their
 // settled state after execution. The engine captures this for ref() resolution
 // in downstream steps.
-type OutputProvider interface {
+type OpOutput interface {
 	Output() any
 }
 
-// OpDescription is the render contract for an op's plan line.
-type OpDescription struct {
+// PlanLine is the render contract for an op's plan line.
+type PlanLine struct {
 	ID   string
 	Text string
 	Data any
 }
 
-func (t OpDescription) TemplateID() string   { return t.ID }
-func (t OpDescription) TemplateText() string { return t.Text }
-func (t OpDescription) TemplateData() any    { return t.Data }
+func (t PlanLine) TemplateID() string   { return t.ID }
+func (t PlanLine) TemplateText() string { return t.Text }
+func (t PlanLine) TemplateData() any    { return t.Data }
 
 type Result struct {
 	Changed bool

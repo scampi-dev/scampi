@@ -38,7 +38,7 @@ type (
 func (Symlink) Kind() string   { return "symlink" }
 func (Symlink) NewConfig() any { return &SymlinkConfig{} }
 
-func (c *SymlinkConfig) ResourceDeclarations() (provides, requires []string) {
+func (c *SymlinkConfig) Resources() (provides, requires []string) {
 	return c.Provides, c.Requires
 }
 
@@ -260,8 +260,8 @@ func (ensureSymlinkOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem | capability.Symlink
 }
 
-func (op *ensureSymlinkOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *ensureSymlinkOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureSymlinkID,
 		Text: `symlink "{{.Link}}" -> "{{.Target}}"`,
 		Data: struct {

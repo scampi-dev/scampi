@@ -429,8 +429,8 @@ func (op *unarchiveOp) extractNested(
 	return nil
 }
 
-func (op *unarchiveOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *unarchiveOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   unarchiveID,
 		Text: `unarchive "{{.Src}}" -> "{{.Dest}}"`,
 		Data: struct {

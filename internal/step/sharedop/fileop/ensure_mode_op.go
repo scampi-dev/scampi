@@ -170,8 +170,8 @@ func (op EnsureModeOp) RequiredCapabilities() capability.Capability {
 	return capability.Filesystem | capability.FileMode
 }
 
-func (op *EnsureModeOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *EnsureModeOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   ensureModeID,
 		Text: `ensure mode {{.Mode}} on "{{.Path}}"`,
 		Data: struct {

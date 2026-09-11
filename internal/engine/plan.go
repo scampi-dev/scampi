@@ -150,8 +150,8 @@ func planDetail(p spec.Plan, stepDeps StepDeps) result.PlanDetail {
 
 	plannedOps := make([]result.PlannedOp, len(allOps))
 	for i, op := range allOps {
-		var desc *spec.OpDescription
-		if d, ok := op.(spec.OpDescriber); ok {
+		var desc *spec.PlanLine
+		if d, ok := op.(spec.OpDescription); ok {
 			od := d.Describe()
 			desc = &od
 		}

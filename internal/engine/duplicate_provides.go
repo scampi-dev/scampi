@@ -28,7 +28,7 @@ func detectDuplicateProvides(
 	var causes []error
 
 	for i, step := range steps {
-		p, ok := step.(spec.Provider)
+		p, ok := step.(spec.StepProvides)
 		if !ok {
 			continue
 		}

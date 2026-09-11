@@ -74,8 +74,8 @@ func (removeGroupOp) RequiredCapabilities() capability.Capability {
 	return capability.Group
 }
 
-func (op *removeGroupOp) Describe() spec.OpDescription {
-	return spec.OpDescription{
+func (op *removeGroupOp) Describe() spec.PlanLine {
+	return spec.PlanLine{
 		ID:   removeGroupID,
 		Text: `ensure group "{{.Name}}" is absent`,
 		Data: struct {

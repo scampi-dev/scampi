@@ -87,12 +87,12 @@ func collectProvides(r spec.Config) []spec.Resource {
 	var out []spec.Resource
 	for _, step := range r.Steps {
 		// Type-driven: a step kind auto-provides resources from its config.
-		if p, ok := step.Type.(spec.StaticProvider); ok {
-			out = append(out, p.StaticProvides(step.Config)...)
+		if p, ok := step.Type.(spec.StepKindResources); ok {
+			out = append(out, p.ProvidesFor(step.Config)...)
 		}
 		// Config-driven user labels (e.g. posix.service { provides = ["..."] }).
-		if d, ok := step.Config.(spec.ResourceDeclarer); ok {
-			provides, _ := d.ResourceDeclarations()
+		if d, ok := step.Config.(spec.ConfigResources); ok {
+			provides, _ := d.Resources()
 			for _, p := range provides {
 				out = append(out, spec.LabelResource(p))
 			}
@@ -104,16 +104,16 @@ func collectProvides(r spec.Config) []spec.Resource {
 func collectRequires(r spec.Config) []spec.Resource {
 	var out []spec.Resource
 	// Target-driven: a target kind requires resources from its config.
-	if p, ok := r.Target.Type.(spec.StaticRequirer); ok {
-		out = append(out, p.StaticRequires(r.Target.Config)...)
+	if p, ok := r.Target.Type.(spec.TargetKindResources); ok {
+		out = append(out, p.RequiresFor(r.Target.Config)...)
 	}
 	// Config-driven user labels on steps (e.g. posix.run { requires = ["..."] }).
 	for _, step := range r.Steps {
-		d, ok := step.Config.(spec.ResourceDeclarer)
+		d, ok := step.Config.(spec.ConfigResources)
 		if !ok {
 			continue
 		}
-		_, requires := d.ResourceDeclarations()
+		_, requires := d.Resources()
 		for _, in := range requires {
 			out = append(out, spec.LabelResource(in))
 		}
