@@ -66,47 +66,51 @@ rest="${base#v"$major".}"  # 1.0
 minor="${rest%%.*}"        # 1
 patch="${rest#"$minor".}"  # 0
 
-# Collect issue numbers from commits since last tag
-if [[ -n "$last_tag" ]]; then
-  range="${last_tag}..HEAD"
+bump="patch"
+
+# The bump level is only consumed when the last tag is stable: leaving a
+# pre-release either increments its counter or promotes the base version
+# as-is, and neither consults it. Computing it anyway costs one
+# `gh issue view` round-trip per referenced issue for a value we discard,
+# which is most of this script's runtime -- so don't.
+#
+# Release notes come from GitHub's own commit-range generation, so nothing
+# else needs the issue list either.
+if [[ "$last_tag" == *-* ]]; then
+  echo "last tag $last_tag is a pre-release; bump level not needed" >&2
 else
-  range="HEAD"
-fi
+  issues=$(git log "${last_tag:+$last_tag..}HEAD" --format='%s%n%b' \
+    | grep -ioE '(fixes|closes|fix|close|resolves|resolve) #[0-9]+' \
+    | grep -oE '[0-9]+' \
+    | sort -u || true)
 
-issues=$(git log "$range" --format='%s%n%b' \
-  | grep -ioE '(fixes|closes|fix|close|resolves|resolve) #[0-9]+' \
-  | grep -oE '[0-9]+' \
-  | sort -u || true)
+  if [[ -z "$issues" ]]; then
+    echo "no issues found since ${last_tag:-inception}" >&2
+  else
+    summary=""
+    for issue in $issues; do
+      json=$(gh issue view "$issue" --json title,labels 2>/dev/null || echo '{}')
 
-if [[ -z "$issues" ]]; then
-  echo "no issues found since ${last_tag:-inception}" >&2
-  bump="patch"
-else
-  bump="patch"
-  summary=""
+      title=$(echo "$json" | jq -r '.title // "???"')
+      labels=$(echo "$json" | jq -r '.labels[].name' 2>/dev/null || true)
+      summary="${summary}  #${issue} ${title}\n"
 
-  for issue in $issues; do
-    json=$(gh issue view "$issue" --json title,labels 2>/dev/null || echo '{}')
-
-    title=$(echo "$json" | jq -r '.title // "???"')
-    labels=$(echo "$json" | jq -r '.labels[].name' 2>/dev/null || true)
-    summary="${summary}  #${issue} ${title}\n"
-
-    for label in $labels; do
-      case "$label" in
-        compat/breaking)
-          bump="major"
-          ;;
-        kind/feature|kind/enhancement)
-          [[ "$bump" != "major" ]] && bump="minor"
-          ;;
-      esac
+      for label in $labels; do
+        case "$label" in
+          compat/breaking)
+            bump="major"
+            ;;
+          kind/feature|kind/enhancement)
+            [[ "$bump" != "major" ]] && bump="minor"
+            ;;
+        esac
+      done
     done
-  done
 
-  echo "issues since ${last_tag:-inception}:" >&2
-  printf '%b' "$summary" >&2
-  echo "bump: $bump" >&2
+    echo "issues since ${last_tag:-inception}:" >&2
+    printf '%b' "$summary" >&2
+    echo "bump: $bump" >&2
+  fi
 fi
 
 if [[ -n "$pre_stage" ]]; then
