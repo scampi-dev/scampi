@@ -56,7 +56,20 @@ jobs:
         run: just site dist
 
       - name: Checkout scampi-infra
-        run: git clone https://github.com/scampi-dev/scampi-infra.git scampi-infra
+        # scampi-infra is private, so this clone is authenticated with a
+        # read-only deploy key on that repo. IdentitiesOnly pins it to that
+        # key: HAL9000_SSH_KEY is loaded into the agent in the next step and
+        # would otherwise be offered to github.com too.
+        env:
+          INFRA_DEPLOY_KEY: ${{ secrets.INFRA_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$INFRA_DEPLOY_KEY" > ~/.ssh/infra_deploy
+          chmod 600 ~/.ssh/infra_deploy
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/infra_deploy -o IdentitiesOnly=yes" \
+            git clone git@github.com:scampi-dev/scampi-infra.git scampi-infra
 
       - name: Deploy site via scampi
         env:
