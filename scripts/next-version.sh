@@ -38,8 +38,10 @@ stage_rank() {
   esac
 }
 
-# Find the last tag (stable or pre-release)
-last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+# Find the last version tag (stable or pre-release). --match is required:
+# plain `git describe` returns the nearest tag by topology, so a non-version
+# tag like pre-trim-2026-06-23 wins and parses into nonsense (vpre.pre.pre).
+last_tag=$(git describe --tags --abbrev=0 --match='v[0-9]*' 2>/dev/null || echo "")
 
 # Inception short-circuit: with no prior tag there's no since-last-tag
 # range to scan, no bump level to compute (nothing to bump *from*), and
