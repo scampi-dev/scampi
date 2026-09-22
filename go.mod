@@ -17,8 +17,8 @@ require (
 	github.com/klauspost/compress v1.20.0
 	github.com/mattn/go-runewidth v0.0.30
 	github.com/pkg/sftp v1.13.11
-	github.com/ulikunitz/xz v0.5.16
-	github.com/urfave/cli/v3 v3.11.0
+	github.com/ulikunitz/xz v0.5.17
+	github.com/urfave/cli/v3 v3.12.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/sync v0.23.0
 	golang.org/x/tools v0.50.0
