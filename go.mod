@@ -14,14 +14,14 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/itchyny/gojq v0.12.19
-	github.com/klauspost/compress v1.20.0
+	github.com/klauspost/compress v1.20.1
 	github.com/mattn/go-runewidth v0.0.30
 	github.com/pkg/sftp v1.13.11
-	github.com/ulikunitz/xz v0.5.16
-	github.com/urfave/cli/v3 v3.11.0
+	github.com/ulikunitz/xz v0.5.17
+	github.com/urfave/cli/v3 v3.14.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/sync v0.23.0
-	golang.org/x/tools v0.50.0
+	golang.org/x/tools v0.51.0
 )
 
 require (
