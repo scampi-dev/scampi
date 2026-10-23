@@ -38,8 +38,8 @@ Example structure:
 ├─ vscode/
 │  └─ launch-bob.yml
 └─ tmux/
-   ├─ tmuxinator-pskry.yml
-   └─ tmuxinator-alice.yml
+   ├─ tmuxp-pskry.yaml
+   └─ tmuxp-alice.yaml
 ```
 
 This signals that:
@@ -57,7 +57,7 @@ Developers who wish to use one of these configurations may copy or symlink it lo
 For example, creating symlinks manually:
 
 ```
-ln -s .dev/tmux/tmuxinator-pskry.yml .tmuxinator.yml
+ln -s .dev/tmux/tmuxp-pskry.yaml .tmuxp.yaml
 ln -s .dev/nvim/lazy-pskry.lua .lazy.lua
 ```
 
@@ -69,7 +69,7 @@ Alternatively, a developer may provide a **personal init script** under `.dev/sc
 
 Running an init script is a convenience, not a requirement.
 
-Local files or symlinks created in the project root (such as `.tmuxinator.yml` or `.lazy.lua`) shall not be committed to the repository.
+Local files or symlinks created in the project root (such as `.tmuxp.yaml` or `.lazy.lua`) shall not be committed to the repository.
 
 ## Adding new environments
 

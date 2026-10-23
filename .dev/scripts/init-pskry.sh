@@ -8,4 +8,4 @@ ROOT_DIR="$(realpath "$SCRIPT_DIR/../..")"
 cd "$ROOT_DIR"
 
 ln -sf .dev/nvim/lazy-pskry.lua .lazy.lua
-ln -sf .dev/tmux/tmuxinator-pskry.yml .tmuxinator.yml
+ln -sf .dev/tmux/tmuxp-pskry.yaml .tmuxp.yaml

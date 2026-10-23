@@ -1,0 +1,15 @@
+session_name: scampi
+start_directory: ./
+
+windows:
+  - window_name: "nvim  "
+    layout: main-vertical
+    options:
+      main-pane-width: 67%
+    panes:
+      - nvim
+      - awake claude
+
+  - window_name: "git  "
+    panes:
+      - lazygit
