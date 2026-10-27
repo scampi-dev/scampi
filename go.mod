@@ -14,14 +14,14 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/itchyny/gojq v0.12.19
-	github.com/klauspost/compress v1.20.0
-	github.com/mattn/go-runewidth v0.0.30
-	github.com/pkg/sftp v1.13.11
-	github.com/ulikunitz/xz v0.5.16
-	github.com/urfave/cli/v3 v3.11.0
-	golang.org/x/crypto v0.57.0
-	golang.org/x/sync v0.23.0
-	golang.org/x/tools v0.50.0
+	github.com/klauspost/compress v1.20.3
+	github.com/mattn/go-runewidth v0.0.31
+	github.com/pkg/sftp v1.13.12
+	github.com/ulikunitz/xz v0.5.17
+	github.com/urfave/cli/v3 v3.14.0
+	golang.org/x/crypto v0.58.0
+	golang.org/x/sync v0.24.0
+	golang.org/x/tools v0.51.0
 )
 
 require (
@@ -229,8 +229,8 @@ require (
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260811152304-ee035b5b010f // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
